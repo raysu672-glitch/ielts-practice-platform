@@ -358,6 +358,7 @@ def main(argv: list[str]) -> int:
             setup_firewall(ssh)
         elif not args.skip_nginx:
             setup_nginx(ssh)
+            setup_https(ssh)
         verify_deployment(ssh)
         print("\n" + "=" * 60)
         print("Deployment complete")
