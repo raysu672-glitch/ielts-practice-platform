@@ -1,0 +1,3736 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<title>雅思阅读 · 同义替换大挑战</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg-dark: #0a0e1a;
+    --bg-card: #141828;
+    --bg-card2: #1a1f36;
+    --purple: #8b5cf6;
+    --purple-glow: rgba(139,92,246,0.4);
+    --green: #22d3a7;
+    --green-glow: rgba(34,211,167,0.4);
+    --red: #f43f5e;
+    --red-glow: rgba(244,63,94,0.4);
+    --gold: #fbbf24;
+    --gold-glow: rgba(251,191,36,0.4);
+    --blue: #38bdf8;
+    --text: #e2e8f0;
+    --text-dim: #94a3b8;
+    --text-dimmer: #64748b;
+    --border: rgba(255,255,255,0.08);
+  }
+
+  body {
+    font-family: "Segoe UI", "PingFang SC", "Hiragino Sans GB", sans-serif;
+    background: var(--bg-dark);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+    position: relative;
+  }
+
+  /* ===== Animated background ===== */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background:
+      radial-gradient(ellipse at 20% 50%, rgba(139,92,246,0.08) 0%, transparent 50%),
+      radial-gradient(ellipse at 80% 20%, rgba(34,211,167,0.06) 0%, transparent 50%),
+      radial-gradient(ellipse at 50% 80%, rgba(56,189,248,0.05) 0%, transparent 50%);
+    z-index: 0;
+    pointer-events: none;
+  }
+
+  /* ===== Particle canvas ===== */
+  #particleCanvas {
+    position: fixed;
+    inset: 0;
+    z-index: 999;
+    pointer-events: none;
+  }
+
+  /* ===== Page header ===== */
+  .page-header {
+    background: rgba(20,24,40,0.85);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+    padding: 14px 20px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .logo-section {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-shrink: 0;
+  }
+  .logo-badge {
+    width: 140px; height: 50px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    background: rgba(255,255,255,0.1);
+    border-radius: 8px;
+    padding: 4px;
+  }
+  .logo-badge img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    filter: brightness(1.2) contrast(1.1);
+  }
+  .logo-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: #fff;
+    letter-spacing: 0.5px;
+  }
+  .author-info {
+    margin-left: auto;
+    margin-right: 12px;
+    font-size: 13px;
+    color: var(--text-dim);
+    font-weight: 500;
+  }
+  .page-header h1 { font-size: 15px; font-weight: 600; letter-spacing: 0.5px; }
+  .page-header p { font-size: 11px; color: var(--text-dim); margin-top: 2px; }
+
+  /* Sound toggle */
+  .sound-toggle {
+    margin-left: auto;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    width: 36px; height: 36px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    color: var(--text-dim);
+    font-size: 16px;
+    transition: all 0.2s;
+  }
+  .sound-toggle:hover { background: rgba(255,255,255,0.1); color: var(--text); }
+  .sound-toggle.muted { color: var(--text-dimmer); }
+
+  .container {
+    max-width: 780px;
+    margin: 0 auto;
+    padding: 20px 16px;
+    position: relative;
+    z-index: 1;
+  }
+
+  /* ===== XP & Level bar ===== */
+  .level-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 16px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 12px 16px;
+  }
+  .level-badge {
+    background: linear-gradient(135deg, var(--gold), #f59e0b);
+    color: #1a1a1a;
+    font-weight: 700;
+    font-size: 13px;
+    padding: 4px 12px;
+    border-radius: 20px;
+    white-space: nowrap;
+    box-shadow: 0 0 15px var(--gold-glow);
+    flex-shrink: 0;
+  }
+  .xp-bar-wrap { flex: 1; }
+  .xp-label { display: flex; justify-content: space-between; font-size: 11px; color: var(--text-dim); margin-bottom: 4px; }
+  .xp-bar { height: 8px; background: rgba(255,255,255,0.06); border-radius: 4px; overflow: hidden; }
+  .xp-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--gold), #f59e0b);
+    border-radius: 4px;
+    transition: width 0.6s cubic-bezier(0.4,0,0.2,1);
+    box-shadow: 0 0 10px var(--gold-glow);
+  }
+
+  /* ===== Stats bar ===== */
+  .stats-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+  .stat-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 12px;
+    text-align: center;
+    transition: transform 0.2s;
+  }
+  .stat-num { font-size: 22px; font-weight: 700; }
+  .stat-lbl { font-size: 10px; color: var(--text-dim); margin-top: 2px; text-transform: uppercase; letter-spacing: 1px; }
+  .stat-num.purple { color: var(--purple); text-shadow: 0 0 12px var(--purple-glow); }
+  .stat-num.green  { color: var(--green); text-shadow: 0 0 12px var(--green-glow); }
+  .stat-num.red    { color: var(--red); text-shadow: 0 0 12px var(--red-glow); }
+  .stat-num.gold   { color: var(--gold); text-shadow: 0 0 12px var(--gold-glow); }
+
+  /* ===== Combo display ===== */
+  .combo-display {
+    position: fixed;
+    top: 80px;
+    right: 20px;
+    z-index: 200;
+    text-align: right;
+    pointer-events: none;
+    opacity: 0;
+    transform: scale(0.8) translateY(10px);
+    transition: all 0.3s cubic-bezier(0.34,1.56,0.64,1);
+  }
+  .combo-display.active {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+  .combo-num {
+    font-size: 48px;
+    font-weight: 900;
+    background: linear-gradient(135deg, var(--gold), #ff6b6b, var(--purple));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    line-height: 1;
+    filter: drop-shadow(0 0 20px rgba(251,191,36,0.5));
+  }
+  .combo-label {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--gold);
+    text-transform: uppercase;
+    letter-spacing: 3px;
+  }
+
+  /* ===== Progress ===== */
+  .progress-wrap {
+    margin-bottom: 16px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 12px 16px;
+  }
+  .progress-label { display: flex; justify-content: space-between; font-size: 12px; color: var(--text-dim); margin-bottom: 6px; }
+  .progress-bar { height: 6px; background: rgba(255,255,255,0.06); border-radius: 3px; overflow: hidden; }
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--purple), var(--blue));
+    border-radius: 3px;
+    transition: width 0.5s cubic-bezier(0.4,0,0.2,1);
+    box-shadow: 0 0 10px var(--purple-glow);
+  }
+
+  /* ===== Timer ===== */
+  .timer-display {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--blue);
+    text-shadow: 0 0 10px rgba(56,189,248,0.3);
+    margin-bottom: 12px;
+    font-variant-numeric: tabular-nums;
+  }
+  .timer-icon { font-size: 16px; }
+
+  /* ===== Status hint ===== */
+  .status-hint {
+    background: rgba(139,92,246,0.1);
+    border: 1px solid rgba(139,92,246,0.25);
+    border-radius: 12px;
+    padding: 10px 14px;
+    font-size: 13px;
+    color: #c4b5fd;
+    margin-bottom: 16px;
+    line-height: 1.5;
+    text-align: center;
+  }
+
+  /* ===== Word grid ===== */
+  .words-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 18px;
+    justify-content: center;
+  }
+  .word-btn {
+    padding: 8px 16px;
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 10px;
+    font-size: 13px;
+    cursor: pointer;
+    background: var(--bg-card);
+    color: var(--text);
+    transition: all 0.2s cubic-bezier(0.4,0,0.2,1);
+    user-select: none;
+    -webkit-user-select: none;
+    position: relative;
+    overflow: hidden;
+  }
+  .word-btn::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, rgba(255,255,255,0.05), transparent);
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+  .word-btn:hover:not(:disabled):not(.used) {
+    border-color: var(--purple);
+    color: #fff;
+    box-shadow: 0 0 20px var(--purple-glow), inset 0 0 20px rgba(139,92,246,0.1);
+    transform: translateY(-2px);
+  }
+  .word-btn:hover:not(:disabled):not(.used)::before { opacity: 1; }
+  .word-btn:active:not(:disabled):not(.used) { transform: translateY(0) scale(0.97); }
+
+  .word-btn.anchor {
+    background: linear-gradient(135deg, var(--purple), #6d28d9);
+    color: #fff;
+    border-color: var(--purple);
+    box-shadow: 0 0 25px var(--purple-glow);
+    transform: scale(1.05);
+  }
+  .word-btn.correct {
+    background: linear-gradient(135deg, var(--green), #059669);
+    color: #fff;
+    border-color: var(--green);
+    box-shadow: 0 0 25px var(--green-glow);
+    animation: correctPop 0.5s cubic-bezier(0.34,1.56,0.64,1);
+  }
+  .word-btn.wrong {
+    background: linear-gradient(135deg, var(--red), #dc2626);
+    color: #fff;
+    border-color: var(--red);
+    box-shadow: 0 0 25px var(--red-glow);
+    animation: wrongShake 0.5s;
+  }
+  .word-btn.used {
+    opacity: 0.2;
+    text-decoration: line-through;
+    cursor: default;
+    filter: grayscale(1);
+  }
+  .word-btn:disabled { cursor: default; }
+
+  @keyframes correctPop {
+    0% { transform: scale(1); }
+    40% { transform: scale(1.2); }
+    100% { transform: scale(1.05); }
+  }
+  @keyframes wrongShake {
+    0%,100% { transform: translateX(0); }
+    15% { transform: translateX(-8px) rotate(-2deg); }
+    30% { transform: translateX(8px) rotate(2deg); }
+    45% { transform: translateX(-6px) rotate(-1deg); }
+    60% { transform: translateX(6px) rotate(1deg); }
+    75% { transform: translateX(-3px); }
+    90% { transform: translateX(3px); }
+  }
+
+  /* ===== Chain box ===== */
+  .chain-box {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px 16px;
+    margin-bottom: 14px;
+    display: none;
+  }
+  .chain-box.show { display: block; animation: slideIn 0.3s ease; }
+  .chain-label { font-size: 11px; color: var(--text-dim); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 1px; }
+  .chain-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chain-tag {
+    padding: 5px 12px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 500;
+  }
+  .chain-tag.anchor-tag {
+    background: linear-gradient(135deg, var(--purple), #6d28d9);
+    color: #fff;
+    box-shadow: 0 0 12px var(--purple-glow);
+  }
+  .chain-tag.correct-tag {
+    background: linear-gradient(135deg, var(--green), #059669);
+    color: #fff;
+    box-shadow: 0 0 12px var(--green-glow);
+    animation: tagPop 0.4s cubic-bezier(0.34,1.56,0.64,1);
+  }
+
+  @keyframes tagPop {
+    0% { transform: scale(0); opacity: 0; }
+    100% { transform: scale(1); opacity: 1; }
+  }
+  @keyframes slideIn {
+    0% { opacity: 0; transform: translateY(8px); }
+    100% { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ===== Feedback ===== */
+  .feedback-box {
+    border-radius: 12px;
+    padding: 10px 14px;
+    font-size: 13px;
+    margin-bottom: 14px;
+    display: none;
+    line-height: 1.5;
+    animation: slideIn 0.3s ease;
+  }
+  .feedback-box.show { display: block; }
+  .feedback-box.ok {
+    background: rgba(34,211,167,0.1);
+    color: var(--green);
+    border: 1px solid rgba(34,211,167,0.25);
+  }
+  .feedback-box.err {
+    background: rgba(244,63,94,0.1);
+    color: var(--red);
+    border: 1px solid rgba(244,63,94,0.25);
+  }
+  .feedback-box.info {
+    background: rgba(56,189,248,0.1);
+    color: var(--blue);
+    border: 1px solid rgba(56,189,248,0.25);
+  }
+
+  /* ===== Action buttons ===== */
+  .action-row {
+    display: none;
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+  .action-row.show { display: flex; animation: slideIn 0.3s ease; }
+  .btn-primary {
+    padding: 10px 24px;
+    background: linear-gradient(135deg, var(--purple), #6d28d9);
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    box-shadow: 0 0 20px var(--purple-glow);
+  }
+  .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 4px 25px var(--purple-glow); }
+  .btn-primary:active { transform: translateY(0); }
+  .btn-outline {
+    padding: 10px 24px;
+    background: rgba(255,255,255,0.04);
+    color: var(--text-dim);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .btn-outline:hover { background: rgba(255,255,255,0.08); color: var(--text); border-color: rgba(255,255,255,0.2); }
+
+  /* ===== Completed groups ===== */
+  .completed-section { margin-top: 4px; }
+  .done-group {
+    background: rgba(34,211,167,0.06);
+    border: 1px solid rgba(34,211,167,0.15);
+    border-radius: 12px;
+    padding: 10px 14px;
+    margin-bottom: 8px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    align-items: center;
+    animation: slideIn 0.4s ease;
+  }
+  .done-group-num {
+    font-size: 11px;
+    color: var(--green);
+    background: rgba(34,211,167,0.1);
+    padding: 2px 10px;
+    border-radius: 10px;
+    border: 1px solid rgba(34,211,167,0.2);
+    flex-shrink: 0;
+    font-weight: 600;
+  }
+  .done-word {
+    font-size: 12px;
+    color: var(--green);
+    padding: 3px 10px;
+    background: rgba(34,211,167,0.08);
+    border-radius: 10px;
+    border: 1px solid rgba(34,211,167,0.15);
+  }
+  .missed-word {
+    font-size: 12px;
+    color: #f43f5e;
+    padding: 3px 10px;
+    background: rgba(244,63,94,0.15);
+    border-radius: 10px;
+    border: 2px solid #f43f5e;
+    animation: missedPulse 1.5s ease-in-out infinite;
+  }
+
+  @keyframes missedPulse {
+    0%, 100% {
+      box-shadow: 0 0 5px rgba(244,63,94,0.5);
+      transform: scale(1);
+    }
+    50% {
+      box-shadow: 0 0 15px rgba(244,63,94,0.8);
+      transform: scale(1.05);
+    }
+  }
+
+  /* ===== Reveal Card (显示正确答案) ===== */
+  .reveal-card {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(0.8);
+    background: linear-gradient(135deg, #1a1f36, #141828);
+    border: 2px solid #f43f5e;
+    border-radius: 16px;
+    padding: 24px 32px;
+    text-align: center;
+    z-index: 3000;
+    opacity: 0;
+    pointer-events: none;
+    transition: all 0.4s cubic-bezier(0.34,1.56,0.64,1);
+    box-shadow: 0 0 40px rgba(244,63,94,0.4), 0 20px 60px rgba(0,0,0,0.5);
+    min-width: 280px;
+  }
+  .reveal-card.show {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+    pointer-events: auto;
+  }
+  .reveal-card-title {
+    font-size: 14px;
+    color: #f43f5e;
+    margin-bottom: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+  }
+  .reveal-card-word {
+    font-size: 24px;
+    font-weight: 700;
+    color: #fff;
+    margin-bottom: 16px;
+    text-shadow: 0 0 20px rgba(244,63,94,0.5);
+    position: relative;
+  }
+  .reveal-card-word .tooltip {
+    visibility: hidden;
+    opacity: 0;
+    position: absolute;
+    bottom: calc(100% + 10px);
+    left: 50%;
+    transform: translateX(-50%);
+    background: linear-gradient(135deg, #1a1f36, #141828);
+    border: 1px solid rgba(139,92,246,0.5);
+    border-radius: 10px;
+    padding: 10px 14px;
+    min-width: 140px;
+    z-index: 1000;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.4), 0 0 20px rgba(139,92,246,0.2);
+    transition: opacity 0.2s, transform 0.2s;
+  }
+  .reveal-card-word .tooltip::after {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    border: 8px solid transparent;
+    border-top-color: rgba(139,92,246,0.5);
+  }
+  .reveal-card-word:hover .tooltip {
+    visibility: visible;
+    opacity: 1;
+    transform: translateX(-50%) translateY(-2px);
+  }
+  .reveal-card-synonyms {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: center;
+    margin-bottom: 20px;
+  }
+  .reveal-card-synonym {
+    padding: 6px 14px;
+    background: rgba(244,63,94,0.2);
+    border: 1px solid rgba(244,63,94,0.4);
+    border-radius: 20px;
+    font-size: 13px;
+    color: #fda4af;
+    animation: synonymPop 0.4s ease forwards;
+    opacity: 0;
+    position: relative;
+  }
+  .reveal-card-synonym .tooltip {
+    visibility: hidden;
+    opacity: 0;
+    position: absolute;
+    bottom: calc(100% + 8px);
+    left: 50%;
+    transform: translateX(-50%);
+    background: linear-gradient(135deg, #1a1f36, #141828);
+    border: 1px solid rgba(139,92,246,0.5);
+    border-radius: 10px;
+    padding: 8px 12px;
+    min-width: 120px;
+    z-index: 1000;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.4), 0 0 20px rgba(139,92,246,0.2);
+    transition: opacity 0.2s, transform 0.2s;
+  }
+  .reveal-card-synonym .tooltip::after {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    border: 6px solid transparent;
+    border-top-color: rgba(139,92,246,0.5);
+  }
+  .reveal-card-synonym:hover .tooltip {
+    visibility: visible;
+    opacity: 1;
+    transform: translateX(-50%) translateY(-2px);
+  }
+  .reveal-card-synonym:nth-child(1) { animation-delay: 0.1s; }
+  .reveal-card-synonym:nth-child(2) { animation-delay: 0.2s; }
+  .reveal-card-synonym:nth-child(3) { animation-delay: 0.3s; }
+  .reveal-card-synonym:nth-child(4) { animation-delay: 0.4s; }
+  .reveal-card-synonym:nth-child(5) { animation-delay: 0.5s; }
+  .reveal-card-synonym:nth-child(n+6) { animation-delay: 0.6s; }
+  @keyframes synonymPop {
+    0% { opacity: 0; transform: scale(0.5); }
+    100% { opacity: 1; transform: scale(1); }
+  }
+  .reveal-card-btn {
+    padding: 10px 28px;
+    background: linear-gradient(135deg, #f43f5e, #dc2626);
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    box-shadow: 0 0 20px rgba(244,63,94,0.4);
+  }
+  .reveal-card-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 25px rgba(244,63,94,0.5);
+  }
+  .reveal-card-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.6);
+    z-index: 2999;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s;
+  }
+  .reveal-card-overlay.show {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  /* ===== End screen highlight ===== */
+  .end-missed-section {
+    margin: 20px auto;
+    max-width: 600px;
+    background: rgba(244,63,94,0.08);
+    border: 2px solid rgba(244,63,94,0.3);
+    border-radius: 16px;
+    padding: 20px;
+    display: none;
+  }
+  .end-missed-section.show {
+    display: block;
+    animation: slideIn 0.5s ease;
+  }
+  .end-missed-title {
+    font-size: 14px;
+    color: #f43f5e;
+    font-weight: 600;
+    margin-bottom: 12px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    text-align: center;
+  }
+  .end-missed-words {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: center;
+  }
+  .end-missed-word {
+    padding: 8px 16px;
+    background: rgba(244,63,94,0.15);
+    border: 1px solid #f43f5e;
+    border-radius: 10px;
+    font-size: 13px;
+    color: #fff;
+    animation: missedHighlight 2s ease-in-out infinite;
+  }
+  @keyframes missedHighlight {
+    0%, 100% {
+      background: rgba(244,63,94,0.15);
+      box-shadow: 0 0 5px rgba(244,63,94,0.3);
+    }
+    50% {
+      background: rgba(244,63,94,0.3);
+      box-shadow: 0 0 15px rgba(244,63,94,0.6);
+    }
+  }
+
+  /* ===== End screen ===== */
+  #endScreen {
+    display: none;
+    text-align: center;
+    padding: 40px 20px;
+    background: var(--bg-card);
+    border-radius: 16px;
+    border: 1px solid var(--border);
+    animation: slideIn 0.5s ease;
+  }
+  #endScreen.show { display: block; }
+  .end-round { font-size: 13px; color: var(--text-dim); margin-bottom: 8px; }
+  .end-score {
+    font-size: 52px;
+    font-weight: 900;
+    margin-bottom: 4px;
+    background: linear-gradient(135deg, var(--purple), var(--gold));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    filter: drop-shadow(0 0 30px var(--purple-glow));
+  }
+  .end-detail { font-size: 14px; color: var(--text-dim); margin-bottom: 10px; line-height: 1.7; }
+  .end-xp {
+    font-size: 18px;
+    color: var(--gold);
+    font-weight: 700;
+    margin-bottom: 28px;
+    text-shadow: 0 0 15px var(--gold-glow);
+  }
+  .end-btn-row { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+
+  /* ===== Floating score text ===== */
+  .float-score {
+    position: fixed;
+    z-index: 1000;
+    pointer-events: none;
+    font-weight: 900;
+    font-size: 28px;
+    animation: floatUp 1s ease-out forwards;
+  }
+  .float-score.positive {
+    color: var(--green);
+    text-shadow: 0 0 15px var(--green-glow);
+  }
+  .float-score.negative {
+    color: var(--red);
+    text-shadow: 0 0 15px var(--red-glow);
+  }
+  .float-score.combo {
+    color: var(--gold);
+    font-size: 36px;
+    text-shadow: 0 0 20px var(--gold-glow);
+  }
+  @keyframes floatUp {
+    0% { opacity: 1; transform: translateY(0) scale(1); }
+    50% { opacity: 1; transform: translateY(-30px) scale(1.1); }
+    100% { opacity: 0; transform: translateY(-60px) scale(0.8); }
+  }
+
+  /* ===== Screen flash ===== */
+  .screen-flash {
+    position: fixed;
+    inset: 0;
+    z-index: 998;
+    pointer-events: none;
+    animation: flashAnim 0.4s ease-out forwards;
+  }
+  .screen-flash.green { background: rgba(34,211,167,0.15); }
+  .screen-flash.red { background: rgba(244,63,94,0.12); }
+  .screen-flash.gold { background: rgba(251,191,36,0.15); }
+  @keyframes flashAnim {
+    0% { opacity: 1; }
+    100% { opacity: 0; }
+  }
+
+  /* ===== Level up overlay ===== */
+  .levelup-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 2000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0,0,0,0.6);
+    animation: levelUpIn 0.3s ease;
+  }
+  .levelup-content {
+    text-align: center;
+    animation: levelUpBounce 0.6s cubic-bezier(0.34,1.56,0.64,1);
+  }
+  .levelup-title {
+    font-size: 48px;
+    font-weight: 900;
+    background: linear-gradient(135deg, var(--gold), #ff6b6b, var(--purple));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    filter: drop-shadow(0 0 40px var(--gold-glow));
+    margin-bottom: 8px;
+  }
+  .levelup-sub { font-size: 16px; color: var(--gold); font-weight: 600; }
+  @keyframes levelUpIn {
+    0% { opacity: 0; }
+    100% { opacity: 1; }
+  }
+  @keyframes levelUpBounce {
+    0% { transform: scale(0.5); opacity: 0; }
+    60% { transform: scale(1.1); }
+    100% { transform: scale(1); opacity: 1; }
+  }
+
+  /* ===== Home screen styles ===== */
+  .home-header {
+    text-align: center;
+    margin-bottom: 24px;
+  }
+  .home-title {
+    font-size: 24px;
+    font-weight: 700;
+    color: #fff;
+    margin-bottom: 8px;
+    background: linear-gradient(135deg, var(--purple), var(--blue));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .home-subtitle {
+    font-size: 14px;
+    color: var(--text-dim);
+  }
+  .sets-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 14px;
+  }
+  .set-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 18px;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4,0,0.2,1);
+    position: relative;
+    overflow: hidden;
+  }
+  .set-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, var(--purple), var(--blue));
+    transform: scaleX(0);
+    transition: transform 0.3s;
+  }
+  .set-card:hover {
+    border-color: var(--purple);
+    box-shadow: 0 0 25px rgba(139,92,246,0.2);
+    transform: translateY(-3px);
+  }
+  .set-card:hover::before {
+    transform: scaleX(1);
+  }
+  .set-card:hover .set-arrow {
+    transform: translateX(5px);
+  }
+  .set-num {
+    font-size: 12px;
+    color: var(--text-dimmer);
+    margin-bottom: 6px;
+    font-weight: 600;
+  }
+  .set-name {
+    font-size: 16px;
+    font-weight: 600;
+    color: #fff;
+    margin-bottom: 6px;
+  }
+  .set-desc {
+    font-size: 12px;
+    color: var(--text-dim);
+    margin-bottom: 10px;
+    line-height: 1.4;
+  }
+  .set-info {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 11px;
+    color: var(--text-dimmer);
+  }
+  .set-arrow {
+    color: var(--purple);
+    transition: transform 0.2s;
+  }
+
+  /* ===== Study screen styles ===== */
+  .study-header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+  }
+  .btn-back {
+    padding: 8px 16px;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text-dim);
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s;
+    flex-shrink: 0;
+  }
+  .btn-back:hover {
+    background: rgba(255,255,255,0.1);
+    color: var(--text);
+  }
+  .study-title-wrap {
+    flex: 1;
+    min-width: 200px;
+  }
+  .study-title {
+    font-size: 18px;
+    font-weight: 600;
+    color: #fff;
+    margin-bottom: 2px;
+  }
+  .study-subtitle {
+    font-size: 12px;
+    color: var(--text-dim);
+  }
+  .study-progress {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 10px 16px;
+    margin-bottom: 16px;
+    font-size: 13px;
+    color: var(--text-dim);
+  }
+  .study-progress #totalGroups {
+    color: var(--purple);
+    font-weight: 700;
+  }
+  .groups-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .group-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px;
+    transition: all 0.2s;
+  }
+  .group-card:hover {
+    border-color: rgba(139,92,246,0.3);
+    background: rgba(139,92,246,0.03);
+  }
+  .group-label {
+    font-size: 11px;
+    color: var(--text-dimmer);
+    margin-bottom: 8px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+  .group-words {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .group-word {
+    padding: 6px 12px;
+    background: linear-gradient(135deg, rgba(139,92,246,0.15), rgba(34,211,167,0.1));
+    border: 1px solid rgba(139,92,246,0.2);
+    border-radius: 20px;
+    font-size: 13px;
+    color: #c4b5fd;
+    transition: all 0.2s;
+  }
+  .group-word {
+    position: relative;
+    cursor: help;
+  }
+  .group-word:hover {
+    background: linear-gradient(135deg, rgba(139,92,246,0.25), rgba(34,211,167,0.15));
+    transform: translateY(-2px);
+    box-shadow: 0 0 15px rgba(139,92,246,0.3);
+  }
+  .group-word .tooltip {
+    visibility: hidden;
+    opacity: 0;
+    position: absolute;
+    bottom: calc(100% + 10px);
+    left: 50%;
+    transform: translateX(-50%);
+    background: linear-gradient(135deg, #1a1f36, #141828);
+    border: 1px solid rgba(139,92,246,0.5);
+    border-radius: 10px;
+    padding: 10px 14px;
+    min-width: 180px;
+    max-width: 280px;
+    color: #e2e8f0;
+    font-size: 13px;
+    line-height: 1.6;
+    z-index: 1000;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.4), 0 0 20px rgba(139,92,246,0.2);
+    transition: opacity 0.2s, transform 0.2s;
+  }
+  .group-word .tooltip::after {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    border: 8px solid transparent;
+    border-top-color: rgba(139,92,246,0.5);
+  }
+  .group-word:hover .tooltip {
+    visibility: visible;
+    opacity: 1;
+    transform: translateX(-50%) translateY(-2px);
+  }
+
+  .word-btn .tooltip {
+    visibility: hidden;
+    opacity: 0;
+    position: absolute;
+    bottom: calc(100% + 10px);
+    left: 50%;
+    transform: translateX(-50%);
+    background: linear-gradient(135deg, #1a1f36, #141828);
+    border: 1px solid rgba(139,92,246,0.5);
+    border-radius: 10px;
+    padding: 10px 14px;
+    min-width: 140px;
+    color: #fbbf24;
+    font-size: 13px;
+    font-weight: 600;
+    z-index: 1000;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.4), 0 0 20px rgba(139,92,246,0.2);
+    transition: opacity 0.2s;
+    white-space: nowrap;
+  }
+  .word-btn .tooltip::after {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    border: 8px solid transparent;
+    border-top-color: rgba(139,92,246,0.5);
+  }
+  .word-btn:hover:not(:disabled) .tooltip {
+    visibility: visible;
+    opacity: 1;
+    transform: translateX(-50%) translateY(-2px);
+  }
+  .word-btn {
+    position: relative;
+  }
+
+  .tooltip-cn {
+    color: #fbbf24;
+    font-weight: 600;
+    font-size: 14px;
+    margin-bottom: 6px;
+  }
+  .tooltip-syn {
+    color: #94a3b8;
+    font-size: 12px;
+    border-top: 1px solid rgba(255,255,255,0.1);
+    padding-top: 6px;
+    margin-top: 6px;
+  }
+  .tooltip-syn-label {
+    color: #22d3a7;
+    font-weight: 600;
+  }
+  .game-header {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 16px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  /* ===== Responsive ===== */
+  @media (max-width: 480px) {
+    .stats-row { grid-template-columns: repeat(2, 1fr); }
+    .word-btn { font-size: 12px; padding: 6px 12px; }
+    .combo-display { top: 70px; right: 10px; }
+    .combo-num { font-size: 36px; }
+    .sets-grid { grid-template-columns: 1fr; }
+    .study-header { flex-direction: column; text-align: center; }
+    .study-title-wrap { order: -1; }
+  }
+</style>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+
+<!-- =========== 登录覆盖层（未登录时显示） =========== -->
+<div id="loginOverlay" style="
+    position: fixed; inset: 0; z-index: 9999;
+    background: rgba(10, 14, 26, 0.98);
+    display: flex; align-items: center; justify-content: center;
+    padding: 20px; font-family: "Segoe UI", "PingFang SC", sans-serif;
+">
+    <div style="
+        background: #141828; border: 1px solid rgba(139,92,246,0.3);
+        border-radius: 20px; padding: 40px; max-width: 420px; width: 100%;
+        box-shadow: 0 20px 60px rgba(139,92,246,0.3);
+    ">
+        <div style="text-align: center; margin-bottom: 30px;">
+            <div style="font-size: 3rem; margin-bottom: 10px;">🎓</div>
+            <h2 style="color: #e2e8f0; font-size: 1.5rem; margin-bottom: 8px;">欢迎使用</h2>
+            <p style="color: #94a3b8; font-size: 0.95rem;">请输入学号和密码开始学习</p>
+        </div>
+        <div style="margin-bottom: 20px;">
+            <label style="display:block; color:#94a3b8; font-size:0.9rem; margin-bottom:8px;">学号</label>
+            <input type="text" id="studentIdInput" autocomplete="off"
+                style="width:100%; padding:14px 16px; background:#1a1f36;
+                       border:1px solid rgba(139,92,246,0.3); border-radius:10px;
+                       color:#e2e8f0; font-size:1rem; outline:none;">
+        </div>
+        <div style="margin-bottom: 30px;">
+            <label style="display:block; color:#94a3b8; font-size:0.9rem; margin-bottom:8px;">密码</label>
+            <input type="password" id="studentPwdInput" autocomplete="off"
+                style="width:100%; padding:14px 16px; background:#1a1f36;
+                       border:1px solid rgba(139,92,246,0.3); border-radius:10px;
+                       color:#e2e8f0; font-size:1rem; outline:none;">
+        </div>
+        <button onclick="studentLogin()"
+            style="width:100%; padding:14px; background: linear-gradient(135deg, #8b5cf6, #22d3a7);
+                   border:none; border-radius:10px; color:white; font-size:1rem;
+                   font-weight: bold; cursor: pointer;">登 录</button>
+        <div id="loginError" style="color:#f43f5e; text-align:center; margin-top:15px; font-size:0.9rem;"></div>
+        <div id="loginHint" style="color:#64748b; text-align:center; margin-top:10px; font-size:0.8rem;"></div>
+    </div>
+</div>
+
+
+<canvas id="particleCanvas"></canvas>
+
+<div class="page-header">
+  <div class="logo-section">
+    <div class="logo-badge"><img src="logo.png" alt="藕叶英语"></div>
+    <div class="logo-title">阅读同义替换专项练习</div>
+  </div>
+  <div class="author-info">著作人：苏宁</div>
+  <div class="sound-toggle" id="soundToggle" onclick="toggleSound()">🔊</div>
+</div>
+
+<div class="container">
+  <!-- ===== 首页 - 大组列表 ===== -->
+  <div id="homeScreen" style="display:none;">
+    <div class="home-header">
+      <h2 class="home-title">📚 同义替换学习</h2>
+      <p class="home-subtitle">选择一个单元开始学习</p>
+    </div>
+    <div class="sets-grid" id="setsGrid"></div>
+  </div>
+
+  <!-- ===== 学习页面 ===== -->
+  <div id="studyScreen" style="display:none;">
+    <div class="study-header">
+      <button class="btn-back" onclick="goHome()">← 返回</button>
+      <div class="study-title-wrap">
+        <h2 class="study-title" id="studyTitle"></h2>
+        <p class="study-subtitle" id="studySubtitle"></p>
+      </div>
+      <button class="btn-primary" id="startPracticeBtn" onclick="startPractice()">开始练习 →</button>
+    </div>
+    <div class="study-progress">
+      <span id="studyProgressText">共 <span id="totalGroups">0</span> 组</span>
+    </div>
+    <div class="groups-list" id="groupsList"></div>
+  </div>
+
+  <!-- ===== 游戏页面 ===== -->
+  <div id="mainArea">
+    <div class="game-header">
+      <button class="btn-back" onclick="goToStudy()">← 返回学习</button>
+      <button class="btn-back" onclick="goHome()">🏠 首页</button>
+    </div>
+    <!-- Level & XP -->
+    <div class="level-row">
+      <div class="level-badge" id="levelBadge">Lv.1</div>
+      <div class="xp-bar-wrap">
+        <div class="xp-label">
+          <span id="xpText">0 / 100 XP</span>
+          <span id="levelTitle">词场新兵</span>
+        </div>
+        <div class="xp-bar">
+          <div class="xp-fill" id="xpFill" style="width:0%"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="stat-num purple" id="sDone">0/10</div>
+        <div class="stat-lbl">完成组</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num" id="sTotal">—</div>
+        <div class="stat-lbl">词数</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num green" id="sRight">0</div>
+        <div class="stat-lbl">正确</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num red" id="sWrong">0</div>
+        <div class="stat-lbl">错误</div>
+      </div>
+    </div>
+
+    <!-- Timer -->
+    <div class="timer-display">
+      <span class="timer-icon">⏱</span>
+      <span id="timerText">00:00</span>
+    </div>
+
+    <!-- Progress -->
+    <div class="progress-wrap">
+      <div class="progress-label">
+        <span id="progressText">第 1 轮 · 随机抽取 10 组</span>
+        <span id="progressPct">0%</span>
+      </div>
+      <div class="progress-bar">
+        <div class="progress-fill" id="progressFill" style="width:0%"></div>
+      </div>
+    </div>
+
+    <!-- Hint -->
+    <div class="status-hint" id="statusHint">🎯 点击任意单词开始练习 — 它将成为参照词</div>
+
+    <!-- Words -->
+    <div class="words-grid" id="wordsGrid"></div>
+
+    <!-- Chain -->
+    <div class="chain-box" id="chainBox">
+      <div class="chain-label">🔗 当前同义链</div>
+      <div class="chain-tags" id="chainTags"></div>
+    </div>
+
+    <!-- Feedback -->
+    <div class="feedback-box" id="feedbackBox"></div>
+
+    <!-- Actions -->
+    <div class="action-row" id="actionRow">
+      <button class="btn-outline" onclick="skipGroup()">放弃这组</button>
+      <button class="btn-primary" onclick="confirmGroup()">继续 →</button>
+    </div>
+
+    <div class="completed-section" id="completedSection"></div>
+  </div>
+
+  <div id="endScreen">
+    <div class="end-round" id="endRound"></div>
+    <div class="end-score" id="endScore"></div>
+    <div class="end-detail" id="endDetail"></div>
+    <div class="end-missed-section" id="endMissedSection">
+      <div class="end-missed-title">📋 还需要巩固的词汇</div>
+      <div class="end-missed-words" id="endMissedWords"></div>
+    </div>
+    <div class="end-xp" id="endXp"></div>
+    <div class="end-btn-row">
+      <button class="btn-primary" onclick="startGame()">🔄 换10组再战</button>
+    </div>
+  </div>
+</div>
+
+<!-- Reveal Card for showing missed word's correct answer -->
+<div class="reveal-card-overlay" id="revealOverlay" onclick="closeRevealCard()"></div>
+<div class="reveal-card" id="revealCard">
+  <div class="reveal-card-title">📝 本组参照词</div>
+  <div class="reveal-card-word" id="revealWord"></div>
+  <div class="reveal-card-synonyms" id="revealSynonyms"></div>
+  <button class="reveal-card-btn" onclick="closeRevealCard()">我记住了 →</button>
+</div>
+
+<!-- Combo display -->
+<div class="combo-display" id="comboDisplay">
+  <div class="combo-num" id="comboNum">0</div>
+  <div class="combo-label">COMBO</div>
+</div>
+
+<script>
+// ============================================================
+//  词库 - 大组结构
+// ============================================================
+const ALL_GROUPS = [
+  ["account", "description", "reports", "records"],
+  ["minute（微小的｜minute）", "very small", "tiny（极小的）", "microscopic"],
+  ["fast", "stop eating", "starve", "eat no food"],
+  ["coat", "a lay of", "cover"],
+  ["digit", "finger", "toe"],
+  ["produce", "agricultural products", "things connected with farming", "fruit and vegetables"],
+  ["fine（罚款）", "punishment", "be fined", "be punished", "penalize", "charge"],
+  ["fine（优良的）", "refined", "made of small grains", "minute（微小的｜fine）"],
+  ["sound", "good", "healthy", "correct（正确的）", "reliable", "sensible"],
+  ["ground（碎末）", "small pieces of solid matter", "crushed stuff"],
+  ["ground（碾碎的）", "cut into small pieces", "smashed"],
+  ["Act", "law", "motion", "legislation"],
+  ["coin", "first used", "invent", "devise", "introduce", "forge"],
+  ["lead", "a chemical element"],
+  ["successive", "consecutive", "sequent", "serial"],
+  ["belief（信念）", "opinion", "view"],
+  ["manage", "succeed in doing"],
+  ["undesirable", "harmful", "unwanted", "detrimental", "potential danger"],
+  ["likelihood", "probability", "possibility"],
+  ["film", "thin sheet", "thin layer", "covering", "coating"],
+  ["novel", "new（新的｜novel）", "unusual（不寻常的｜novel）", "unique（独特的｜novel）", "fresh（新鲜的｜novel）"],
+  ["deliver", "realize（实现｜deliver）", "do", "make"],
+  ["contract（收缩）", "reduce（减少｜contract）", "shrink（收缩｜contract）", "become smaller or less", "compress"],
+  ["contract（患病）", "become infected with a disease", "get an illness", "become ill"],
+  ["approach（接近）", "get closer to", "come near", "access"],
+  ["approach（处理）", "address（处理｜approach）", "deal with（处理｜approach）", "cope with（应付｜approach）", "tackle（处理｜approach）", "attack", "grapple with"],
+  ["culture（养殖）", "cultivation", "the growing of plants or animals"],
+  ["culture（文化｜culture）", "society", "civilization", "a set of ideas or beliefs"],
+  ["vehicle", "medium", "channel（渠道｜vehicle）"],
+  ["passage", "channel（渠道｜passage）", "corridor", "lane", "crossing", "passageway"],
+  ["early", "previous", "ancient", "before", "ago"],
+  ["now", "today", "nowadays", "current", "recently（最近｜now）", "currently", "at present", "present-day"],
+  ["future", "further", "will", "pave the way", "wait and see", "new（新的｜future）", "in future decades", "prediction（预测｜future）"],
+  ["具体数字", "figures", "the amount of", "how many", "proportion", "percent"],
+  ["physical（身体的）", "medical", "connected with a person's body", "relating to body"],
+  ["physical（物理的）", "real things", "able to be seen or touched"],
+  ["climatic conditions", "floods", "droughts", "hurricanes"],
+  ["examples of", "a list of", "a number of", "2个及以上的具体例子"],
+  ["items", "a list of objects", "things", "plenty of goods"],
+  ["environment（环境｜environment）", "CO2 emissions", "conservation", "energy loss", "energy concerns", "ecological", "green efforts", "carbon footprint", "greenhouse gas", "green issues", "carbon emission", "climate change"],
+  ["because", "as", "since", "for", "in that", "on account of", "owing to（由于｜because）"],
+  ["so", "hence", "thus", "therefore", "as a result of", "consequently"],
+  ["way", "method", "approach（方法）"],
+  ["and", "as well as", "both and", "not only but also", "besides", "in addition", "can also be", "also part of", "other than", "but is accompanied by"],
+  ["cause（导致）", "lead to", "result in", "contribute to（促成｜cause）", "account for", "give rise to", "sow the seeds of", "trigger", "spark off", "precipitate", "attribute to"],
+  ["cause（动机）", "motive（动机｜cause）", "reason", "the reason why", "may be because", "explains", "explanation"],
+  ["money（钱｜money）", "charging", "cost", "price", "profits", "financial（金融的｜money）", "economic", "low-income", "value", "savings"],
+  ["problems", "challenges", "difficult", "difficulties", "hurdles", "risks", "dilemmas", "pitfalls"],
+  ["called", "known as", "named", "referred to", "act as", "which is", "同位语，破折号，引号"],
+  ["look like", "like（像｜look like）", "resemblance", "resemble", "be similar to"],
+  ["for example", "for instance", "such as", "like（像｜for example）", "including", "say", "namely", "e.g."],
+  ["stop", "curb", "halt", "quit", "prevent（阻止｜stop）", "prohibit", "restrict", "restrain", "inhibit", "hinder", "obstruct", "thwart", "withdraw", "constrain", "curtail"],
+  ["conditions", "factors", "situations", "aspects"],
+  ["decline（拒绝）", "turn down", "refuse", "reject", "denial", "revolt"],
+  ["recognize（认出｜recognize）", "admit", "identify（识别｜recognize）", "perceive（察觉｜recognize）", "acknowledge", "understand（理解｜recognize）", "know", "realize（意识到）"],
+  ["copy", "imitate", "imitation", "mimic", "replicate", "duplicate", "follow（跟随｜copy）"],
+  ["poor", "deprived", "socially-disadvantaged", "vulnerable（脆弱的｜poor）"],
+  ["new（新的｜new）", "recently（最近｜new）", "fresh（新鲜的｜new）", "put forward"],
+  ["disease", "illness", "disorder", "ailments", "sickness", "malady", "health problem"],
+  ["change（改变｜change）", "become different", "vary（变化｜change）", "alter", "adjust（调整｜change）", "shift（转变）", "switch（转换｜change）"],
+  ["idea", "inspiration", "conceive of", "theory", "perception", "belief（相信）"],
+  ["achieve", "accomplish（完成｜achieve）", "reach", "fulfill（履行）", "realize（实现｜achieve）", "succeed in", "complete", "carry out（执行｜achieve）", "finish"],
+  ["food", "agriculture", "crops", "farming", "fodder", "diet", "delicacy"],
+  ["suit（适合｜suit）", "in keeping with", "according to（根据｜suit）", "in accordance with", "fit", "agree with"],
+  ["track", "path", "road", "route", "trail"],
+  ["weapons", "arrows and bows", "gun", "knife", "bomb"],
+  ["increase（增加｜increase）", "rise", "grow", "ascend", "expand", "soar", "surge", "burst", "boost", "escalate"],
+  ["show", "indicate", "demonstrate", "illustrate", "reveal", "display", "exhibit", "manifest"],
+  ["measure（测量）", "calculate", "assess", "check", "evaluate", "estimate"],
+  ["measure（措施）", "step", "methods", "degree", "amount", "way of judging", "action"],
+  ["ignore", "neglect", "overlook", "pay no attention", "take no notice", "fail to take into account"],
+  ["traditional", "conventional", "normal and ordinary", "well-known"],
+  ["address（处理｜address）", "cope with（应付｜address）", "deal with（处理｜address）", "tackle（处理｜address）", "take care of", "handle"],
+  ["worldwide（全球的｜worldwide）", "a number of countries", "global", "international", "different cultures", "around the world", "in the world"],
+  ["public（公共的｜public）", "communal", "shared"],
+  ["understand（理解｜understand）", "interpret", "comprehend", "follow（跟随｜understand）", "grasp"],
+  ["control", "master", "harness", "manipulate", "able to exercise power", "engage sb in"],
+  ["data", "information"],
+  ["enemy", "foe", "opponent", "rival"],
+  ["beat", "not live up to", "defeat"],
+  ["culture（文化｜culture）", "historical and religious value", "western societies", "worldwide（全球的｜culture）"],
+  ["period", "for days", "months", "years", "last about years", "hours"],
+  ["incorrect", "wrong", "misguided", "inaccurate", "mistake", "fault"],
+  ["back", "support（支持｜back）", "advocate", "sponsor（赞助｜back）", "endorse"],
+  ["vary（变化｜vary）", "differ", "change（改变｜vary）", "shift（移动）", "switch（转换｜vary）", "in different ways depending on"],
+  ["main", "chief", "primary", "principal", "major"],
+  ["adapt", "use many different", "suit（适合｜adapt）", "adjust（调整｜adapt）", "modify", "change（改变｜adapt）", "in order to deal with"],
+  ["climate", "in the hot sun", "weather"],
+  ["unusual（不寻常的｜unusual）", "unconventional", "odd", "rare", "strange", "different from other", "obscure"],
+  ["popular", "be accepted on a large scale", "prevalent", "common", "ordinary"],
+  ["aim", "goal", "purpose", "intention", "objective", "want to", "be to do", "intend to"],
+  ["dissatisfy", "complain about", "not content with"],
+  ["agreeable", "pleasant", "enjoyable", "friendly"],
+  ["store", "lock in", "accumulate", "collect", "gather", "hoard", "keep（保持｜store）"],
+  ["feature", "characteristics", "trait（特质｜feature）", "property", "attribute"],
+  ["most", "the majority of", "over half of"],
+  ["replace", "displace（取代）", "supersede", "take the place of", "substitute"],
+  ["sign", "symbol", "indication（指示｜sign）", "signal", "token", "mark"],
+  ["many", "a great deal of", "a considerable amount of", "a lot of", "numerous", "plenty of", "quite a few", "a large number of"],
+  ["feed on", "eat", "consume", "prey on"],
+  ["development", "progress", "improvement", "advance", "enhancement", "evolution", "growth"],
+  ["based on", "have its origins in", "have its roots in", "derive from", "evolve from"],
+  ["thanks to", "owing to（由于｜thanks to）", "due to", "stem from", "because of"],
+  ["carry out（执行｜carry out）", "fulfill（满足）", "accomplish（完成｜carry out）", "perform", "execute", "implement", "conduct", "undertake"],
+  ["fail to", "without", "not do", "unable to", "bungle"],
+  ["depend on", "rely on", "count on", "be dependent on"],
+  ["back up", "support（支持｜back up）", "favor", "promote", "contribute to（促成｜back up）", "useful", "beneficial（有益的｜back up）"],
+  ["given that", "considering", "concerning", "according to（根据｜given that）"],
+  ["renewed interest", "focus once again on"],
+  ["be more likely to", "be feel more obliged to", "be feel inclined to", "be liable to", "be prone to"],
+  ["sustainable", "environment（环境｜sustainable）", "environmental", "ecology", "long-term", "chronic"],
+  ["complex（复杂的）", "complicated", "perplexing", "confusing", "sophisticated"],
+  ["complex（综合体）", "buildings", "constructions"],
+  ["vessels（容器）", "artifacts", "artefacts", "ornaments", "containers", "jars"],
+  ["vessels（船只）", "ships", "large boats"],
+  ["classify", "categorize", "be divided into distinct types", "identify（识别｜classify）", "taxonomy", "methods for assessing"],
+  ["contrast", "rather than", "instead of", "two opposing views"],
+  ["predict", "prediction（预测｜predict）", "projection", "forecast"],
+  ["weaknesses", "bad aspects", "disadvantages", "drawbacks", "demerits"],
+  ["strengths", "good aspects", "advantages", "merits"],
+  ["discard", "abandon", "being left behind", "disposed of", "cast off", "get rid of"],
+  ["personality", "character", "trait（特质｜personality）", "temperament"],
+  ["warning", "cautionary", "convince show against"],
+  ["consult", "ask for advice", "discuss with", "confer"],
+  ["emerge", "appear", "become visible", "come into view", "come out", "show out"],
+  ["criteria", "standard", "level", "norm", "benchmark"],
+  ["domain", "area", "field", "subject", "discipline"],
+  ["evidence", "clues", "facts or signs", "indication（指示｜evidence）", "proof"],
+  ["distinct", "different", "differ from", "distinguish", "diverse"],
+  ["release", "issue", "launch", "publish"],
+  ["maintain", "ensure", "remain", "keep（保持｜maintain）", "make at the same level", "continue to"],
+  ["incident", "events", "happening", "occurrence"],
+  ["damp", "wet", "moist", "moisture", "humid", "soaked"],
+  ["foster", "cultivate", "raise", "nurture", "rear", "look after"],
+  ["extinct", "die out", "disappear（消失｜extinct）", "vanish（消失｜extinct）", "no longer exist"],
+  ["chilly", "cold temperature", "freezing"],
+  ["escape", "avoid", "steer clear of", "keep away", "elude"],
+  ["advertising", "marketing", "commercial（商业的｜advertising）"],
+  ["commercial（商业的｜commercial）", "money（钱｜commercial）", "market", "profit", "profitable（有利可图的｜commercial）", "financial（金融的｜commercial）", "funding", "lucrative", "investment", "invest", "sponsor（赞助｜commercial）"],
+  ["mixture", "combination", "combine", "a cocktail of", "mixing", "blend", "integrate", "integration", "merge", "conflate", "incorporate"],
+  ["limitation（限制｜limitation）", "restriction", "limit", "not enough degree of freedom"],
+  ["community", "a cross-section of society", "general public"],
+  ["emotions", "anxiety", "feelings", "sentimental"],
+  ["livestock", "animals", "sheep", "cattle"],
+  ["welfare", "well-being", "the general health", "standard of living"],
+  ["remains", "bones", "that are left"],
+  ["inadequate", "limited", "not enough", "too little", "few", "scarce", "insufficient", "shortage（短缺｜inadequate）"],
+  ["subsidy", "financial assistance"],
+  ["precipitation", "rainfall", "snowfall", "hail"],
+  ["independent", "self-reliant", "depend on themselves", "himself or herself"],
+  ["obey", "comply with", "abide by"],
+  ["distrust", "suspicion and disbelief", "skeptic", "sceptic", "skeptical"],
+  ["beneficial（有益的｜beneficial）", "positive aspects", "better at", "favorable", "advantageous"],
+  ["civil", "municipal", "metropolitan", "urban", "public（公共的｜civil）"],
+  ["productive", "creative", "inspiring", "active", "fruitful", "profitable（有利可图的｜productive）", "inventive"],
+  ["fatigue", "tiredness", "exhausted"],
+  ["juvenile", "small", "young", "tiny（小的）", "cubs"],
+  ["fundamental", "rudimentary", "preliminary", "basic"],
+  ["initial", "at first", "start", "early on", "premiere"],
+  ["defect", "disadvantage", "shortage（短缺｜defect）", "downside", "weakness", "limitation（限制｜defect）"],
+  ["venue", "place", "spot", "site"],
+  ["feasible", "practical", "attainable（可达到的｜feasible）", "workable"],
+  ["urge", "desire", "impulse", "instinct", "advise", "call for（要求｜urge）", "have strong wish to do", "push", "press"],
+  ["cue", "hint", "clue"],
+  ["artificial", "synthetic", "man-made"],
+  ["detect", "find", "discover or notice", "perceive（察觉｜detect）", "recognize（认出｜detect）"],
+  ["surrounding", "setting", "environment（环境｜surrounding）"],
+  ["threaten", "warn", "endanger", "jeopardise", "risk", "hazard", "intimidate"],
+  ["backward", "primitive", "underdeveloped"],
+  ["exchange", "swap and share", "switch（转换｜exchange）", "trade"],
+  ["separate", "divide", "move apart", "segregate"],
+  ["establishment", "shop", "hotel", "organization", "institution"],
+  ["analyse", "look at", "examine"],
+  ["accurate", "precise", "exact", "fewer errors", "flawless", "negligible mistakes"],
+  ["abundant", "sufficient", "adequate", "ample", "substantial", "considerable"],
+  ["overcome", "conquer", "get over", "prevent（阻止｜overcome）"],
+  ["priority", "most important", "preferential", "preference"],
+  ["flexibility", "versatile", "adaptable", "all-round"],
+  ["exclusive", "unique（独特的｜exclusive）", "sole", "only", "restricted"],
+  ["accessible", "reachable", "attainable（可达到的｜accessible）", "obtainable", "available"],
+  ["alternative", "unlike standard", "different from the usual or traditional"],
+  ["lack of clarity", "have unconscious notions", "no one knows for certain"],
+  ["be subjected to", "undergo", "be exposed to", "suffer from", "be afflicted with"],
+  ["benefit the ecosystem", "recover the biodiversity"],
+  ["less cooperative", "lack of willingness to"],
+  ["alien", "not local", "not native", "outsider", "not indigenous"],
+  ["contradict", "paradoxical", "refute", "dispute"],
+  ["etiquette", "good manner", "polite", "politeness", "respect"],
+  ["evaporate", "disappear（消失｜evaporate）", "fade away", "vanish（消失｜evaporate）", "become less"],
+  ["diminish", "decrease（减少｜diminish）", "reduce（减少｜diminish）", "drop", "decline（下降）", "fall", "lower", "shrink（收缩｜diminish）", "minimize"],
+  ["prestige", "symbol of status", "social position", "reputation"],
+  ["implications", "hidden effects", "implies or suggests", "consequence"],
+  ["redress", "correct（纠正）", "fix", "repair", "rectify", "amend", "make up for", "compensate", "remedy"],
+  ["hygiene", "cleanliness", "keep clean"],
+  ["chaos", "panic", "uncontrolled", "a state of disorder"],
+  ["scrutiny", "close examination", "careful examination of"],
+  ["obsession", "excessive focus on"],
+  ["clamor", "demand", "call for（要求｜clamor）", "ask for", "claim"],
+  ["mortality rate", "death rate"],
+  ["fragile", "delicate", "vulnerable（脆弱的｜fragile）", "unstable", "weak"],
+  ["succumb", "give in", "submit", "yield", "surrender", "cave in"],
+  ["folklore", "traditional customs", "widespread ideas", "local belief", "common beliefs", "widely accepted"],
+  ["dislodge", "knock down", "force out", "remove", "displace（移置）"],
+  ["undisputed", "undeniable", "unquestionable", "beyond doubt"],
+  ["transparent", "easy to comprehend", "open and honest"],
+  ["congregate", "gather together", "assemble"],
+  ["incentive", "motive（动机｜incentive）", "stimulus"],
+  ["mitigate", "decrease（减少｜mitigate）", "reduce（减少｜mitigate）", "ease off", "lessen", "dampen"],
+  ["innate", "build-in", "inborn", "natural", "unchangeable"],
+  ["confidential", "hidden", "secret", "undisclosed"],
+  ["pinpoint", "identify（识别｜pinpoint）", "find out", "discover exactly"],
+  ["alleviate", "decrease（减少｜alleviate）", "ease", "relieve"],
+  ["revered", "respectful", "honorable", "esteemed"],
+  ["symbiotic", "partnership", "mutually beneficial", "interdependent"],
+  ["individual", "one-on-one", "personal", "private"],
+  ["indigenous", "local", "native", "original", "endemic"],
+  ["peripheral", "unimportant", "minor", "marginal", "fringe"],
+  ["phase out", "gradually eliminate", "gradually abolish"],
+  ["compromise", "harm", "damage", "jeopardize", "concede", "settle", "reach a settlement", "agreement"],
+  ["initiative", "scheme", "project", "program", "a new plan"],
+  ["vicinity", "nearby", "neighborhood"],
+  ["imperative", "pressing", "crucial", "critical", "urgent", "vital", "things that are obligated"],
+  ["proliferate", "multiply", "increase（增加｜proliferate）", "breed", "reproduce", "spread", "propagate"],
+  ["chastise", "speak angrily", "reprimand", "rebuke", "berate"],
+  ["homogeneous", "similar", "uniform", "consistent", "identical"],
+];
+
+// ============================================================
+//  大组结构 - 将225组分成23个大组（每组10组，最后一组5组）
+// ============================================================
+const GROUP_SETS = [
+  { id: 1, name: '入门基础篇', description: '常见基础同义词' },
+  { id: 2, name: '学术核心篇', description: '学术写作必备词汇' },
+  { id: 3, name: '阅读高频篇', description: '阅读考试高频替换' },
+  { id: 4, name: '动词进阶篇', description: '动词同义替换' },
+  { id: 5, name: '形容词扩展篇', description: '形容词丰富表达' },
+  { id: 6, name: '名词辨析篇', description: '易混淆名词区分' },
+  { id: 7, name: '副词强化篇', description: '副词精准运用' },
+  { id: 8, name: '因果逻辑篇', description: '因果关系表达' },
+  { id: 9, name: '对比转折篇', description: '对比转折词汇' },
+  { id: 10, name: '程度修饰篇', description: '程度副词与修饰' },
+  { id: 11, name: '时间序列篇', description: '时间表达与顺序' },
+  { id: 12, name: '数量比例篇', description: '数量与比例表达' },
+  { id: 13, name: '情感态度篇', description: '态度与情感词汇' },
+  { id: 14, name: '科技学术篇', description: '科技类文章词汇' },
+  { id: 15, name: '环境生态篇', description: '环境相关词汇' },
+  { id: 16, name: '社会文化篇', description: '社会文化词汇' },
+  { id: 17, name: '经济商业篇', description: '经济与商业词汇' },
+  { id: 18, name: '教育学习篇', description: '教育相关词汇' },
+  { id: 19, name: '健康医疗篇', description: '健康与医疗词汇' },
+  { id: 20, name: '法律政治篇', description: '法律与政治词汇' },
+  { id: 21, name: '艺术媒体篇', description: '艺术与媒体词汇' },
+  { id: 22, name: '自然科学篇', description: '自然科学词汇' },
+  { id: 23, name: '综合提升篇', description: '综合难度词汇' },
+];
+
+function getGroupSet(setId) {
+  const setSize = 10;
+  const startIdx = (setId - 1) * setSize;
+  const endIdx = Math.min(startIdx + setSize, ALL_GROUPS.length);
+  return ALL_GROUPS.slice(startIdx, endIdx);
+}
+
+// ============================================================
+//  中文翻译词典 - 按同义替换逻辑提供中文释义
+// ============================================================
+const CHINESE_DICT = {
+  "2个及以上的具体例子": "两个及以上的具体例子",
+  "a chemical element": "一种化学元素",
+  "a cocktail of": "一种...的混合物；综合的",
+  "a considerable amount of": "相当数量的；大量的",
+  "a cross-section of society": "各阶层相容的社会",
+  "a great deal of": "大量的；许多的",
+  "a large number of": "大量的；许多的",
+  "a lay of": "一层（层状物）",
+  "a list of": "...的列表",
+  "a list of objects": "物品清单",
+  "a lot of": "许多的；大量的",
+  "a new plan": "一个新计划；新方案",
+  "a number of": "许多；若干",
+  "a number of countries": "一些国家；许多国家",
+  "a set of ideas or beliefs": "一套思想或信念",
+  "a state of disorder": "混乱状态；无序状态",
+  "abandon": "v. 放弃；抛弃；遗弃",
+  "abide by": "遵守；信守",
+  "able to be seen or touched": "能被看见或触摸到的",
+  "able to exercise power": "能够行使权力",
+  "abundant": "adj. 丰富的；充裕的；充足的",
+  "access": "v.接近，进入",
+  "accessible": "adj. 可接近的；可进入的；易接近的",
+  "accomplish": "v. 完成；实现；达成",
+  "accomplish（完成｜achieve）": "v. 完成；实现；达成",
+  "accomplish（完成｜carry out）": "v. 完成；实现；达成",
+  "according to": "根据；按照",
+  "according to（根据｜given that）": "根据；按照",
+  "according to（根据｜suit）": "根据；按照",
+  "account": "n. 描述",
+  "account for": "成为…原因；为…负责",
+  "accumulate": "v. 积累；积聚；堆积",
+  "accurate": "adj. 准确的；精确的；正确的",
+  "achieve": "v. 达成；实现；完成",
+  "acknowledge": "v. 承认；确认",
+  "Act": "n. 法案",
+  "act as": "充当；担任；起...作用",
+  "action": "n. 行动；行为",
+  "active": "adj. 积极的；活跃的；主动的",
+  "adapt": "v. 适应",
+  "adaptable": "adj. 适应性强的；可改编的",
+  "address": "v. 处理；解决",
+  "address（处理｜address）": "v. 处理；解决",
+  "address（处理｜approach）": "v. 处理；解决",
+  "adequate": "adj. 足够的；充分的；适当的",
+  "adjust": "v. 调整；适应；校正",
+  "adjust（调整｜adapt）": "v. 调整；适应",
+  "adjust（调整｜change）": "v. 调整；适应；校正",
+  "admit": "v. 承认；准许进入",
+  "advance": "v./n. 前进；进步；进展",
+  "advantageous": "adj. 有利的；有益的",
+  "advantages": "n. 优势；好处；有利条件",
+  "advertising": "n. 广告；广告业；广告活动",
+  "advise": "v. 建议；劝告；通知",
+  "advocate": "v. 拥护；提倡",
+  "ago": "adv. 以前；过去",
+  "agree with": "与...一致；适合",
+  "agreeable": "adj. 令人愉快的；适合的；同意的",
+  "agreement": "n. 协议；同意；一致",
+  "agricultural products": "农产品；农业产品",
+  "agriculture": "n. 农业；农学",
+  "ailments": "n. 小病；疾病",
+  "aim": "n. 目的；目标",
+  "alien": "adj./n. 外国的；陌生的；外星人",
+  "all-round": "adj. 全面的；多方面的；全能的",
+  "alleviate": "v. 减轻；缓和；缓解",
+  "also part of": "也是...的一部分",
+  "alter": "v. 改变；修改；变更",
+  "alternative": "adj. 非传统的",
+  "amend": "v. 修正；改正；改善",
+  "amount": "n. 数量；总额；总计",
+  "ample": "adj. 丰富的；充足的",
+  "analyse": "v. 分析；解析",
+  "ancient": "adj. 古代的；古老的",
+  "and": "conj. 和；与；而且",
+  "animals": "n. 动物；牲畜",
+  "anxiety": "n. 焦虑；忧虑；渴望",
+  "appear": "v. 出现；似乎；显得",
+  "approach": "v. 接近",
+  "approach（处理）": "v. 处理",
+  "approach（接近）": "v. 接近",
+  "approach（方法）": "n./v. 方法；途径",
+  "area": "n. 面积；区域；领域",
+  "around the world": "世界各地；全世界",
+  "arrows and bows": "弓箭",
+  "artefacts": "n. 人工制品；文物",
+  "artifacts": "n. 人工制品；文物",
+  "artificial": "adj. 人造的；人工的",
+  "as": "conj./prep. 因为；作为",
+  "as a result of": "作为...的结果；由于",
+  "as well as": "以及；和...一样",
+  "ascend": "v. 上升；攀登；升高",
+  "ask for": "要求；请求；索取",
+  "ask for advice": "征求意见；请教",
+  "aspects": "n. 方面；因素",
+  "assemble": "v. 集合；聚集",
+  "assess": "v. 评估；估价；评价",
+  "at first": "起初；首先；最初",
+  "at present": "目前；现在",
+  "attack": "v. 攻击；着手处理",
+  "attainable": "adj. 可达到的；可实现的",
+  "attainable（可达到的｜accessible）": "adj. 可达到的；可实现的",
+  "attainable（可达到的｜feasible）": "adj. 可达到的；可实现的",
+  "attribute": "n./v. 属性；特质",
+  "attribute to": "归因于；归咎于",
+  "available": "adj. 可用的；有空的；可获得的",
+  "avoid": "v. 避免；避开；防止",
+  "back": "v. 支持",
+  "back up": "支持；备份",
+  "backward": "adj./adv. 向后的；落后的",
+  "bad aspects": "不好的方面；负面因素",
+  "based on": "基于；以...为基础",
+  "basic": "adj. 基本的；基础的",
+  "be accepted on a large scale": "被大规模接受",
+  "be afflicted with": "受...折磨",
+  "be dependent on": "依赖于；依靠于",
+  "be divided into distinct types": "被分成不同类型",
+  "be exposed to": "暴露于；接触；面临",
+  "be fined": "被罚款；处以罚金",
+  "be liable to": "易于；有...倾向；可能",
+  "be more likely to": "更有可能；更倾向于",
+  "be prone to": "易于；有...倾向；容易",
+  "be punished": "被处罚；受惩罚",
+  "be similar to": "与...相似",
+  "be subjected to": "遭受；承受",
+  "be to do": "是要做；打算做",
+  "be/feel inclined to": "感到倾向于；觉得想要",
+  "be/feel more obliged to": "感到更有义务；被迫更需",
+  "beat": "v. 打败；击败",
+  "because": "conj. 因为",
+  "because of": "因为，由于",
+  "become different": "变得不同；发生变化",
+  "become ill": "生病；患病",
+  "become infected with a disease": "感染上疾病；染病",
+  "become less": "变得更少；减少",
+  "become smaller or less": "变得更小或更少",
+  "become visible": "变得可见；显现出来",
+  "before": "prep./adv. 在...之前",
+  "being left behind": "被遗留",
+  "belief": "n. 信念；观念",
+  "belief（信念）": "n. 信念；观念",
+  "belief（相信）": "n. 相信；信念",
+  "benchmark": "n./v. 基准；标杆；基准测试",
+  "beneficial": "adj. 有益的；有利的",
+  "beneficial（有益的｜back up）": "adj. 有益的；有利的",
+  "beneficial（有益的｜beneficial）": "adj. 有益的；有利的",
+  "benefit the ecosystem": "有益于生态系统；对生态系统有利",
+  "berate": "v. 严厉指责；怒斥；训斥",
+  "besides": "prep./adv. 除...之外；此外",
+  "better at": "更擅长；在...更好",
+  "beyond doubt": "毫无疑问；不容置疑",
+  "blend": "v./n. 混合；调和；融合",
+  "bomb": "n. 炸弹；v. 轰炸",
+  "bones": "n. 骨骼；骨头",
+  "boost": "v./n. 促进；提高；推动",
+  "both and": "两者都；既...又",
+  "breed": "v./n. 繁殖；饲养；品种；孕育",
+  "build-in": "adj. 内置的；固有的；嵌入的",
+  "buildings": "n. 建筑物；建筑；大楼",
+  "bungle": "v./n. 搞砸；拙劣地做；失误",
+  "burst": "v./n. 爆发；突发；爆裂",
+  "but is accompanied by": "但也伴随有",
+  "calculate": "v. 计算；估算",
+  "call for": "要求；需要",
+  "call for（要求｜clamor）": "要求；呼吁；需要",
+  "call for（要求｜urge）": "要求；需要",
+  "called": "adj./v. 被称为；名叫",
+  "can also be": "也可以是",
+  "carbon emission": "碳排放",
+  "carbon footprint": "碳足迹",
+  "careful examination of": "仔细检查...；认真审查",
+  "carry out": "执行；实施",
+  "carry out（执行｜achieve）": "执行；实施",
+  "carry out（执行｜carry out）": "执行；实施；进行",
+  "cast off": "抛弃；丢弃；摆脱",
+  "categorize": "v. 分类；归类",
+  "cattle": "n. 牛；家畜；牲畜",
+  "cause": "v. 导致；引起",
+  "cause（动机）": "n. 动机；原因",
+  "cause（导致）": "v. 导致；引起",
+  "cautionary": "adj. 警告的；告诫的；警示的",
+  "cave in": "屈服；让步",
+  "challenges": "n. 挑战",
+  "change": "v. 改变；变化",
+  "change（改变｜adapt）": "v. 改变；变化",
+  "change（改变｜change）": "v. 改变；变化",
+  "change（改变｜vary）": "v./n. 改变；变化；更换",
+  "channel": "n. 渠道；途径",
+  "channel（渠道｜passage）": "n. 渠道；途径",
+  "channel（渠道｜vehicle）": "n. 渠道；途径",
+  "chaos": "n. 混乱；混沌；紊乱",
+  "character": "n. 性格；品质；角色",
+  "characteristics": "n. 特征；特点；特性",
+  "charge": "v. 指控；收费；n. 费用",
+  "charging": "n. 收费",
+  "chastise": "v. 谴责；惩罚；严厉批评",
+  "check": "v./n. 检查；核对",
+  "chief": "adj. 主要的",
+  "chilly": "adj. 寒冷的；冷淡的；阴冷的",
+  "chronic": "adj. 慢性的；长期的",
+  "civil": "adj. 公民的；民事的；文明的",
+  "civilization": "n. 文明；文化",
+  "claim": "v./n. 声称；要求；主张",
+  "clamor": "n./v. 要求；呼吁",
+  "classify": "v. 分类；归类；分等级",
+  "cleanliness": "n. 清洁；清洁度",
+  "climate": "n. 气候；风气",
+  "climate change": "气候变化",
+  "climatic conditions": "气候条件",
+  "close examination": "仔细检查；严密审查",
+  "clue": "n. 线索；提示；暗示",
+  "clues": "n. 线索；提示；迹象",
+  "CO2 emissions": "二氧化碳排放",
+  "coat": "n. 涂层",
+  "coating": "n. 涂层；涂料",
+  "coin": "v. 创造；杜撰",
+  "cold temperature": "低温；寒冷的温度",
+  "collect": "v. 收集；聚集；募集",
+  "combination": "n. 结合；组合；联合",
+  "combine": "v. 结合；联合；化合",
+  "come into view": "进入视野；出现",
+  "come near": "靠近；接近",
+  "come out": "出来；出现",
+  "commercial": "adj./n. 商业的；广告；商务的",
+  "commercial（商业的｜advertising）": "adj./n. 商业的；广告；商务的",
+  "commercial（商业的｜commercial）": "adj. 商业的",
+  "common": "adj. 共同的；普通的；常见的",
+  "common beliefs": "共同信仰；普遍信念",
+  "communal": "adj. 公共的；公有的",
+  "community": "n. 社区；团体",
+  "compensate": "v. 补偿；赔偿；弥补",
+  "complain about": "抱怨；投诉",
+  "complete": "v. 完成",
+  "complex": "adj. 复杂的",
+  "complex（复杂的）": "adj. 复杂的",
+  "complex（综合体）": "n. 综合体",
+  "complicated": "adj. 复杂的；难懂的",
+  "comply with": "遵守；依从；顺从",
+  "comprehend": "v. 理解；领会",
+  "compress": "v. 压缩；压紧",
+  "compromise": "v./n. 妥协；损害；折中解决",
+  "concede": "v. 承认；让步；给予",
+  "conceive of": "构思；想象；设想",
+  "concerning": "prep. 关于；就...而言",
+  "conditions": "n. 条件；情况",
+  "conduct": "v. 进行；实施",
+  "confer": "v. 商议；讨论",
+  "confidential": "adj. 机密的；秘密的",
+  "conflate": "v. 合并；混合；混为一谈",
+  "confusing": "adj. 令人困惑的；混淆的",
+  "congregate": "v. 聚集；集合；会聚",
+  "connected with a person's body": "与人体相关的",
+  "conquer": "v. 征服；战胜；克服",
+  "consecutive": "adj. 连续的；连贯的",
+  "consequence": "n. 结果；后果",
+  "consequently": "adv. 因此；结果",
+  "conservation": "n. 保护",
+  "considerable": "adj. 相当大的；重要的",
+  "considering": "prep./conj. 考虑到；鉴于",
+  "consistent": "adj. 一致的；始终如一的；持续的",
+  "constrain": "v. 抑制；限制",
+  "constructions": "n. 建设；建筑物；构造",
+  "consult": "v. 咨询；请教；商议",
+  "consume": "v. 消费；消耗；大吃大喝",
+  "containers": "n. 容器",
+  "continue to": "继续；持续",
+  "contract": "v. 收缩",
+  "contract（患病）": "v. 患（病）",
+  "contract（收缩）": "v. 收缩",
+  "contradict": "v. 反驳；与...矛盾；否认",
+  "contrast": "n./v. 对比；对照；反差",
+  "contribute to": "促成；有助于",
+  "contribute to（促成｜back up）": "促成；有助于",
+  "contribute to（促成｜cause）": "促成；有助于",
+  "control": "v. 控制；管理",
+  "conventional": "adj. 传统的；常规的；约定的",
+  "convince show against": "说服反对；展示反对",
+  "cope with": "应付；处理；应对",
+  "cope with（应付｜address）": "应付；处理；应对",
+  "cope with（应付｜approach）": "应付；处理；应对",
+  "copy": "v./n. 复制；抄袭；副本",
+  "correct": "adj. 正确的；准确的",
+  "correct（正确的）": "adj. 正确的；准确的",
+  "correct（纠正）": "v./adj. 纠正；正确的；准确的",
+  "corridor": "n. 走廊；通道",
+  "cost": "n. 花费",
+  "count on": "依赖；指望；依靠",
+  "cover": "n. 遮蔽，遮盖",
+  "covering": "n. 覆盖物；覆盖层",
+  "creative": "adj. 创造性的；有创造力的",
+  "criteria": "n. 标准；准则；条件",
+  "critical": "adj. 批评的；关键的；临界的",
+  "crops": "n. 农作物；庄稼",
+  "crossing": "n. 交叉道；十字路口",
+  "crucial": "adj. 关键的；决定性的；重要的",
+  "crushed stuff": "压碎的东西；碾碎物",
+  "cubs": "n. 幼崽；幼年动物；童子军",
+  "cue": "n./v. 暗示；提示；线索",
+  "cultivate": "v. 培养；耕种；发展",
+  "cultivation": "n. 培养；养殖；耕种",
+  "culture": "n. 养殖",
+  "culture（养殖）": "n. 养殖",
+  "culture（文化｜culture）": "n. 文化；文明",
+  "curb": "v./n. 控制；抑制；限制",
+  "current": "adj. 当前的；现行的",
+  "currently": "adv. 当下，现在",
+  "curtail": "v. 缩减；缩短",
+  "cut into small pieces": "切成小块；切碎",
+  "damage": "n./v. 损害；损伤；伤害",
+  "damp": "adj./v./n. 潮湿的；潮湿；使潮湿",
+  "dampen": "v. 抑制；减弱",
+  "data": "n. 数据；资料；信息",
+  "deal with": "处理；对付；应付",
+  "deal with（处理｜address）": "处理；对付；应付",
+  "deal with（处理｜approach）": "处理；对付；应付",
+  "death rate": "死亡率；死亡速率",
+  "decline": "v./n. 拒绝",
+  "decline（下降）": "v./n. 下降；衰退",
+  "decline（拒绝）": "v./n. 拒绝",
+  "decrease": "v./n. 减少；下降；减小",
+  "decrease（减少｜alleviate）": "v./n. 减少；下降；减小",
+  "decrease（减少｜diminish）": "v./n. 减少；下降；减小",
+  "decrease（减少｜mitigate）": "v./n. 减少；下降；减小",
+  "defeat": "v. 击败；挫败",
+  "defect": "n./v. 缺陷；缺点；背叛",
+  "degree": "n. 程度；度数",
+  "delicacy": "n. 佳肴",
+  "delicate": "adj. 精美的；脆弱的；微妙的",
+  "deliver": "v. 实现；履行",
+  "demand": "n./v. 要求；需求；需要",
+  "demerits": "n. 缺点；过失；记过",
+  "demonstrate": "v. 证明；演示；展示",
+  "denial": "n. 否认；拒绝",
+  "depend on": "依赖；依靠；取决于",
+  "depend on themselves": "依靠他们自己",
+  "deprived": "adj. 被剥夺的；贫困的",
+  "derive from": "源于；来自；从...得到",
+  "description": "n. 描述；说明",
+  "desire": "n. 渴望；欲望",
+  "detect": "v. 察觉；发现；探测",
+  "detrimental": "adj. 有害的；不利的",
+  "development": "n. 发展；开发；进展",
+  "devise": "v. 设计；发明；想出",
+  "die out": "灭绝；消失；淘汰",
+  "diet": "n. 饮食；日常食物",
+  "differ": "v. 不同；不一致",
+  "differ from": "不同于；与...不同",
+  "different": "adj. 不同的；分别的；个别的",
+  "different cultures": "不同的文化",
+  "different from other": "与其他不同的",
+  "different from the usual or traditional": "不同于通常或传统的",
+  "difficult": "adj. 困难的；艰难的",
+  "difficulties": "n. 困难；困境",
+  "digit": "n. 手指；脚趾",
+  "dilemmas": "n. 困境；两难处境",
+  "diminish": "v. 减少；降低；削弱",
+  "disadvantage": "n. 缺点；不利；劣势",
+  "disadvantages": "n. 缺点；劣势；不利条件",
+  "disappear": "v. 消失；不见；失踪",
+  "disappear（消失｜evaporate）": "v. 消失；不见；失踪",
+  "disappear（消失｜extinct）": "v. 消失；不见；失踪",
+  "discard": "v. 丢弃；抛弃；遗弃",
+  "discipline": "n./v. 学科；领域",
+  "discover exactly": "确切发现；精确找到",
+  "discover or notice": "发现或注意到",
+  "discuss with": "与...讨论；与...商议",
+  "disease": "n. 疾病；病害",
+  "dislodge": "v. 逐出；取出",
+  "disorder": "n. 紊乱；失调；疾病",
+  "displace": "v. 取代；置换",
+  "displace（取代）": "v. 取代；置换",
+  "displace（移置）": "v. 移置；置换",
+  "display": "v./n. 显示；展示；陈列",
+  "disposed of": "被处理掉；被丢弃",
+  "dispute": "v./n. 争论；辩论；争端",
+  "dissatisfy": "v. 使不满；使不满足",
+  "distinct": "adj. 明显的；独特的",
+  "distinguish": "v. 区分；辨别；分清",
+  "distrust": "v./n. 不信任；怀疑",
+  "diverse": "adj. 多样的；不同的；多元的",
+  "divide": "v. 分开；划分",
+  "do": "v. 做；干",
+  "domain": "n. 领域；范围",
+  "downside": "n. 缺点；不利方面；负面",
+  "drawbacks": "n. 缺点；弊端；障碍",
+  "drop": "v./n. 下降；落下",
+  "droughts": "n. 干旱；旱灾",
+  "due to": "由于；因为；应归于",
+  "duplicate": "v./adj. 复制；重复的",
+  "e.g.": "abbr. 例如",
+  "early": "adj. 早期的；提早的",
+  "early on": "在早期；初期；刚开始",
+  "ease": "v./n. 减轻；缓解",
+  "ease off": "减轻；缓和；缓解",
+  "easy to comprehend": "容易理解的；易懂的",
+  "eat": "v.吃",
+  "eat no food": "不吃任何食物；禁食",
+  "ecological": "adj. 生态的；生态学的",
+  "ecology": "n. 生态学；生态",
+  "economic": "adj. 经济的",
+  "elude": "v. 逃避；躲避",
+  "emerge": "v. 出现；浮现；显现",
+  "emotions": "n. 情绪；情感；感情",
+  "endanger": "v. 危及；使遭危险；危害",
+  "endemic": "adj. 地方性的；特有的",
+  "endorse": "v. 支持；背书；赞同",
+  "enemy": "n. 敌人；敌军；危害",
+  "energy concerns": "能源问题",
+  "energy loss": "能源损耗",
+  "engage sb in": "使某人参与；使忙于",
+  "enhancement": "n. 增强；提高；改进",
+  "enjoyable": "adj. 令人愉快的；有趣的",
+  "ensure": "v. 确保；保证；担保",
+  "environment": "n. 环境；生态环境",
+  "environmental": "adj. 环境的；环保的",
+  "environment（环境｜environment）": "n. 环境；生态环境",
+  "environment（环境｜surrounding）": "n. 环境；生态环境",
+  "environment（环境｜sustainable）": "n. 环境；生态环境",
+  "escalate": "v. 升级；逐步升高；加剧",
+  "escape": "v./n. 逃脱；逃避；逃跑",
+  "establishment": "n. 机构；企业",
+  "esteemed": "adj. 受尊敬的；被推崇的",
+  "estimate": "v./n. 估计；估算；评估",
+  "etiquette": "n. 礼仪；礼节；规矩",
+  "evaluate": "v. 评价；评估",
+  "evaporate": "v. 消失；消散",
+  "events": "n. 事件；大事；赛事",
+  "evidence": "n./v. 证据；证明；表明",
+  "evolution": "n. 进化；演变；发展",
+  "evolve from": "从...演变而来",
+  "exact": "adj./v. 精确的；准确的；要求",
+  "examine": "v. 检查；审查；调查",
+  "examples of": "...的例子",
+  "excessive focus on": "过度关注；过分集中于",
+  "exchange": "v. 交换；交易",
+  "exclusive": "adj. 独有的；排外的",
+  "execute": "v. 执行；实施",
+  "exhausted": "adj. 疲惫的；耗尽的；精疲力竭的",
+  "exhibit": "v./n. 展出；显示；表现",
+  "expand": "v. 扩张；膨胀；扩展",
+  "explains": "v. 解释；说明",
+  "explanation": "n. 解释；说明",
+  "extinct": "adj. 灭绝的；绝种的",
+  "factors": "n. 因素；因子",
+  "facts or signs": "事实或迹象；证据",
+  "fade away": "逐渐消失；褪色；渐渐离去",
+  "fail to": "未能；没能；做不到",
+  "fail to take into account": "未能考虑到",
+  "fall": "v./n. 下降；落下",
+  "farming": "n. 农业；耕作",
+  "fast": "v. 禁食；斋戒",
+  "fatigue": "n./v. 疲劳；疲乏；使疲劳",
+  "fault": "n. 错误；缺点",
+  "favor": "v./n. 支持",
+  "favorable": "adj. 有利的；良好的；赞成的",
+  "feasible": "adj. 可行的；可能的；可实现的",
+  "feature": "n./v. 特征；特色；以...为特色",
+  "feed on": "以...为食；靠...为生",
+  "feelings": "n. 感情；感受；情绪",
+  "few": "adj./pron. 少数的；很少",
+  "fewer errors": "更少的错误；失误较少",
+  "field": "n. 领域",
+  "figures": "n. 数字",
+  "film": "n. 薄膜",
+  "financial": "adj. 金融的；财务的",
+  "financial assistance": "财政援助；经济援助",
+  "financial（金融的｜commercial）": "adj. 金融的；财务的",
+  "financial（金融的｜money）": "adj. 金融的；财务的",
+  "find": "v. 发现；找到；查找",
+  "find out": "找出；查明；发现",
+  "fine": "n. 罚款；v. 罚款",
+  "fine（优良的）": "adj. 优良的；精细的",
+  "fine（罚款）": "n. 罚款；v. 罚款",
+  "finger": "n. 手指，指头",
+  "finish": "v. 完成；结束",
+  "first used": "首次使用；最早使用",
+  "fit": "v./adj. 适合；合身的",
+  "fix": "v./n. 固定；修复；解决",
+  "flawless": "adj. 完美的；无瑕疵的；无缺点的",
+  "flexibility": "n. 灵活性；柔韧性；弹性",
+  "floods": "n. 洪水；水灾",
+  "focus once again on": "再次聚焦于；重新关注",
+  "fodder": "n. 饲料",
+  "foe": "n. 敌人；仇敌；反对者",
+  "folklore": "n. 民间传说；民俗学；民间传统",
+  "follow": "v. 跟随；理解；遵循",
+  "follow（跟随｜copy）": "v. 跟随；理解；遵循",
+  "follow（跟随｜understand）": "v. 跟随；理解",
+  "food": "n. 食物；食品",
+  "for": "conj./prep. 因为；为了",
+  "for days": "数天；持续数日",
+  "for example": "例如；比如",
+  "for instance": "例如；比如",
+  "force out": "挤出；逐出；迫使离开",
+  "forecast": "v./n. 预报；预测；展望",
+  "forge": "v. 铸造；打造",
+  "foster": "v./adj. 培养；养育",
+  "fragile": "adj. 易碎的；脆弱的；虚弱的",
+  "freezing": "adj./n. 冰冷的；严寒；冻结",
+  "fresh": "adj. 新鲜的；清新的",
+  "fresh（新鲜的｜new）": "adj. 新鲜的；清新的",
+  "fresh（新鲜的｜novel）": "adj. 新鲜的；清新的",
+  "friendly": "adj. 友好的；友善的；温和的",
+  "fringe": "n. 边，边缘",
+  "fruit and vegetables": "水果和蔬菜",
+  "fruitful": "adj. 富有成效的",
+  "fulfill": "v. 履行；实现",
+  "fulfill（履行）": "v. 履行；实现",
+  "fulfill（满足）": "v. 满足；履行；实现",
+  "fundamental": "adj./n. 基本的；根本的；基础",
+  "funding": "n. 资金，基金",
+  "further": "adv./adj. 进一步；未来的",
+  "future": "n./adj. 未来；将来的",
+  "gather": "v. 聚集；收集",
+  "gather together": "聚集在一起；集合",
+  "general public": "公众；普通大众",
+  "get an illness": "生病；得病",
+  "get closer to": "接近；靠近",
+  "get over": "克服；恢复；熬过",
+  "get rid of": "摆脱；除去；处理掉",
+  "give in": "屈服；让步；投降",
+  "give rise to": "引起；导致",
+  "given that": "考虑到；鉴于；由于",
+  "global": "adj. 全球的；全球性的",
+  "goal": "n. 目标；目的",
+  "good": "adj. 好的；优良的",
+  "good aspects": "好的方面；优点",
+  "good manner": "良好的礼仪；有礼貌",
+  "gradually abolish": "逐渐废除；逐步取消",
+  "gradually eliminate": "逐渐消除；逐步淘汰",
+  "grapple with": "努力解决；设法应付",
+  "grasp": "v. 掌握；领会",
+  "green efforts": "环保努力；绿色行动",
+  "green issues": "环保问题；绿色议题",
+  "greenhouse gas": "温室气体",
+  "ground": "n.碎末",
+  "ground（碎末）": "n.碎末",
+  "ground（碾碎的）": "adj. 碾碎的；捣碎的",
+  "grow": "v. 增长；生长；发展",
+  "growth": "n. 生长；增长；发展",
+  "gun": "n. 枪；炮",
+  "hail": "n. 冰雹",
+  "halt": "v./n. 停止；暂停",
+  "handle": "处理，解决",
+  "happening": "n. 事件；发生的事",
+  "harm": "n./v. 伤害；损害；危害",
+  "harmful": "adj. 有害的；伤害的",
+  "harness": "v./n. 利用；治理；马具",
+  "have its origins in": "起源于；根源在于",
+  "have its roots in": "根植于；根源于",
+  "have strong wish to do": "有强烈愿望做某事",
+  "have unconscious notions": "有无意识的观念；有潜意识的想法",
+  "hazard": "n./v. 危险；危害；冒险",
+  "health problem": "健康问题",
+  "healthy": "adj. 健康的",
+  "hence": "adv. 因此；所以",
+  "hidden": "adj. 隐藏的；秘密的；神秘的",
+  "hidden effects": "隐藏的影响；潜在效果",
+  "himself or herself": "他自己或她自己；独立地",
+  "hinder": "v. 阻碍；妨碍",
+  "hint": "n./v. 暗示；提示；线索",
+  "historical and religious value": "历史与宗教价值",
+  "hoard": "v. 囤积；贮藏",
+  "homogeneous": "adj. 同质的；同类的；均匀的",
+  "honorable": "adj. 可敬的；光荣的；荣誉的",
+  "hotel": "n. 旅馆；酒店；饭店",
+  "hours": "n. 小时",
+  "how many": "多少；几个",
+  "humid": "adj. 潮湿的；湿润的",
+  "hurdles": "n. 障碍；困难",
+  "hurricanes": "n. 飓风；狂风",
+  "hygiene": "n. 卫生",
+  "idea": "n. 想法；主意",
+  "identical": "adj. 同一的；完全相同的",
+  "identify": "v. 识别；辨认；确认",
+  "identify（识别｜classify）": "v. 识别；辨认；确认",
+  "identify（识别｜pinpoint）": "v. 识别；辨认；确认",
+  "identify（识别｜recognize）": "v. 识别；辨认；确认",
+  "ignore": "v. 忽视；不理睬；忽略",
+  "illness": "n. 疾病；生病",
+  "illustrate": "v. 说明；阐明；举例说明",
+  "imitate": "v. 模仿；仿效",
+  "imitation": "n. 模仿；仿制品",
+  "imperative": "adj. 必要的；紧急的",
+  "implement": "v. 实施；执行",
+  "implications": "n. 含义；暗示",
+  "implies or suggests": "暗示或表明；意味着",
+  "improvement": "n. 改进；改善；进步",
+  "impulse": "n. 冲动；推动",
+  "in accordance with": "依照；与...一致",
+  "in addition": "此外；另外",
+  "in different ways depending on": "根据...以不同方式",
+  "in future decades": "在未来几十年里",
+  "in keeping with": "符合；与...一致",
+  "in order to deal with": "为了处理；为了应付",
+  "in that": "因为；在于",
+  "in the hot sun": "在烈日下",
+  "in the world": "在世界上",
+  "inaccurate": "adj. 不准确的；错误的",
+  "inadequate": "adj. 不充分的；不足的",
+  "inborn": "adj. 天生的；先天的；固有的",
+  "incentive": "n./adj. 激励；动机；刺激的",
+  "incident": "n. 事件；事变",
+  "including": "prep. 包括；包含",
+  "incorporate": "v. 合并；包含；吸收",
+  "incorrect": "adj. 不正确的；错误的",
+  "increase": "v./n. 增加；增长；上升",
+  "increase（增加｜increase）": "v./n. 增加；增长；上升",
+  "increase（增加｜proliferate）": "v./n. 增加；增长；上升",
+  "independent": "adj. 独立的；自主的；无党派的",
+  "indicate": "v. 表明；指出；指示",
+  "indication": "n. 指示；迹象；象征",
+  "indication（指示｜evidence）": "n. 指示；迹象；象征",
+  "indication（指示｜sign）": "n. 指示；迹象；象征",
+  "indigenous": "adj. 本土的；土生土长的；土著的",
+  "individual": "adj./n. 个人的；个体的；个人",
+  "information": "n. 信息；资料；情报",
+  "inhibit": "v. 抑制；阻止",
+  "initial": "adj. 最初的；开始的",
+  "initiative": "n. 倡议；主动性；首创精神",
+  "innate": "adj. 固有的；天生的",
+  "inspiration": "n. 灵感；妙计",
+  "inspiring": "adj. 鼓舞人心的；激励的",
+  "instead of": "代替；而不是",
+  "instinct": "n. 本能；直觉；天性",
+  "institution": "n. 机构；组织",
+  "insufficient": "adj. 不足的；不充分的",
+  "integrate": "v. 整合；融合；使一体化",
+  "integration": "n. 整合；融合；一体化",
+  "intend to": "打算；想要；计划",
+  "intention": "n. 意图；目的；打算",
+  "interdependent": "adj. 相互依赖的；互相依存的",
+  "international": "adj. 国际的；国际间的",
+  "interpret": "v. 解释；理解",
+  "intimidate": "v. 恐吓；威胁；胁迫",
+  "introduce": "v. 引进；采用",
+  "invent": "v. 发明；创造；编造",
+  "inventive": "adj. 有发明才能的；创新的",
+  "invest": "v. 投资；投入；花费",
+  "investment": "n. 投资；投入；投资额",
+  "issue": "v./n. 发行；发布",
+  "items": "n. 物品",
+  "jars": "n. 罐子；广口瓶",
+  "jeopardise": "v. 危及；使陷于险境；损害",
+  "jeopardize": "v. 危及；损害；使陷于危险",
+  "juvenile": "adj./n. 青少年的；幼稚的；青少年",
+  "keep": "v. 保持；保存；保留",
+  "keep away": "远离；保持距离；避开",
+  "keep clean": "保持清洁；保持干净",
+  "keep（保持｜maintain）": "v. 保持；保存；保留",
+  "keep（保持｜store）": "v. 保持；保存；保留",
+  "knife": "n. 刀；匕首；刀子",
+  "knock down": "击倒；拆除；撞倒",
+  "know": "v. 知道；了解；认识",
+  "known as": "被称为；以...著称",
+  "lack of clarity": "缺乏清晰度；不清楚",
+  "lack of willingness to": "缺乏意愿去...；不愿意去...",
+  "lane": "n. 小巷；车道；航道",
+  "large boats": "大型船只",
+  "last about years": "持续约数年",
+  "launch": "v./n. 发起；发射；推出",
+  "law": "n. 法律；法则",
+  "lead": "n. 铅",
+  "lead to": "导致；通向",
+  "legislation": "n. 法律；法规",
+  "less cooperative": "不太合作的；合作意愿较低的",
+  "lessen": "v. 减少；减轻；变小",
+  "level": "n./v. 水平；级别；使平整",
+  "like": "v. 像",
+  "likelihood": "n. 可能性；可能",
+  "like（像｜for example）": "prep. 像",
+  "like（像｜look like）": "v. 像",
+  "limit": "n./v. 限制；界限；边界",
+  "limitation": "n. 限制；局限；不足之处",
+  "limitation（限制｜defect）": "n. 限制；局限；不足之处",
+  "limitation（限制｜limitation）": "n. 限制；局限；不足之处",
+  "limited": "adj. 有限的；受限制的",
+  "livestock": "n. 牲畜；家畜；家禽",
+  "local": "adj. 当地的；本地的",
+  "local belief": "当地信仰；本土信念",
+  "lock in": "储存",
+  "long-term": "adj. 长期的；长远的",
+  "look after": "照顾；照料；照看",
+  "look at": "看；考虑；着眼于",
+  "look like": "看起来像；看似",
+  "low-income": "adj. 低收入的",
+  "lower": "v./adj. 降低；较低的；下方的",
+  "lucrative": "adj. 有利可图的；赚钱的",
+  "made of small grains": "由细颗粒构成的",
+  "main": "adj. 主要的；最重要的",
+  "maintain": "v. 保持；维护",
+  "major": "adj. 主要的",
+  "make": "v. 做",
+  "make at the same level": "保持在同一水平",
+  "make up for": "弥补；补偿；赔偿",
+  "malady": "n. 疾病；弊病",
+  "man-made": "adj. 人造的；人工的",
+  "manage": "v. 费力的做到…",
+  "manifest": "v./adj. 显示；表明；明显的",
+  "manipulate": "v. 操纵；操作；控制",
+  "many": "adj./pron. 许多的；很多",
+  "marginal": "adj. 边缘的；边际的；微小的",
+  "mark": "n./v. 标志；标记",
+  "market": "n. 市场；营销",
+  "marketing": "n. 营销；销售；市场营销",
+  "master": "v./n./adj. 掌握；主人；主要的",
+  "may be because": "可能是因为",
+  "measure": "v./n. 测量",
+  "measure（措施）": "n. 措施",
+  "measure（测量）": "v./n. 测量",
+  "medical": "adj. 医学的；医疗的",
+  "medium": "n. 媒介；中间物",
+  "merge": "v. 合并；融合；并入",
+  "merits": "n. 优点；价值；功绩",
+  "method": "n. 方法；方式",
+  "methods": "n. 方法；方式",
+  "methods for assessing": "评估的方法",
+  "metropolitan": "adj. 大都市的",
+  "microscopic": "adj. 微观的；极小的",
+  "mimic": "v./n. 模仿；模仿者",
+  "minimize": "v. 最小化；尽量减少",
+  "minor": "adj. 次要的；较小的",
+  "minute": "adj. 微小的",
+  "minute（微小的｜fine）": "adj. 微小的；细微的",
+  "minute（微小的｜minute）": "adj. 微小的",
+  "misguided": "adj. 被误导的；误入歧途的",
+  "mistake": "n. 错误；误解",
+  "mitigate": "v. 减轻；缓和；缓解",
+  "mixing": "n. 混合；搅拌",
+  "mixture": "n. 混合；混合物；混合剂",
+  "modify": "v. 修改；改变",
+  "moist": "adj. 潮湿的；湿润的；多雨的",
+  "moisture": "n. 水分；湿度；潮湿",
+  "money": "n. 钱；金钱",
+  "money（钱｜commercial）": "n. 钱；金钱；货币",
+  "money（钱｜money）": "n. 钱；金钱",
+  "months": "n. 月份；数月",
+  "mortality rate": "死亡率；病死率",
+  "most": "adj./adv./n. 最多的；大多数；最",
+  "most important": "最重要的；首要的",
+  "motion": "n. 动议",
+  "motive": "n. 动机；目的",
+  "motive（动机｜cause）": "n. 动机；目的",
+  "motive（动机｜incentive）": "n. 动机；目的",
+  "move apart": "分开；移开；分离",
+  "multiply": "v. 繁殖；增加；倍增",
+  "municipal": "adj. 市政的；市的；地方自治的",
+  "mutually beneficial": "互利的；互惠的",
+  "named": "adj./v. 命名为；名叫",
+  "namely": "adv. 即；也就是",
+  "native": "adj. 本地的；天生的",
+  "natural": "adj. 自然的；天然的；天生的",
+  "nearby": "adj./adv. 附近的；在附近",
+  "neglect": "v./n. 忽视；疏忽；忽略",
+  "negligible mistakes": "可忽略的错误；微不足道的失误",
+  "neighborhood": "n. 邻居；附近；街坊；社区",
+  "new": "adj. 新的；新鲜的",
+  "new（新的｜future）": "adj. 新的；新鲜的",
+  "new（新的｜new）": "adj. 新的；新鲜的",
+  "new（新的｜novel）": "adj. 新的；新鲜的",
+  "no longer exist": "不再存在；已消失",
+  "no one knows for certain": "没有人确切知道；没人能确定",
+  "norm": "n. 规范；标准",
+  "normal and ordinary": "正常普通的；平常的",
+  "not content with": "不满足于；不满意",
+  "not do": "不做；没有做",
+  "not enough": "不够的；不足的",
+  "not enough degree of freedom": "自由度不够；缺乏自由",
+  "not indigenous": "非本土的；非原生的",
+  "not live up to": "不辜负；达到预期标准",
+  "not local": "非本地的；外地的",
+  "not native": "非本土的；非原生的",
+  "not only but also": "不仅...而且",
+  "novel": "adj. 新颖的；新奇的",
+  "now": "adv. 现在；此刻",
+  "nowadays": "adv. 现在；当今",
+  "numerous": "adj. 众多的；许多的",
+  "nurture": "v./n. 养育；培养；滋养",
+  "obey": "v. 服从；遵守；顺从",
+  "objective": "n. 目标；目的",
+  "obscure": "adj./v. 模糊的；晦涩；使模糊",
+  "obsession": "n. 痴迷",
+  "obstruct": "v. 阻塞；妨碍",
+  "obtainable": "adj. 可获得的；可得到的",
+  "occurrence": "n. 发生；事件；出现",
+  "odd": "adj. 奇怪的；古怪的",
+  "on account of": "由于；因为",
+  "one-on-one": "adj./adv. 一对一的；单独的；面对面",
+  "only": "adv./adj. 只有；唯一的；仅仅",
+  "open and honest": "开放和诚实的；坦诚的",
+  "opinion": "n. 意见；看法；观点",
+  "opponent": "n. 对手；反对者；敌手",
+  "ordinary": "adj. 普通的；平常的；平凡的",
+  "organization": "n. 组织；机构",
+  "original": "adj. 原始的；最初的",
+  "ornaments": "n. 装饰；装饰品",
+  "other than": "除了；不同于",
+  "outsider": "n. 外人；外部人士；门外汉",
+  "over half of": "超过一半的；过半",
+  "overcome": "v. 克服；战胜；解决",
+  "overlook": "v. 忽视；俯瞰；忽略",
+  "owing to": "由于；因为",
+  "owing to（由于｜because）": "由于；因为",
+  "owing to（由于｜thanks to）": "由于；因为",
+  "panic": "n./v./adj. 恐慌；惊慌；恐慌的",
+  "paradoxical": "adj. 矛盾的；似是而非的；悖论的",
+  "partnership": "n. 伙伴关系；合作；合伙",
+  "passage": "n. 通道",
+  "passageway": "n. 通道；走廊",
+  "path": "n. 路径；道路；小路",
+  "pave the way": "为…将来做准备",
+  "pay no attention": "不注意；不理睬",
+  "penalize": "v. 处罚；惩罚",
+  "perceive": "v. 察觉；感知；认识到",
+  "perceive（察觉｜detect）": "v. 察觉；感知；认识到",
+  "perceive（察觉｜recognize）": "v. 察觉；感知；认识到",
+  "percent": "n./adv. 百分比；百分之...",
+  "perception": "n. 认识；看法",
+  "perform": "v. 执行；履行",
+  "period": "n. 时期；周期；时间段",
+  "peripheral": "adj. 外围的；次要的；边缘的",
+  "perplexing": "adj. 令人困惑的；复杂的",
+  "personal": "adj. 个人的；私人的；亲自的",
+  "personality": "n. 性格；个性；人格",
+  "phase out": "逐步淘汰；逐步取消；分阶段停止",
+  "physical": "adj. 身体的",
+  "physical（物理的）": "adj. 物理的；物质的",
+  "physical（身体的）": "adj. 身体的",
+  "pinpoint": "v./adj. 精确找到；精准的",
+  "pitfalls": "n. 陷阱；困境",
+  "place": "n./v. 地方；地点",
+  "pleasant": "adj. 令人愉快的；舒适的；友好的",
+  "plenty of": "大量的；充足的",
+  "plenty of goods": "大量商品",
+  "polite": "adj. 有礼貌的；客气的；文雅的",
+  "politeness": "n. 礼貌；优雅；客气",
+  "poor": "adj. 贫穷的；贫困的",
+  "popular": "adj. 流行的；受欢迎的；大众的",
+  "positive aspects": "积极方面；正面因素",
+  "possibility": "n. 可能性；可能发生的事",
+  "potential danger": "潜在危险；可能的危害",
+  "practical": "adj. 实际的；实用的",
+  "precipitate": "v. 促成；使突然发生",
+  "precipitation": "n. 降水量；降雨；沉淀",
+  "precise": "adj. 精确的；准确的；严格的",
+  "predict": "v. 预测；预言；预报",
+  "prediction": "n. 预测；预言",
+  "prediction（预测｜future）": "n. 预测；预言",
+  "prediction（预测｜predict）": "n. 预测；预言",
+  "preference": "n. 偏好；偏爱；优先权",
+  "preferential": "adj. 优先的；优惠的；特殊的",
+  "preliminary": "adj. 初步的；预备的",
+  "premiere": "n./v. 首次公演；首映；首演",
+  "present-day": "adj. 当代的；现今的",
+  "press": "v./n. 催促，敦促",
+  "pressing": "adj. 紧迫的；紧急的；迫切的",
+  "prestige": "n. 声望；威望；声誉",
+  "prevalent": "adj. 流行的；普遍的；盛行的",
+  "prevent": "v. 阻止；防止",
+  "prevent（阻止｜overcome）": "v. 阻止；预防；防止",
+  "prevent（阻止｜stop）": "v. 阻止；防止",
+  "previous": "adj. 以前的；先前的",
+  "prey on": "捕食；掠夺",
+  "price": "n. 价格；代价",
+  "primary": "adj. 主要的；首要的；初级的",
+  "primitive": "adj. 原始的；落后的",
+  "principal": "adj. 主要的",
+  "priority": "n. 优先；优先权；优先事项",
+  "private": "adj./n. 私人的；私有的",
+  "probability": "n. 概率；可能性",
+  "problems": "n. 问题；难题",
+  "produce": "n. 农产品",
+  "productive": "adj. 富有成效的",
+  "profit": "n. 利润；获利",
+  "profitable": "adj. 有利可图的；盈利的",
+  "profitable（有利可图的｜commercial）": "adj. 有利可图的；盈利的",
+  "profitable（有利可图的｜productive）": "adj. 有利可图的；盈利的",
+  "profits": "n. 利润；收益",
+  "program": "n./v. 程序；计划；节目；编程",
+  "progress": "n./v. 进步；进展；前进",
+  "prohibit": "v. 禁止；阻止",
+  "project": "n./v. 项目；工程；计划；投射",
+  "projection": "n. 预测；规划；投影",
+  "proliferate": "v. 激增；扩散；迅速繁殖",
+  "promote": "v. 促进；提升；推广",
+  "proof": "n./v. 证明；证据",
+  "propagate": "v. 传播；繁殖；宣传",
+  "property": "n. 属性；财产；性质",
+  "proportion": "n. 比例值",
+  "public": "adj./n. 公共的；公众",
+  "public（公共的｜civil）": "adj./n. 公共的；公众；公开",
+  "public（公共的｜public）": "adj./n. 公共的；公众",
+  "publish": "v. 出版；发行；发表",
+  "punishment": "n. 惩罚；处罚",
+  "purpose": "n. 目的；用途",
+  "push": "v./n. 推动；催促",
+  "put forward": "提出；推进",
+  "quit": "v. 停止；放弃",
+  "quite a few": "相当多的；不少的",
+  "rainfall": "n. 降雨量；降雨；降水",
+  "raise": "v./n. 养育；提高；筹集",
+  "rare": "adj. 稀有的；罕见的",
+  "rather than": "而不是；与其...不如",
+  "reach": "v. 达到；实现",
+  "reach a settlement": "达成和解；达成协议",
+  "reachable": "adj. 可到达的；可获得的；可联系的",
+  "real things": "真实的事物；实体物",
+  "realize": "v. 实现",
+  "realize（实现｜achieve）": "v. 实现",
+  "realize（实现｜deliver）": "v. 实现",
+  "realize（意识到）": "v. 意识到；了解",
+  "rear": "v./n. 抚养；养育",
+  "reason": "n. 原因；理由；v. 推理",
+  "rebuke": "v./n. 指责；非难；斥责",
+  "recently": "adv. 最近；新近",
+  "recently（最近｜new）": "adv. 最近；新近",
+  "recently（最近｜now）": "adv. 最近；新近",
+  "recognize": "v. 认出；承认；认可",
+  "recognize（认出｜detect）": "v. 认出；识别",
+  "recognize（认出｜recognize）": "v. 认出；承认；认可",
+  "records": "n. 记录；档案",
+  "recover the biodiversity": "恢复生物多样性；修复生物多样性",
+  "rectify": "v. 纠正；改正；修正",
+  "redress": "v./n. 纠正",
+  "reduce": "v. 减少；缩小",
+  "reduce（减少｜contract）": "v. 减少；缩小",
+  "reduce（减少｜diminish）": "v. 减少；降低；缩小",
+  "reduce（减少｜mitigate）": "v. 减少；降低；缩小",
+  "referred to": "被称为；被提及",
+  "refined": "adj. 精炼的；精细的；文雅的",
+  "refuse": "v. 拒绝；谢绝",
+  "refute": "v. 反驳；驳斥；否定",
+  "reject": "v. 拒绝；驳回",
+  "relating to body": "关于身体的",
+  "release": "v./n. 释放；发布",
+  "reliable": "adj. 可靠的；可信赖的",
+  "relieve": "v. 减轻；解除",
+  "rely on": "依赖；依靠；信任",
+  "remain": "v. 保持；仍然是",
+  "remains": "n. 遗体",
+  "remedy": "n./v. 补救；纠正",
+  "remove": "v./n. 移除；去掉；搬迁",
+  "renewed interest": "重新产生兴趣；再度关注",
+  "repair": "v./n. 修理；修复；补救",
+  "replace": "v. 取代；代替；更换",
+  "replicate": "v. 复制；重复",
+  "reports": "n. 报道，说明",
+  "reprimand": "v./n. 谴责；训斥；惩戒",
+  "reproduce": "v. 繁殖；复制",
+  "reputation": "n. 名声；声誉；名誉",
+  "resemblance": "n. 相似；相像",
+  "resemble": "v. 类似；像",
+  "respect": "n./v. 尊重；尊敬",
+  "respectful": "adj. 恭敬的；有礼貌的；尊重人的",
+  "restrain": "v. 抑制；约束",
+  "restrict": "v. 限制；约束",
+  "restricted": "adj. 保密的；有限的",
+  "restriction": "n. 限制；约束；规定",
+  "result in": "导致；结果是",
+  "reveal": "v. 揭示；显示；透露",
+  "revered": "adj. 受尊敬的；受崇敬的",
+  "revolt": "v. 反感，厌恶",
+  "rise": "v./n. 上升；上涨；兴起",
+  "risk": "n./v. 风险；危险；冒险",
+  "risks": "n. 风险；危险",
+  "rival": "n. 竞争对手",
+  "road": "n. 道路；公路",
+  "route": "n. 路线；航线；途径",
+  "rudimentary": "adj. 基本的；初步的",
+  "savings": "n. 储蓄；存款",
+  "say": "v. 说；比如；假设",
+  "scarce": "adj. 缺乏的；稀有的；不足的",
+  "sceptic": "n. 怀疑者；怀疑论者",
+  "scheme": "n./v. 计划；方案；阴谋；策划",
+  "scrutiny": "n. 仔细检查；审查；监督",
+  "secret": "n./adj. 秘密；机密；秘密的",
+  "segregate": "v. 隔离；分离；分开",
+  "self-reliant": "adj. 自力更生的；依靠自己的",
+  "sensible": "adj. 明智的；合理的",
+  "sentimental": "adj. 情感的；感伤的；多情的",
+  "separate": "v. 分离；分开",
+  "sequent": "adj. 连续的；相继的",
+  "serial": "adj. 连续的；系列的",
+  "setting": "n. 背景；环境；设置；场景",
+  "settle": "v./n. 解决；安顿",
+  "shared": "adj. 共享的；共同的",
+  "sheep": "n. 羊；绵羊",
+  "shift": "v. 转变；改变",
+  "shift（移动）": "v./n. 移动；转变；改变",
+  "shift（转变）": "v. 转变；改变",
+  "ships": "n. 船；舰",
+  "shop": "n./v. 商店；店铺；购物",
+  "shortage": "n. 短缺；不足；缺乏",
+  "shortage（短缺｜defect）": "n. 短缺；不足；缺乏",
+  "shortage（短缺｜inadequate）": "n. 短缺；不足；缺乏",
+  "show": "v./n. 显示；展示；表明",
+  "show out": "出现；显现；展示",
+  "shrink": "v. 收缩；缩小",
+  "shrink（收缩｜contract）": "v. 收缩；缩小",
+  "shrink（收缩｜diminish）": "v. 收缩；缩小；退缩",
+  "sickness": "n. 疾病；不适",
+  "sign": "n. 标志；符号",
+  "signal": "n. 信号；标志",
+  "similar": "adj. 相似的；类似的；相同的",
+  "since": "conj./prep. 因为",
+  "site": "n./v. 地点；位置；场所",
+  "situations": "n. 情况；形势",
+  "skeptic": "n. 怀疑者；怀疑论者",
+  "skeptical": "adj. 怀疑的；持怀疑态度的",
+  "small": "adj. 小的；少的；不重要的",
+  "small pieces of solid matter": "小块固体碎末",
+  "smashed": "adj. 被打碎的；被压扁的",
+  "snowfall": "n. 降雪；降雪量",
+  "so": "conj./adv. 所以；因此",
+  "soaked": "adj. 湿透的；浸透的",
+  "soar": "v. 飙升；猛增",
+  "social position": "社会地位；社会身份",
+  "socially-disadvantaged": "adj. 社会弱势群体的",
+  "society": "n. 社会",
+  "sole": "adj./n. 唯一的；单独的",
+  "sophisticated": "adj. 复杂的；精密的；老练的",
+  "sound": "adj. 健康的；合理的",
+  "sow the seeds of": "播下...的种子；埋下祸根",
+  "spark off": "触发；引起",
+  "speak angrily": "愤怒地说；气愤地讲话",
+  "sponsor": "v. 赞助；发起",
+  "sponsor（赞助｜back）": "v. 赞助；发起",
+  "sponsor（赞助｜commercial）": "v. 赞助；赞助商",
+  "spot": "n./v. 地点；场所",
+  "spread": "v./n. 传播；展开；扩散",
+  "standard": "n./adj. 标准；规格；标准的",
+  "standard of living": "生活水平；生活标准",
+  "start": "v./n. 开始；起点",
+  "starve": "v. 挨饿",
+  "steer clear of": "避开；绕开；远离",
+  "stem from": "来自；由...造成",
+  "step": "n. 步骤；措施",
+  "stimulus": "n. 刺激；激励；促进因素",
+  "stop": "v./n. 停止；阻止",
+  "stop eating": "停止进食；不吃东西",
+  "store": "v. 储存；储备",
+  "strange": "adj. 奇怪的；陌生的；奇特的",
+  "strengths": "n. 优势；长处；强项",
+  "subject": "n./v./adj. 主题；科目",
+  "submit": "v. 提交；服从；屈服",
+  "subsidy": "n. 补贴；津贴；补助金",
+  "substantial": "adj. 大量的；实质的",
+  "substitute": "v./n. 代替；替代品；替补",
+  "succeed in": "成功于；在...方面成功",
+  "succeed in doing": "成功做成（某事）",
+  "successive": "adj. 连续的；接连的",
+  "succumb": "v. 屈服；死于；被...打败",
+  "such as": "诸如；例如",
+  "suffer from": "遭受；受...之苦；患...病",
+  "sufficient": "adj. 足够的；充分的；充足的",
+  "suit": "v. 适合",
+  "suit（适合｜adapt）": "v. 适合",
+  "suit（适合｜suit）": "v. 适合",
+  "supersede": "v. 取代；代替",
+  "support": "v./n. 支持；支撑；拥护",
+  "support（支持｜back up）": "v./n. 支持；支撑；拥护",
+  "support（支持｜back）": "v./n. 支持；支撑；拥护",
+  "surge": "v./n. 激增；汹涌；涌现",
+  "surrender": "v./n. 投降；放弃；屈服",
+  "surrounding": "n. 周围的事物；环境",
+  "suspicion and disbelief": "怀疑与不相信",
+  "sustainable": "adj. 可持续的；能维持的",
+  "swap and share": "交换和分享",
+  "switch": "v. 转换；交换",
+  "switch（转换｜change）": "v. 转换；交换",
+  "switch（转换｜exchange）": "v. 转换；交换",
+  "switch（转换｜vary）": "v./n. 转换",
+  "symbiotic": "adj. 共生的；互利共生的",
+  "symbol": "n. 符号；象征；标志",
+  "symbol of status": "地位的象征；身份象征",
+  "synthetic": "adj. 合成的；人造的",
+  "tackle": "v. 处理；解决；应付",
+  "tackle（处理｜address）": "v. 处理；解决；应付",
+  "tackle（处理｜approach）": "v. 处理；解决；应付",
+  "take care of": "处理，应对",
+  "take no notice": "不注意；不理会",
+  "take the place of": "代替；取代",
+  "taxonomy": "n. 分类学；分类法",
+  "temperament": "n. 气质；性情；性格",
+  "thanks to": "由于；幸亏；多亏",
+  "that are left": "剩下的；遗留的",
+  "the amount of": "...的数量",
+  "the general health": "总体健康；普遍健康",
+  "the growing of plants or animals": "动植物的养殖/种植",
+  "the majority of": "...的大多数；大部分",
+  "the reason why": "...的原因",
+  "theory": "n. 学说；看法",
+  "therefore": "adv. 因此；所以",
+  "thin layer": "薄层；薄涂层",
+  "thin sheet": "薄片；薄金属片",
+  "things": "n. 事物；东西",
+  "things connected with farming": "与农耕相关的东西",
+  "things that are obligated": "有义务的事情；必须做的事",
+  "threaten": "v. 威胁；恐吓",
+  "thus": "adv. 因此；于是",
+  "thwart": "v. 阻止",
+  "tiny": "adj. 极小的；微小的",
+  "tiny（小的）": "adj. 小的；微小的",
+  "tiny（极小的）": "adj. 极小的；微小的",
+  "tiredness": "n. 疲劳；疲倦；劳累",
+  "today": "adv./n. 今天；如今",
+  "toe": "n. 脚趾",
+  "token": "n. 象征；记号",
+  "too little": "太少的；不足的",
+  "track": "n. 轨道；跑道",
+  "trade": "v. 交易；买卖",
+  "traditional": "adj. 传统的；惯例的",
+  "traditional customs": "传统习俗；传统风俗",
+  "trail": "n. 小径；痕迹；v. 跟踪",
+  "trait": "n. 特质；特点；特性",
+  "trait（特质｜feature）": "n. 特质；特点；特性",
+  "trait（特质｜personality）": "n. 特质；特点；特性",
+  "transparent": "adj. 透明的；显然的；坦率的",
+  "trigger": "v. 触发；引发",
+  "turn down": "拒绝",
+  "two opposing views": "两种相反的观点",
+  "unable to": "不能；无法；做不到",
+  "unchangeable": "adj. 不可改变的；固定的",
+  "uncontrolled": "adj. 不受控制的；无约束的",
+  "unconventional": "adj. 非常规的；不传统的",
+  "undeniable": "adj. 不可否认的；无可争辩的",
+  "underdeveloped": "adj. 不发达的；落后的",
+  "undergo": "v. 经历；遭受；承受",
+  "understand": "v. 理解；懂得；了解",
+  "understand（理解｜recognize）": "v. 理解；懂得；了解",
+  "understand（理解｜understand）": "v. 理解；了解",
+  "undertake": "v. 承担；从事",
+  "undesirable": "adj. 不良的；有害的",
+  "undisclosed": "adj. 未公开的；保密的",
+  "undisputed": "adj. 无可争议的；无疑的",
+  "uniform": "adj. 统一的；一致的",
+  "unimportant": "adj. 不重要的；无关紧要的",
+  "unique": "adj. 独特的；唯一的",
+  "unique（独特的｜exclusive）": "adj. 独特的；唯一的；独一无二的",
+  "unique（独特的｜novel）": "adj. 独特的；唯一的",
+  "unlike standard": "与标准不同；不同于常规的",
+  "unquestionable": "adj. 毫无疑问的；无可置疑的",
+  "unstable": "adj. 不稳定的；动荡的；易变的",
+  "unusual": "adj. 不寻常的；罕见的",
+  "unusual（不寻常的｜novel）": "adj. 不寻常的；罕见的",
+  "unusual（不寻常的｜unusual）": "adj. 不寻常的；罕见的",
+  "unwanted": "adj. 不想要的",
+  "urban": "adj. 城市的；都市的；城镇的",
+  "urge": "n. 强烈欲望",
+  "urgent": "adj. 紧急的；紧迫的；急迫的",
+  "use many different": "使用许多不同的",
+  "useful": "adj. 有用的；有益的",
+  "value": "n. 价值",
+  "vanish": "v. 消失；突然不见；绝迹",
+  "vanish（消失｜evaporate）": "v. 消失；突然不见；绝迹",
+  "vanish（消失｜extinct）": "v. 消失；突然不见；绝迹",
+  "vary": "v. 变化；改变；不同",
+  "vary（变化｜change）": "v. 变化；改变；不同",
+  "vary（变化｜vary）": "v. 变化；改变；不同",
+  "vehicle": "n. 媒介；载体",
+  "venue": "n. 地点；场所",
+  "versatile": "adj. 多才多艺的；多功能的",
+  "very small": "非常小的；极微小的",
+  "vessels": "n. 容器；器皿",
+  "vessels（容器）": "n. 容器；器皿",
+  "vessels（船只）": "n. 船只",
+  "vicinity": "n. 附近；邻近；周边地区",
+  "view": "n. 观点；看法",
+  "vital": "adj. 至关重要的；生死攸关的；有活力的",
+  "vulnerable": "adj. 脆弱的；易受伤害的",
+  "vulnerable（脆弱的｜fragile）": "adj. 脆弱的；易受伤害的",
+  "vulnerable（脆弱的｜poor）": "adj. 脆弱的；易受伤害的",
+  "wait and see": "拭目以待；观望",
+  "want to": "想要；希望",
+  "warn": "v. 警告；提醒；告诫",
+  "warning": "n./adj. 警告；警示；告诫",
+  "way": "n. 方式；方法；道路",
+  "way of judging": "判断的方式",
+  "weak": "adj. 虚弱的；软弱的；弱的",
+  "weakness": "n. 弱点；缺点",
+  "weaknesses": "n. 弱点；缺点；虚弱",
+  "weapons": "n. 武器；兵器",
+  "weather": "n. 天气；气候",
+  "welfare": "n. 福利；幸福",
+  "well-being": "n. 幸福；福祉；健康",
+  "well-known": "adj. 著名的；众所周知的",
+  "western societies": "西方社会",
+  "wet": "adj./v./n. 湿的；弄湿；潮湿",
+  "which is": "那就是；即",
+  "widely accepted": "被广泛接受的；普遍认可的",
+  "widespread ideas": "广泛流传的观念；普遍想法",
+  "will": "aux. 将；会",
+  "withdraw": "v. 撤回；退出",
+  "without": "prep./adv. 没有；不；无",
+  "workable": "adj. 可操作的；可行的；可使用的",
+  "worldwide": "adj./adv. 全球的；全世界范围",
+  "worldwide（全球的｜culture）": "adj./adv. 全球的；全世界范围",
+  "worldwide（全球的｜worldwide）": "adj./adv. 全球的；全世界范围",
+  "wrong": "adj. 错误的",
+  "years": "n. 年；多年；数年",
+  "yield": "v. 屈服",
+  "young": "adj./n. 年轻的；年幼的；年轻人",
+  "具体数字": "具体数字；具体数据",
+  "同位语，破折号，引号": "同位语结构；破折号说明；引号引用"
+};
+
+function getChineseMeaning(word) {
+  if (!word) return '';
+  const trimmed = word.trim();
+  if (CHINESE_DICT[trimmed]) return CHINESE_DICT[trimmed];
+  if (CHINESE_DICT[trimmed.toLowerCase()]) return CHINESE_DICT[trimmed.toLowerCase()];
+  // 去掉中文注释后再次查找
+  const base = trimmed.replace(/（[^）]+）/g, '').trim();
+  if (base && base !== trimmed) {
+    if (CHINESE_DICT[base]) return CHINESE_DICT[base];
+    if (CHINESE_DICT[base.toLowerCase()]) return CHINESE_DICT[base.toLowerCase()];
+  }
+  return '';
+}
+let currentSetGroups = [];
+
+function showScreen(screenId) {
+  document.getElementById('homeScreen').style.display = 'none';
+  document.getElementById('studyScreen').style.display = 'none';
+  document.getElementById('mainArea').style.display = 'none';
+  document.getElementById('endScreen').classList.remove('show');
+  document.getElementById(screenId).style.display = '';
+}
+
+function goHome() {
+  showScreen('homeScreen');
+  renderHome();
+}
+
+function goToStudy() {
+  showScreen('studyScreen');
+  renderStudy();
+}
+
+function selectSet(setId) {
+  currentSetId = setId;
+  currentSetGroups = getGroupSet(setId);
+  showScreen('studyScreen');
+  renderStudy();
+}
+
+function startPractice() {
+  if (!currentSetId || currentSetGroups.length === 0) {
+    alert('请先选择一个学习单元');
+    return;
+  }
+  showScreen('mainArea');
+  startGameWithSet(currentSetGroups);
+}
+
+function renderHome() {
+  const grid = document.getElementById('setsGrid');
+  grid.innerHTML = '';
+  GROUP_SETS.forEach(set => {
+    const card = document.createElement('div');
+    card.className = 'set-card';
+    card.onclick = () => selectSet(set.id);
+    card.innerHTML = `
+      <div class="set-num">单元 ${set.id}</div>
+      <div class="set-name">${set.name}</div>
+      <div class="set-desc">${set.description}</div>
+      <div class="set-info">
+        <span>${getGroupSet(set.id).length} 组词汇</span>
+        <span class="set-arrow">→</span>
+      </div>
+    `;
+    grid.appendChild(card);
+  });
+}
+
+function renderStudy() {
+  if (!currentSetId) return;
+  const setInfo = GROUP_SETS.find(s => s.id === currentSetId);
+  document.getElementById('studyTitle').textContent = setInfo?.name || '';
+  document.getElementById('studySubtitle').textContent = setInfo?.description || '';
+  document.getElementById('totalGroups').textContent = currentSetGroups.length;
+
+  const list = document.getElementById('groupsList');
+  list.innerHTML = '';
+  currentSetGroups.forEach((group, idx) => {
+    const card = document.createElement('div');
+    card.className = 'group-card';
+    card.innerHTML = `
+      <div class="group-label">第 ${idx + 1} 组 · 同义词组</div>
+      <div class="group-words">
+        ${group.map(w => {
+          const cn = getChineseMeaning(w);
+          const tooltip = cn
+            ? `<div class="tooltip">
+                 <div class="tooltip-cn">${cn}</div>
+                 <div class="tooltip-syn"><span class="tooltip-syn-label">本组同义词:</span> ${group.filter(x => x !== w).slice(0, 5).join(' · ') || '无'}</div>
+               </div>`
+            : `<div class="tooltip">
+                 <div class="tooltip-cn">暂无翻译</div>
+                 <div class="tooltip-syn"><span class="tooltip-syn-label">本组同义词:</span> ${group.filter(x => x !== w).slice(0, 5).join(' · ') || '无'}</div>
+               </div>`;
+          return `<span class="group-word">${w}${tooltip}</span>`;
+        }).join('')}
+      </div>
+    `;
+    list.appendChild(card);
+  });
+}
+
+// ============================================================
+//  Level system
+// ============================================================
+const LEVEL_TITLES = [
+  "词场新兵","词汇学徒","同义猎人","替换达人","语义大师",
+  "雅思先锋","词源考古家","语言宗师","词汇至尊","传说·万词归一"
+];
+const XP_PER_LEVEL = 100;
+
+let totalXP = 0;
+let playerLevel = 1;
+let roundXP = 0;
+
+function getLevelTitle(lv) {
+  return LEVEL_TITLES[Math.min(lv - 1, LEVEL_TITLES.length - 1)];
+}
+
+function addXP(amount) {
+  totalXP += amount;
+  roundXP += amount;
+  const oldLevel = playerLevel;
+  playerLevel = Math.floor(totalXP / XP_PER_LEVEL) + 1;
+  updateXPBar();
+  if (playerLevel > oldLevel) {
+    showLevelUp(playerLevel);
+  }
+}
+
+function updateXPBar() {
+  const xpInLevel = totalXP % XP_PER_LEVEL;
+  const pct = (xpInLevel / XP_PER_LEVEL) * 100;
+  document.getElementById('xpFill').style.width = pct + '%';
+  document.getElementById('xpText').textContent = `${xpInLevel} / ${XP_PER_LEVEL} XP`;
+  document.getElementById('levelBadge').textContent = `Lv.${playerLevel}`;
+  document.getElementById('levelTitle').textContent = getLevelTitle(playerLevel);
+}
+
+function showLevelUp(lv) {
+  playSound('levelup');
+  const overlay = document.createElement('div');
+  overlay.className = 'levelup-overlay';
+  overlay.innerHTML = `
+    <div class="levelup-content">
+      <div class="levelup-title">LEVEL UP!</div>
+      <div class="levelup-sub">Lv.${lv} · ${getLevelTitle(lv)}</div>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+  spawnParticleBurst(window.innerWidth / 2, window.innerHeight / 2, 80, ['#fbbf24','#f59e0b','#ff6b6b','#8b5cf6','#22d3a7']);
+  setTimeout(() => overlay.remove(), 1800);
+}
+
+// ============================================================
+//  Sound system (Web Audio API)
+// ============================================================
+let audioCtx = null;
+let soundEnabled = true;
+
+function getAudioCtx() {
+  if (!audioCtx) {
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  }
+  return audioCtx;
+}
+
+function playSound(type) {
+  if (!soundEnabled) return;
+  try {
+    const ctx = getAudioCtx();
+    if (ctx.state === 'suspended') ctx.resume();
+    const now = ctx.currentTime;
+
+    if (type === 'click') {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(800, now);
+      osc.frequency.exponentialRampToValueAtTime(1200, now + 0.05);
+      gain.gain.setValueAtTime(0.1, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
+      osc.connect(gain).connect(ctx.destination);
+      osc.start(now);
+      osc.stop(now + 0.1);
+    }
+    else if (type === 'correct') {
+      [523.25, 659.25, 783.99].forEach((freq, i) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(freq, now + i * 0.08);
+        gain.gain.setValueAtTime(0.12, now + i * 0.08);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.08 + 0.2);
+        osc.connect(gain).connect(ctx.destination);
+        osc.start(now + i * 0.08);
+        osc.stop(now + i * 0.08 + 0.25);
+      });
+    }
+    else if (type === 'wrong') {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(200, now);
+      osc.frequency.exponentialRampToValueAtTime(100, now + 0.2);
+      gain.gain.setValueAtTime(0.08, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+      osc.connect(gain).connect(ctx.destination);
+      osc.start(now);
+      osc.stop(now + 0.3);
+    }
+    else if (type === 'combo') {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(880, now);
+      osc.frequency.exponentialRampToValueAtTime(1760, now + 0.15);
+      gain.gain.setValueAtTime(0.12, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+      osc.connect(gain).connect(ctx.destination);
+      osc.start(now);
+      osc.stop(now + 0.25);
+    }
+    else if (type === 'complete') {
+      [523.25, 659.25, 783.99, 1046.5].forEach((freq, i) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(freq, now + i * 0.12);
+        gain.gain.setValueAtTime(0.15, now + i * 0.12);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.12 + 0.3);
+        osc.connect(gain).connect(ctx.destination);
+        osc.start(now + i * 0.12);
+        osc.stop(now + i * 0.12 + 0.35);
+      });
+    }
+    else if (type === 'levelup') {
+      [523.25, 659.25, 783.99, 1046.5, 1318.5].forEach((freq, i) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(freq, now + i * 0.1);
+        gain.gain.setValueAtTime(0.15, now + i * 0.1);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.1 + 0.4);
+        osc.connect(gain).connect(ctx.destination);
+        osc.start(now + i * 0.1);
+        osc.stop(now + i * 0.1 + 0.45);
+      });
+    }
+    else if (type === 'skip') {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(440, now);
+      osc.frequency.exponentialRampToValueAtTime(220, now + 0.15);
+      gain.gain.setValueAtTime(0.08, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
+      osc.connect(gain).connect(ctx.destination);
+      osc.start(now);
+      osc.stop(now + 0.2);
+    }
+    else if (type === 'endgame') {
+      [392, 523.25, 659.25, 783.99, 659.25, 783.99, 1046.5].forEach((freq, i) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(freq, now + i * 0.15);
+        gain.gain.setValueAtTime(0.12, now + i * 0.15);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.15 + 0.35);
+        osc.connect(gain).connect(ctx.destination);
+        osc.start(now + i * 0.15);
+        osc.stop(now + i * 0.15 + 0.4);
+      });
+    }
+  } catch(e) {}
+}
+
+function toggleSound() {
+  soundEnabled = !soundEnabled;
+  const btn = document.getElementById('soundToggle');
+  btn.textContent = soundEnabled ? '🔊' : '🔇';
+  btn.classList.toggle('muted', !soundEnabled);
+}
+
+// ============================================================
+//  Particle system
+// ============================================================
+const canvas = document.getElementById('particleCanvas');
+const pCtx = canvas.getContext('2d');
+let particles = [];
+
+function resizeCanvas() {
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+}
+resizeCanvas();
+window.addEventListener('resize', resizeCanvas);
+
+class Particle {
+  constructor(x, y, color, vx, vy, size, life, type) {
+    this.x = x; this.y = y;
+    this.color = color;
+    this.vx = vx; this.vy = vy;
+    this.size = size;
+    this.life = life;
+    this.maxLife = life;
+    this.type = type || 'circle';
+    this.rotation = Math.random() * Math.PI * 2;
+    this.rotSpeed = (Math.random() - 0.5) * 0.2;
+  }
+  update() {
+    this.x += this.vx;
+    this.y += this.vy;
+    this.vy += 0.12;
+    this.vx *= 0.99;
+    this.life--;
+    this.rotation += this.rotSpeed;
+  }
+  draw(ctx) {
+    const alpha = Math.max(0, this.life / this.maxLife);
+    const sz = this.size * (0.5 + 0.5 * alpha);
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.translate(this.x, this.y);
+    ctx.rotate(this.rotation);
+
+    if (this.type === 'star') {
+      ctx.fillStyle = this.color;
+      ctx.beginPath();
+      for (let i = 0; i < 5; i++) {
+        const angle = (i * 4 * Math.PI) / 5 - Math.PI / 2;
+        ctx.lineTo(Math.cos(angle) * sz, Math.sin(angle) * sz);
+        const angle2 = angle + (2 * Math.PI) / 10;
+        ctx.lineTo(Math.cos(angle2) * sz * 0.4, Math.sin(angle2) * sz * 0.4);
+      }
+      ctx.closePath();
+      ctx.fill();
+    } else if (this.type === 'diamond') {
+      ctx.fillStyle = this.color;
+      ctx.beginPath();
+      ctx.moveTo(0, -sz);
+      ctx.lineTo(sz * 0.6, 0);
+      ctx.lineTo(0, sz);
+      ctx.lineTo(-sz * 0.6, 0);
+      ctx.closePath();
+      ctx.fill();
+    } else {
+      ctx.fillStyle = this.color;
+      ctx.beginPath();
+      ctx.arc(0, 0, sz, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.restore();
+  }
+}
+
+function spawnParticleBurst(x, y, count, colors, types) {
+  const typeList = types || ['circle', 'star', 'diamond'];
+  for (let i = 0; i < count; i++) {
+    const angle = (Math.PI * 2 * i) / count + (Math.random() - 0.5) * 0.5;
+    const speed = 3 + Math.random() * 6;
+    const vx = Math.cos(angle) * speed;
+    const vy = Math.sin(angle) * speed - 2;
+    const color = colors[Math.floor(Math.random() * colors.length)];
+    const size = 2 + Math.random() * 5;
+    const life = 40 + Math.floor(Math.random() * 30);
+    const type = typeList[Math.floor(Math.random() * typeList.length)];
+    particles.push(new Particle(x, y, color, vx, vy, size, life, type));
+  }
+}
+
+function animateParticles() {
+  pCtx.clearRect(0, 0, canvas.width, canvas.height);
+  particles = particles.filter(p => p.life > 0);
+  particles.forEach(p => {
+    p.update();
+    p.draw(pCtx);
+  });
+  requestAnimationFrame(animateParticles);
+}
+animateParticles();
+
+// ============================================================
+//  Visual effects
+// ============================================================
+function showFloatScore(x, y, text, type) {
+  const el = document.createElement('div');
+  el.className = 'float-score ' + type;
+  el.textContent = text;
+  el.style.left = x + 'px';
+  el.style.top = y + 'px';
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 1000);
+}
+
+function screenFlash(color) {
+  const el = document.createElement('div');
+  el.className = 'screen-flash ' + color;
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 400);
+}
+
+// ============================================================
+//  Timer
+// ============================================================
+let timerInterval = null;
+let timerSeconds = 0;
+
+function startTimer() {
+  timerSeconds = 0;
+  clearInterval(timerInterval);
+  updateTimerDisplay();
+  timerInterval = setInterval(() => {
+    timerSeconds++;
+    updateTimerDisplay();
+  }, 1000);
+}
+
+function stopTimer() {
+  clearInterval(timerInterval);
+}
+
+function updateTimerDisplay() {
+  const m = String(Math.floor(timerSeconds / 60)).padStart(2, '0');
+  const s = String(timerSeconds % 60).padStart(2, '0');
+  document.getElementById('timerText').textContent = `${m}:${s}`;
+}
+
+function formatTime(sec) {
+  const m = Math.floor(sec / 60);
+  const s = sec % 60;
+  return m > 0 ? `${m}分${s}秒` : `${s}秒`;
+}
+
+// ============================================================
+//  Game state
+// ============================================================
+let round = 0;
+let rightCount = 0, wrongCount = 0, groupsDone = 0;
+let allMissedWords = [];
+let activeGroups = [], allWords = [], wordToGroup = {};
+let anchorGroupIdx = null, currentChain = [], usedWords = new Set();
+let combo = 0;
+let maxCombo = 0;
+
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function startGame() {
+  goHome();
+}
+
+function startGameWithSet(groups) {
+  round++;
+  rightCount = 0; wrongCount = 0; groupsDone = 0;
+  allMissedWords = [];
+  anchorGroupIdx = null; currentChain = []; usedWords = new Set();
+  combo = 0; maxCombo = 0; roundXP = 0;
+
+  // 练习分组与学习页面保持一致，按顺序取前 10 组（如果不足 10 组则取全部）
+  activeGroups = groups.slice(0, 10);
+
+  allWords = [];
+  wordToGroup = {};
+  activeGroups.forEach((grp, gi) => {
+    grp.forEach(w => {
+      allWords.push(w);
+      wordToGroup[w] = gi;
+    });
+  });
+  allWords = shuffle(allWords);
+
+  document.getElementById('endScreen').classList.remove('show');
+  document.getElementById('mainArea').style.display = '';
+  document.getElementById('completedSection').innerHTML = '';
+  document.getElementById('chainBox').classList.remove('show');
+  document.getElementById('actionRow').classList.remove('show');
+  document.getElementById('comboDisplay').classList.remove('active');
+  hideFeedback();
+
+  const setInfo = GROUP_SETS.find(s => s.id === currentSetId);
+  document.getElementById('progressText').textContent = `${setInfo?.name || '练习'} · 共 ${activeGroups.length} 组`;
+  document.getElementById('sTotal').textContent = allWords.length;
+
+  renderGrid();
+  updateStats();
+  setHint('🎯 点击任意单词开始练习 — 它将成为参照词');
+  startTimer();
+}
+
+function renderGrid() {
+  const grid = document.getElementById('wordsGrid');
+  grid.innerHTML = '';
+  allWords.forEach(w => {
+    const btn = document.createElement('button');
+    btn.className = 'word-btn' + (usedWords.has(w) ? ' used' : '');
+    btn.id = 'wb_' + CSS.escape(w);
+    btn.dataset.word = w;
+    const cn = getChineseMeaning(w);
+    if (cn && !usedWords.has(w)) {
+      btn.innerHTML = w + `<div class="tooltip" style="pointer-events:none;"><div class="tooltip-cn">${cn}</div></div>`;
+    } else {
+      btn.textContent = w;
+    }
+    if (usedWords.has(w)) {
+      btn.disabled = true;
+    } else {
+      btn.addEventListener('click', (e) => handleWordClick(w, e));
+    }
+    grid.appendChild(btn);
+  });
+}
+
+function getBtn(w) {
+  return document.getElementById('wb_' + CSS.escape(w));
+}
+
+function disableAllSameWordButtons(word) {
+  // 当界面中同一个词出现多次时，禁用所有同名按钮，防止重复点击
+  document.querySelectorAll('#wordsGrid .word-btn').forEach(btn => {
+    if (btn.dataset.word === word) {
+      btn.disabled = true;
+      btn.classList.add('used');
+    }
+  });
+}
+
+function handleWordClick(word, event) {
+  if (usedWords.has(word)) return;
+  if (currentChain.includes(word)) return; // 防止同一组内重复点击同一个词
+  const gi = wordToGroup[word];
+  playSound('click');
+
+  if (anchorGroupIdx === null) {
+    anchorGroupIdx = gi;
+    currentChain = [word];
+    const btn = getBtn(word);
+    btn.classList.add('anchor');
+    btn.disabled = true;
+    // 如果同一个词在界面中出现多次，一并禁用其他同名按钮
+    disableAllSameWordButtons(word);
+
+    document.getElementById('chainBox').classList.add('show');
+    document.getElementById('actionRow').classList.add('show');
+    renderChain();
+    setHint(`🔍 "${word}" 已选为参照词，找出所有与它同义的词！`);
+    hideFeedback();
+  } else {
+    if (gi === anchorGroupIdx) {
+      rightCount++;
+            recordAnswer(true, { word: word });
+      combo++;
+      if (combo > maxCombo) maxCombo = combo;
+      currentChain.push(word);
+
+      const btn = getBtn(word);
+      btn.classList.add('correct');
+      btn.disabled = true;
+      // 如果同一个词在界面中出现多次，一并禁用其他同名按钮
+      disableAllSameWordButtons(word);
+      renderChain();
+
+      const comboBonus = Math.min(combo, 5);
+      const xpGain = 10 + (comboBonus - 1) * 5;
+      addXP(xpGain);
+
+      const rect = btn.getBoundingClientRect();
+      const cx = rect.left + rect.width / 2;
+      const cy = rect.top + rect.height / 2;
+
+      screenFlash('green');
+      spawnParticleBurst(cx, cy, 20, ['#22d3a7', '#34d399', '#6ee7b7', '#a7f3d0']);
+      showFloatScore(cx - 20, cy - 30, `+${xpGain} XP`, 'positive');
+
+      if (combo >= 2) {
+        playSound('combo');
+        document.getElementById('comboNum').textContent = combo;
+        document.getElementById('comboDisplay').classList.add('active');
+        if (combo >= 3) {
+          showFloatScore(cx + 40, cy - 60, `${combo}x COMBO!`, 'combo');
+        }
+      }
+
+      playSound('correct');
+
+      const remaining = activeGroups[anchorGroupIdx].filter(
+        w => !usedWords.has(w) && !currentChain.includes(w)
+      );
+      if (remaining.length === 0) {
+        showFeedback('🎉 这组同义词已全部找到！点击"继续"', 'ok');
+        playSound('complete');
+        spawnParticleBurst(window.innerWidth / 2, window.innerHeight / 2, 50, ['#fbbf24','#f59e0b','#22d3a7','#8b5cf6','#38bdf8'], ['star','diamond']);
+        addXP(15);
+      } else {
+        showFeedback(`✅ 正确！还有 ${remaining.length} 个同义词待发现`, 'ok');
+      }
+    } else {
+      wrongCount++;
+            recordAnswer(false, { word: word });
+      combo = 0;
+      document.getElementById('comboDisplay').classList.remove('active');
+
+      const btn = getBtn(word);
+      btn.classList.add('wrong');
+      setTimeout(() => btn.classList.remove('wrong'), 500);
+
+      const rect = btn.getBoundingClientRect();
+      const cx = rect.left + rect.width / 2;
+      const cy = rect.top + rect.height / 2;
+
+      screenFlash('red');
+      spawnParticleBurst(cx, cy, 10, ['#f43f5e', '#fb7185', '#fda4af']);
+      showFloatScore(cx - 15, cy - 30, 'MISS', 'negative');
+
+      playSound('wrong');
+      showFeedback(`❌ "${word}" 不属于这组，继续找！`, 'err');
+
+      showRevealCard(word);
+    }
+    updateStats();
+  }
+}
+
+function renderChain() {
+  const c = document.getElementById('chainTags');
+  c.innerHTML = '';
+  currentChain.forEach((w, i) => {
+    const t = document.createElement('span');
+    t.className = 'chain-tag ' + (i === 0 ? 'anchor-tag' : 'correct-tag');
+    t.textContent = w;
+    if (i > 0) t.style.animationDelay = (i * 0.05) + 's';
+    c.appendChild(t);
+  });
+}
+
+function confirmGroup() {
+  if (anchorGroupIdx === null) return;
+  playSound('click');
+  finishGroup();
+}
+
+function skipGroup() {
+  if (anchorGroupIdx === null) return;
+  playSound('skip');
+  combo = 0;
+  document.getElementById('comboDisplay').classList.remove('active');
+  finishGroup();
+}
+
+function finishGroup() {
+  const grp = activeGroups[anchorGroupIdx];
+  const found = [...currentChain];
+  const missed = grp.filter(w => !found.includes(w));
+  grp.forEach(w => usedWords.add(w));
+  groupsDone++;
+
+  renderDoneGroup(groupsDone, found, missed);
+
+  anchorGroupIdx = null;
+  currentChain = [];
+
+  document.getElementById('chainBox').classList.remove('show');
+  document.getElementById('actionRow').classList.remove('show');
+  hideFeedback();
+
+  renderGrid();
+  updateStats();
+
+  const remaining = allWords.filter(w => !usedWords.has(w));
+  if (remaining.length === 0) {
+    endGame();
+  } else {
+    setHint('🎯 选择下一个单词，开始新的同义词组！');
+  }
+}
+
+function renderDoneGroup(num, found, missed) {
+  const container = document.getElementById('completedSection');
+  const d = document.createElement('div');
+  d.className = 'done-group';
+
+  const numSpan = document.createElement('span');
+  numSpan.className = 'done-group-num';
+  numSpan.textContent = `第${num}组`;
+  d.appendChild(numSpan);
+
+  found.forEach(w => {
+    const s = document.createElement('span');
+    s.className = 'done-word';
+    s.textContent = w;
+    d.appendChild(s);
+  });
+  missed.forEach(w => {
+    const s = document.createElement('span');
+    s.className = 'missed-word';
+    s.textContent = w;
+    d.appendChild(s);
+  });
+  container.appendChild(d);
+}
+
+function updateStats() {
+  const totalGroups = activeGroups.length || 10;
+  document.getElementById('sDone').textContent = groupsDone + '/' + totalGroups;
+  document.getElementById('sRight').textContent = rightCount;
+  document.getElementById('sWrong').textContent = wrongCount;
+  const pct = Math.round(groupsDone / totalGroups * 100);
+  document.getElementById('progressFill').style.width = pct + '%';
+  document.getElementById('progressPct').textContent = pct + '%';
+}
+
+function setHint(msg) {
+  document.getElementById('statusHint').textContent = msg;
+}
+
+function showFeedback(msg, type) {
+  const box = document.getElementById('feedbackBox');
+  box.className = 'feedback-box show ' + type;
+  box.textContent = msg;
+}
+
+function hideFeedback() {
+  document.getElementById('feedbackBox').className = 'feedback-box';
+}
+
+function showRevealCard(missedWord) {
+  const grp = activeGroups[anchorGroupIdx];
+  const anchorWord = currentChain[0]; // 参照词是正确答案
+  const anchorCn = getChineseMeaning(anchorWord);
+
+  const revealWord = document.getElementById('revealWord');
+  const anchorTooltip = anchorCn
+    ? `<div class="tooltip"><div class="tooltip-cn">${anchorCn}</div></div>`
+    : `<div class="tooltip"><div class="tooltip-cn">暂无翻译</div></div>`;
+  revealWord.innerHTML = anchorWord + anchorTooltip;
+
+  const synonymsContainer = document.getElementById('revealSynonyms');
+  synonymsContainer.innerHTML = '';
+  grp.forEach(syn => {
+    const span = document.createElement('span');
+    span.className = 'reveal-card-synonym';
+    const cn = getChineseMeaning(syn);
+    const tooltip = cn
+      ? `<div class="tooltip"><div class="tooltip-cn">${cn}</div></div>`
+      : `<div class="tooltip"><div class="tooltip-cn">暂无翻译</div></div>`;
+    span.innerHTML = syn + tooltip;
+    synonymsContainer.appendChild(span);
+  });
+
+  if (!allMissedWords.includes(missedWord)) {
+    allMissedWords.push(missedWord);
+  }
+
+  document.getElementById('revealOverlay').classList.add('show');
+  document.getElementById('revealCard').classList.add('show');
+}
+
+function closeRevealCard() {
+  document.getElementById('revealOverlay').classList.remove('show');
+  document.getElementById('revealCard').classList.remove('show');
+}
+
+function endGame() {
+  stopTimer();
+  playSound('endgame');
+
+  document.getElementById('mainArea').style.display = 'none';
+  const total = rightCount + wrongCount;
+  const acc = total > 0 ? Math.round(rightCount / total * 100) : 100;
+
+  let rating = '🌟';
+  if (acc >= 90 && wrongCount <= 2) rating = '🏆 完美通关！';
+  else if (acc >= 75) rating = '⭐ 优秀！';
+  else if (acc >= 60) rating = '👍 不错！';
+  else rating = '💪 继续加油！';
+
+  document.getElementById('endRound').textContent = `第 ${round} 轮完成`;
+  document.getElementById('endScore').textContent = `${acc}%`;
+  document.getElementById('endDetail').innerHTML =
+    `答对 <strong>${rightCount}</strong> 次 · 答错 <strong>${wrongCount}</strong> 次 · 最高连击 <strong>${maxCombo}</strong> · 用时 <strong>${formatTime(timerSeconds)}</strong><br>${rating}`;
+  document.getElementById('endXp').textContent = `+${roundXP} XP`;
+
+  const missedSection = document.getElementById('endMissedSection');
+  const missedWordsContainer = document.getElementById('endMissedWords');
+  missedWordsContainer.innerHTML = '';
+  if (allMissedWords.length > 0) {
+    allMissedWords.forEach(w => {
+      const span = document.createElement('span');
+      span.className = 'end-missed-word';
+      span.textContent = w;
+      missedWordsContainer.appendChild(span);
+    });
+    missedSection.classList.add('show');
+  } else {
+    missedSection.classList.remove('show');
+  }
+
+  document.getElementById('endScreen').classList.add('show');
+
+  setTimeout(() => {
+    spawnParticleBurst(window.innerWidth / 2, window.innerHeight / 3, 60, ['#fbbf24','#8b5cf6','#22d3a7','#38bdf8','#f43f5e'], ['star','diamond']);
+  }, 300);
+}
+
+startGame();
+
+
+/* ============================================================
+   【模块追踪系统】学习时长 + 答题正确率 → 通过 postMessage 发送给主页面
+   ============================================================ */
+const TRACK_MODULE_TYPE = 'reading_synonym';
+const TRACK_MODULE_NAME = '阅读同义替换';
+
+let _track_studentId = null;
+let _track_sessionStart = null;
+let _track_rightCount = 0;
+let _track_wrongCount = 0;
+
+/* ----- 检查是否在 iframe 中运行 ----- */
+function _track_isInIframe() {
+    try {
+        return window.self !== window.top;
+    } catch (e) {
+        return true;
+    }
+}
+
+/* ----- 通过 postMessage 发送学习数据给主页面 ----- */
+function _track_sendToParent(isExit) {
+    if (!_track_sessionStart) return;
+    const now = Date.now();
+    const duration = Math.round((now - _track_sessionStart) / 1000);
+    const total = _track_rightCount + _track_wrongCount;
+    // 非退出时：不足 1 秒且没有答题就不记录，避免噪音数据
+    // 退出时：不管时长多少都记录，避免遗漏
+    if (!isExit && duration < 1 && total === 0) return;
+    if (isExit && duration < 1 && total === 0) return;
+    try {
+        if (window.parent && window.parent.postMessage) {
+            window.parent.postMessage({
+                type: 'genericStudyComplete',
+                moduleType: TRACK_MODULE_TYPE,
+                moduleName: TRACK_MODULE_NAME,
+                student_id: _track_studentId,
+                durationSeconds: duration,
+                rightCount: _track_rightCount,
+                wrongCount: _track_wrongCount,
+                totalCount: total,
+                isExit: !!isExit
+            }, '*');
+        }
+    } catch (e) {
+        console.warn('[Track] 发送学习数据失败:', e);
+    }
+    // 非退出时重置计时起点（每次发送增量）
+    if (!isExit) _track_sessionStart = Date.now();
+}
+
+/* ----- 监听主页面请求保存 ----- */
+window.addEventListener('message', function(event) {
+    if (event.data && event.data.type === 'requestSave') {
+        _track_sendToParent(true);
+    }
+});
+
+/* ----- 记录一道题的对错（被原有答题逻辑调用） ----- */
+function recordAnswer(isCorrect, questionInfo) {
+    if (isCorrect) _track_rightCount++;
+    else _track_wrongCount++;
+}
+
+/* ----- 页面加载时：直接隐藏登录页，显示首页 ----- */
+(function _track_init() {
+    try {
+        // tongyitihuan 项目无需登录，直接隐藏登录覆盖层
+        const loginOverlay = document.getElementById('loginOverlay');
+        if (loginOverlay) {
+            loginOverlay.style.display = 'none';
+        }
+
+        // 尝试从 URL 参数获取 student_id（主页面传递）
+        const urlParams = new URLSearchParams(window.location.search);
+        const urlStudentId = urlParams.get('student_id');
+        if (urlStudentId) {
+            _track_studentId = urlStudentId;
+        }
+
+        // 启动计时
+        _track_sessionStart = Date.now();
+        _track_rightCount = 0;
+        _track_wrongCount = 0;
+
+        // 显示首页
+        goHome();
+
+        console.log('[Track] 同义替换追踪已启动（学习模式）');
+    } catch (e) {
+        console.warn('[Track] 初始化失败:', e);
+    }
+})();
+
+/* ----- 页面关闭/切换时发送最后一次数据 ----- */
+window.addEventListener('beforeunload', function() {
+    _track_sendToParent(true);
+});
+window.addEventListener('pagehide', function() {
+    _track_sendToParent(true);
+});
+
+/* ----- 提供给独立登录场景使用：保留 studentLogin 函数 ----- */
+async function studentLogin() {
+    const sid = document.getElementById('studentIdInput').value.trim();
+    const pwd = document.getElementById('studentPwdInput').value;
+    const errEl = document.getElementById('loginError');
+    errEl.textContent = '';
+    if (!sid || !pwd) {
+        errEl.textContent = '请输入学号和密码';
+        return;
+    }
+    try {
+        // 独立运行模式：简单的本地验证 + localStorage 存储
+        _track_studentId = sid;
+        try {
+            localStorage.setItem('studentSession', JSON.stringify({
+                student_id: sid,
+                expiresAt: Date.now() + 24 * 60 * 60 * 1000
+            }));
+        } catch (e) {}
+        document.getElementById('loginOverlay').style.display = 'none';
+        _track_sessionStart = Date.now();
+        _track_rightCount = 0;
+        _track_wrongCount = 0;
+        if (_track_saveInterval) clearInterval(_track_saveInterval);
+        _track_saveInterval = setInterval(function() {
+            _track_sendToParent(false);
+            _track_sessionStart = Date.now();
+        }, 3 * 60 * 1000);
+    } catch (e) {
+        errEl.textContent = '登录失败，请稍后再试';
+    }
+}
+
+</script>
+</body>
+</html>

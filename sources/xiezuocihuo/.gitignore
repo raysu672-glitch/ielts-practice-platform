@@ -1,0 +1,4 @@
+docx_unpacked/
+*.docx
+.codebuddy/
+.workbuddy/

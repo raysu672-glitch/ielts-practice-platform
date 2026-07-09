@@ -1,0 +1,793 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>英语听写测试 - 2400词词表</title><style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .card {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 40px;
+            margin-bottom: 20px;
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 2rem;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+        }
+
+        .start-screen {
+            text-align: center;
+        }
+
+        .info-box {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+            text-align: left;
+        }
+
+        .info-box h3 {
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+
+        .info-box ul {
+            list-style: none;
+            padding-left: 0;
+        }
+
+        .info-box li {
+            padding: 8px 0;
+            color: #555;
+            display: flex;
+            align-items: center;
+        }
+
+        .info-box li::before {
+            content: "";
+            color: #667eea;
+            font-weight: bold;
+            margin-right: 10px;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            font-size: 1.2rem;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: transform 0.3s, box-shadow 0.3s;
+            display: inline-block;
+            text-decoration: none;
+        }
+
+        .btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+        }
+
+        .btn-secondary:hover {
+            box-shadow: 0 10px 30px rgba(108, 117, 125, 0.4);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+        }
+
+        .btn-success:hover {
+            box-shadow: 0 10px 30px rgba(17, 153, 142, 0.4);
+        }
+
+        /* Test Screen */
+        .test-screen {
+            display: none;
+        }
+
+        .progress-bar {
+            background: #e9ecef;
+            border-radius: 10px;
+            height: 10px;
+            margin-bottom: 30px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            height: 100%;
+            transition: width 0.3s;
+            border-radius: 10px;
+        }
+
+        .question-counter {
+            text-align: center;
+            color: #667eea;
+            font-size: 1.2rem;
+            margin-bottom: 20px;
+        }
+
+        .status-icon {
+            text-align: center;
+            margin: 30px 0;
+            font-size: 4rem;
+        }
+
+        .status-icon.playing {
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        .timer-display {
+            text-align: center;
+            font-size: 2rem;
+            color: #667eea;
+            margin: 20px 0;
+        }
+
+        .timer-display.warning {
+            color: #dc3545;
+            animation: blink 0.5s infinite;
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .input-group {
+            margin: 30px 0;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 10px;
+            color: #333;
+            font-size: 1.1rem;
+        }
+
+        .input-group input {
+            width: 100%;
+            padding: 15px 20px;
+            font-size: 1.3rem;
+            border: 2px solid #e9ecef;
+            border-radius: 10px;
+            transition: border-color 0.3s;
+            text-align: center;
+            text-transform: lowercase;
+        }
+
+        .input-group input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .input-group input.correct {
+            border-color: #28a745;
+            background: #d4edda;
+        }
+
+        .input-group input.incorrect {
+            border-color: #dc3545;
+            background: #f8d7da;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin-top: 30px;
+        }
+
+        /* Results Screen */
+        .results-screen {
+            display: none;
+            text-align: center;
+        }
+
+        .score-display {
+            font-size: 5rem;
+            font-weight: bold;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin: 20px 0;
+        }
+
+        .score-label {
+            font-size: 1.5rem;
+            color: #666;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            margin: 30px 0;
+        }
+
+        .stat-box {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .stat-label {
+            color: #666;
+            margin-top: 5px;
+        }
+
+        .stat-box.correct .stat-value {
+            color: #28a745;
+        }
+
+        .stat-box.incorrect .stat-value {
+            color: #dc3545;
+        }
+
+        .error-list {
+            text-align: left;
+            margin: 30px 0;
+        }
+
+        .error-list h3 {
+            color: #dc3545;
+            margin-bottom: 15px;
+        }
+
+        .error-item {
+            background: #fff3cd;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .error-item .word {
+            font-weight: bold;
+            color: #333;
+        }
+
+        .error-item .your-answer {
+            color: #dc3545;
+        }
+
+        .error-item .correct-answer {
+            color: #28a745;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .top-actions {
+            margin-bottom: 16px;
+            display: flex;
+            justify-content: flex-start;
+        }
+        .back-btn {
+            background: rgba(255,255,255,.92);
+            color: #4f46a5;
+            border: none;
+            padding: 10px 22px;
+            font-size: 1rem;
+            border-radius: 999px;
+            cursor: pointer;
+            box-shadow: 0 10px 30px rgba(0,0,0,.16);
+        }
+        .back-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 34px rgba(0,0,0,.2);
+        }
+
+        /* Mobile Responsive */
+        @media (max-width: 600px) {
+            .card {
+                padding: 20px;
+            }
+
+            h1 {
+                font-size: 1.5rem;
+            }
+
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .action-buttons {
+                flex-direction: column;
+            }
+
+            .btn {
+                width: 100%;
+            }
+        }
+    </style></head><body><div class="container"><!-- Start Screen --><div class="card start-screen" id="startScreen"><h1> 英语听写测试</h1><p class="subtitle">2400词词表随机练习</p><div class="info-box"><h3> 测试说明</h3><ul><li>系统将随机抽取 <strong>50个单词</strong></li><li>每个单词会播放<strong>一次</strong>英文发音</li><li>你需要在输入框中<strong>拼写</strong>听到的单词</li><li>点击"播放"按钮可<strong>重播</strong>发音</li><li>提交后可查看成绩并<strong>下载错误列表</strong></li></ul></div><button class="btn" onclick="startTest()">开始测试</button></div><!-- Test Screen --><div class="card test-screen" id="testScreen"><div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div><div class="question-counter" id="questionCounter">第 1 / 50 题</div><div class="status-icon" id="statusIcon"></div><div class="timer-display" id="timerDisplay">准备中...</div><div class="input-group"><label for="answerInput">请输入你听到的单词：</label><input type="text" id="answerInput" placeholder="输入单词..." autocomplete="off" onkeypress="handleKeyPress(event)"></div><div class="action-buttons"><button class="btn btn-secondary" onclick="skipWord()">跳过</button><button class="btn" onclick="submitAnswer()">提交</button></div></div><!-- Results Screen --><div class="card results-screen" id="resultsScreen"><h1> 测试完成！</h1><div class="score-display" id="scoreDisplay">0%</div><p class="score-label">正确率</p><div class="stats-grid"><div class="stat-box correct"><div class="stat-value" id="correctCount">0</div><div class="stat-label">正确</div></div><div class="stat-box incorrect"><div class="stat-value" id="incorrectCount">0</div><div class="stat-label">错误</div></div><div class="stat-box"><div class="stat-value" id="skippedCount">0</div><div class="stat-label">跳过</div></div></div><div class="error-list" id="errorList"><h3> 错误/跳过单词</h3><div id="errorItems"></div></div><div class="action-buttons"><button class="btn" onclick="downloadResults()"> 下载结果</button><button class="btn btn-success" onclick="restartTest()"> 再来一次</button></div></div></div><script>
+        function goBack() {
+            if (window.history.length > 1) {
+                window.history.back();
+            } else {
+                window.location.href = 'index.html';
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const container = document.querySelector('.container');
+            if (!container || document.getElementById('pageBackBtn')) return;
+            const topActions = document.createElement('div');
+            topActions.className = 'top-actions';
+            topActions.innerHTML = '<button class="back-btn" id="pageBackBtn" onclick="goBack()">返回</button>';
+            container.insertBefore(topActions, container.firstChild);
+        });
+
+        // Word list (all 2400+ words from the vocabulary list)
+        const allWords = [
+            "brain", "booklet", "bridges", "social", "national", "rats", "marketing", "snakes", "round", "agency",
+            "insects", "children", "early", "cleaning", "cloud", "conference", "ants", "hospital", "open", "insurance",
+            "supermarket", "pencil", "normal", "medal", "illness", "pillow", "Arranging", "interviews", "pizza", "magazines",
+            "dinner", "clever", "bathrooms", "tickets", "accents", "save", "club", "end", "water", "fireworks",
+            "time", "glass", "goat", "rice", "hiking", "education", "against", "engineering", "orange", "pencils",
+            "welcome", "rules", "knees", "sister", "toys", "wait", "fitness", "citizen", "songs", "hat",
+            "watch", "packing", "communication", "winds", "colds", "tourists", "break", "blood", "bookshop", "teeth",
+            "balcony", "block", "birth", "beaches", "dark", "cooperation", "keyboard", "hunting", "company", "meals",
+            "address", "spelling", "wedding", "Northeast", "corners", "check", "cultures", "booking", "shirt", "crying",
+            "visitors", "grammar", "lunch", "ocean", "male", "gold", "rocks", "season", "tiger", "store",
+            "gender", "circles", "campus", "tower", "rubber", "stars", "discussion", "advertising", "central", "change",
+            "oven", "international", "reading", "recorders", "kite", "plants", "advertise", "Mold", "actors", "classification",
+            "rivers", "day", "legal", "dance", "lions", "map", "bike", "watering", "view", "sand",
+            "chain", "swimming", "technology", "sun hat", "protection", "sheep", "numbers", "organize", "outdoor", "difficult",
+            "India", "noisy", "quiet", "summer", "confidence", "price", "chocolate", "breakdown", "couple", "results",
+            "special", "scientific", "course", "fires", "worker", "files", "healthcare", "guard", "selfish", "greenfield",
+            "lines", "planner", "chemical", "aunt", "manager", "autumn", "chemist", "eyesight", "farmers", "fear",
+            "kitchen", "management", "lights", "information", "wild", "humans", "bikes", "location", "search", "relationships",
+            "feet", "gas", "messages", "choose", "sales", "bedroom", "pollution", "politics", "museum", "bill",
+            "cleaner", "choosing", "hungry", "bicycle", "salts", "skin", "leaders", "neck", "note", "noise",
+            "bones", "parks", "patience", "printer", "programs", "rope", "salt", "none", "backdoor", "artists",
+            "forests", "answer", "crops", "soft", "Internet", "mapping", "blue", "mountains", "outside", "mining",
+            "aging", "tests", "floodwater", "storm", "global", "healthy", "oldest", "personal", "math", "wide",
+            "lakes", "volcano", "grain", "harm", "driver", "pictures", "beginning", "financial", "calls", "products",
+            "guide", "notebook", "reporter", "salads", "pets", "engineers", "leg", "radio", "tires", "hotels",
+            "island", "furniture", "lighting", "market", "methods", "notes", "warm", "energy", "environmental", "factory",
+            "small", "emails", "bears", "flowers", "medicines", "housing", "income", "airports", "flat", "production",
+            "fruits", "eyedrops", "unsure", "trains", "milk", "villages", "workshop", "babies", "unhealthy", "tears",
+            "media", "gym", "friendship", "garage", "tutors", "feeding", "fans", "minerals", "Thursday", "problems",
+            "profits", "left", "band", "forecast", "weekend", "military", "shadow", "smooth", "foot", "still",
+            "unfair", "voices", "warning", "write", "family", "shipbuilding", "training", "unanswered", "frame", "customers",
+            "dangerous", "dry", "traveling", "lost", "design", "footprints", "games", "hard", "images", "improvement",
+            "king", "lab", "monkeys", "evenings", "samples", "workplace", "town", "drive", "foods", "gardening",
+            "approaches", "beer", "country", "department", "exercises", "negative", "outline", "modern", "sandwiches", "jeans",
+            "guest", "cycling", "danger", "beginners", "frogs", "printed", "bright", "industry", "ink", "writing",
+            "objects", "living", "account", "items", "right", "land", "memories", "mental", "prisoners", "stage",
+            "highway", "computer", "increase", "potatoes", "morning", "strong", "carpets", "cable", "parents", "paining",
+            "wrong", "arts", "exhibitor", "factories", "nests", "quality", "rural", "structure", "green", "hardworking",
+            "quite", "tape", "promotion", "maps", "bricks", "traffic", "unfriendly", "yellow", "garden", "spring",
+            "eyes", "Eat", "cameraman", "poison", "flooding", "ages", "distance", "colours", "cleanest", "driving",
+            "plates", "roads", "technical", "timetable", "gun", "hairs", "fieldwork", "climbing", "creativity", "list",
+            "machines", "control", "focus", "wallet", "geese", "pianist", "salesman", "size", "runner", "choice",
+            "urban", "tunnel", "fashion", "plans", "main", "waste", "codes", "tour", "silver", "sandy",
+            "economy", "economics", "movies", "hands", "contract", "cattle", "cave", "telephone", "drinking", "accidents",
+            "snowboarding", "fields", "escape", "dried", "floors", "deserts", "films", "friends", "grasses", "natural",
+            "printers", "sport", "experience", "key", "heat", "videos", "adults", "ships", "flight", "engine",
+            "boots", "stomach", "entrance", "surprise", "chicken", "farming", "stairs", "bananas", "plan", "doctors",
+            "waterfall", "friendly", "glasses", "oil", "printing", "seat", "government", "stories", "painting", "castles",
+            "remember", "arms", "coloured", "animals", "fact", "political", "airplane", "firework", "closed", "army",
+            "groundplan", "meetings", "raining", "half", "sunset", "advance", "package", "drinks", "horsehair", "crime",
+            "policies", "free pick", "export", "smart", "heart", "type", "horses", "reports", "value", "undeveloped",
+            "surveys", "self-drive", "recording", "references", "photographs", "computers", "common", "cafe", "fill", "bath",
+            "Russia", "cashier", "cameras", "airline", "groups", "fireplaces", "rainwear", "drying", "tourism", "science",
+            "gaps", "cash", "free", "sugar", "waiter", "TRUE", "rainfall", "clothes", "double", "finance",
+            "parking", "person", "writers", "rainwater", "fresh", "newspapers", "station", "scientist", "back", "passport",
+            "topics", "climate", "languages", "sailing", "postcard", "restaurant", "postbox", "meat", "varies", "researcher",
+            "actions", "learner", "birds", "singing", "teams", "streets", "apartment", "colony", "words", "sleep",
+            "Safety", "various", "jacket", "present", "shipping", "loyalty", "wheelchair", "vitamin A", "shoppers", "plastic",
+            "politician", "sunscreen", "nurse", "concert", "super", "taxes", "weathers", "identity", "heater", "photos",
+            "specialist", "headache", "society", "wheels", "workforce", "analysis", "biology", "challenge", "nesting", "administration",
+            "harmful", "worksheet", "coursework", "strategies", "overfill", "picnic", "knowledge", "fridge", "racecar", "essays",
+            "downhill", "impossible", "lounge", "objectives", "quiz", "range", "harvest", "rubbish", "antiseptic", "bins",
+            "cement", "observation", "trousers", "cabin", "performance", "nuts", "organic", "breakfast", "metals", "migrate",
+            "overfishing", "painters", "hairdresser", "rare trees", "pennies", "swans", "breed", "commitment", "concrete", "Confirmation",
+            "journals", "port", "gravity", "habitat", "transportation", "gene", "extra", "retail", "microwave", "relatively",
+            "literature", "license", "pioneer", "handle", "entry", "basement", "entertainment", "clinic", "minibus", "woodland",
+            "polluted", "sharing", "reliable", "primary", "network", "estimate", "data", "air pump", "tastes", "relaxation",
+            "laundry", "non-native", "internal", "taxi", "vision", "cheque", "recycling", "behaviors", "attitude", "deposit",
+            "dentist", "resident", "innovation", "biological", "commercial", "comparison", "emotions", "leaflet", "ice pack", "videotape",
+            "originality", "prison", "grade", "diseases", "durable", "flexibility", "handouts", "return", "underground", "interest",
+            "play area", "seminars", "bronze", "painkiller", "teamwork", "backpacker", "religions", "employee", "employer", "refreshments",
+            "darkroom", "roof", "satisfaction", "part-time", "selection", "environment", "evaporation", "Exhibitions", "campsite", "relatives",
+            "typing", "smell", "security", "riverside", "monthly", "defense", "summarize", "garbage", "designers", "seating",
+            "mail", "agriculture", "daylight", "golf", "joining", "traders", "website", "minivan", "brother-in-law", "fruitcake",
+            "variety", "decline", "arrangement", "password", "traditional", "camp", "reasonable", "stand", "long-term", "purpose",
+            "reasons", "tents", "seasonal", "diary", "creature", "total", "lifestyle", "boards", "carbon", "homework",
+            "personality", "branches", "worms", "wool", "develop", "landlady", "secretary", "freedom", "general", "petrol",
+            "documentation", "economical", "tutorials", "intermediate", "joint", "development", "gifts", "imported", "frozen", "guidelines",
+            "iron", "corn", "nets", "diet", "cooperate", "diaries", "wealthy", "speeches", "opera", "stolen",
+            "self-defense", "documents", "necessary", "slide", "section", "handbook", "lower", "nursing", "online", "lateral-line",
+            "lecture", "liberty", "leadership", "cookery", "clay", "shells", "shape", "headphones", "direct", "direction",
+            "lectures", "lecturer", "wildlife", "towels", "flexible", "theory", "permit", "secondary", "conversation", "diving",
+            "long stick", "singer", "growing", "surface", "textbooks", "drums", "lifting", "chairman", "basic", "sharks",
+            "apologize", "guitar", "pest", "candles", "built", "cartoons", "heavy", "process", "services", "levels",
+            "spiders", "concentrate", "temperature", "Scotland", "expensive", "hearing", "whiteboard", "trade", "cheese", "crowded",
+            "shower", "tools", "aid", "square", "navigation", "pattern", "pegs", "theatre", "whales", "example",
+            "creation", "sun-cream", "checklist", "pool", "ability", "collecting", "studio", "coast", "collection", "college",
+            "shelf", "concerts", "position", "smoking", "preserved", "weight", "card index", "sleeping bag", "polished", "processing",
+            "evidence", "settle", "ban", "jewelry", "feathers", "viewpoint", "consumers", "contact", "benefits", "fuel",
+            "dirt", "cap", "blanket", "downstairs", "mistake", "vocabulary", "subway", "restrictions", "agent", "subjects",
+            "chess", "grandfather", "drugs", "rest area", "earning", "spoon", "explain", "semester", "credit", "bookkeeping",
+            "empty", "cab", "spare", "indoor", "balloons", "goldfish", "yoga", "stream", "charge", "honest",
+            "donkeys", "understand", "version", "alternative", "fell", "pure", "soup", "sky", "canal", "success",
+            "running", "individual", "builder", "female", "important", "exam", "whole", "proof", "football", "hunger",
+            "investment", "middle", "rabbit", "kilometers", "pass", "native", "robots", "salary", "realistic", "ropes",
+            "order", "moods", "reduction", "starvation", "storage", "relevant", "style", "wings", "pairs", "sign",
+            "patients", "stress", "repair", "voice", "walking", "seeds", "jokes", "invitations", "hero", "hire",
+            "minutes", "rainbow", "miss", "inside", "front", "overseas", "paragraphs", "opinion", "stressful", "transparent",
+            "soccer", "sharp", "reservation", "uncomfortable", "calendar", "dairy", "casual", "responsible", "decision", "calm",
+            "boring", "stick", "upstairs", "armchair", "reception", "cigar", "packaging", "different", "balance", "clubhouse",
+            "companionship", "productivity", "waterproof", "unnatural", "specific", "community", "causes", "honey", "accept",
+            "prizes", "multimedia", "conclusions", "talent", "regulations", "accountants", "client", "emotional", "pressure", "decrease",
+            "professor", "lakeside", "safeguard", "condition", "feedback", "crisis", "conservation", "pounds", "amount", "certificates",
+            "carrots", "specialized", "firewood", "unlimited", "oxygen", "windsurfing", "loyal", "hive", "cover", "lockers",
+            "genetic", "articles", "enjoyable", "entire", "electricity", "silk", "footbridges", "competitive", "presentations", "seagrass",
+            "pleasure", "massage", "floated", "teenagers", "receptionist", "nutrition", "workload", "threat", "perception", "noticeboard",
+            "windmills", "containers", "qualification", "issue", "abroad", "technician", "punctual", "screen", "electronic", "wax",
+            "statistics", "networking", "tropical", "variable", "diploma", "call diversion", "fertilizers", "methodology", "maturity", "washbasin",
+            "lifespan", "theoretical", "concentration", "smoother", "preservation", "acceptable", "flashing", "altitude", "frustration", "ambulance",
+            "signature", "mushroom", "badge", "ambition", "lizard", "bacteria", "angle", "fluctuate", "fluent", "psychologist",
+            "expansion", "funding", "accurate", "slang", "argument", "terrace", "artificial", "archives", "territory", "shuttle",
+            "therapy", "slaves", "assess", "limestone", "assignment", "expose", "liable", "reflective", "refund", "voluntary",
+            "subtopics", "publication", "acknowledgement", "welfare", "toothache", "acid", "fringe", "microscope", "centimeter", "celebrities",
+            "excitement", "leak", "suitable", "occupancy", "irrigation", "surfing", "reusable", "nylon", "obligation", "moderate",
+            "excellent", "folded", "situational", "portable", "souvenir", "assessment", "nursery", "responsibility", "jogging", "evaluation",
+            "liquid", "toaster", "cotton", "prevention", "fountain", "vertical", "reproduction", "horror", "intelligence", "barbershop",
+            "prevalent", "torn", "deadline", "vetting", "radar", "cosmetics", "adopt", "motivation", "consumption", "adventure",
+            "maintenance", "rack", "curved", "touching", "rationally", "damp", "random", "hardware", "priority", "tolerance",
+            "facilities", "visa", "intact", "warehouse", "admission", "strap", "medication", "toilet", "uniform", "coconut",
+            "dismiss", "rush", "average", "bakery", "membership", "brilliant", "advisors", "publishing", "disappear", "atlas",
+            "alter", "index", "discipline", "wetsuit", "integrate", "antifreeze", "breathing", "shrimp", "confusion", "agreement",
+            "tuna", "labels", "weeding", "dishwasher", "shoot", "depth", "booths", "opposite", "oral", "polish",
+            "maximum", "sacred", "outstanding", "palace", "digestion", "zoom", "powder", "silence", "herds", "director",
+            "savings", "achievement", "scale", "aspiration", "purple", "battery", "edges", "measurement", "ecology", "ladders",
+            "duration", "sable", "canteen", "trace", "predicting", "Budget", "circulation", "display", "rumor", "broad",
+            "satellite", "vanish", "mould", "stickers", "persuading", "corrupt", "freight", "geographical", "motor", "man-made",
+            "correction", "status", "fence", "useless", "perfumes", "stimulation", "stems", "kindness", "undergraduate", "weed",
+            "stings", "cream", "current", "definition", "bucket", "wires", "brakes", "depression", "catalogue", "sweetener",
+            "tides", "catering", "brushes", "intensive", "recommendation", "obesity", "categories", "mammals", "hostel", "delivery",
+            "straight", "thunderstorm", "apology", "broader", "whistle", "trends", "ingredients", "jazz", "rivals", "boiler",
+            "crocodiles", "fishing net", "crown", "introduction", "explanation", "explode", "junior", "link", "willing", "curtains",
+            "sweaters", "tail", "platforms", "sheet", "movement", "immigration", "explosion", "domestic", "editor", "isolation",
+            "automobile", "orientation", "calculating", "glue", "formats", "compensation", "degrees", "interaction", "manual", "demand",
+            "necklace", "mat", "attack", "Protein", "morality", "origins", "monitor", "outcomes", "participation", "room service",
+            "scent", "kidney", "influence", "informal", "journalism", "bushes", "butterflies", "roots", "bunch", "scenery",
+            "expectations", "shallow", "mud", "character", "steel", "expect", "strain", "faxing", "flashlight", "pockets",
+            "flute", "loans", "lungs", "manufacture", "manufacturers", "count", "audience", "scare", "demonstrations", "reinvest",
+            "generation", "treatment", "pesticides", "copies", "carpenter", "bargain", "spine", "model", "symbol", "destroy",
+            "contaminate", "expert", "flavor", "trash", "context", "translation", "diamond", "efficiency", "elastic", "grant",
+            "humidity", "fluids", "pilots", "luxury", "magic", "draft", "strict", "timber", "cliffs", "progress",
+            "recruit", "roll over", "schedule", "capacities", "hospitality", "classifying", "grandmother", "critical", "immune",
+            "judo", "drawing", "grocery", "matching", "spears", "lawyers", "democratic", "moist", "passages", "passive",
+            "ceremonies", "temple", "frequency", "font", "gloves", "term", "gradual", "convenient", "distribute", "encourage",
+            "enlargement", "complaints", "module", "patterns", "complete", "humor", "reinforce", "lanes", "legroom", "realism",
+            "regular", "bonus", "height", "erosion", "string", "strike", "compulsory", "compounds", "tomatoes", "tone",
+            "independent", "titles", "comprehension", "leisure", "tongue", "confirm", "length", "stopwatch", "impact", "soap",
+            "apron", "pressed", "residents", "laptops", "freezer", "equal", "complex", "distribution", "released", "district",
+            "mixed", "popular", "consistent", "marriage", "E. ticket", "experiment", "external", "fingers", "Europe", "leather",
+            "revenue", "textile", "mask", "mild", "population", "pots", "fair", "savvy", "president", "sort",
+            "source", "resources", "seasoned", "seals", "resistant", "emperor", "accountable", "composers", "retrain", "review",
+            "restroom", "solid", "solution", "socks", "replacement", "request", "repeat", "scarf", "antibiotics", "uncontrolled",
+            "hurricane", "instinctive", "weapon", "odor", "addictive", "magnet", "statue", "pipes", "fabric", "friction",
+            "fur", "shoulder", "virus", "foundation", "menu", "digging", "fat", "extinction", "fossil", "captive",
+            "fog", "poetry", "trays", "promotional", "saliva", "referee", "registration", "slope", "biography", "headlines",
+            "logo", "calculation", "pharmacy", "digestive", "flamingos", "efficient", "claw", "relocation", "instructor", "moisture",
+            "session", "sculptures", "infrastructure", "nitrogen", "trumpet", "receiver", "philosophers", "chalk", "representation", "require",
+            "retained", "sites", "situation", "herbivorous", "guessing", "authority", "motel", "carnival", "monuments", "hook",
+            "predators", "stretching", "kangaroo", "lids", "sociable", "poster", "photocopies", "prepared", "comedy", "comfortable",
+            "reward", "remote", "evolution", "rockets", "pirates", "distortion", "flu", "coastline", "stuck", "strangers",
+            "elevator", "dolphins", "elephants", "journalists", "peak", "route", "smash", "soldiers", "advertisement", "stairlift",
+            "shame", "state park", "procedure", "steam", "helicopter", "application", "density", "hothouse", "scores", "diversity",
+            "comics", "consultant", "exploration", "identification", "vegetarian", "questionnaire", "description", "vegetation", "machinery", "donations",
+            "sustainable", "shortlist", "documentary", "supervision", "decorations", "tribes", "landmarks", "migration", "organizations", "permanent",
+            "mathematics", "germs", "atoms", "craft", "unsocial", "permission", "triangle", "pottery", "supportive", "microbiology",
+            "helmet", "unpredictable", "strength", "unfurnished", "forestry", "navigational", "arrows", "unapproachable", "automatic", "layout",
+            "appearance", "caravan", "theme", "translator", "similar", "insulation", "barrier", "reaction", "signals", "microfilm",
+            "olive oil", "instinct", "myth", "effectiveness", "dome", "logic", "dictation", "poverty", "graphics", "combination",
+            "flies", "retire", "instructions", "stabilize", "embassy", "drought", "repel", "shade"
+        ];
+
+        let selectedWords = [];
+        let currentIndex = 0;
+        let results = [];
+        let timerInterval = null;
+        let timeLeft = 6;
+        let isPlaying = false;
+        let questionToken = 0;
+        let autoNextTimeout = null;
+
+        function shuffleArray(array) {
+            const shuffled = [...array];
+            for (let i = shuffled.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+            }
+            return shuffled;
+        }
+
+        function stopSpeaking() {
+            speechSynthesis.cancel();
+            isPlaying = false;
+            if (timerInterval) {
+                clearInterval(timerInterval);
+                timerInterval = null;
+            }
+            if (autoNextTimeout) {
+                clearTimeout(autoNextTimeout);
+                autoNextTimeout = null;
+            }
+        }
+
+        function startTest() {
+            document.getElementById('startScreen').style.display = 'none';
+            document.getElementById('testScreen').style.display = 'block';
+
+            // Select 50 random words
+            selectedWords = shuffleArray(allWords).slice(0, 50);
+            currentIndex = 0;
+            results = [];
+
+            showQuestion();
+        }
+
+        function showQuestion() {
+            stopSpeaking();
+            questionToken++;
+
+            const word = selectedWords[currentIndex];
+            document.getElementById('questionCounter').textContent = `第 ${currentIndex + 1} / 50 题`;
+            document.getElementById('progressFill').style.width = `${((currentIndex + 1) / 50) * 100}%`;
+            document.getElementById('answerInput').value = '';
+            document.getElementById('answerInput').className = '';
+            document.getElementById('timerDisplay').textContent = '准备中...';
+            document.getElementById('timerDisplay').className = 'timer-display';
+            document.getElementById('statusIcon').className = 'status-icon';
+
+            playWord(questionToken);
+        }
+
+        function playWord(token) {
+            stopSpeaking();
+
+            const word = selectedWords[currentIndex];
+            const utterance = new SpeechSynthesisUtterance(word);
+            utterance.lang = 'en-US';
+            utterance.rate = 0.8;
+
+            const statusIcon = document.getElementById('statusIcon');
+            statusIcon.className = 'status-icon playing';
+            isPlaying = true;
+
+            utterance.onend = () => {
+                if (token !== questionToken) return;
+                statusIcon.className = 'status-icon';
+                isPlaying = false;
+                startTimer(token);
+            };
+
+            utterance.onerror = () => {
+                if (token !== questionToken) return;
+                statusIcon.className = 'status-icon';
+                isPlaying = false;
+                startTimer(token);
+            };
+
+            speechSynthesis.speak(utterance);
+        }
+
+        function startTimer(token) {
+            timeLeft = 6;
+            updateTimerDisplay();
+
+            timerInterval = setInterval(() => {
+                timeLeft--;
+                updateTimerDisplay();
+
+                if (timeLeft <= 0) {
+                    clearInterval(timerInterval);
+                    timerInterval = null;
+                    document.getElementById('timerDisplay').textContent = '时间到！';
+                    // 自动跳到下一题，检查答案是否正确
+                    autoNextTimeout = setTimeout(() => {
+                        if (token !== questionToken) return;
+                        const userAnswer = document.getElementById('answerInput').value.trim().toLowerCase();
+                        const correctAnswer = selectedWords[currentIndex].toLowerCase();
+                        const isCorrect = userAnswer === correctAnswer;
+                        
+                        results.push({
+                            word: selectedWords[currentIndex],
+                            userAnswer: userAnswer || '(未作答)',
+                            isCorrect: isCorrect,
+                            skipped: userAnswer === ''
+                        });
+                        nextQuestion();
+                    }, 800);
+                }
+            }, 1000);
+        }
+
+        function updateTimerDisplay() {
+            const display = document.getElementById('timerDisplay');
+            display.textContent = `剩余 ${timeLeft} 秒`;
+            display.className = timeLeft <= 2 ? 'timer-display warning' : 'timer-display';
+        }
+
+        function handleKeyPress(event) {
+            if (event.key === 'Enter') {
+                submitAnswer();
+            }
+        }
+
+        function submitAnswer() {
+            stopSpeaking();
+
+            const userAnswer = document.getElementById('answerInput').value.trim().toLowerCase();
+            const correctAnswer = selectedWords[currentIndex].toLowerCase();
+            const isCorrect = userAnswer === correctAnswer;
+
+            const input = document.getElementById('answerInput');
+            input.classList.add(isCorrect ? 'correct' : 'incorrect');
+
+            results.push({
+                word: selectedWords[currentIndex],
+                userAnswer: userAnswer || '(未作答)',
+                isCorrect: isCorrect,
+                skipped: false
+            });
+
+            autoNextTimeout = setTimeout(() => {
+                nextQuestion();
+            }, 1000);
+        }
+
+        function skipWord() {
+            stopSpeaking();
+
+            results.push({
+                word: selectedWords[currentIndex],
+                userAnswer: '(跳过)',
+                isCorrect: false,
+                skipped: true
+            });
+
+            nextQuestion();
+        }
+
+        function nextQuestion() {
+            currentIndex++;
+
+            if (currentIndex >= 50) {
+                showResults();
+            } else {
+                showQuestion();
+            }
+        }
+
+        function showResults() {
+            document.getElementById('testScreen').style.display = 'none';
+            document.getElementById('resultsScreen').style.display = 'block';
+
+            const correctCount = results.filter(r => r.isCorrect).length;
+            const incorrectCount = results.filter(r => !r.isCorrect && !r.skipped).length;
+            const skippedCount = results.filter(r => r.skipped).length;
+            const score = Math.round((correctCount / 50) * 100);
+
+            document.getElementById('scoreDisplay').textContent = `${score}%`;
+            document.getElementById('correctCount').textContent = correctCount;
+            document.getElementById('incorrectCount').textContent = incorrectCount;
+            document.getElementById('skippedCount').textContent = skippedCount;
+
+            // Show error list
+            const errorItems = document.getElementById('errorItems');
+            const errors = results.filter(r => !r.isCorrect);
+
+            if (errors.length === 0) {
+                errorItems.innerHTML = '<p style="color: #28a745; padding: 20px;"> 太棒了！全部正确！</p>';
+            } else {
+                errorItems.innerHTML = errors.map(e => `
+                    <div class="error-item"><div><span class="word">${e.word}</span>
+                            ${e.skipped ? '<span style="color: #ffc107; margin-left: 10px;">(跳过)</span>' : ''}
+                        </div><div><span class="your-answer">你的答案: ${e.userAnswer}</span><span style="margin: 0 10px;"></span><span class="correct-answer">正确答案: ${e.word}</span></div></div>
+                `).join('');
+            }
+        }
+
+        function downloadResults() {
+            const correctCount = results.filter(r => r.isCorrect).length;
+            const skippedCount = results.filter(r => r.skipped).length;
+            const incorrectCount = results.filter(r => !r.isCorrect && !r.skipped).length;
+            const score = Math.round((correctCount / 50) * 100);
+
+            const errors = results.filter(r => !r.isCorrect);
+
+            let content = `英语听写测试结果\n`;
+            content += `========================\n\n`;
+            content += `测试时间: ${new Date().toLocaleString('zh-CN')}\n`;
+            content += `总分: ${score}%\n`;
+            content += `正确: ${correctCount} 题\n`;
+            content += `错误: ${incorrectCount} 题\n`;
+            content += `跳过: ${skippedCount} 题\n\n`;
+
+            if (errors.length > 0) {
+                content += `错误/跳过单词列表:\n`;
+                content += `------------------------\n`;
+                errors.forEach((e, index) => {
+                    content += `${index + 1}. ${e.word} (你的答案: ${e.userAnswer})\n`;
+                });
+            }
+
+            content += `\n\n单词列表:\n`;
+            content += `------------------------\n`;
+            results.forEach((r, index) => {
+                const status = r.isCorrect ? '' : (r.skipped ? '跳过' : '');
+                content += `${index + 1}. [${status}] ${r.word}\n`;
+            });
+
+            const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `听写测试结果_${new Date().toISOString().slice(0,10)}.txt`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        function restartTest() {
+            document.getElementById('resultsScreen').style.display = 'none';
+            startTest();
+        }
+    </script></body></html>

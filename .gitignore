@@ -1,0 +1,52 @@
+# Local agent/workspace state
+.agents/
+.browser-ops/
+.claude/
+.nezha/
+
+# Runtime data and local databases
+data/*.db
+data/*.sqlite
+data/*.sqlite3
+*.log
+
+# Audio assets stay local and are not committed
+*.mp3
+*.wav
+*.m4a
+*.ogg
+sources/tinglidanciceshi/audio/
+sources/daanjutingxie/A听力答案句/
+sources/P4gendu/C4T1S4.mp3
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Local archives and extraction scratch space
+sources/_zips/
+sources/_extract/
+
+# Secrets and machine-local credentials
+.env
+.env.*
+*.pem
+*.key
+id_rsa*
+id_ed25519*
+
+# Local verification screenshots and temporary files
+/_tmp_*
+/check-add-student.png
+/listening-groups.png
+/p4-shadow-reading.png
+/teacher-*.png
+/0a7a5d3a-*.png
+/d9194b71-*.png
+
+# OS/editor files
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/

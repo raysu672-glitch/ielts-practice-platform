@@ -1,0 +1,1164 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>听力单词学习系统</title><style>
+        :root {
+            --brand: #5c6bc0;
+            --brand-deep: #3949ab;
+            --brand-light: #e8eaf6;
+            --accent: #7e57c2;
+            --bg: #f4f5f9;
+            --surface: #ffffff;
+            --surface-2: #f8f9fc;
+            --border: #e2e4ec;
+            --text-primary: #1a1d2e;
+            --text-secondary: #6b7280;
+            --text-muted: #9ca3af;
+            --success: #10b981;
+            --success-bg: #ecfdf5;
+            --danger: #ef4444;
+            --danger-bg: #fef2f2;
+            --radius-sm: 8px;
+            --radius: 14px;
+            --radius-lg: 20px;
+            --shadow: 0 4px 16px rgba(92,107,192,.10), 0 1px 4px rgba(0,0,0,.06);
+            --shadow-lg: 0 12px 40px rgba(92,107,192,.14), 0 2px 8px rgba(0,0,0,.06);
+            --transition: 0.18s ease;
+        }
+
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', 'PingFang SC', 'Noto Sans SC', 'Microsoft YaHei',
+                         system-ui, -apple-system, sans-serif;
+            background: var(--bg);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            padding: 24px 16px;
+            color: var(--text-primary);
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .container {
+            background: var(--surface);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border);
+            width: 100%;
+            max-width: 620px;
+            padding: 36px 40px;
+            margin: auto;
+        }
+
+        h1 {
+            text-align: center;
+            color: var(--text-primary);
+            font-size: 1.55rem;
+            font-weight: 700;
+            margin-bottom: 6px;
+            letter-spacing: -.01em;
+        }
+        .subtitle {
+            text-align: center;
+            color: var(--text-secondary);
+            margin-bottom: 26px;
+            font-size: .9rem;
+        }
+
+        /* 阶段指示器 */
+        .stage-indicator {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 28px;
+            justify-content: center;
+        }
+        .stage {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 5px;
+            flex: 1;
+            max-width: 90px;
+        }
+        .stage-dot {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: var(--border);
+            color: var(--text-muted);
+            font-weight: 700;
+            font-size: .85rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background var(--transition), color var(--transition);
+            border: 2px solid transparent;
+        }
+        .stage.active .stage-dot {
+            background: var(--brand);
+            color: #fff;
+            border-color: var(--brand-deep);
+            box-shadow: 0 0 0 3px rgba(92,107,192,.18);
+        }
+        .stage.completed .stage-dot {
+            background: var(--success-bg);
+            color: var(--success);
+            border-color: var(--success);
+        }
+        .stage-label {
+            font-size: .72rem;
+            color: var(--text-muted);
+            text-align: center;
+            font-weight: 500;
+        }
+        .stage.active .stage-label { color: var(--brand); font-weight: 700; }
+        .stage.completed .stage-label { color: var(--success); }
+
+        /* 内容区 */
+        .content-area { position: relative; }
+        .hidden { display: none !important; }
+
+        /* 开始页 */
+        .start-screen { text-align: center; }
+        .start-screen h2 {
+            font-size: 1.25rem;
+            font-weight: 700;
+            margin-bottom: 10px;
+            color: var(--text-primary);
+        }
+        .start-screen p {
+            color: var(--text-secondary);
+            margin-bottom: 20px;
+            font-size: .9rem;
+        }
+        .feature-list {
+            list-style: none;
+            margin: 0 0 24px;
+            text-align: left;
+            display: inline-block;
+        }
+        .feature-list li {
+            padding: 6px 0 6px 22px;
+            position: relative;
+            color: var(--text-secondary);
+            font-size: .88rem;
+        }
+        .feature-list li::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 12px;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: var(--brand);
+            opacity: .6;
+        }
+
+        /* 分组格 */
+        #group-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 8px;
+            margin-bottom: 20px;
+        }
+        #group-info { color: var(--brand); font-weight: 600; margin-bottom: 14px; font-size: .95rem; }
+
+        /* 进度条 */
+        .progress-bar {
+            background: var(--border);
+            border-radius: 999px;
+            height: 5px;
+            margin: 0 0 16px;
+            overflow: hidden;
+        }
+        .progress-fill {
+            background: linear-gradient(90deg, var(--brand), var(--accent));
+            height: 100%;
+            border-radius: 999px;
+            transition: width .4s cubic-bezier(.4,0,.2,1);
+        }
+        .word-counter {
+            text-align: center;
+            color: var(--text-muted);
+            font-size: .82rem;
+            margin-bottom: 20px;
+        }
+
+        /* 音频按钮 */
+        .audio-btn {
+            display: block;
+            margin: 0 auto 20px;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: var(--brand);
+            border: none;
+            cursor: pointer;
+            transition: transform var(--transition), background var(--transition), box-shadow var(--transition);
+            color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .audio-btn:hover {
+            transform: scale(1.07);
+            background: var(--brand-deep);
+            box-shadow: 0 6px 20px rgba(92,107,192,.35);
+        }
+        .audio-btn svg { width: 26px; height: 26px; fill: #fff; }
+
+        /* 输入区 */
+        .input-area { margin-bottom: 16px; }
+        .word-input {
+            width: 100%;
+            padding: 12px 16px;
+            font-size: 1.05rem;
+            font-family: inherit;
+            border: 1.5px solid var(--border);
+            border-radius: var(--radius-sm);
+            background: var(--surface-2);
+            color: var(--text-primary);
+            text-align: center;
+            transition: border-color var(--transition), box-shadow var(--transition);
+        }
+        .word-input:focus {
+            outline: none;
+            border-color: var(--brand);
+            box-shadow: 0 0 0 3px rgba(92,107,192,.12);
+            background: var(--surface);
+        }
+
+        /* 反馈提示 */
+        .feedback-area {
+            min-height: 36px;
+            text-align: center;
+            font-weight: 600;
+            font-size: .95rem;
+            margin-bottom: 14px;
+            padding: 8px;
+            border-radius: var(--radius-sm);
+        }
+        .feedback-area.correct {
+            background: var(--success-bg);
+            color: #065f46;
+        }
+        .feedback-area.wrong {
+            background: var(--danger-bg);
+            color: #991b1b;
+        }
+
+        /* 单词展示（阶段2） */
+        .word-display {
+            text-align: center;
+            margin: 20px 0 10px;
+        }
+        .word-text {
+            font-size: 2.2rem;
+            font-weight: 800;
+            color: var(--brand-deep);
+            letter-spacing: .02em;
+            margin-bottom: 4px;
+        }
+        .word-phonetic { color: var(--text-muted); font-size: .9rem; margin-bottom: 4px; }
+        .word-meaning  { color: var(--text-secondary); font-size: .9rem; }
+
+        /* 按钮 */
+        .btn {
+            background: var(--brand);
+            color: #fff;
+            border: none;
+            padding: 10px 26px;
+            font-size: .95rem;
+            font-family: inherit;
+            font-weight: 600;
+            border-radius: var(--radius);
+            cursor: pointer;
+            transition: background var(--transition), transform var(--transition), box-shadow var(--transition);
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .btn-primary { background: var(--brand); }
+        .btn-primary:hover { background: var(--brand-deep); transform: translateY(-1px); box-shadow: 0 6px 18px rgba(92,107,192,.28); }
+        .btn-secondary {
+            background: transparent;
+            color: var(--text-secondary);
+            border: 1.5px solid var(--border);
+        }
+        .btn-secondary:hover { background: var(--surface-2); color: var(--text-primary); }
+        .btn:disabled { opacity: .5; cursor: not-allowed; transform: none; box-shadow: none; }
+        .btn-group { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-top: 16px; }
+
+        /* 完成页 */
+        .complete-area { text-align: center; }
+        .complete-area h2 { font-size: 1.5rem; font-weight: 700; margin-bottom: 10px; }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            margin: 20px 0;
+        }
+        .stat-box {
+            background: var(--surface-2);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            padding: 14px 10px;
+            text-align: center;
+        }
+        .stat-value { font-size: 1.6rem; font-weight: 800; color: var(--brand); }
+        .stat-label { color: var(--text-muted); font-size: .78rem; margin-top: 4px; }
+
+        /* Toast */
+        .toast {
+            position: fixed;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%) translateY(8px);
+            background: var(--text-primary);
+            color: #fff;
+            padding: 10px 22px;
+            border-radius: 999px;
+            z-index: 2000;
+            font-size: .88rem;
+            font-weight: 500;
+            opacity: 0;
+            transition: opacity .25s, transform .25s;
+            pointer-events: none;
+            white-space: nowrap;
+        }
+        .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+        .toast.error   { background: var(--danger); }
+        .toast.success { background: var(--success); }
+
+        /* 响应式 */
+        @media (max-width: 480px) {
+            .container { padding: 22px 16px; }
+            h1 { font-size: 1.3rem; }
+            #group-grid { grid-template-columns: repeat(4, 1fr); }
+            .word-text { font-size: 1.8rem; }
+        }
+    </style></head><body><div class="container"><h1> 听力单词学习系统</h1><p class="subtitle">四阶段渐进式记忆强化训练</p><!-- 阶段指示器 --><div class="stage-indicator"><div class="stage" id="stage1-indicator"><div class="stage-dot">1</div><span class="stage-label">盲测筛查</span></div><div class="stage" id="stage2-indicator"><div class="stage-dot">2</div><span class="stage-label">拼写强化</span></div><div class="stage" id="stage3-indicator"><div class="stage-dot">3</div><span class="stage-label">闭环重测</span></div><div class="stage" id="stage4-indicator"><div class="stage-dot">4</div><span class="stage-label">靶向收敛</span></div></div><!-- 内容区域 --><div class="content-area"><!-- 开始页面 --><div class="start-screen" id="start-screen"><h2>欢迎使用听力单词学习系统</h2><p>本系统采用四阶段渐进式学习方法，帮助您高效记忆单词。</p><ul class="feature-list"><li>阶段1：首轮盲测筛查 - 快速识别已掌握单词</li><li>阶段2：微观小组3遍拼写强化 - 多感官记忆训练</li><li>阶段3：小组闭环听写重测 - 确保小组内100%掌握</li><li>阶段4：全局漏斗靶向收敛 - 错词集中突破</li></ul><div id="group-selection-area"><p id="group-info" style="color:#667eea;font-weight:bold;margin-bottom:15px;font-size:16px;"></p><div id="group-grid" style="display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:20px;"></div><button class="btn btn-primary" id="start-group-btn" onclick="startLearning()">开始学习</button></div></div><!-- 阶段1：盲测筛查 --><div class="dictation-area hidden" id="stage1-area"><div class="progress-bar"><div class="progress-fill" id="stage1-progress" style="width: 0%"></div></div><p class="word-counter">第 <span id="current-index">1</span> / <span id="total-count">20</span> 个单词</p><button class="audio-btn" onclick="playCurrentWord()"><svg viewBox="0 0 24 24"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/></svg></button><div class="input-area"><input type="text" class="word-input" id="dictation-input" placeholder="请输入听到的单词" autocomplete="off"></div><div class="btn-group"><button class="btn btn-secondary" onclick="skipWord()">跳过</button><button class="btn btn-primary" onclick="submitDictation()">提交</button></div></div><!-- 阶段2：拼写强化 --><div class="spelling-area hidden" id="stage2-area"><p class="round-indicator">第 <span id="spelling-round">1</span> / 3 轮拼写</p><div class="word-display"><div class="word-text" id="spelling-word">ancestor</div><div class="word-phonetic" id="spelling-phonetic">/ˈænsestə(r)/</div><div class="word-meaning" id="spelling-meaning">n. 祖先；祖宗</div></div><div class="char-display" id="char-display"></div><div class="spelling-input-container"><input type="text" class="spelling-input" id="spelling-input" placeholder="请输入单词" autocomplete="off"></div><div class="btn-group"><button class="btn btn-secondary" onclick="playCurrentWord()"> 再听一遍</button><button class="btn btn-primary" onclick="submitSpelling()">提交</button></div></div><!-- 阶段3：闭环重测 --><div class="retest-area hidden" id="stage3-area"><div class="retest-info"><h3>小组闭环听写重测</h3><p>本阶段需要100%正确才能进入下一阶段</p></div><div class="progress-bar"><div class="progress-fill" id="stage3-progress" style="width: 0%"></div></div><p class="word-counter">第 <span id="retest-index">1</span> / <span id="retest-count">0</span> 个单词</p><button class="audio-btn" onclick="playCurrentWord()"><svg viewBox="0 0 24 24"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/></svg></button><div class="input-area"><input type="text" class="word-input" id="retest-input" placeholder="请输入听到的单词" autocomplete="off"></div><button class="btn btn-primary" onclick="submitRetest()">提交</button></div><!-- 阶段4：全局漏斗 --><div class="funnel-area hidden" id="stage4-area"><div class="funnel-stats"><div class="stat-box"><div class="stat-number" id="funnel-remaining">0</div><div class="stat-label">剩余错词</div></div><div class="stat-box"><div class="stat-number" id="funnel-correct">0</div><div class="stat-label">本次正确</div></div></div><p class="word-counter" id="funnel-round-indicator" style="color:#667eea;font-weight:bold;">第 1 轮靶向收敛</p><p class="word-counter">第 <span id="funnel-index">1</span> 个单词</p><button class="audio-btn" onclick="playCurrentWord()"><svg viewBox="0 0 24 24"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/></svg></button><div class="input-area"><input type="text" class="word-input" id="funnel-input" placeholder="请输入听到的单词" autocomplete="off"></div><button class="btn btn-primary" onclick="submitFunnel()">提交</button></div><!-- 学习完成 --><div class="result-area hidden" id="complete-area"><div class="result-icon"></div><h2 class="result-title" id="complete-title">恭喜完成本组学习！</h2><p class="result-desc" id="complete-desc">您已完成本组所有单词的学习和测试</p><div class="word-list"><h4>已掌握单词 (<span id="mastered-count">0</span>个)</h4><div id="mastered-list"></div></div><div class="btn-group" id="complete-buttons"><button class="btn btn-secondary" onclick="backToGroupSelection()">返回组选择</button><button class="btn btn-primary" id="next-group-btn" onclick="startNextGroup()" style="display:none;">下一组</button><button class="btn btn-primary" onclick="restartLearning()">重新开始</button></div></div></div><!-- 统计面板 --><div class="stats-panel"><div class="stat-item"><div class="stat-value" id="stat-mastered">0</div><div class="stat-name">已掌握</div></div><div class="stat-item"><div class="stat-value" id="stat-learning">0</div><div class="stat-name">学习中</div></div><div class="stat-item"><div class="stat-value" id="stat-time">0:00</div><div class="stat-name">学习时长</div></div></div></div><!-- 提示信息 --><div class="toast" id="toast"></div><script>
+        // ==================== 词库数据 ====================
+        const ALL_WORDS = [{"word": "ancestor", "phonetic": "/ˈænsestə(r)/", "pos": "n.", "meaning": "祖先；祖宗"}, {"word": "barrier", "phonetic": "/ˈbæriə(r)/", "pos": "n.", "meaning": "障碍；屏障"}, {"word": "calendar", "phonetic": "/ˈkælɪndə(r)/", "pos": "n.", "meaning": "日历；月历"}, {"word": "dynasty", "phonetic": "/ˈdɪnəsti/", "pos": "n.", "meaning": "朝代；王朝"}, {"word": "engine", "phonetic": "/ˈendʒɪn/", "pos": "n.", "meaning": "引擎；发动机"}, {"word": "festival", "phonetic": "/ˈfestɪvl/", "pos": "n.", "meaning": "节日；庆典"}, {"word": "gallery", "phonetic": "/ˈɡæləri/", "pos": "n.", "meaning": "画廊；美术馆"}, {"word": "harbour", "phonetic": "/ˈhɑːbə(r)/", "pos": "n.", "meaning": "港口；港湾"}, {"word": "income", "phonetic": "/ˈɪnkʌm/", "pos": "n.", "meaning": "收入；所得"}, {"word": "journal", "phonetic": "/ˈdʒɜːnl/", "pos": "n.", "meaning": "期刊；日记"}, {"word": "kingdom", "phonetic": "/ˈkɪŋdəm/", "pos": "n.", "meaning": "王国；领域"}, {"word": "labour", "phonetic": "/ˈleɪbə(r)/", "pos": "n./v.", "meaning": "劳动；劳工；劳作"}, {"word": "melody", "phonetic": "/ˈmelədi/", "pos": "n.", "meaning": "旋律；曲调"}, {"word": "nursery", "phonetic": "/ˈnɜːsəri/", "pos": "n.", "meaning": "托儿所；苗圃"}, {"word": "occasion", "phonetic": "/əˈkeɪʒn/", "pos": "n.", "meaning": "场合；时刻"}, {"word": "palace", "phonetic": "/ˈpæləs/", "pos": "n.", "meaning": "宫殿；豪宅"}, {"word": "queue", "phonetic": "/kjuː/", "pos": "n./v.", "meaning": "队列；排队"}, {"word": "railway", "phonetic": "/ˈreɪlweɪ/", "pos": "n.", "meaning": "铁路；铁道"}, {"word": "scenery", "phonetic": "/ˈsiːnəri/", "pos": "n.", "meaning": "风景；景色"}, {"word": "territory", "phonetic": "/ˈterətri/", "pos": "n.", "meaning": "领土；领域"}, {"word": "umbrella", "phonetic": "/ʌmˈbrelə/", "pos": "n.", "meaning": "雨伞；保护伞"}, {"word": "vacancy", "phonetic": "/ˈveɪkənsi/", "pos": "n.", "meaning": "空缺；空位"}, {"word": "welfare", "phonetic": "/ˈwelfeə(r)/", "pos": "n.", "meaning": "福利；福祉"}, {"word": "youth", "phonetic": "/juːθ/", "pos": "n.", "meaning": "青年；青春"}, {"word": "zone", "phonetic": "/zəʊn/", "pos": "n.", "meaning": "区域；地带"}, {"word": "academy", "phonetic": "/əˈkædəmi/", "pos": "n.", "meaning": "学院；研究院"}, {"word": "banquet", "phonetic": "/ˈbæŋkwɪt/", "pos": "n.", "meaning": "宴会；盛宴"}, {"word": "capital", "phonetic": "/ˈkæpɪtl/", "pos": "n./adj.", "meaning": "首都；资本；主要的"}, {"word": "disaster", "phonetic": "/dɪˈzɑːstə(r)/", "pos": "n.", "meaning": "灾难；灾祸"}, {"word": "economy", "phonetic": "/ɪˈkɒnəmi/", "pos": "n.", "meaning": "经济；经济体"}, {"word": "fashion", "phonetic": "/ˈfæʃn/", "pos": "n.", "meaning": "时尚；流行"}, {"word": "grocery", "phonetic": "/ˈɡrəʊsəri/", "pos": "n.", "meaning": "食品杂货；杂货店"}, {"word": "horizon", "phonetic": "/həˈraɪzn/", "pos": "n.", "meaning": "地平线；眼界"}, {"word": "identity", "phonetic": "/aɪˈdentəti/", "pos": "n.", "meaning": "身份；同一性"}, {"word": "journey", "phonetic": "/ˈdʒɜːni/", "pos": "n./v.", "meaning": "旅行；行程"}, {"word": "landscape", "phonetic": "/ˈlændskeɪp/", "pos": "n.", "meaning": "风景；地貌"}, {"word": "monument", "phonetic": "/ˈmɒnjumənt/", "pos": "n.", "meaning": "纪念碑；遗迹"}, {"word": "obstacle", "phonetic": "/ˈɒbstəkl/", "pos": "n.", "meaning": "障碍；阻碍物"}, {"word": "origin", "phonetic": "/ˈɒrɪdʒɪn/", "pos": "n.", "meaning": "起源；出身"}, {"word": "portrait", "phonetic": "/ˈpɔːtreɪt/", "pos": "n.", "meaning": "肖像；画像"}, {"word": "quantity", "phonetic": "/ˈkwɒntəti/", "pos": "n.", "meaning": "数量；总量"}, {"word": "recreation", "phonetic": "/ˌrekriˈeɪʃn/", "pos": "n.", "meaning": "娱乐；消遣"}, {"word": "tradition", "phonetic": "/trəˈdɪʃn/", "pos": "n.", "meaning": "传统；惯例"}, {"word": "universe", "phonetic": "/ˈjuːnɪvɜːs/", "pos": "n.", "meaning": "宇宙；万物"}, {"word": "volunteer", "phonetic": "/ˌvɒlənˈtɪə(r)/", "pos": "n./v.", "meaning": "志愿者；自愿"}, {"word": "wealth", "phonetic": "/welθ/", "pos": "n.", "meaning": "财富；财产"}, {"word": "boundary", "phonetic": "/ˈbaʊndəri/", "pos": "n.", "meaning": "边界；界限"}, {"word": "charity", "phonetic": "/ˈtʃærəti/", "pos": "n.", "meaning": "慈善；施舍"}, {"word": "destiny", "phonetic": "/ˈdestəni/", "pos": "n.", "meaning": "命运；天命"}, {"word": "empire", "phonetic": "/ˈempaɪə(r)/", "pos": "n.", "meaning": "帝国；大企业"}, {"word": "faculty", "phonetic": "/ˈfækəlti/", "pos": "n.", "meaning": "全体教员；院系"}, {"word": "guarantee", "phonetic": "/ˌɡærənˈtiː/", "pos": "n./v.", "meaning": "保证；担保"}, {"word": "illusion", "phonetic": "/ɪˈluːʒn/", "pos": "n.", "meaning": "幻觉；错觉"}, {"word": "liberty", "phonetic": "/ˈlɪbəti/", "pos": "n.", "meaning": "自由；自主"}, {"word": "mission", "phonetic": "/ˈmɪʃn/", "pos": "n.", "meaning": "任务；使命"}, {"word": "novel", "phonetic": "/ˈnɒvl/", "pos": "n./adj.", "meaning": "小说；新奇的"}, {"word": "outcome", "phonetic": "/ˈaʊtkʌm/", "pos": "n.", "meaning": "结果；成果"}, {"word": "priority", "phonetic": "/praɪˈɒrəti/", "pos": "n.", "meaning": "优先；优先权"}, {"word": "realm", "phonetic": "/relm/", "pos": "n.", "meaning": "领域；王国"}, {"word": "strategy", "phonetic": "/ˈstrætədʒi/", "pos": "n.", "meaning": "战略；策略"}, {"word": "tension", "phonetic": "/ˈtenʃn/", "pos": "n.", "meaning": "紧张；张力"}, {"word": "version", "phonetic": "/ˈvɜːʃn/", "pos": "n.", "meaning": "版本；译本"}, {"word": "wisdom", "phonetic": "/ˈwɪzdəm/", "pos": "n.", "meaning": "智慧；明智"}, {"word": "avenue", "phonetic": "/ˈævənjuː/", "pos": "n.", "meaning": "大道；途径"}, {"word": "branch", "phonetic": "/brɑːntʃ/", "pos": "n./v.", "meaning": "分支；分部；分叉"}, {"word": "colony", "phonetic": "/ˈkɒləni/", "pos": "n.", "meaning": "殖民地；群体"}, {"word": "departure", "phonetic": "/dɪˈpɑːtʃə(r)/", "pos": "n.", "meaning": "离开；出发"}, {"word": "essence", "phonetic": "/ˈesns/", "pos": "n.", "meaning": "本质；精髓"}, {"word": "frontier", "phonetic": "/ˈfrʌntɪə(r)/", "pos": "n.", "meaning": "边境；前沿"}, {"word": "gravity", "phonetic": "/ˈɡrævəti/", "pos": "n.", "meaning": "重力；引力"}, {"word": "harvest", "phonetic": "/ˈhɑːvɪst/", "pos": "n./v.", "meaning": "收获；收割"}, {"word": "impression", "phonetic": "/ɪmˈpreʃn/", "pos": "n.", "meaning": "印象；感想"}, {"word": "leisure", "phonetic": "/ˈleʒə(r)/", "pos": "n.", "meaning": "闲暇；空闲"}, {"word": "mystery", "phonetic": "/ˈmɪstəri/", "pos": "n.", "meaning": "神秘；谜"}, {"word": "opponent", "phonetic": "/əˈpəʊnənt/", "pos": "n.", "meaning": "对手；反对者"}, {"word": "perspective", "phonetic": "/pəˈspektɪv/", "pos": "n.", "meaning": "视角；远景"}, {"word": "radius", "phonetic": "/ˈreɪdiəs/", "pos": "n.", "meaning": "半径；辐射范围"}, {"word": "schedule", "phonetic": "/ˈʃedjuːl/", "pos": "n./v.", "meaning": "日程；安排"}, {"word": "tendency", "phonetic": "/ˈtendənsi/", "pos": "n.", "meaning": "趋势；倾向"}, {"word": "utility", "phonetic": "/juːˈtɪləti/", "pos": "n.", "meaning": "效用；公用设施"}, {"word": "victory", "phonetic": "/ˈvɪktəri/", "pos": "n.", "meaning": "胜利；成功"}, {"word": "anniversary", "phonetic": "/ˌænɪˈvɜːsəri/", "pos": "n.", "meaning": "周年纪念日"}, {"word": "blossom", "phonetic": "/ˈblɒsəm/", "pos": "n./v.", "meaning": "花；开花"}, {"word": "ceremony", "phonetic": "/ˈserəməni/", "pos": "n.", "meaning": "典礼；仪式"}, {"word": "dilemma", "phonetic": "/dɪˈlemə/", "pos": "n.", "meaning": "困境；进退两难"}, {"word": "fortune", "phonetic": "/ˈfɔːtʃuːn/", "pos": "n.", "meaning": "财富；运气"}, {"word": "generation", "phonetic": "/ˌdʒenəˈreɪʃn/", "pos": "n.", "meaning": "一代人；产生"}, {"word": "harmony", "phonetic": "/ˈhɑːməni/", "pos": "n.", "meaning": "和谐；融洽"}, {"word": "impact", "phonetic": "/ˈɪmpækt/", "pos": "n./v.", "meaning": "影响；冲击"}, {"word": "inflation", "phonetic": "/ɪnˈfleɪʃn/", "pos": "n.", "meaning": "通货膨胀"}, {"word": "luxury", "phonetic": "/ˈlʌkʃəri/", "pos": "n./adj.", "meaning": "奢侈品；奢华的"}, {"word": "narrative", "phonetic": "/ˈnærətɪv/", "pos": "n./adj.", "meaning": "叙述；叙事的"}, {"word": "privilege", "phonetic": "/ˈprɪvəlɪdʒ/", "pos": "n.", "meaning": "特权；优待"}, {"word": "rhythm", "phonetic": "/ˈrɪðəm/", "pos": "n.", "meaning": "节奏；韵律"}, {"word": "talent", "phonetic": "/ˈtælənt/", "pos": "n.", "meaning": "天赋；才能"}, {"word": "trend", "phonetic": "/trend/", "pos": "n.", "meaning": "趋势；潮流"}, {"word": "virtue", "phonetic": "/ˈvɜːtʃuː/", "pos": "n.", "meaning": "美德；优点"}, {"word": "abandon", "phonetic": "/əˈbændən/", "pos": "v./n.", "meaning": "放弃；抛弃"}, {"word": "biography", "phonetic": "/baɪˈɒɡrəfi/", "pos": "n.", "meaning": "传记"}, {"word": "catastrophe", "phonetic": "/kəˈtæstrəfi/", "pos": "n.", "meaning": "大灾难；浩劫"}, {"word": "diploma", "phonetic": "/dɪˈpləʊmə/", "pos": "n.", "meaning": "文凭；毕业证书"}, {"word": "elegance", "phonetic": "/ˈelɪɡəns/", "pos": "n.", "meaning": "优雅；高雅"}, {"word": "hospitality", "phonetic": "/ˌhɒspɪˈtæləti/", "pos": "n.", "meaning": "好客；殷勤"}, {"word": "incident", "phonetic": "/ˈɪnsɪdənt/", "pos": "n.", "meaning": "事件；事变"}, {"word": "legend", "phonetic": "/ˈledʒənd/", "pos": "n.", "meaning": "传说；传奇人物"}, {"word": "monopoly", "phonetic": "/məˈnɒpəli/", "pos": "n.", "meaning": "垄断；专卖"}, {"word": "oath", "phonetic": "/əʊθ/", "pos": "n.", "meaning": "誓言；宣誓"}, {"word": "phenomenon", "phonetic": "/fəˈnɒmɪnən/", "pos": "n.", "meaning": "现象；奇迹"}, {"word": "pursuit", "phonetic": "/pəˈsjuːt/", "pos": "n.", "meaning": "追求；从事"}, {"word": "routine", "phonetic": "/ruːˈtiːn/", "pos": "n./adj.", "meaning": "常规；日常的"}, {"word": "symptom", "phonetic": "/ˈsɪmptəm/", "pos": "n.", "meaning": "症状；征兆"}, {"word": "tragedy", "phonetic": "/ˈtrædʒədi/", "pos": "n.", "meaning": "悲剧；灾难"}, {"word": "alliance", "phonetic": "/əˈlaɪəns/", "pos": "n.", "meaning": "联盟；同盟"}, {"word": "burden", "phonetic": "/ˈbɜːdn/", "pos": "n./v.", "meaning": "负担；使负重"}, {"word": "climax", "phonetic": "/ˈklaɪmæks/", "pos": "n.", "meaning": "高潮；顶点"}, {"word": "epidemic", "phonetic": "/ˌepɪˈdemɪk/", "pos": "n./adj.", "meaning": "流行病；流行性的"}, {"word": "friction", "phonetic": "/ˈfrɪkʃn/", "pos": "n.", "meaning": "摩擦；冲突"}, {"word": "galaxy", "phonetic": "/ˈɡæləksi/", "pos": "n.", "meaning": "星系；银河系"}, {"word": "impulse", "phonetic": "/ˈɪmpʌls/", "pos": "n.", "meaning": "冲动；推动"}, {"word": "motive", "phonetic": "/ˈməʊtɪv/", "pos": "n./adj.", "meaning": "动机；发动的"}, {"word": "orbit", "phonetic": "/ˈɔːbɪt/", "pos": "n./v.", "meaning": "轨道；环绕"}, {"word": "remedy", "phonetic": "/ˈremədi/", "pos": "n./v.", "meaning": "补救；治疗"}, {"word": "skeleton", "phonetic": "/ˈskelɪtn/", "pos": "n.", "meaning": "骨骼；骨架"}, {"word": "technique", "phonetic": "/tekˈniːk/", "pos": "n.", "meaning": "技术；技巧"}, {"word": "urban", "phonetic": "/ˈɜːbən/", "pos": "adj.", "meaning": "城市的；都市的"}, {"word": "vocation", "phonetic": "/vəʊˈkeɪʃn/", "pos": "n.", "meaning": "职业；天职"}, {"word": "behaviour", "phonetic": "/bɪˈheɪvjə(r)/", "pos": "n.", "meaning": "行为；举止"}, {"word": "campaign", "phonetic": "/kæmˈpeɪn/", "pos": "n./v.", "meaning": "运动；参加活动"}, {"word": "heritage", "phonetic": "/ˈherɪtɪdʒ/", "pos": "n.", "meaning": "遗产；传统"}, {"word": "initiative", "phonetic": "/ɪˈnɪʃətɪv/", "pos": "n./adj.", "meaning": "倡议；主动的"}, {"word": "legacy", "phonetic": "/ˈleɡəsi/", "pos": "n.", "meaning": "遗产；遗赠"}, {"word": "network", "phonetic": "/ˈnetwɜːk/", "pos": "n./v.", "meaning": "网络；联网"}, {"word": "paradise", "phonetic": "/ˈpærədaɪs/", "pos": "n.", "meaning": "天堂；乐园"}, {"word": "quest", "phonetic": "/kwest/", "pos": "n./v.", "meaning": "探索；寻求"}, {"word": "reservoir", "phonetic": "/ˈrezəvwɑː(r)/", "pos": "n.", "meaning": "水库；蓄水池"}, {"word": "warfare", "phonetic": "/ˈwɔːfeə(r)/", "pos": "n.", "meaning": "战争；冲突"}, {"word": "autumn", "phonetic": "/ˈɔːtəm/", "pos": "n.", "meaning": "秋天；秋季"}, {"word": "consequence", "phonetic": "/ˈkɒnsɪkwəns/", "pos": "n.", "meaning": "结果；后果"}, {"word": "dignity", "phonetic": "/ˈdɪɡnəti/", "pos": "n.", "meaning": "尊严；高贵"}, {"word": "evolution", "phonetic": "/ˌiːvəˈluːʃn/", "pos": "n.", "meaning": "进化；演变"}, {"word": "function", "phonetic": "/ˈfʌŋkʃn/", "pos": "n./v.", "meaning": "功能；运行"}, {"word": "gratitude", "phonetic": "/ˈɡrætɪtjuːd/", "pos": "n.", "meaning": "感激；感谢"}, {"word": "humidity", "phonetic": "/hjuːˈmɪdəti/", "pos": "n.", "meaning": "湿度；湿气"}, {"word": "innovation", "phonetic": "/ˌɪnəˈveɪʃn/", "pos": "n.", "meaning": "创新；革新"}, {"word": "latitude", "phonetic": "/ˈlætɪtjuːd/", "pos": "n.", "meaning": "纬度；范围"}, {"word": "norm", "phonetic": "/nɔːm/", "pos": "n.", "meaning": "规范；标准"}, {"word": "reunion", "phonetic": "/ˌriːˈjuːniən/", "pos": "n.", "meaning": "团聚；重聚"}, {"word": "shortage", "phonetic": "/ˈʃɔːtɪdʒ/", "pos": "n.", "meaning": "短缺；不足"}, {"word": "altitude", "phonetic": "/ˈæltɪtjuːd/", "pos": "n.", "meaning": "海拔；高度"}, {"word": "blueprint", "phonetic": "/ˈbluːprɪnt/", "pos": "n.", "meaning": "蓝图；计划"}, {"word": "budget", "phonetic": "/ˈbʌdʒɪt/", "pos": "n./v.", "meaning": "预算；安排"}, {"word": "coincidence", "phonetic": "/kəˈɪnsɪdəns/", "pos": "n.", "meaning": "巧合；一致"}, {"word": "doctrine", "phonetic": "/ˈdɒktrɪn/", "pos": "n.", "meaning": "教义；信条"}, {"word": "enterprise", "phonetic": "/ˈentəpraɪz/", "pos": "n.", "meaning": "企业；进取心"}, {"word": "framework", "phonetic": "/ˈfreɪmwɜːk/", "pos": "n.", "meaning": "框架；结构"}, {"word": "guideline", "phonetic": "/ˈɡaɪdlaɪn/", "pos": "n.", "meaning": "指导方针；准则"}, {"word": "ingredient", "phonetic": "/ɪnˈɡriːdiənt/", "pos": "n.", "meaning": "成分；原料"}, {"word": "layout", "phonetic": "/ˈleɪaʊt/", "pos": "n.", "meaning": "布局；设计"}, {"word": "module", "phonetic": "/ˈmɒdjuːl/", "pos": "n.", "meaning": "模块；组件"}, {"word": "nutrition", "phonetic": "/njuːˈtrɪʃn/", "pos": "n.", "meaning": "营养；滋养"}, {"word": "oxygen", "phonetic": "/ˈɒksɪdʒən/", "pos": "n.", "meaning": "氧气；氧"}, {"word": "premium", "phonetic": "/ˈpriːmiəm/", "pos": "n./adj.", "meaning": "溢价；优质的"}, {"word": "revenue", "phonetic": "/ˈrevənjuː/", "pos": "n.", "meaning": "收入；税收"}, {"word": "subsidy", "phonetic": "/ˈsʌbsədi/", "pos": "n.", "meaning": "补贴；津贴"}, {"word": "tariff", "phonetic": "/ˈtærɪf/", "pos": "n.", "meaning": "关税；价目表"}, {"word": "vintage", "phonetic": "/ˈvɪntɪdʒ/", "pos": "adj./n.", "meaning": "复古的；年份"}, {"word": "assembly", "phonetic": "/əˈsembli/", "pos": "n.", "meaning": "集会；装配"}, {"word": "archive", "phonetic": "/ˈɑːkaɪv/", "pos": "n./v.", "meaning": "档案；存档"}, {"word": "brochure", "phonetic": "/ˈbrəʊʃə(r)/", "pos": "n.", "meaning": "小册子；说明书"}, {"word": "catalogue", "phonetic": "/ˈkætəlɒɡ/", "pos": "n./v.", "meaning": "目录；编目"}, {"word": "dossier", "phonetic": "/ˈdɒsieɪ/", "pos": "n.", "meaning": "档案；卷宗"}, {"word": "estate", "phonetic": "/ɪˈsteɪt/", "pos": "n.", "meaning": "地产；财产"}, {"word": "index", "phonetic": "/ˈɪndeks/", "pos": "n./v.", "meaning": "索引；编入索引"}, {"word": "manual", "phonetic": "/ˈmænjuəl/", "pos": "n./adj.", "meaning": "手册；手工的"}, {"word": "overview", "phonetic": "/ˈəʊvəvjuː/", "pos": "n.", "meaning": "概述；概览"}, {"word": "portfolio", "phonetic": "/pɔːtˈfəʊliəʊ/", "pos": "n.", "meaning": "作品集；投资组合"}, {"word": "register", "phonetic": "/ˈredʒɪstə(r)/", "pos": "n./v.", "meaning": "登记；注册"}, {"word": "statute", "phonetic": "/ˈstætʃuːt/", "pos": "n.", "meaning": "法令；法规"}, {"word": "treaty", "phonetic": "/ˈtriːti/", "pos": "n.", "meaning": "条约；协定"}, {"word": "basement", "phonetic": "/ˈbeɪsmənt/", "pos": "n.", "meaning": "地下室；底层"}, {"word": "cottage", "phonetic": "/ˈkɒtɪdʒ/", "pos": "n.", "meaning": "小屋；村舍"}, {"word": "dwelling", "phonetic": "/ˈdwelɪŋ/", "pos": "n.", "meaning": "住所；住宅"}, {"word": "inn", "phonetic": "/ɪn/", "pos": "n.", "meaning": "客栈；小旅馆"}, {"word": "lodge", "phonetic": "/lɒdʒ/", "pos": "n./v.", "meaning": "小屋；暂住"}, {"word": "mansion", "phonetic": "/ˈmænʃn/", "pos": "n.", "meaning": "大厦；豪宅"}, {"word": "residence", "phonetic": "/ˈrezɪdəns/", "pos": "n.", "meaning": "住宅；居住"}, {"word": "terrace", "phonetic": "/ˈterəs/", "pos": "n.", "meaning": "露台；阳台"}, {"word": "artery", "phonetic": "/ˈɑːtəri/", "pos": "n.", "meaning": "动脉；主干道"}, {"word": "boulevard", "phonetic": "/ˈbuːləvɑːd/", "pos": "n.", "meaning": "大道；林荫道"}, {"word": "corridor", "phonetic": "/ˈkɒrɪdɔː(r)/", "pos": "n.", "meaning": "走廊；通道"}, {"word": "pathway", "phonetic": "/ˈpɑːθweɪ/", "pos": "n.", "meaning": "小路；路径"}, {"word": "route", "phonetic": "/ruːt/", "pos": "n./v.", "meaning": "路线；按路线发送"}, {"word": "beverage", "phonetic": "/ˈbevərɪdʒ/", "pos": "n.", "meaning": "饮料；饮品"}, {"word": "cuisine", "phonetic": "/kwɪˈziːn/", "pos": "n.", "meaning": "烹饪；菜肴"}, {"word": "feast", "phonetic": "/fiːst/", "pos": "n./v.", "meaning": "盛宴；设宴"}, {"word": "pastry", "phonetic": "/ˈpeɪstri/", "pos": "n.", "meaning": "糕点；点心"}, {"word": "recipe", "phonetic": "/ˈresəpi/", "pos": "n.", "meaning": "食谱；配方"}, {"word": "spice", "phonetic": "/spaɪs/", "pos": "n./v.", "meaning": "香料；加香料"}, {"word": "refreshment", "phonetic": "/rɪˈfreʃmənt/", "pos": "n.", "meaning": "茶点；恢复"}, {"word": "alphabet", "phonetic": "/ˈælfəbet/", "pos": "n.", "meaning": "字母表；字母"}, {"word": "document", "phonetic": "/ˈdɒkjumənt/", "pos": "n./v.", "meaning": "文件；记录"}, {"word": "essay", "phonetic": "/ˈeseɪ/", "pos": "n.", "meaning": "散文；短文"}, {"word": "fiction", "phonetic": "/ˈfɪkʃn/", "pos": "n.", "meaning": "小说；虚构"}, {"word": "manuscript", "phonetic": "/ˈmænjuskrɪpt/", "pos": "n.", "meaning": "手稿；原稿"}, {"word": "poetry", "phonetic": "/ˈpəʊətri/", "pos": "n.", "meaning": "诗歌；诗作"}, {"word": "prose", "phonetic": "/prəʊz/", "pos": "n.", "meaning": "散文；白话文"}, {"word": "volume", "phonetic": "/ˈvɒljuːm/", "pos": "n.", "meaning": "卷；体积"}, {"word": "album", "phonetic": "/ˈælbəm/", "pos": "n.", "meaning": "相册；专辑"}, {"word": "artifact", "phonetic": "/ˈɑːtɪfækt/", "pos": "n.", "meaning": "手工艺品；文物"}, {"word": "carving", "phonetic": "/ˈkɑːvɪŋ/", "pos": "n.", "meaning": "雕刻；雕刻品"}, {"word": "exhibit", "phonetic": "/ɪɡˈzɪbɪt/", "pos": "n./v.", "meaning": "展品；展出"}, {"word": "masterpiece", "phonetic": "/ˈmɑːstəpiːs/", "pos": "n.", "meaning": "杰作；名著"}, {"word": "mural", "phonetic": "/ˈmjʊərəl/", "pos": "n./adj.", "meaning": "壁画；墙壁的"}, {"word": "sculpture", "phonetic": "/ˈskʌlptʃə(r)/", "pos": "n.", "meaning": "雕塑；雕刻"}, {"word": "statue", "phonetic": "/ˈstætʃuː/", "pos": "n.", "meaning": "雕像；塑像"}, {"word": "amateur", "phonetic": "/ˈæmətə(r)/", "pos": "n./adj.", "meaning": "业余爱好者；业余的"}, {"word": "athlete", "phonetic": "/ˈæθliːt/", "pos": "n.", "meaning": "运动员；健儿"}, {"word": "competitor", "phonetic": "/kəmˈpetɪtə(r)/", "pos": "n.", "meaning": "竞争者；对手"}, {"word": "tournament", "phonetic": "/ˈtʊənəmənt/", "pos": "n.", "meaning": "锦标赛；联赛"}, {"word": "author", "phonetic": "/ˈɔːθə(r)/", "pos": "n.", "meaning": "作者；作家"}, {"word": "candidate", "phonetic": "/ˈkændɪdət/", "pos": "n.", "meaning": "候选人；申请者"}, {"word": "civilian", "phonetic": "/səˈvɪliən/", "pos": "n./adj.", "meaning": "平民；民用的"}, {"word": "employer", "phonetic": "/ɪmˈplɔɪə(r)/", "pos": "n.", "meaning": "雇主；老板"}, {"word": "guest", "phonetic": "/ɡest/", "pos": "n.", "meaning": "客人；宾客"}, {"word": "pedestrian", "phonetic": "/pəˈdestriən/", "pos": "n./adj.", "meaning": "行人；步行的"}, {"word": "astronomy", "phonetic": "/əˈstrɒnəmi/", "pos": "n.", "meaning": "天文学"}, {"word": "chemistry", "phonetic": "/ˈkemɪstri/", "pos": "n.", "meaning": "化学"}, {"word": "geography", "phonetic": "/dʒiˈɒɡrəfi/", "pos": "n.", "meaning": "地理；地理学"}, {"word": "geometry", "phonetic": "/dʒiˈɒmətri/", "pos": "n.", "meaning": "几何；几何学"}, {"word": "geology", "phonetic": "/dʒiˈɒlədʒi/", "pos": "n.", "meaning": "地质学"}, {"word": "physics", "phonetic": "/ˈfɪzɪks/", "pos": "n.", "meaning": "物理学"}, {"word": "statistics", "phonetic": "/stəˈtɪstɪks/", "pos": "n.", "meaning": "统计学；统计数据"}, {"word": "algebra", "phonetic": "/ˈældʒɪbrə/", "pos": "n.", "meaning": "代数；代数学"}, {"word": "calculus", "phonetic": "/ˈkælkjələs/", "pos": "n.", "meaning": "微积分；演算"}, {"word": "formula", "phonetic": "/ˈfɔːmjələ/", "pos": "n.", "meaning": "公式；配方"}, {"word": "fraction", "phonetic": "/ˈfrækʃn/", "pos": "n.", "meaning": "分数；部分"}, {"word": "matrix", "phonetic": "/ˈmeɪtrɪks/", "pos": "n.", "meaning": "矩阵；模型"}, {"word": "numeral", "phonetic": "/ˈnjuːmərəl/", "pos": "n./adj.", "meaning": "数字；数的"}, {"word": "proportion", "phonetic": "/prəˈpɔːʃn/", "pos": "n.", "meaning": "比例；均衡"}, {"word": "aroma", "phonetic": "/əˈrəʊmə/", "pos": "n.", "meaning": "香气；芳香"}, {"word": "breeze", "phonetic": "/briːz/", "pos": "n.", "meaning": "微风；和风"}, {"word": "echo", "phonetic": "/ˈekəʊ/", "pos": "n./v.", "meaning": "回声；回响"}, {"word": "fragrance", "phonetic": "/ˈfreɪɡrəns/", "pos": "n.", "meaning": "香味；芬芳"}, {"word": "lightning", "phonetic": "/ˈlaɪtnɪŋ/", "pos": "n.", "meaning": "闪电"}, {"word": "rainbow", "phonetic": "/ˈreɪnbəʊ/", "pos": "n.", "meaning": "彩虹"}, {"word": "sunrise", "phonetic": "/ˈsʌnraɪz/", "pos": "n.", "meaning": "日出；黎明"}, {"word": "sunset", "phonetic": "/ˈsʌnset/", "pos": "n.", "meaning": "日落；傍晚"}, {"word": "thunder", "phonetic": "/ˈθʌndə(r)/", "pos": "n./v.", "meaning": "雷；打雷"}, {"word": "whisper", "phonetic": "/ˈwɪspə(r)/", "pos": "n./v.", "meaning": "低语；耳语"}, {"word": "adventure", "phonetic": "/ədˈventʃə(r)/", "pos": "n./v.", "meaning": "冒险；冒险做"}, {"word": "carnival", "phonetic": "/ˈkɑːnɪvl/", "pos": "n.", "meaning": "狂欢节；嘉年华"}, {"word": "parade", "phonetic": "/pəˈreɪd/", "pos": "n./v.", "meaning": "游行；检阅"}, {"word": "ritual", "phonetic": "/ˈrɪtʃuəl/", "pos": "n./adj.", "meaning": "仪式；例行的"}, {"word": "moderate", "phonetic": "/ˈmɒdərət/", "pos": "adj./v.", "meaning": "适度的；缓和"}, {"word": "park", "phonetic": "/pɑːk/", "pos": "n./v.", "meaning": "公园；停车"}, {"word": "pool", "phonetic": "/puːl/", "pos": "n.", "meaning": "池塘；水池"}, {"word": "museum", "phonetic": "/mjuˈziːəm/", "pos": "n.", "meaning": "博物馆"}, {"word": "flowers", "phonetic": "/ˈflaʊəz/", "pos": "n.", "meaning": "花；花卉"}, {"word": "cafe", "phonetic": "/ˈkæfeɪ/", "pos": "n.", "meaning": "咖啡馆；小餐馆"}, {"word": "bridge", "phonetic": "/brɪdʒ/", "pos": "n./v.", "meaning": "桥；架桥"}, {"word": "map", "phonetic": "/mæp/", "pos": "n./v.", "meaning": "地图；绘制"}, {"word": "qualification", "phonetic": "/ˌkwɒlɪfɪˈkeɪʃn/", "pos": "n.", "meaning": "资格；资质"}, {"word": "government", "phonetic": "/ˈɡʌvənmənt/", "pos": "n.", "meaning": "政府；管理"}, {"word": "boys", "phonetic": "/bɔɪz/", "pos": "n.", "meaning": "男孩们"}, {"word": "meeting", "phonetic": "/ˈmiːtɪŋ/", "pos": "n.", "meaning": "会议；会面"}, {"word": "business", "phonetic": "/ˈbɪznəs/", "pos": "n.", "meaning": "商业；生意"}, {"word": "university", "phonetic": "/ˌjuːnɪˈvɜːsəti/", "pos": "n.", "meaning": "大学；综合性大学"}, {"word": "reading", "phonetic": "/ˈriːdɪŋ/", "pos": "n.", "meaning": "阅读；读物"}, {"word": "age", "phonetic": "/eɪdʒ/", "pos": "n./v.", "meaning": "年龄；变老"}, {"word": "relationships", "phonetic": "/rɪˈleɪʃnʃɪps/", "pos": "n.", "meaning": "关系；联系"}, {"word": "neighbour", "phonetic": "/ˈneɪbə(r)/", "pos": "n.", "meaning": "邻居；邻人"}, {"word": "noise", "phonetic": "/nɔɪz/", "pos": "n.", "meaning": "噪音；喧闹声"}, {"word": "screen", "phonetic": "/skriːn/", "pos": "n./v.", "meaning": "屏幕；筛选"}, {"word": "size", "phonetic": "/saɪz/", "pos": "n.", "meaning": "尺寸；大小"}, {"word": "colour", "phonetic": "/ˈkʌlə(r)/", "pos": "n./v.", "meaning": "颜色；染色"}, {"word": "commercial", "phonetic": "/kəˈmɜːʃl/", "pos": "adj./n.", "meaning": "商业的；广告"}, {"word": "animals", "phonetic": "/ˈænɪmlz/", "pos": "n.", "meaning": "动物"}, {"word": "lines", "phonetic": "/laɪnz/", "pos": "n.", "meaning": "线条；路线"}, {"word": "photograph", "phonetic": "/ˈfəʊtəɡrɑːf/", "pos": "n./v.", "meaning": "照片；拍照"}, {"word": "communication", "phonetic": "/kəˌmjuːnɪˈkeɪʃn/", "pos": "n.", "meaning": "交流；通讯"}, {"word": "invention", "phonetic": "/ɪnˈvenʃn/", "pos": "n.", "meaning": "发明；创造"}, {"word": "printing", "phonetic": "/ˈprɪntɪŋ/", "pos": "n.", "meaning": "印刷；印刷术"}, {"word": "radio", "phonetic": "/ˈreɪdiəʊ/", "pos": "n./v.", "meaning": "收音机；广播"}, {"word": "television", "phonetic": "/ˈtelɪvɪʒn/", "pos": "n.", "meaning": "电视；电视机"}, {"word": "internet", "phonetic": "/ˈɪntənet/", "pos": "n.", "meaning": "互联网；因特网"}, {"word": "instructor", "phonetic": "/ɪnˈstrʌktə(r)/", "pos": "n.", "meaning": "讲师；教练"}, {"word": "certificate", "phonetic": "/səˈtɪfɪkət/", "pos": "n.", "meaning": "证书；执照"}, {"word": "shoes", "phonetic": "/ʃuːz/", "pos": "n.", "meaning": "鞋子"}, {"word": "waterproof", "phonetic": "/ˈwɔːtəpruːf/", "pos": "adj./n.", "meaning": "防水的；防水材料"}, {"word": "jeans", "phonetic": "/dʒiːnz/", "pos": "n.", "meaning": "牛仔裤"}, {"word": "snack", "phonetic": "/snæk/", "pos": "n.", "meaning": "小吃；零食"}, {"word": "doctor", "phonetic": "/ˈdɒktə(r)/", "pos": "n.", "meaning": "医生；博士"}, {"word": "photographs", "phonetic": "/ˈfəʊtəɡrɑːfs/", "pos": "n.", "meaning": "照片"}, {"word": "farm", "phonetic": "/fɑːm/", "pos": "n./v.", "meaning": "农场；耕种"}, {"word": "harvest", "phonetic": "/ˈhɑːvɪst/", "pos": "n./v.", "meaning": "收获；收割"}, {"word": "field", "phonetic": "/fiːld/", "pos": "n.", "meaning": "田地；领域"}, {"word": "tractor", "phonetic": "/ˈtræktə(r)/", "pos": "n.", "meaning": "拖拉机"}, {"word": "seed", "phonetic": "/siːd/", "pos": "n./v.", "meaning": "种子；播种"}, {"word": "fertilizer", "phonetic": "/ˈfɜːtəlaɪzə(r)/", "pos": "n.", "meaning": "肥料；化肥"}, {"word": "soil", "phonetic": "/sɔɪl/", "pos": "n.", "meaning": "土壤；土地"}, {"word": "Sunday", "phonetic": "/ˈsʌndeɪ/", "pos": "n.", "meaning": "星期日；周日"}, {"word": "lifting", "phonetic": "/ˈlɪftɪŋ/", "pos": "n.", "meaning": "举起；提升"}, {"word": "watering", "phonetic": "/ˈwɔːtərɪŋ/", "pos": "n.", "meaning": "浇水；灌溉"}, {"word": "maths", "phonetic": "/mæθs/", "pos": "n.", "meaning": "数学"}, {"word": "passport", "phonetic": "/ˈpɑːspɔːt/", "pos": "n.", "meaning": "护照"}, {"word": "fish", "phonetic": "/fɪʃ/", "pos": "n./v.", "meaning": "鱼；钓鱼"}, {"word": "clothing", "phonetic": "/ˈkləʊðɪŋ/", "pos": "n.", "meaning": "服装；衣着"}, {"word": "training", "phonetic": "/ˈtreɪnɪŋ/", "pos": "n.", "meaning": "训练；培训"}, {"word": "paper", "phonetic": "/ˈpeɪpə(r)/", "pos": "n./v.", "meaning": "纸；用纸裱糊"}, {"word": "rivers", "phonetic": "/ˈrɪvəz/", "pos": "n.", "meaning": "河流"}, {"word": "allergy", "phonetic": "/ˈælədʒi/", "pos": "n.", "meaning": "过敏症；反感"}, {"word": "minerals", "phonetic": "/ˈmɪnərəlz/", "pos": "n.", "meaning": "矿物；矿产"}, {"word": "organic", "phonetic": "/ɔːˈɡænɪk/", "pos": "adj.", "meaning": "有机的；器官的"}, {"word": "jewellery", "phonetic": "/ˈdʒuːəlri/", "pos": "n.", "meaning": "珠宝；首饰"}, {"word": "shells", "phonetic": "/ʃelz/", "pos": "n.", "meaning": "贝壳；壳"}, {"word": "Mexico", "phonetic": "/ˈmeksɪkəʊ/", "pos": "n.", "meaning": "墨西哥"}, {"word": "shiny", "phonetic": "/ˈʃaɪni/", "pos": "adj.", "meaning": "闪亮的；发光的"}, {"word": "corn", "phonetic": "/kɔːn/", "pos": "n.", "meaning": "玉米；谷物"}, {"word": "money", "phonetic": "/ˈmʌni/", "pos": "n.", "meaning": "钱；货币"}, {"word": "weight", "phonetic": "/weɪt/", "pos": "n./v.", "meaning": "重量；称重"}, {"word": "fertility", "phonetic": "/fəˈtɪləti/", "pos": "n.", "meaning": "生育能力；肥沃"}, {"word": "wedding", "phonetic": "/ˈwedɪŋ/", "pos": "n.", "meaning": "婚礼；结婚"}, {"word": "power", "phonetic": "/ˈpaʊə(r)/", "pos": "n./v.", "meaning": "力量；供电"}, {"word": "rulers", "phonetic": "/ˈruːləz/", "pos": "n.", "meaning": "统治者；尺子"}, {"word": "rich", "phonetic": "/rɪtʃ/", "pos": "adj.", "meaning": "富有的；丰富的"}, {"word": "women", "phonetic": "/ˈwɪmɪn/", "pos": "n.", "meaning": "女人；妇女"}, {"word": "China", "phonetic": "/ˈtʃaɪnə/", "pos": "n.", "meaning": "中国"}, {"word": "material", "phonetic": "/məˈtɪəriəl/", "pos": "n./adj.", "meaning": "材料；物质的"}, {"word": "decoration", "phonetic": "/ˌdekəˈreɪʃn/", "pos": "n.", "meaning": "装饰；装饰品"}, {"word": "trade", "phonetic": "/treɪd/", "pos": "n./v.", "meaning": "贸易；交易"}, {"word": "symbol", "phonetic": "/ˈsɪmbl/", "pos": "n.", "meaning": "象征；符号"}, {"word": "foundation", "phonetic": "/faʊnˈdeɪʃn/", "pos": "n.", "meaning": "基础；基金会"}, {"word": "sand", "phonetic": "/sænd/", "pos": "n.", "meaning": "沙子；沙滩"}, {"word": "clay", "phonetic": "/kleɪ/", "pos": "n.", "meaning": "黏土；泥土"}, {"word": "cheap", "phonetic": "/tʃiːp/", "pos": "adj.", "meaning": "便宜的；廉价的"}, {"word": "convenient", "phonetic": "/kənˈviːniənt/", "pos": "adj.", "meaning": "方便的；便利的"}, {"word": "labour", "phonetic": "/ˈleɪbə(r)/", "pos": "n./v.", "meaning": "劳动；劳工；劳作"}, {"word": "roof", "phonetic": "/ruːf/", "pos": "n.", "meaning": "屋顶；顶部"}, {"word": "plaster", "phonetic": "/ˈplɑːstə(r)/", "pos": "n./v.", "meaning": "石膏；涂抹"}, {"word": "birthday", "phonetic": "/ˈbɜːθdeɪ/", "pos": "n.", "meaning": "生日"}, {"word": "children", "phonetic": "/ˈtʃɪldrən/", "pos": "n.", "meaning": "孩子们；儿童"}, {"word": "Italian", "phonetic": "/ɪˈtæliən/", "pos": "adj./n.", "meaning": "意大利的；意大利人"}, {"word": "cake", "phonetic": "/keɪk/", "pos": "n.", "meaning": "蛋糕；糕点"}, {"word": "guitar", "phonetic": "/ɡɪˈtɑː(r)/", "pos": "n.", "meaning": "吉他"}, {"word": "Wednesday", "phonetic": "/ˈwenzdeɪ/", "pos": "n.", "meaning": "星期三"}, {"word": "review", "phonetic": "/rɪˈvjuː/", "pos": "n./v.", "meaning": "回顾；复习"}, {"word": "cities", "phonetic": "/ˈsɪtiz/", "pos": "n.", "meaning": "城市"}, {"word": "acid", "phonetic": "/ˈæsɪd/", "pos": "n./adj.", "meaning": "酸；酸性的"}, {"word": "stone", "phonetic": "/stəʊn/", "pos": "n.", "meaning": "石头；石料"}, {"word": "bank", "phonetic": "/bæŋk/", "pos": "n./v.", "meaning": "银行；存入"}, {"word": "rainfall", "phonetic": "/ˈreɪnfɔːl/", "pos": "n.", "meaning": "降雨量；降水"}, {"word": "glass", "phonetic": "/ɡlɑːs/", "pos": "n.", "meaning": "玻璃；玻璃杯"}, {"word": "wood", "phonetic": "/wʊd/", "pos": "n.", "meaning": "木材；木头"}, {"word": "movement", "phonetic": "/ˈmuːvmənt/", "pos": "n.", "meaning": "运动；移动"}, {"word": "guidelines", "phonetic": "/ˈɡaɪdlaɪnz/", "pos": "n.", "meaning": "指导方针；准则"}, {"word": "airport", "phonetic": "/ˈeəpɔːt/", "pos": "n.", "meaning": "机场"}, {"word": "clothes", "phonetic": "/kləʊðz/", "pos": "n.", "meaning": "衣服；服装"}, {"word": "Chinese", "phonetic": "/ˌtʃaɪˈniːz/", "pos": "adj./n.", "meaning": "中国的；中国人"}, {"word": "coffee", "phonetic": "/ˈkɒfi/", "pos": "n.", "meaning": "咖啡"}, {"word": "school", "phonetic": "/skuːl/", "pos": "n./v.", "meaning": "学校；教育"}, {"word": "swimming", "phonetic": "/ˈswɪmɪŋ/", "pos": "n.", "meaning": "游泳"}, {"word": "film", "phonetic": "/fɪlm/", "pos": "n./v.", "meaning": "电影；拍摄"}, {"word": "smooth", "phonetic": "/smuːð/", "pos": "adj./v.", "meaning": "光滑的；使平滑"}, {"word": "protection", "phonetic": "/prəˈtekʃn/", "pos": "n.", "meaning": "保护；防护"}, {"word": "half", "phonetic": "/hɑːf/", "pos": "n./adj./adv.", "meaning": "一半；一半地"}, {"word": "salt", "phonetic": "/sɔːlt/", "pos": "n./v.", "meaning": "盐；加盐"}, {"word": "mud", "phonetic": "/mʌd/", "pos": "n.", "meaning": "泥；泥浆"}, {"word": "smell", "phonetic": "/smel/", "pos": "n./v.", "meaning": "气味；闻"}, {"word": "pump", "phonetic": "/pʌmp/", "pos": "n./v.", "meaning": "泵；抽水"}, {"word": "pest", "phonetic": "/pest/", "pos": "n.", "meaning": "害虫；有害物"}, {"word": "antibiotic", "phonetic": "/ˌæntibaɪˈɒtɪk/", "pos": "n./adj.", "meaning": "抗生素；抗菌的"}, {"word": "boat", "phonetic": "/bəʊt/", "pos": "n./v.", "meaning": "船；划船"}, {"word": "leather", "phonetic": "/ˈleðə(r)/", "pos": "n.", "meaning": "皮革；皮"}, {"word": "purple", "phonetic": "/ˈpɜːpl/", "pos": "adj./n.", "meaning": "紫色的；紫色"}, {"word": "medium", "phonetic": "/ˈmiːdiəm/", "pos": "adj./n.", "meaning": "中等的；媒介"}, {"word": "magazine", "phonetic": "/ˌmæɡəˈziːn/", "pos": "n.", "meaning": "杂志；期刊"}, {"word": "regular", "phonetic": "/ˈreɡjələ(r)/", "pos": "adj./n.", "meaning": "定期的；常客"}, {"word": "attitude", "phonetic": "/ˈætɪtjuːd/", "pos": "n.", "meaning": "态度；看法"}, {"word": "education", "phonetic": "/ˌedʒuˈkeɪʃn/", "pos": "n.", "meaning": "教育；培养"}, {"word": "development", "phonetic": "/dɪˈveləpmənt/", "pos": "n.", "meaning": "发展；开发"}, {"word": "horse", "phonetic": "/hɔːs/", "pos": "n.", "meaning": "马"}, {"word": "canoe", "phonetic": "/kəˈnuː/", "pos": "n.", "meaning": "独木舟"}, {"word": "caves", "phonetic": "/keɪvz/", "pos": "n.", "meaning": "洞穴；山洞"}, {"word": "helmet", "phonetic": "/ˈhelmɪt/", "pos": "n.", "meaning": "头盔；安全帽"}, {"word": "past", "phonetic": "/pɑːst/", "pos": "adj./n./prep.", "meaning": "过去的；过去；经过"}, {"word": "village", "phonetic": "/ˈvɪlɪdʒ/", "pos": "n.", "meaning": "村庄；乡村"}, {"word": "basketball", "phonetic": "/ˈbɑːskɪtbɔːl/", "pos": "n.", "meaning": "篮球"}, {"word": "butter", "phonetic": "/ˈbʌtə(r)/", "pos": "n.", "meaning": "黄油；奶油"}, {"word": "grants", "phonetic": "/ɡrɑːnts/", "pos": "n.", "meaning": "补助金；拨款"}, {"word": "buffet", "phonetic": "/ˈbʊfeɪ/", "pos": "n.", "meaning": "自助餐；小卖部"}, {"word": "stove", "phonetic": "/stəʊv/", "pos": "n.", "meaning": "炉子；火炉"}, {"word": "microwave", "phonetic": "/ˈmaɪkrəweɪv/", "pos": "n./v.", "meaning": "微波炉；微波加热"}, {"word": "dishwasher", "phonetic": "/ˈdɪʃwɒʃə(r)/", "pos": "n.", "meaning": "洗碗机"}, {"word": "garden", "phonetic": "/ˈɡɑːdn/", "pos": "n./v.", "meaning": "花园；栽培"}, {"word": "hunt", "phonetic": "/hʌnt/", "pos": "n./v.", "meaning": "狩猎；打猎"}, {"word": "flute", "phonetic": "/fluːt/", "pos": "n.", "meaning": "长笛"}, {"word": "swan", "phonetic": "/swɒn/", "pos": "n.", "meaning": "天鹅"}, {"word": "stones", "phonetic": "/stəʊnz/", "pos": "n.", "meaning": "石头；石料"}, {"word": "Europe", "phonetic": "/ˈjʊərəp/", "pos": "n.", "meaning": "欧洲"}, {"word": "variety", "phonetic": "/vəˈraɪəti/", "pos": "n.", "meaning": "多样；种类"}, {"word": "simple", "phonetic": "/ˈsɪmpl/", "pos": "adj.", "meaning": "简单的；简易的"}, {"word": "wind", "phonetic": "/wɪnd/", "pos": "n.", "meaning": "风"}, {"word": "painting", "phonetic": "/ˈpeɪntɪŋ/", "pos": "n.", "meaning": "绘画；油画"}, {"word": "poetry", "phonetic": "/ˈpəʊətri/", "pos": "n.", "meaning": "诗歌；诗作"}, {"word": "summer", "phonetic": "/ˈsʌmə(r)/", "pos": "n.", "meaning": "夏天；夏季"}, {"word": "lake", "phonetic": "/leɪk/", "pos": "n.", "meaning": "湖；湖泊"}, {"word": "nutrition", "phonetic": "/njuːˈtrɪʃn/", "pos": "n.", "meaning": "营养；滋养"}, {"word": "soccer", "phonetic": "/ˈsɒkə(r)/", "pos": "n.", "meaning": "足球"}, {"word": "safety", "phonetic": "/ˈseɪfti/", "pos": "n.", "meaning": "安全；平安"}, {"word": "fire", "phonetic": "/ˈfaɪə(r)/", "pos": "n./v.", "meaning": "火；点燃"}, {"word": "speaker", "phonetic": "/ˈspiːkə(r)/", "pos": "n.", "meaning": "扬声器；演讲者"}, {"word": "coins", "phonetic": "/kɔɪnz/", "pos": "n.", "meaning": "硬币"}, {"word": "status", "phonetic": "/ˈsteɪtəs/", "pos": "n.", "meaning": "地位；身份"}, {"word": "belt", "phonetic": "/belt/", "pos": "n.", "meaning": "腰带；皮带"}, {"word": "marriage", "phonetic": "/ˈmærɪdʒ/", "pos": "n.", "meaning": "婚姻；结婚"}, {"word": "skirts", "phonetic": "/skɜːts/", "pos": "n.", "meaning": "裙子"}, {"word": "sweet", "phonetic": "/swiːt/", "pos": "adj./n.", "meaning": "甜的；糖果"}, {"word": "gifts", "phonetic": "/ɡɪfts/", "pos": "n.", "meaning": "礼物；赠品"}, {"word": "fabrics", "phonetic": "/ˈfæbrɪks/", "pos": "n.", "meaning": "织物；布料"}, {"word": "feminism", "phonetic": "/ˈfemɪnɪzəm/", "pos": "n.", "meaning": "女权主义"}, {"word": "sports", "phonetic": "/spɔːts/", "pos": "n.", "meaning": "运动；体育"}, {"word": "whistle", "phonetic": "/ˈwɪsl/", "pos": "n./v.", "meaning": "口哨；吹哨"}, {"word": "tool", "phonetic": "/tuːl/", "pos": "n.", "meaning": "工具；用具"}, {"word": "signal", "phonetic": "/ˈsɪɡnəl/", "pos": "n./v.", "meaning": "信号；发信号"}, {"word": "design", "phonetic": "/dɪˈzaɪn/", "pos": "n./v.", "meaning": "设计；构思"}, {"word": "Rafael", "phonetic": "/ˈræfeɪəl/", "pos": "n.", "meaning": "拉斐尔"}, {"word": "babies", "phonetic": "/ˈbeɪbiz/", "pos": "n.", "meaning": "婴儿；小宝宝"}, {"word": "nuts", "phonetic": "/nʌts/", "pos": "n.", "meaning": "坚果；果仁"}, {"word": "combination", "phonetic": "/ˌkɒmbɪˈneɪʃn/", "pos": "n.", "meaning": "结合；组合"}, {"word": "outdoor", "phonetic": "/ˌaʊtˈdɔː(r)/", "pos": "adj./adv.", "meaning": "户外的；在户外"}, {"word": "advertisement", "phonetic": "/ədˈvɜːtɪsmənt/", "pos": "n.", "meaning": "广告；宣传"}, {"word": "storage", "phonetic": "/ˈstɔːrɪdʒ/", "pos": "n.", "meaning": "储存；仓库"}, {"word": "gift", "phonetic": "/ɡɪft/", "pos": "n.", "meaning": "礼物；天赋"}, {"word": "hunting", "phonetic": "/ˈhʌntɪŋ/", "pos": "n.", "meaning": "狩猎；打猎"}, {"word": "face", "phonetic": "/feɪs/", "pos": "n./v.", "meaning": "脸；面对"}, {"word": "storms", "phonetic": "/stɔːmz/", "pos": "n.", "meaning": "暴风雨；风暴"}, {"word": "ancestors", "phonetic": "/ˈænsestəz/", "pos": "n.", "meaning": "祖先；祖宗"}, {"word": "island", "phonetic": "/ˈaɪlənd/", "pos": "n.", "meaning": "岛；岛屿"}, {"word": "view", "phonetic": "/vjuː/", "pos": "n./v.", "meaning": "风景；观看"}, {"word": "pie", "phonetic": "/paɪ/", "pos": "n.", "meaning": "馅饼；派"}, {"word": "movie", "phonetic": "/ˈmuːvi/", "pos": "n.", "meaning": "电影；影片"}, {"word": "market", "phonetic": "/ˈmɑːkɪt/", "pos": "n./v.", "meaning": "市场；销售"}, {"word": "online", "phonetic": "/ˌɒnˈlaɪn/", "pos": "adj./adv.", "meaning": "在线的；在网上"}, {"word": "student", "phonetic": "/ˈstjuːdnt/", "pos": "n.", "meaning": "学生；学者"}, {"word": "changing", "phonetic": "/ˈtʃeɪndʒɪŋ/", "pos": "adj./n.", "meaning": "变化的；改变"}, {"word": "areas", "phonetic": "/ˈeəriəz/", "pos": "n.", "meaning": "区域；地区"}, {"word": "refreshment", "phonetic": "/rɪˈfreʃmənt/", "pos": "n.", "meaning": "茶点；恢复"}, {"word": "stalls", "phonetic": "/stɔːlz/", "pos": "n.", "meaning": "摊位；货摊"}, {"word": "picnic", "phonetic": "/ˈpɪknɪk/", "pos": "n./v.", "meaning": "野餐；去野餐"}, {"word": "medical", "phonetic": "/ˈmedɪkl/", "pos": "adj.", "meaning": "医学的；医疗的"}, {"word": "aid", "phonetic": "/eɪd/", "pos": "n./v.", "meaning": "援助；帮助"}, {"word": "lost", "phonetic": "/lɒst/", "pos": "adj./v.", "meaning": "迷路的；丢失"}, {"word": "found", "phonetic": "/faʊnd/", "pos": "v./adj.", "meaning": "找到；创立"}, {"word": "fragile", "phonetic": "/ˈfrædʒaɪl/", "pos": "adj.", "meaning": "易碎的；脆弱的"}, {"word": "claws", "phonetic": "/klɔːz/", "pos": "n.", "meaning": "爪子；爪"}, {"word": "mushrooms", "phonetic": "/ˈmʌʃrʊmz/", "pos": "n.", "meaning": "蘑菇"}, {"word": "critical", "phonetic": "/ˈkrɪtɪkl/", "pos": "adj.", "meaning": "关键的；批评的"}, {"word": "dogs", "phonetic": "/dɒɡz/", "pos": "n.", "meaning": "狗"}, {"word": "dry", "phonetic": "/draɪ/", "pos": "adj./v.", "meaning": "干的；变干"}, {"word": "relocation", "phonetic": "/ˌriːləʊˈkeɪʃn/", "pos": "n.", "meaning": "搬迁；重新安置"}, {"word": "elephant", "phonetic": "/ˈelɪfənt/", "pos": "n.", "meaning": "大象；象"}, {"word": "wildlife", "phonetic": "/ˈwaɪldlaɪf/", "pos": "n.", "meaning": "野生动物"}, {"word": "habitat", "phonetic": "/ˈhæbɪtæt/", "pos": "n.", "meaning": "栖息地；生境"}, {"word": "endangered", "phonetic": "/ɪnˈdeɪndʒəd/", "pos": "adj.", "meaning": "濒危的；濒临灭绝的"}, {"word": "reserve", "phonetic": "/rɪˈzɜːv/", "pos": "n./v.", "meaning": "保护区；保留"}, {"word": "conservation", "phonetic": "/ˌkɒnsəˈveɪʃn/", "pos": "n.", "meaning": "保护；保存"}, {"word": "noisy", "phonetic": "/ˈnɔɪzi/", "pos": "adj.", "meaning": "吵闹的；嘈杂的"}, {"word": "disease", "phonetic": "/dɪˈziːz/", "pos": "n.", "meaning": "疾病；病害"}, {"word": "shelter", "phonetic": "/ˈʃeltə(r)/", "pos": "n./v.", "meaning": "庇护所；遮蔽"}, {"word": "adapt", "phonetic": "/əˈdæpt/", "pos": "v.", "meaning": "适应；改编"}, {"word": "survive", "phonetic": "/səˈvaɪv/", "pos": "v.", "meaning": "幸存；存活"}, {"word": "conference", "phonetic": "/ˈkɒnfərəns/", "pos": "n.", "meaning": "会议；大会"}, {"word": "room", "phonetic": "/ruːm/", "pos": "n./v.", "meaning": "房间；住宿"}, {"word": "mixed", "phonetic": "/mɪkst/", "pos": "adj./v.", "meaning": "混合的；混合"}, {"word": "table", "phonetic": "/ˈteɪbl/", "pos": "n./v.", "meaning": "桌子；搁置"}, {"word": "chicken", "phonetic": "/ˈtʃɪkɪn/", "pos": "n.", "meaning": "鸡肉；小鸡"}, {"word": "volcano", "phonetic": "/vɒlˈkeɪnəʊ/", "pos": "n.", "meaning": "火山"}, {"word": "smoke", "phonetic": "/sməʊk/", "pos": "n./v.", "meaning": "烟；吸烟"}, {"word": "flower", "phonetic": "/ˈflaʊə(r)/", "pos": "n.", "meaning": "花；花卉"}, {"word": "grass", "phonetic": "/ɡrɑːs/", "pos": "n.", "meaning": "草；草地"}, {"word": "bacteria", "phonetic": "/bækˈtɪəriə/", "pos": "n.", "meaning": "细菌"}, {"word": "carpet", "phonetic": "/ˈkɑːpɪt/", "pos": "n.", "meaning": "地毯；毛毯"}, {"word": "fossils", "phonetic": "/ˈfɒslz/", "pos": "n.", "meaning": "化石"}, {"word": "centuries", "phonetic": "/ˈsentʃəriz/", "pos": "n.", "meaning": "世纪；百年"}, {"word": "tunnel", "phonetic": "/ˈtʌnl/", "pos": "n.", "meaning": "隧道；地道"}, {"word": "hacking", "phonetic": "/ˈhækɪŋ/", "pos": "n.", "meaning": "黑客行为；入侵"}, {"word": "names", "phonetic": "/neɪmz/", "pos": "n.", "meaning": "名字；名称"}, {"word": "group", "phonetic": "/ɡruːp/", "pos": "n./v.", "meaning": "组；分组"}, {"word": "reputation", "phonetic": "/ˌrepjuˈteɪʃn/", "pos": "n.", "meaning": "名声；声誉"}, {"word": "articles", "phonetic": "/ˈɑːtɪklz/", "pos": "n.", "meaning": "文章；物品"}, {"word": "supermarket", "phonetic": "/ˈsuːpəmɑːkɪt/", "pos": "n.", "meaning": "超市"}, {"word": "materials", "phonetic": "/məˈtɪəriəlz/", "pos": "n.", "meaning": "材料；原料"}, {"word": "Patterson", "phonetic": "/ˈpætəsən/", "pos": "n.", "meaning": "帕特森"}, {"word": "faces", "phonetic": "/ˈfeɪsɪz/", "pos": "n.", "meaning": "脸；面部"}, {"word": "pencils", "phonetic": "/ˈpenslz/", "pos": "n.", "meaning": "铅笔"}, {"word": "cartoon", "phonetic": "/kɑːˈtuːn/", "pos": "n.", "meaning": "卡通；漫画"}, {"word": "competition", "phonetic": "/ˌkɒmpəˈtɪʃn/", "pos": "n.", "meaning": "竞争；比赛"}, {"word": "sheep", "phonetic": "/ʃiːp/", "pos": "n.", "meaning": "绵羊；羊"}, {"word": "dust", "phonetic": "/dʌst/", "pos": "n.", "meaning": "灰尘；尘土"}, {"word": "hearing", "phonetic": "/ˈhɪərɪŋ/", "pos": "n.", "meaning": "听力；听觉"}, {"word": "gender", "phonetic": "/ˈdʒendə(r)/", "pos": "n.", "meaning": "性别；性"}, {"word": "wolf", "phonetic": "/wʊlf/", "pos": "n.", "meaning": "狼"}, {"word": "distribution", "phonetic": "/ˌdɪstrɪˈbjuːʃn/", "pos": "n.", "meaning": "分布；分配"}, {"word": "stress", "phonetic": "/stres/", "pos": "n./v.", "meaning": "压力；强调"}, {"word": "parking", "phonetic": "/ˈpɑːkɪŋ/", "pos": "n.", "meaning": "停车；停放"}, {"word": "September", "phonetic": "/sepˈtembə(r)/", "pos": "n.", "meaning": "九月"}, {"word": "orientation", "phonetic": "/ˌɔːriənˈteɪʃn/", "pos": "n.", "meaning": "方向；定位"}, {"word": "judo", "phonetic": "/ˈdʒuːdəʊ/", "pos": "n.", "meaning": "柔道"}, {"word": "yoga", "phonetic": "/ˈjəʊɡə/", "pos": "n.", "meaning": "瑜伽"}, {"word": "intermediate", "phonetic": "/ˌɪntəˈmiːdiət/", "pos": "adj./n.", "meaning": "中级的；中间体"}, {"word": "train", "phonetic": "/treɪn/", "pos": "n./v.", "meaning": "火车；训练"}, {"word": "sharks", "phonetic": "/ʃɑːks/", "pos": "n.", "meaning": "鲨鱼"}, {"word": "Africa", "phonetic": "/ˈæfrɪkə/", "pos": "n.", "meaning": "非洲"}, {"word": "member", "phonetic": "/ˈmembə(r)/", "pos": "n.", "meaning": "成员；会员"}, {"word": "birds", "phonetic": "/bɜːdz/", "pos": "n.", "meaning": "鸟；鸟类"}, {"word": "hospital", "phonetic": "/ˈhɒspɪtl/", "pos": "n.", "meaning": "医院"}, {"word": "professional", "phonetic": "/prəˈfeʃənl/", "pos": "adj./n.", "meaning": "专业的；专业人员"}, {"word": "learning", "phonetic": "/ˈlɜːnɪŋ/", "pos": "n.", "meaning": "学习；学问"}, {"word": "team", "phonetic": "/tiːm/", "pos": "n./v.", "meaning": "团队；组队"}, {"word": "presenting", "phonetic": "/prɪˈzentɪŋ/", "pos": "v.", "meaning": "呈现；展示"}, {"word": "results", "phonetic": "/rɪˈzʌlts/", "pos": "n.", "meaning": "结果；成绩"}, {"word": "behaviour", "phonetic": "/bɪˈheɪvjə(r)/", "pos": "n.", "meaning": "行为；举止"}, {"word": "diary", "phonetic": "/ˈdaɪəri/", "pos": "n.", "meaning": "日记；日志"}, {"word": "video", "phonetic": "/ˈvɪdiəʊ/", "pos": "n./adj.", "meaning": "视频；视频的"}, {"word": "recording", "phonetic": "/rɪˈkɔːdɪŋ/", "pos": "n.", "meaning": "录音；记录"}, {"word": "simulation", "phonetic": "/ˌsɪmjuˈleɪʃn/", "pos": "n.", "meaning": "模拟；仿真"}, {"word": "interviews", "phonetic": "/ˈɪntəvjuːz/", "pos": "3", "meaning": "采访；面试"}, {"word": "silk", "phonetic": "/sɪlk/", "pos": "n.", "meaning": "丝绸；丝织品"}, {"word": "fabric", "phonetic": "/ˈfæbrɪk/", "pos": "n.", "meaning": "织物；布料"}, {"word": "bowls", "phonetic": "/bəʊlz/", "pos": "n.", "meaning": "碗；钵"}, {"word": "head", "phonetic": "/hed/", "pos": "n./v.", "meaning": "头；带头"}, {"word": "danger", "phonetic": "/ˈdeɪndʒə(r)/", "pos": "n.", "meaning": "危险；风险"}, {"word": "metal", "phonetic": "/ˈmetl/", "pos": "n.", "meaning": "金属"}, {"word": "pottery", "phonetic": "/ˈpɒtəri/", "pos": "n.", "meaning": "陶器；陶艺"}, {"word": "year", "phonetic": "/jɪə(r)/", "pos": "n.", "meaning": "年；年份"}, {"word": "history", "phonetic": "/ˈhɪstri/", "pos": "n.", "meaning": "历史；历史学"}, {"word": "poster", "phonetic": "/ˈpəʊstə(r)/", "pos": "n.", "meaning": "海报；招贴"}, {"word": "junior", "phonetic": "/ˈdʒuːniə(r)/", "pos": "adj./n.", "meaning": "年少的；晚辈"}, {"word": "adventure", "phonetic": "/ədˈventʃə(r)/", "pos": "n./v.", "meaning": "冒险；冒险做"}, {"word": "honey", "phonetic": "/ˈhʌni/", "pos": "n.", "meaning": "蜂蜜；甜蜜"}, {"word": "desk", "phonetic": "/desk/", "pos": "n.", "meaning": "书桌；办公桌"}, {"word": "weak", "phonetic": "/wiːk/", "pos": "adj.", "meaning": "虚弱的；薄弱的"}, {"word": "brain", "phonetic": "/breɪn/", "pos": "n.", "meaning": "大脑；头脑"}, {"word": "tongue", "phonetic": "/tʌŋ/", "pos": "n.", "meaning": "舌头；语言"}, {"word": "cold", "phonetic": "/kəʊld/", "pos": "adj./n.", "meaning": "冷的；感冒"}, {"word": "sleep", "phonetic": "/sliːp/", "pos": "n./v.", "meaning": "睡眠；睡觉"}, {"word": "breakfast", "phonetic": "/ˈbrekfəst/", "pos": "n.", "meaning": "早餐；早饭"}, {"word": "counting", "phonetic": "/ˈkaʊntɪŋ/", "pos": "n.", "meaning": "计数；计算"}, {"word": "shoulder", "phonetic": "/ˈʃəʊldə(r)/", "pos": "n.", "meaning": "肩膀；肩部"}, {"word": "success", "phonetic": "/səkˈses/", "pos": "n.", "meaning": "成功；成就"}, {"word": "social", "phonetic": "/ˈsəʊʃl/", "pos": "adj.", "meaning": "社会的；社交的"}, {"word": "plans", "phonetic": "/plænz/", "pos": "n.", "meaning": "计划；方案"}, {"word": "influence", "phonetic": "/ˈɪnfluəns/", "pos": "n./v.", "meaning": "影响；改变"}, {"word": "skills", "phonetic": "/skɪlz/", "pos": "n.", "meaning": "技能；技巧"}, {"word": "reason", "phonetic": "/ˈriːzn/", "pos": "n./v.", "meaning": "理由；推理"}, {"word": "emotional", "phonetic": "/ɪˈməʊʃənl/", "pos": "adj.", "meaning": "情感的；情绪的"}, {"word": "environment", "phonetic": "/ɪnˈvaɪrənmənt/", "pos": "n.", "meaning": "环境；周围"}, {"word": "analysis", "phonetic": "/əˈnæləsɪs/", "pos": "n.", "meaning": "分析；解析"}, {"word": "restaurant", "phonetic": "/ˈrestərɒnt/", "pos": "n.", "meaning": "餐馆；餐厅"}, {"word": "hotel", "phonetic": "/həʊˈtel/", "pos": "n.", "meaning": "酒店；旅馆"}, {"word": "hostel", "phonetic": "/ˈhɒstl/", "pos": "n.", "meaning": "青年旅社；招待所"}, {"word": "apartment", "phonetic": "/əˈpɑːtmənt/", "pos": "n.", "meaning": "公寓；套房"}, {"word": "flat", "phonetic": "/flæt/", "pos": "adj./n.", "meaning": "平的；公寓"}, {"word": "house", "phonetic": "/haʊs/", "pos": "n./v.", "meaning": "房子；容纳"}, {"word": "kitchen", "phonetic": "/ˈkɪtʃɪn/", "pos": "n.", "meaning": "厨房"}, {"word": "bathroom", "phonetic": "/ˈbɑːθruːm/", "pos": "n.", "meaning": "浴室；卫生间"}, {"word": "living room", "phonetic": "/ˈlɪvɪŋ ruːm/", "pos": "n.", "meaning": "客厅；起居室"}, {"word": "garage", "phonetic": "/ˈɡærɑːdʒ/", "pos": "n.", "meaning": "车库；修车厂"}, {"word": "attic", "phonetic": "/ˈætɪk/", "pos": "n.", "meaning": "阁楼；顶楼"}, {"word": "street", "phonetic": "/striːt/", "pos": "n.", "meaning": "街道；大街"}, {"word": "road", "phonetic": "/rəʊd/", "pos": "n.", "meaning": "路；道路"}, {"word": "avenue", "phonetic": "/ˈævənjuː/", "pos": "n.", "meaning": "大道；途径"}, {"word": "lane", "phonetic": "/leɪn/", "pos": "n.", "meaning": "小巷；车道"}, {"word": "path", "phonetic": "/pɑːθ/", "pos": "n.", "meaning": "小路；路径"}, {"word": "highway", "phonetic": "/ˈhaɪweɪ/", "pos": "n.", "meaning": "公路；高速公路"}, {"word": "motorway", "phonetic": "/ˈməʊtəweɪ/", "pos": "n.", "meaning": "高速公路"}, {"word": "railway", "phonetic": "/ˈreɪlweɪ/", "pos": "n.", "meaning": "铁路；铁道"}, {"word": "station", "phonetic": "/ˈsteɪʃn/", "pos": "n.", "meaning": "车站；站点"}, {"word": "port", "phonetic": "/pɔːt/", "pos": "n.", "meaning": "港口；口岸"}, {"word": "bus", "phonetic": "/bʌs/", "pos": "n.", "meaning": "公共汽车；巴士"}, {"word": "plane", "phonetic": "/pleɪn/", "pos": "n.", "meaning": "飞机"}, {"word": "ship", "phonetic": "/ʃɪp/", "pos": "n./v.", "meaning": "船；运输"}, {"word": "bicycle", "phonetic": "/ˈbaɪsɪkl/", "pos": "n.", "meaning": "自行车"}, {"word": "car", "phonetic": "/kɑː(r)/", "pos": "n.", "meaning": "汽车；轿车"}, {"word": "taxi", "phonetic": "/ˈtæksi/", "pos": "n.", "meaning": "出租车；的士"}, {"word": "truck", "phonetic": "/trʌk/", "pos": "n.", "meaning": "卡车；货车"}, {"word": "van", "phonetic": "/væn/", "pos": "n.", "meaning": "厢式货车；面包车"}, {"word": "ticket", "phonetic": "/ˈtɪkɪt/", "pos": "n.", "meaning": "票；车票"}, {"word": "fare", "phonetic": "/feə(r)/", "pos": "n.", "meaning": "票价；费用"}, {"word": "journey", "phonetic": "/ˈdʒɜːni/", "pos": "n./v.", "meaning": "旅行；行程"}, {"word": "trip", "phonetic": "/trɪp/", "pos": "n./v.", "meaning": "旅行；绊倒"}, {"word": "travel", "phonetic": "/ˈtrævl/", "pos": "v./n.", "meaning": "旅行；游历"}, {"word": "tour", "phonetic": "/tʊə(r)/", "pos": "n./v.", "meaning": "旅游；游览"}, {"word": "guide", "phonetic": "/ɡaɪd/", "pos": "n./v.", "meaning": "导游；引导"}, {"word": "compass", "phonetic": "/ˈkʌmpəs/", "pos": "n.", "meaning": "指南针；罗盘"}, {"word": "camera", "phonetic": "/ˈkæmərə/", "pos": "n.", "meaning": "照相机；相机"}, {"word": "luggage", "phonetic": "/ˈlʌɡɪdʒ/", "pos": "n.", "meaning": "行李；箱包"}, {"word": "suitcase", "phonetic": "/ˈsuːtkeɪs/", "pos": "n.", "meaning": "手提箱；行李箱"}, {"word": "bag", "phonetic": "/bæɡ/", "pos": "n.", "meaning": "包；袋子"}, {"word": "backpack", "phonetic": "/ˈbækpæk/", "pos": "n.", "meaning": "背包；双肩包"}, {"word": "wallet", "phonetic": "/ˈwɒlɪt/", "pos": "n.", "meaning": "钱包；皮夹"}, {"word": "purse", "phonetic": "/pɜːs/", "pos": "n.", "meaning": "钱包；手提包"}, {"word": "key", "phonetic": "/kiː/", "pos": "n.", "meaning": "钥匙；关键"}, {"word": "phone", "phonetic": "/fəʊn/", "pos": "n./v.", "meaning": "电话；打电话"}, {"word": "charger", "phonetic": "/ˈtʃɑːdʒə(r)/", "pos": "n.", "meaning": "充电器"}, {"word": "book", "phonetic": "/bʊk/", "pos": "n./v.", "meaning": "书；预订"}, {"word": "pen", "phonetic": "/pen/", "pos": "n.", "meaning": "钢笔；笔"}, {"word": "pencil", "phonetic": "/ˈpensl/", "pos": "n.", "meaning": "铅笔"}, {"word": "paper", "phonetic": "/ˈpeɪpə(r)/", "pos": "n./v.", "meaning": "纸；用纸裱糊"}, {"word": "notebook", "phonetic": "/ˈnəʊtbʊk/", "pos": "n.", "meaning": "笔记本；记事本"}, {"word": "dictionary", "phonetic": "/ˈdɪkʃənri/", "pos": "n.", "meaning": "词典；字典"}, {"word": "encyclopedia", "phonetic": "/ɪnˌsaɪkləˈpiːdiə/", "pos": "n.", "meaning": "百科全书"}, {"word": "newspaper", "phonetic": "/ˈnjuːzpeɪpə(r)/", "pos": "n.", "meaning": "报纸；报"}, {"word": "cash", "phonetic": "/kæʃ/", "pos": "n.", "meaning": "现金；现款"}, {"word": "credit", "phonetic": "/ˈkredɪt/", "pos": "n./v.", "meaning": "信用；相信"}, {"word": "debit", "phonetic": "/ˈdebɪt/", "pos": "n./v.", "meaning": "借方；记入借方"}, {"word": "account", "phonetic": "/əˈkaʊnt/", "pos": "n./v.", "meaning": "账户；解释"}, {"word": "cheque", "phonetic": "/tʃek/", "pos": "n.", "meaning": "支票"}, {"word": "coin", "phonetic": "/kɔɪn/", "pos": "n.", "meaning": "硬币；钱币"}, {"word": "note", "phonetic": "/nəʊt/", "pos": "n./v.", "meaning": "笔记；记录"}, {"word": "present", "phonetic": "/ˈpreznt/", "pos": "n./adj./v.", "meaning": "礼物；在场的；呈现"}, {"word": "card", "phonetic": "/kɑːd/", "pos": "n.", "meaning": "卡片；纸牌"}, {"word": "letter", "phonetic": "/ˈletə(r)/", "pos": "n.", "meaning": "信；字母"}, {"word": "email", "phonetic": "/ˈiːmeɪl/", "pos": "n./v.", "meaning": "电子邮件；发邮件"}, {"word": "message", "phonetic": "/ˈmesɪdʒ/", "pos": "n.", "meaning": "信息；消息"}, {"word": "parcel", "phonetic": "/ˈpɑːsl/", "pos": "n.", "meaning": "包裹；小包"}, {"word": "package", "phonetic": "/ˈpækɪdʒ/", "pos": "n./v.", "meaning": "包裹；打包"}, {"word": "delivery", "phonetic": "/dɪˈlɪvəri/", "pos": "n.", "meaning": "递送；交付"}, {"word": "service", "phonetic": "/ˈsɜːvɪs/", "pos": "n./v.", "meaning": "服务；维修"}, {"word": "product", "phonetic": "/ˈprɒdʌkt/", "pos": "n.", "meaning": "产品；产物"}, {"word": "goods", "phonetic": "/ɡʊdz/", "pos": "n.", "meaning": "商品；货物"}, {"word": "food", "phonetic": "/fuːd/", "pos": "n.", "meaning": "食物；食品"}, {"word": "drink", "phonetic": "/drɪŋk/", "pos": "v./n.", "meaning": "喝；饮料"}, {"word": "water", "phonetic": "/ˈwɔːtə(r)/", "pos": "n./v.", "meaning": "水；浇水"}, {"word": "tea", "phonetic": "/tiː/", "pos": "n.", "meaning": "茶；茶叶"}, {"word": "milk", "phonetic": "/mɪlk/", "pos": "n./v.", "meaning": "牛奶；挤奶"}, {"word": "juice", "phonetic": "/dʒuːs/", "pos": "n.", "meaning": "果汁；汁液"}, {"word": "soda", "phonetic": "/ˈsəʊdə/", "pos": "n.", "meaning": "苏打水；汽水"}, {"word": "bread", "phonetic": "/bred/", "pos": "n.", "meaning": "面包"}, {"word": "rice", "phonetic": "/raɪs/", "pos": "n.", "meaning": "米饭；大米"}, {"word": "noodle", "phonetic": "/ˈnuːdl/", "pos": "n.", "meaning": "面条"}, {"word": "meat", "phonetic": "/miːt/", "pos": "n.", "meaning": "肉；肉类"}, {"word": "beef", "phonetic": "/biːf/", "pos": "n.", "meaning": "牛肉"}, {"word": "pork", "phonetic": "/pɔːk/", "pos": "n.", "meaning": "猪肉"}, {"word": "lamb", "phonetic": "/læm/", "pos": "n.", "meaning": "羊肉；羔羊"}, {"word": "vegetable", "phonetic": "/ˈvedʒtəbl/", "pos": "n.", "meaning": "蔬菜"}, {"word": "fruit", "phonetic": "/fruːt/", "pos": "n.", "meaning": "水果"}, {"word": "salad", "phonetic": "/ˈsæləd/", "pos": "n.", "meaning": "沙拉；色拉"}, {"word": "soup", "phonetic": "/suːp/", "pos": "n.", "meaning": "汤；羹"}, {"word": "meal", "phonetic": "/miːl/", "pos": "n.", "meaning": "一餐；膳食"}, {"word": "lunch", "phonetic": "/lʌntʃ/", "pos": "n.", "meaning": "午餐；午饭"}, {"word": "dinner", "phonetic": "/ˈdɪnə(r)/", "pos": "n.", "meaning": "晚餐；正餐"}, {"word": "dessert", "phonetic": "/dɪˈzɜːt/", "pos": "n.", "meaning": "甜点；甜食"}, {"word": "chocolate", "phonetic": "/ˈtʃɒklət/", "pos": "n.", "meaning": "巧克力"}, {"word": "sugar", "phonetic": "/ˈʃʊɡə(r)/", "pos": "n.", "meaning": "糖；食糖"}, {"word": "pepper", "phonetic": "/ˈpepə(r)/", "pos": "n.", "meaning": "胡椒；辣椒"}, {"word": "oil", "phonetic": "/ɔɪl/", "pos": "n./v.", "meaning": "油；加油"}, {"word": "butter", "phonetic": "/ˈbʌtə(r)/", "pos": "n.", "meaning": "黄油；奶油"}, {"word": "cheese", "phonetic": "/tʃiːz/", "pos": "n.", "meaning": "奶酪；干酪"}, {"word": "egg", "phonetic": "/eɡ/", "pos": "n.", "meaning": "鸡蛋；蛋"}, {"word": "diet", "phonetic": "/ˈdaɪət/", "pos": "n./v.", "meaning": "饮食；节食"}, {"word": "health", "phonetic": "/helθ/", "pos": "n.", "meaning": "健康；卫生"}, {"word": "sport", "phonetic": "/spɔːt/", "pos": "n.", "meaning": "运动；体育"}, {"word": "exercise", "phonetic": "/ˈeksəsaɪz/", "pos": "n./v.", "meaning": "锻炼；练习"}, {"word": "gym", "phonetic": "/dʒɪm/", "pos": "n.", "meaning": "健身房；体育馆"}, {"word": "running", "phonetic": "/ˈrʌnɪŋ/", "pos": "n.", "meaning": "跑步；奔跑"}, {"word": "cycling", "phonetic": "/ˈsaɪklɪŋ/", "pos": "n.", "meaning": "骑自行车；骑行"}, {"word": "football", "phonetic": "/ˈfʊtbɔːl/", "pos": "n.", "meaning": "足球；橄榄球"}, {"word": "golf", "phonetic": "/ɡɒlf/", "pos": "n.", "meaning": "高尔夫球"}, {"word": "match", "phonetic": "/mætʃ/", "pos": "n./v.", "meaning": "比赛；匹配"}, {"word": "game", "phonetic": "/ɡeɪm/", "pos": "n.", "meaning": "游戏；比赛"}, {"word": "player", "phonetic": "/ˈpleɪə(r)/", "pos": "n.", "meaning": "运动员；选手"}, {"word": "coach", "phonetic": "/kəʊtʃ/", "pos": "n./v.", "meaning": "教练；训练"}, {"word": "referee", "phonetic": "/ˌrefəˈriː/", "pos": "n.", "meaning": "裁判；仲裁员"}, {"word": "score", "phonetic": "/skɔː(r)/", "pos": "n./v.", "meaning": "分数；得分"}, {"word": "goal", "phonetic": "/ɡəʊl/", "pos": "n.", "meaning": "目标；进球"}, {"word": "win", "phonetic": "/wɪn/", "pos": "v./n.", "meaning": "赢；胜利"}, {"word": "loss", "phonetic": "/lɒs/", "pos": "n.", "meaning": "损失；失败"}, {"word": "draw", "phonetic": "/drɔː/", "pos": "v./n.", "meaning": "平局；绘画"}, {"word": "ecosystem", "phonetic": "/ˈiːkəʊsɪstəm/", "pos": "n.", "meaning": "生态系统"}, {"word": "species", "phonetic": "/ˈspiːʃiːz/", "pos": "n.", "meaning": "物种；种类"}, {"word": "climate", "phonetic": "/ˈklaɪmət/", "pos": "n.", "meaning": "气候；风气"}, {"word": "weather", "phonetic": "/ˈweðə(r)/", "pos": "n.", "meaning": "天气；气象"}, {"word": "atmosphere", "phonetic": "/ˈætməsfɪə(r)/", "pos": "n.", "meaning": "大气；氛围"}, {"word": "temperature", "phonetic": "/ˈtemprətʃə(r)/", "pos": "n.", "meaning": "温度；气温"}, {"word": "pollution", "phonetic": "/pəˈluːʃn/", "pos": "n.", "meaning": "污染；玷污"}, {"word": "contamination", "phonetic": "/kənˌtæmɪˈneɪʃn/", "pos": "n.", "meaning": "污染；玷污"}, {"word": "emission", "phonetic": "/iˈmɪʃn/", "pos": "n.", "meaning": "排放；散发"}, {"word": "waste", "phonetic": "/weɪst/", "pos": "n./adj./v.", "meaning": "废物；废弃的；浪费"}, {"word": "sewage", "phonetic": "/ˈsuːɪdʒ/", "pos": "n.", "meaning": "污水；下水道"}, {"word": "resource", "phonetic": "/rɪˈsɔːs/", "pos": "n.", "meaning": "资源；财力"}, {"word": "energy", "phonetic": "/ˈenədʒi/", "pos": "n.", "meaning": "能量；精力"}, {"word": "fuel", "phonetic": "/ˈfjuːəl/", "pos": "n./v.", "meaning": "燃料；给… 加油"}, {"word": "fossil", "phonetic": "/ˈfɒsl/", "pos": "n.", "meaning": "化石"}, {"word": "solar", "phonetic": "/ˈsəʊlə(r)/", "pos": "adj.", "meaning": "太阳的；太阳能的"}, {"word": "renewable", "phonetic": "/rɪˈnjuːəbl/", "pos": "adj.", "meaning": "可再生的；可更新的"}, {"word": "preservation", "phonetic": "/ˌprezəˈveɪʃn/", "pos": "n.", "meaning": "保护；保存"}, {"word": "sustainability", "phonetic": "/səˌsteɪnəˈbɪləti/", "pos": "n.", "meaning": "可持续性"}, {"word": "deforestation", "phonetic": "/ˌdiːˌfɒrɪˈsteɪʃn/", "pos": "n.", "meaning": "森林砍伐；滥伐"}, {"word": "desertification", "phonetic": "/dɪˌzɜːtɪfɪˈkeɪʃn/", "pos": "n.", "meaning": "沙漠化"}, {"word": "erosion", "phonetic": "/ɪˈrəʊʒn/", "pos": "n.", "meaning": "侵蚀；腐蚀"}, {"word": "degradation", "phonetic": "/ˌdeɡrəˈdeɪʃn/", "pos": "n.", "meaning": "退化；降级"}, {"word": "glacier", "phonetic": "/ˈɡlæsiə(r)/", "pos": "n.", "meaning": "冰川；冰河"}, {"word": "iceberg", "phonetic": "/ˈaɪsbɜːɡ/", "pos": "n.", "meaning": "冰山"}, {"word": "earthquake", "phonetic": "/ˈɜːθkweɪk/", "pos": "n.", "meaning": "地震"}, {"word": "tsunami", "phonetic": "/tsuːˈnɑːmi/", "pos": "n.", "meaning": "海啸"}, {"word": "flood", "phonetic": "/flʌd/", "pos": "n./v.", "meaning": "洪水；淹没"}, {"word": "drought", "phonetic": "/draʊt/", "pos": "n.", "meaning": "干旱；旱灾"}, {"word": "hurricane", "phonetic": "/ˈhʌrɪkən/", "pos": "n.", "meaning": "飓风；狂风"}, {"word": "tornado", "phonetic": "/tɔːˈneɪdəʊ/", "pos": "n.", "meaning": "龙卷风"}, {"word": "forest", "phonetic": "/ˈfɒrɪst/", "pos": "n.", "meaning": "森林；树林"}, {"word": "jungle", "phonetic": "/ˈdʒʌŋɡl/", "pos": "n.", "meaning": "丛林；密林"}, {"word": "desert", "phonetic": "/ˈdezət/", "pos": "n./adj.", "meaning": "沙漠；沙漠的"}, {"word": "mountain", "phonetic": "/ˈmaʊntən/", "pos": "n.", "meaning": "山；山脉"}, {"word": "ocean", "phonetic": "/ˈəʊʃn/", "pos": "n.", "meaning": "海洋；大海"}, {"word": "sea", "phonetic": "/siː/", "pos": "n.", "meaning": "海；海洋"}, {"word": "beach", "phonetic": "/biːtʃ/", "pos": "n.", "meaning": "海滩；沙滩"}, {"word": "coast", "phonetic": "/kəʊst/", "pos": "n.", "meaning": "海岸；海滨"}, {"word": "plain", "phonetic": "/pleɪn/", "pos": "n./adj.", "meaning": "平原；朴素的"}, {"word": "valley", "phonetic": "/ˈvæli/", "pos": "n.", "meaning": "山谷；溪谷"}, {"word": "canyon", "phonetic": "/ˈkænjən/", "pos": "n.", "meaning": "峡谷"}, {"word": "plateau", "phonetic": "/ˈplætəʊ/", "pos": "n.", "meaning": "高原"}, {"word": "rock", "phonetic": "/rɒk/", "pos": "n.", "meaning": "岩石；石块"}, {"word": "mineral", "phonetic": "/ˈmɪnərəl/", "pos": "n.", "meaning": "矿物；矿石"}, {"word": "chemical", "phonetic": "/ˈkemɪkl/", "pos": "n./adj.", "meaning": "化学物质；化学的"}, {"word": "substance", "phonetic": "/ˈsʌbstəns/", "pos": "n.", "meaning": "物质；实质"}, {"word": "fibre", "phonetic": "/ˈfaɪbə(r)/", "pos": "n.", "meaning": "纤维；质地"}, {"word": "plastic", "phonetic": "/ˈplæstɪk/", "pos": "n./adj.", "meaning": "塑料；塑料的"}, {"word": "technology", "phonetic": "/tekˈnɒlədʒi/", "pos": "n.", "meaning": "技术；科技"}, {"word": "device", "phonetic": "/dɪˈvaɪs/", "pos": "n.", "meaning": "装置；设备"}, {"word": "equipment", "phonetic": "/ɪˈkwɪpmənt/", "pos": "n.", "meaning": "设备；装备"}, {"word": "machine", "phonetic": "/məˈʃiːn/", "pos": "n.", "meaning": "机器；机械"}, {"word": "instrument", "phonetic": "/ˈɪnstrəmənt/", "pos": "n.", "meaning": "仪器；工具"}, {"word": "appliance", "phonetic": "/əˈplaɪəns/", "pos": "n.", "meaning": "家用电器；器具"}, {"word": "gadget", "phonetic": "/ˈɡædʒɪt/", "pos": "n.", "meaning": "小装置；小玩意"}, {"word": "software", "phonetic": "/ˈsɒftweə(r)/", "pos": "n.", "meaning": "软件"}, {"word": "hardware", "phonetic": "/ˈhɑːdweə(r)/", "pos": "n.", "meaning": "硬件；五金"}, {"word": "network", "phonetic": "/ˈnetwɜːk/", "pos": "n./v.", "meaning": "网络；联网"}, {"word": "system", "phonetic": "/ˈsɪstəm/", "pos": "n.", "meaning": "系统；体系"}, {"word": "program", "phonetic": "/ˈprəʊɡræm/", "pos": "n./v.", "meaning": "程序；编程"}, {"word": "application", "phonetic": "/ˌæplɪˈkeɪʃn/", "pos": "n.", "meaning": "应用；申请"}, {"word": "database", "phonetic": "/ˈdeɪtəbeɪs/", "pos": "n.", "meaning": "数据库"}, {"word": "website", "phonetic": "/ˈwebsaɪt/", "pos": "n.", "meaning": "网站"}, {"word": "robot", "phonetic": "/ˈrəʊbɒt/", "pos": "n.", "meaning": "机器人"}, {"word": "artificial", "phonetic": "/ˌɑːtɪˈfɪʃl/", "pos": "adj.", "meaning": "人造的；人工的"}, {"word": "intelligence", "phonetic": "/ɪnˈtelɪdʒəns/", "pos": "n.", "meaning": "智力；情报"}, {"word": "computer", "phonetic": "/kəmˈpjuːtə(r)/", "pos": "n.", "meaning": "电脑；计算机"}, {"word": "sensor", "phonetic": "/ˈsensə(r)/", "pos": "n.", "meaning": "传感器；感应器"}, {"word": "battery", "phonetic": "/ˈbætəri/", "pos": "n.", "meaning": "电池；蓄电池"}, {"word": "screen", "phonetic": "/skriːn/", "pos": "n./v.", "meaning": "屏幕；筛选"}, {"word": "keyboard", "phonetic": "/ˈkiːbɔːd/", "pos": "n.", "meaning": "键盘"}, {"word": "mouse", "phonetic": "/maʊs/", "pos": "n.", "meaning": "鼠标；老鼠"}, {"word": "data", "phonetic": "/ˈdeɪtə/", "pos": "n.", "meaning": "数据；资料"}, {"word": "information", "phonetic": "/ˌɪnfəˈmeɪʃn/", "pos": "n.", "meaning": "信息；情报"}, {"word": "code", "phonetic": "/kəʊd/", "pos": "n./v.", "meaning": "代码；编码"}, {"word": "virus", "phonetic": "/ˈvaɪrəs/", "pos": "n.", "meaning": "病毒"}, {"word": "bug", "phonetic": "/bʌɡ/", "pos": "n.", "meaning": "漏洞；虫子"}, {"word": "error", "phonetic": "/ˈerə(r)/", "pos": "n.", "meaning": "错误；失误"}, {"word": "mammal", "phonetic": "/ˈmæml/", "pos": "n.", "meaning": "哺乳动物"}, {"word": "reptile", "phonetic": "/ˈreptaɪl/", "pos": "n.", "meaning": "爬行动物"}, {"word": "insect", "phonetic": "/ˈɪnsekt/", "pos": "n.", "meaning": "昆虫"}, {"word": "bird", "phonetic": "/bɜːd/", "pos": "n.", "meaning": "鸟；鸟类"}, {"word": "amphibian", "phonetic": "/æmˈfɪbiən/", "pos": "n./adj.", "meaning": "两栖动物；两栖的"}, {"word": "predator", "phonetic": "/ˈpredətə(r)/", "pos": "n.", "meaning": "捕食者；食肉动物"}, {"word": "prey", "phonetic": "/preɪ/", "pos": "n./v.", "meaning": "猎物；捕食"}, {"word": "creature", "phonetic": "/ˈkriːtʃə(r)/", "pos": "n.", "meaning": "生物；动物"}, {"word": "organism", "phonetic": "/ˈɔːɡənɪzəm/", "pos": "n.", "meaning": "有机体；生物"}, {"word": "colony", "phonetic": "/ˈkɒləni/", "pos": "n.", "meaning": "群体；群落"}, {"word": "herd", "phonetic": "/hɜːd/", "pos": "n.", "meaning": "兽群；牧群"}, {"word": "flock", "phonetic": "/flɒk/", "pos": "n.", "meaning": "鸟群；羊群"}, {"word": "swarm", "phonetic": "/swɔːm/", "pos": "n.", "meaning": "蜂群；大群"}, {"word": "pack", "phonetic": "/pæk/", "pos": "n./v.", "meaning": "狼群；打包"}, {"word": "evolution", "phonetic": "/ˌiːvəˈluːʃn/", "pos": "n.", "meaning": "进化；演变"}, {"word": "extinction", "phonetic": "/ɪkˈstɪŋkʃn/", "pos": "n.", "meaning": "灭绝；消失"}, {"word": "migration", "phonetic": "/maɪˈɡreɪʃn/", "pos": "n.", "meaning": "迁徙；迁移"}, {"word": "reproduction", "phonetic": "/ˌriːprəˈdʌkʃn/", "pos": "n.", "meaning": "繁殖；生殖"}, {"word": "wing", "phonetic": "/wɪŋ/", "pos": "n.", "meaning": "翅膀；翼"}, {"word": "feather", "phonetic": "/ˈfeðə(r)/", "pos": "n.", "meaning": "羽毛"}, {"word": "fur", "phonetic": "/fɜː(r)/", "pos": "n.", "meaning": "皮毛；毛皮"}, {"word": "scale", "phonetic": "/skeɪl/", "pos": "n.", "meaning": "鳞片；规模"}, {"word": "tail", "phonetic": "/teɪl/", "pos": "n.", "meaning": "尾巴；尾部"}, {"word": "claw", "phonetic": "/klɔː/", "pos": "n.", "meaning": "爪子；爪"}, {"word": "whale", "phonetic": "/weɪl/", "pos": "n.", "meaning": "鲸鱼"}, {"word": "dolphin", "phonetic": "/ˈdɒlfɪn/", "pos": "n.", "meaning": "海豚"}, {"word": "octopus", "phonetic": "/ˈɒktəpəs/", "pos": "n.", "meaning": "章鱼"}, {"word": "tiger", "phonetic": "/ˈtaɪɡə(r)/", "pos": "n.", "meaning": "老虎"}, {"word": "lion", "phonetic": "/ˈlaɪən/", "pos": "n.", "meaning": "狮子"}, {"word": "bear", "phonetic": "/beə(r)/", "pos": "n.", "meaning": "熊"}, {"word": "fox", "phonetic": "/fɒks/", "pos": "n.", "meaning": "狐狸"}, {"word": "deer", "phonetic": "/dɪə(r)/", "pos": "n.", "meaning": "鹿"}, {"word": "rabbit", "phonetic": "/ˈræbɪt/", "pos": "n.", "meaning": "兔子"}, {"word": "mouse", "phonetic": "/maʊs/", "pos": "n.", "meaning": "老鼠"}, {"word": "rat", "phonetic": "/ræt/", "pos": "n.", "meaning": "大老鼠"}, {"word": "eagle", "phonetic": "/ˈiːɡl/", "pos": "n.", "meaning": "鹰"}, {"word": "hawk", "phonetic": "/hɔːk/", "pos": "n.", "meaning": "鹰；隼"}, {"word": "owl", "phonetic": "/aʊl/", "pos": "n.", "meaning": "猫头鹰"}, {"word": "parrot", "phonetic": "/ˈpærət/", "pos": "n.", "meaning": "鹦鹉"}, {"word": "pigeon", "phonetic": "/ˈpɪdʒɪn/", "pos": "n.", "meaning": "鸽子"}, {"word": "butterfly", "phonetic": "/ˈbʌtəflaɪ/", "pos": "n.", "meaning": "蝴蝶"}, {"word": "bee", "phonetic": "/biː/", "pos": "n.", "meaning": "蜜蜂"}, {"word": "ant", "phonetic": "/ænt/", "pos": "n.", "meaning": "蚂蚁"}, {"word": "fly", "phonetic": "/flaɪ/", "pos": "n./v.", "meaning": "苍蝇；飞"}, {"word": "mosquito", "phonetic": "/məˈskiːtəʊ/", "pos": "n.", "meaning": "蚊子"}, {"word": "zoo", "phonetic": "/zuː/", "pos": "n.", "meaning": "动物园"}, {"word": "sanctuary", "phonetic": "/ˈsæŋktʃuəri/", "pos": "n.", "meaning": "保护区；庇护所"}, {"word": "diploma", "phonetic": "/dɪˈpləʊmə/", "pos": "n.", "meaning": "文凭；证书"}, {"word": "biology", "phonetic": "/baɪˈɒlədʒi/", "pos": "n.", "meaning": "生物学"}, {"word": "operation", "phonetic": "/ˌɒpəˈreɪʃn/", "pos": "n.", "meaning": "手术；操作"}, {"word": "reputation", "phonetic": "/ˌrepjuˈteɪʃn/", "pos": "n.", "meaning": "名声；声誉"}, {"word": "approach", "phonetic": "/əˈprəʊtʃ/", "pos": "n./v.", "meaning": "方法；接近"}, {"word": "dismissal", "phonetic": "/dɪsˈmɪsl/", "pos": "n.", "meaning": "解雇；免职"}, {"word": "manipulation", "phonetic": "/məˌnɪpjuˈleɪʃn/", "pos": "n.", "meaning": "操纵；处理"}, {"word": "licence", "phonetic": "/ˈlaɪsns/", "pos": "n.", "meaning": "许可证；执照"}, {"word": "pasture", "phonetic": "/ˈpɑːstʃə(r)/", "pos": "n.", "meaning": "牧场；草地"}, {"word": "woodland", "phonetic": "/ˈwʊdlənd/", "pos": "n.", "meaning": "林地；树林"}, {"word": "microscope", "phonetic": "/ˈmaɪkrəskəʊp/", "pos": "n.", "meaning": "显微镜"}, {"word": "contract", "phonetic": "/ˈkɒntrækt/", "pos": "n./v.", "meaning": "合同；签订"}, {"word": "contact", "phonetic": "/ˈkɒntækt/", "pos": "n./v.", "meaning": "联系；接触"}, {"word": "definition", "phonetic": "/ˌdefɪˈnɪʃn/", "pos": "n.", "meaning": "定义；释义"}, {"word": "peers", "phonetic": "/pɪəz/", "pos": "n.", "meaning": "同龄人；同辈"}, {"word": "professionals", "phonetic": "/prəˈfeʃənlz/", "pos": "n.", "meaning": "专业人员"}, {"word": "vision", "phonetic": "/ˈvɪʒn/", "pos": "n.", "meaning": "视力；视野"}, {"word": "security", "phonetic": "/sɪˈkjʊərəti/", "pos": "n.", "meaning": "安全；保障"}, {"word": "community", "phonetic": "/kəˈmjuːnəti/", "pos": "n.", "meaning": "社区；群落"}, {"word": "validity", "phonetic": "/vəˈlɪdəti/", "pos": "n.", "meaning": "有效性；合法性"}, {"word": "interview", "phonetic": "/ˈɪntəvjuː/", "pos": "n./v.", "meaning": "面试；采访"}, {"word": "seminar", "phonetic": "/ˈsemɪnɑː(r)/", "pos": "n.", "meaning": "研讨会；讲习会"}, {"word": "workshop", "phonetic": "/ˈwɜːkʃɒp/", "pos": "n.", "meaning": "工作坊；车间"}, {"word": "lecture", "phonetic": "/ˈlektʃə(r)/", "pos": "n./v.", "meaning": "讲座；讲课"}, {"word": "tutorial", "phonetic": "/tjuːˈtɔːriəl/", "pos": "n./adj.", "meaning": "辅导课；指导的"}, {"word": "deadline", "phonetic": "/ˈdedlaɪn/", "pos": "n.", "meaning": "截止日期；最后期限"}, {"word": "budget", "phonetic": "/ˈbʌdʒɪt/", "pos": "n./v.", "meaning": "预算；安排"}, {"word": "schedule", "phonetic": "/ˈʃedjuːl/", "pos": "n./v.", "meaning": "日程；安排"}, {"word": "agenda", "phonetic": "/əˈdʒendə/", "pos": "n.", "meaning": "议程；日程"}, {"word": "document", "phonetic": "/ˈdɒkjumənt/", "pos": "n./v.", "meaning": "文件；记录"}, {"word": "file", "phonetic": "/faɪl/", "pos": "n./v.", "meaning": "文件；归档"}, {"word": "journal", "phonetic": "/ˈdʒɜːnl/", "pos": "n.", "meaning": "期刊；日记"}, {"word": "booklet", "phonetic": "/ˈbʊklət/", "pos": "n.", "meaning": "小册子"}, {"word": "brochure", "phonetic": "/ˈbrəʊʃə(r)/", "pos": "n.", "meaning": "宣传册；说明书"}, {"word": "leaflet", "phonetic": "/ˈliːflət/", "pos": "n.", "meaning": "传单；小册子"}, {"word": "diagram", "phonetic": "/ˈdaɪəɡræm/", "pos": "n.", "meaning": "图表；图解"}, {"word": "graph", "phonetic": "/ɡrɑːf/", "pos": "n.", "meaning": "图表；曲线图"}, {"word": "chart", "phonetic": "/tʃɑːt/", "pos": "n.", "meaning": "图表；海图"}, {"word": "table", "phonetic": "/ˈteɪbl/", "pos": "n.", "meaning": "表格；桌子"}, {"word": "sample", "phonetic": "/ˈsɑːmpl/", "pos": "n.", "meaning": "样本；样品"}, {"word": "statistic", "phonetic": "/stəˈtɪstɪk/", "pos": "n.", "meaning": "统计数据"}, {"word": "evidence", "phonetic": "/ˈevɪdəns/", "pos": "n.", "meaning": "证据；证明"}, {"word": "proof", "phonetic": "/pruːf/", "pos": "n.", "meaning": "证据；证明"}, {"word": "theory", "phonetic": "/ˈθɪəri/", "pos": "n.", "meaning": "理论；学说"}, {"word": "hypothesis", "phonetic": "/haɪˈpɒθəsɪs/", "pos": "n.", "meaning": "假设；假说"}, {"word": "concept", "phonetic": "/ˈkɒnsept/", "pos": "n.", "meaning": "概念；观念"}, {"word": "idea", "phonetic": "/aɪˈdɪə/", "pos": "n.", "meaning": "想法；主意"}, {"word": "method", "phonetic": "/ˈmeθəd/", "pos": "n.", "meaning": "方法；办法"}, {"word": "technique", "phonetic": "/tekˈniːk/", "pos": "n.", "meaning": "技术；技巧"}, {"word": "process", "phonetic": "/ˈprəʊses/", "pos": "n./v.", "meaning": "过程；处理"}, {"word": "procedure", "phonetic": "/prəˈsiːdʒə(r)/", "pos": "n.", "meaning": "程序；步骤"}, {"word": "rule", "phonetic": "/ruːl/", "pos": "n./v.", "meaning": "规则；统治"}, {"word": "regulation", "phonetic": "/ˌreɡjuˈleɪʃn/", "pos": "n.", "meaning": "规章；条例"}, {"word": "policy", "phonetic": "/ˈpɒləsi/", "pos": "n.", "meaning": "政策；方针"}, {"word": "law", "phonetic": "/lɔː/", "pos": "n.", "meaning": "法律；法则"}, {"word": "standard", "phonetic": "/ˈstændəd/", "pos": "n./adj.", "meaning": "标准；标准的"}, {"word": "principle", "phonetic": "/ˈprɪnsəpl/", "pos": "n.", "meaning": "原则；准则"}, {"word": "ethics", "phonetic": "/ˈeθɪks/", "pos": "n.", "meaning": "道德准则；伦理"}, {"word": "culture", "phonetic": "/ˈkʌltʃə(r)/", "pos": "n.", "meaning": "文化；教养"}, {"word": "tradition", "phonetic": "/trəˈdɪʃn/", "pos": "n.", "meaning": "传统；惯例"}, {"word": "custom", "phonetic": "/ˈkʌstəm/", "pos": "n./adj.", "meaning": "习俗；定制的"}, {"word": "belief", "phonetic": "/bɪˈliːf/", "pos": "n.", "meaning": "信仰；信念"}, {"word": "value", "phonetic": "/ˈvæljuː/", "pos": "n./v.", "meaning": "价值；重视"}, {"word": "opinion", "phonetic": "/əˈpɪnjən/", "pos": "n.", "meaning": "意见；看法"}, {"word": "view", "phonetic": "/vjuː/", "pos": "n./v.", "meaning": "观点；观看"}, {"word": "emotion", "phonetic": "/ɪˈməʊʃn/", "pos": "n.", "meaning": "情绪；情感"}, {"word": "feeling", "phonetic": "/ˈfiːlɪŋ/", "pos": "n.", "meaning": "感觉；情感"}, {"word": "mood", "phonetic": "/muːd/", "pos": "n.", "meaning": "心情；情绪"}, {"word": "habit", "phonetic": "/ˈhæbɪt/", "pos": "n.", "meaning": "习惯；习性"}, {"word": "lifestyle", "phonetic": "/ˈlaɪfstaɪl/", "pos": "n.", "meaning": "生活方式"}, {"word": "illness", "phonetic": "/ˈɪlnəs/", "pos": "n.", "meaning": "疾病；生病"}, {"word": "injury", "phonetic": "/ˈɪndʒəri/", "pos": "n.", "meaning": "伤害；损伤"}, {"word": "pain", "phonetic": "/peɪn/", "pos": "n./v.", "meaning": "疼痛；痛苦"}, {"word": "fatigue", "phonetic": "/fəˈtiːɡ/", "pos": "n.", "meaning": "疲劳；疲乏"}, {"word": "energy", "phonetic": "/ˈenədʒi/", "pos": "n.", "meaning": "精力；能量"}, {"word": "strength", "phonetic": "/streŋθ/", "pos": "n.", "meaning": "力量；强度"}, {"word": "weakness", "phonetic": "/ˈwiːknəs/", "pos": "n.", "meaning": "弱点；软弱"}, {"word": "ability", "phonetic": "/əˈbɪləti/", "pos": "n.", "meaning": "能力；才能"}, {"word": "skill", "phonetic": "/skɪl/", "pos": "n.", "meaning": "技能；技巧"}, {"word": "talent", "phonetic": "/ˈtælənt/", "pos": "n.", "meaning": "天赋；才能"}, {"word": "knowledge", "phonetic": "/ˈnɒlɪdʒ/", "pos": "n.", "meaning": "知识；学问"}, {"word": "experience", "phonetic": "/ɪkˈspɪəriəns/", "pos": "n./v.", "meaning": "经验；经历"}, {"word": "career", "phonetic": "/kəˈrɪə(r)/", "pos": "n.", "meaning": "职业；事业"}, {"word": "job", "phonetic": "/dʒɒb/", "pos": "n.", "meaning": "工作；职业"}, {"word": "occupation", "phonetic": "/ˌɒkjuˈpeɪʃn/", "pos": "n.", "meaning": "职业；工作"}, {"word": "profession", "phonetic": "/prəˈfeʃn/", "pos": "n.", "meaning": "职业；专业"}, {"word": "employment", "phonetic": "/ɪmˈplɔɪmənt/", "pos": "n.", "meaning": "就业；雇佣"}, {"word": "unemployment", "phonetic": "/ˌʌnɪmˈplɔɪmənt/", "pos": "n.", "meaning": "失业"}, {"word": "salary", "phonetic": "/ˈsæləri/", "pos": "n.", "meaning": "薪水；薪金"}, {"word": "wage", "phonetic": "/weɪdʒ/", "pos": "n.", "meaning": "工资；报酬"}, {"word": "income", "phonetic": "/ˈɪnkʌm/", "pos": "n.", "meaning": "收入；所得"}, {"word": "expense", "phonetic": "/ɪkˈspens/", "pos": "n.", "meaning": "花费；支出"}, {"word": "cost", "phonetic": "/kɒst/", "pos": "n./v.", "meaning": "成本；花费"}, {"word": "price", "phonetic": "/praɪs/", "pos": "n./v.", "meaning": "价格；定价"}, {"word": "fee", "phonetic": "/fiː/", "pos": "n.", "meaning": "费用；酬金"}, {"word": "charge", "phonetic": "/tʃɑːdʒ/", "pos": "n./v.", "meaning": "收费；指控"}, {"word": "discount", "phonetic": "/ˈdɪskaʊnt/", "pos": "n./v.", "meaning": "折扣；打折"}, {"word": "bonus", "phonetic": "/ˈbəʊnəs/", "pos": "n.", "meaning": "奖金；红利"}, {"word": "profit", "phonetic": "/ˈprɒfɪt/", "pos": "n./v.", "meaning": "利润；获利"}, {"word": "loss", "phonetic": "/lɒs/", "pos": "n.", "meaning": "亏损；损失"}, {"word": "investment", "phonetic": "/ɪnˈvestmənt/", "pos": "n.", "meaning": "投资"}, {"word": "fund", "phonetic": "/fʌnd/", "pos": "n./v.", "meaning": "资金；资助"}, {"word": "finance", "phonetic": "/ˈfaɪnæns/", "pos": "n./v.", "meaning": "金融；资助"}, {"word": "economy", "phonetic": "/ɪˈkɒnəmi/", "pos": "n.", "meaning": "经济；经济体"}, {"word": "market", "phonetic": "/ˈmɑːkɪt/", "pos": "n./v.", "meaning": "市场；销售"}, {"word": "company", "phonetic": "/ˈkʌmpəni/", "pos": "n.", "meaning": "公司；陪伴"}, {"word": "corporation", "phonetic": "/ˌkɔːpəˈreɪʃn/", "pos": "n.", "meaning": "公司；企业"}, {"word": "enterprise", "phonetic": "/ˈentəpraɪz/", "pos": "n.", "meaning": "企业；进取心"}, {"word": "organization", "phonetic": "/ˌɔːɡənaɪˈzeɪʃn/", "pos": "n.", "meaning": "组织；机构"}, {"word": "institution", "phonetic": "/ˌɪnstɪˈtjuːʃn/", "pos": "n.", "meaning": "机构；制度"}, {"word": "authority", "phonetic": "/ɔːˈθɒrəti/", "pos": "n.", "meaning": "权威；当局"}, {"word": "council", "phonetic": "/ˈkaʊnsl/", "pos": "n.", "meaning": "委员会；议会"}, {"word": "department", "phonetic": "/dɪˈpɑːtmənt/", "pos": "n.", "meaning": "部门；系"}, {"word": "agency", "phonetic": "/ˈeɪdʒənsi/", "pos": "n.", "meaning": "机构；代理处"}, {"word": "office", "phonetic": "/ˈɒfɪs/", "pos": "n.", "meaning": "办公室；办事处"}, {"word": "staff", "phonetic": "/stɑːf/", "pos": "n.", "meaning": "员工；职员"}, {"word": "employee", "phonetic": "/ɪmˈplɔɪi/", "pos": "n.", "meaning": "雇员；员工"}, {"word": "employer", "phonetic": "/ɪmˈplɔɪə(r)/", "pos": "n.", "meaning": "雇主；老板"}, {"word": "colleague", "phonetic": "/ˈkɒliːɡ/", "pos": "n.", "meaning": "同事；同僚"}, {"word": "manager", "phonetic": "/ˈmænɪdʒə(r)/", "pos": "n.", "meaning": "经理；管理者"}, {"word": "director", "phonetic": "/dəˈrektə(r)/", "pos": "n.", "meaning": "主管；董事"}, {"word": "leader", "phonetic": "/ˈliːdə(r)/", "pos": "n.", "meaning": "领导者；领袖"}, {"word": "group", "phonetic": "/ɡruːp/", "pos": "n./v.", "meaning": "团队；分组"}, {"word": "partner", "phonetic": "/ˈpɑːtnə(r)/", "pos": "n.", "meaning": "伙伴；搭档"}, {"word": "client", "phonetic": "/ˈklaɪənt/", "pos": "n.", "meaning": "客户；委托人"}, {"word": "customer", "phonetic": "/ˈkʌstəmə(r)/", "pos": "n.", "meaning": "顾客；客户"}, {"word": "consumer", "phonetic": "/kənˈsjuːmə(r)/", "pos": "n.", "meaning": "消费者"}, {"word": "user", "phonetic": "/ˈjuːzə(r)/", "pos": "n.", "meaning": "用户；使用者"}, {"word": "patient", "phonetic": "/ˈpeɪʃnt/", "pos": "n./adj.", "meaning": "病人；耐心的"}, {"word": "teacher", "phonetic": "/ˈtiːtʃə(r)/", "pos": "n.", "meaning": "教师；老师"}, {"word": "professor", "phonetic": "/prəˈfesə(r)/", "pos": "n.", "meaning": "教授"}, {"word": "tutor", "phonetic": "/ˈtjuːtə(r)/", "pos": "n.", "meaning": "家庭教师；导师"}, {"word": "lecturer", "phonetic": "/ˈlektʃərə(r)/", "pos": "n.", "meaning": "讲师"}, {"word": "researcher", "phonetic": "/rɪˈsɜːtʃə(r)/", "pos": "n.", "meaning": "研究员"}, {"word": "scientist", "phonetic": "/ˈsaɪəntɪst/", "pos": "n.", "meaning": "科学家"}, {"word": "expert", "phonetic": "/ˈekspɜːt/", "pos": "n./adj.", "meaning": "专家；专业的"}, {"word": "specialist", "phonetic": "/ˈspeʃəlɪst/", "pos": "n.", "meaning": "专家；专科医生"}, {"word": "consultant", "phonetic": "/kənˈsʌltənt/", "pos": "n.", "meaning": "顾问；咨询师"}, {"word": "volunteer", "phonetic": "/ˌvɒlənˈtɪə(r)/", "pos": "n./v.", "meaning": "志愿者；自愿"}, {"word": "citizen", "phonetic": "/ˈsɪtɪzn/", "pos": "n.", "meaning": "公民；市民"}, {"word": "resident", "phonetic": "/ˈrezɪdənt/", "pos": "n.", "meaning": "居民；住户"}, {"word": "friend", "phonetic": "/frend/", "pos": "n.", "meaning": "朋友"}, {"word": "family", "phonetic": "/ˈfæməli/", "pos": "n.", "meaning": "家庭；家族"}, {"word": "relative", "phonetic": "/ˈrelətɪv/", "pos": "n./adj.", "meaning": "亲戚；相对的"}, {"word": "parent", "phonetic": "/ˈpeərənt/", "pos": "n.", "meaning": "父母；家长"}, {"word": "adult", "phonetic": "/ˈædʌlt/", "pos": "n./adj.", "meaning": "成年人；成年的"}, {"word": "teenager", "phonetic": "/ˈtiːneɪdʒə(r)/", "pos": "n.", "meaning": "青少年"}, {"word": "youth", "phonetic": "/juːθ/", "pos": "n.", "meaning": "青年；青春"}, {"word": "elder", "phonetic": "/ˈeldə(r)/", "pos": "n./adj.", "meaning": "长者；年长的"}, {"word": "male", "phonetic": "/meɪl/", "pos": "adj./n.", "meaning": "男性的；男性"}, {"word": "female", "phonetic": "/ˈfiːmeɪl/", "pos": "adj./n.", "meaning": "女性的；女性"}, {"word": "man", "phonetic": "/mæn/", "pos": "n.", "meaning": "男人；人类"}, {"word": "woman", "phonetic": "/ˈwʊmən/", "pos": "n.", "meaning": "女人；妇女"}, {"word": "girl", "phonetic": "/ɡɜːl/", "pos": "n.", "meaning": "女孩；姑娘"}, {"word": "boy", "phonetic": "/bɔɪ/", "pos": "n.", "meaning": "男孩；少年"}, {"word": "victory", "phonetic": "/ˈvɪktəri/", "pos": "n.", "meaning": "胜利"}, {"word": "sacrifice", "phonetic": "/ˈsækrɪfaɪs/", "pos": "n.", "meaning": "牺牲"}, {"word": "patience", "phonetic": "/ˈpeɪʃns/", "pos": "n.", "meaning": "耐心"}, {"word": "wisdom", "phonetic": "/ˈwɪzdəm/", "pos": "n.", "meaning": "智慧"}, {"word": "charity", "phonetic": "/ˈtʃærəti/", "pos": "n.", "meaning": "慈善"}, {"word": "fortune", "phonetic": "/ˈfɔːtʃuːn/", "pos": "n.", "meaning": "财富；运气"}, {"word": "liberty", "phonetic": "/ˈlɪbəti/", "pos": "n.", "meaning": "自由"}, {"word": "courage", "phonetic": "/ˈkʌrɪdʒ/", "pos": "n.", "meaning": "勇气"}, {"word": "dignity", "phonetic": "/ˈdɪɡnəti/", "pos": "n.", "meaning": "尊严"}, {"word": "glory", "phonetic": "/ˈɡlɔːri/", "pos": "n.", "meaning": "荣耀"}, {"word": "justice", "phonetic": "/ˈdʒʌstɪs/", "pos": "n.", "meaning": "正义"}, {"word": "mercy", "phonetic": "/ˈmɜːsi/", "pos": "n.", "meaning": "仁慈"}, {"word": "honour", "phonetic": "/ˈɒnə(r)/", "pos": "n.", "meaning": "荣誉"}, {"word": "purity", "phonetic": "/ˈpjʊərəti/", "pos": "n.", "meaning": "纯洁"}, {"word": "faith", "phonetic": "/feɪθ/", "pos": "n.", "meaning": "信念"}, {"word": "hope", "phonetic": "/həʊp/", "pos": "n.", "meaning": "希望"}, {"word": "grief", "phonetic": "/ɡriːf/", "pos": "n.", "meaning": "悲伤"}, {"word": "panic", "phonetic": "/ˈpænɪk/", "pos": "n.", "meaning": "恐慌"}, {"word": "terror", "phonetic": "/ˈterə(r)/", "pos": "n.", "meaning": "恐惧"}, {"word": "regret", "phonetic": "/rɪˈɡret/", "pos": "n.", "meaning": "遗憾"}, {"word": "guilt", "phonetic": "/ɡɪlt/", "pos": "n.", "meaning": "内疚"}, {"word": "shame", "phonetic": "/ʃeɪm/", "pos": "n.", "meaning": "羞愧"}, {"word": "envy", "phonetic": "/ˈenvi/", "pos": "n.", "meaning": "嫉妒"}, {"word": "pity", "phonetic": "/ˈpɪti/", "pos": "n.", "meaning": "怜悯"}, {"word": "reward", "phonetic": "/rɪˈwɔːd/", "pos": "n.", "meaning": "奖励"}, {"word": "punishment", "phonetic": "/ˈpʌnɪʃmənt/", "pos": "n.", "meaning": "惩罚"}, {"word": "crime", "phonetic": "/kraɪm/", "pos": "n.", "meaning": "罪行"}, {"word": "fault", "phonetic": "/fɔːlt/", "pos": "n.", "meaning": "过错"}, {"word": "mistake", "phonetic": "/mɪˈsteɪk/", "pos": "n.", "meaning": "错误"}, {"word": "flaw", "phonetic": "/flɔː/", "pos": "n.", "meaning": "缺陷"}, {"word": "merit", "phonetic": "/ˈmerɪt/", "pos": "n.", "meaning": "优点"}, {"word": "virtue", "phonetic": "/ˈvɜːtʃuː/", "pos": "n.", "meaning": "美德"}, {"word": "vice", "phonetic": "/vaɪs/", "pos": "n.", "meaning": "恶习"}, {"word": "habit", "phonetic": "/ˈhæbɪt/", "pos": "n.", "meaning": "习惯"}, {"word": "custom", "phonetic": "/ˈkʌstəm/", "pos": "n.", "meaning": "习俗"}, {"word": "trend", "phonetic": "/trend/", "pos": "n.", "meaning": "趋势"}, {"word": "fashion", "phonetic": "/ˈfæʃn/", "pos": "n.", "meaning": "时尚"}, {"word": "style", "phonetic": "/staɪl/", "pos": "n.", "meaning": "风格"}, {"word": "taste", "phonetic": "/teɪst/", "pos": "n.", "meaning": "品味"}, {"word": "mood", "phonetic": "/muːd/", "pos": "n.", "meaning": "情绪"}];
+
+        // ==================== 分组配置 ====================
+        const WORDS_PER_GROUP = 20;
+        const TOTAL_GROUPS = Math.ceil(ALL_WORDS.length / WORDS_PER_GROUP);
+
+        let currentGroupIndex = 0;
+        let groupStatus = [];  // 每组状态: 'pending' | 'completed'
+        let currentGroupWords = [];  // 当前组的20个词
+
+        // 初始化分组状态
+        function initGroupStatus() {
+            groupStatus = new Array(TOTAL_GROUPS).fill('pending');
+            // Load from localStorage
+            const saved = localStorage.getItem('listeningGroupStatus');
+            if (saved) {
+                try {
+                    const data = JSON.parse(saved);
+                    if (data.groupStatus) {
+                        groupStatus = data.groupStatus;
+                    }
+                } catch (e) {}
+            }
+        }
+
+        function saveGroupStatus() {
+            localStorage.setItem('listeningGroupStatus', JSON.stringify({ groupStatus: groupStatus }));
+        }
+
+        // ==================== 状态管理 ====================
+        let currentStage = 0;
+        let currentWordIndex = 0;
+        let failedWords = [];
+        let masteredWords = [];
+        let allWrongWords = [];  // 收集所有错词，用于阶段4
+        let currentGroup = [];
+        let groupIndex = 0;
+        let spellingRound = 1;
+        let funnelWords = [];
+        let funnelCorrectCount = 0;
+        let funnelPaused = false;
+        let funnelPausedIndex = 0;
+        let funnelRound = 1;  // 靶向收敛轮次
+        let funnelWrongWords = [];  // 本轮靶向收敛的错词
+        let postFunnelSpelling = false;  // 标记是否来自阶段4后的拼写训练
+        let postFunnelTest = false;  // 标记是否来自阶段4后的测试阶段
+        let sessionStartAt = 0;      // 当前学习会话开始时间戳（进入学习时设置）
+        let totalSeconds = 0;        // 累计学习时长（已保存的）
+        let heartbeatInterval = null;
+
+        // ==================== 初始化 ====================
+        function init() {
+            loadProgress();
+            initGroupStatus();
+            updateStats();
+            startHeartbeat();
+            document.getElementById('total-count').textContent = ALL_WORDS.length;
+            renderGroupGrid();
+            selectGroup(0);
+        }
+
+        function startHeartbeat() {
+            // 用时间差计算真实学习时长（不受浏览器节流影响）
+            heartbeatInterval = setInterval(() => {
+                // 只有在学习中才计算时长
+                if (sessionStartAt > 0 && currentStage >= 1 && currentStage <= 4) {
+                    const sessionElapsed = Math.floor((Date.now() - sessionStartAt) / 1000);
+                    const displaySeconds = totalSeconds + sessionElapsed;
+                    updateTimeDisplay(displaySeconds);
+                }
+            }, 1000);  // 每秒刷新显示
+        }
+
+        // 进入学习时调用，重置会话开始时间
+        function resumeTimer() {
+            if (sessionStartAt === 0) {
+                sessionStartAt = Date.now();
+            }
+        }
+
+        // 退出学习时调用，结算当前会话时长到累计时长
+        function pauseTimer() {
+            if (sessionStartAt > 0) {
+                const sessionElapsed = Math.floor((Date.now() - sessionStartAt) / 1000);
+                totalSeconds += sessionElapsed;
+                sessionStartAt = 0;
+                saveProgress();
+            }
+            updateTimeDisplay(totalSeconds);
+        }
+
+        function updateTimeDisplay(seconds) {
+            seconds = seconds !== undefined ? seconds : totalSeconds;
+            const minutes = Math.floor(seconds / 60);
+            const secondsPart = seconds % 60;
+            document.getElementById('stat-time').textContent = `${minutes}:${secondsPart.toString().padStart(2, '0')}`;
+        }
+
+        // ==================== 本地存储 ====================
+        function saveProgress() {
+            const data = {
+                mastered: masteredWords,
+                cooldown: failedWords.map(w => w.word),
+                totalSecondsLearned: totalSeconds,
+                timestamp: Date.now()
+            };
+            localStorage.setItem('listeningWordsProgress', JSON.stringify(data));
+        }
+
+        function loadProgress() {
+            const saved = localStorage.getItem('listeningWordsProgress');
+            if (saved) {
+                try {
+                    const data = JSON.parse(saved);
+                    if (data.totalSecondsLearned) {
+                        totalSeconds = data.totalSecondsLearned;
+                        updateTimeDisplay();
+                    }
+                } catch (e) {
+                    console.error('Failed to load progress:', e);
+                }
+            }
+        }
+
+        function clearProgress() {
+            localStorage.removeItem('listeningWordsProgress');
+        }
+
+        // ==================== 音频播放 ====================
+        // 本地 TTS 音频目录（edge-tts 生成的 MP3）
+        const LOCAL_AUDIO_BASE = 'audio/words/';
+
+        // 当前播放中的 Audio 实例
+        let _currentWordAudio = null;
+
+        function playWord(word) {
+            // 停止当前播放
+            if (_currentWordAudio) {
+                try { _currentWordAudio.pause(); } catch(e) {}
+                _currentWordAudio = null;
+            }
+            if ('speechSynthesis' in window) {
+                speechSynthesis.cancel();
+            }
+
+            // 优先使用本地 MP3（edge-tts 生成）
+            const localPath = LOCAL_AUDIO_BASE + encodeURIComponent(word) + '.mp3';
+            const audio = new Audio(localPath);
+            _currentWordAudio = audio;
+            audio.play().then(() => {
+                // 本地 MP3 播放成功
+            }).catch(() => {
+                // 本地文件不存在或加载失败，降级到浏览器 TTS
+                _currentWordAudio = null;
+                _playWordFallback(word);
+            });
+        }
+
+        function _playWordFallback(word) {
+            // 降级1：Web Speech API（浏览器内置）
+            if ('speechSynthesis' in window) {
+                const utterance = new SpeechSynthesisUtterance(word);
+                utterance.lang = 'en-GB';
+                utterance.rate = 0.85;
+                utterance.pitch = 1.0;
+                speechSynthesis.speak(utterance);
+                return;
+            }
+            // 降级2：有道 TTS（需要联网）
+            const audio = new Audio('https://dict.youdao.com/dictvoice?audio=' + encodeURIComponent(word) + '&type=2');
+            audio.play().catch(() => {
+                showToast('音频播放失败，请检查网络连接');
+            });
+        }
+
+        function playYoudaoTTS(word) {
+            const audio = new Audio('https://dict.youdao.com/dictvoice?audio=' + encodeURIComponent(word) + '&type=2');
+            audio.play().catch(e => {
+                showToast('音频播放失败，请检查网络连接');
+            });
+        }
+
+        function playCurrentWord() {
+            let word = '';
+            if (currentStage === 1) {
+                word = currentGroupWords[currentWordIndex].word;
+            } else if (currentStage === 2) {
+                word = currentGroup[groupIndex].word;
+            } else if (currentStage === 3) {
+                word = currentGroup[currentWordIndex].word;
+            } else if (currentStage === 4) {
+                word = funnelWords[currentWordIndex].word;
+            }
+            if (word) {
+                playWord(word);
+            }
+        }
+
+        // ==================== 阶段切换 ====================
+        function setStage(stage) {
+            currentStage = stage;
+            
+            // 控制计时器
+            if (stage === 0 || stage === 5) {
+                // 返回组选择或完成：暂停计时
+                pauseTimer();
+            } else if (stage >= 1 && stage <= 4) {
+                // 进入学习阶段：启动计时
+                resumeTimer();
+            }
+            
+            // 更新指示器
+            for (let i = 1; i <= 4; i++) {
+                const indicator = document.getElementById(`stage${i}-indicator`);
+                indicator.classList.remove('active', 'completed');
+                if (i < stage) {
+                    indicator.classList.add('completed');
+                } else if (i === stage) {
+                    indicator.classList.add('active');
+                }
+            }
+
+            // 隐藏所有区域
+            document.getElementById('start-screen').classList.add('hidden');
+            document.getElementById('stage1-area').classList.add('hidden');
+            document.getElementById('stage2-area').classList.add('hidden');
+            document.getElementById('stage3-area').classList.add('hidden');
+            document.getElementById('stage4-area').classList.add('hidden');
+            document.getElementById('complete-area').classList.add('hidden');
+
+            // 显示当前阶段
+            if (stage === 0) {
+                document.getElementById('start-screen').classList.remove('hidden');
+            } else if (stage === 1) {
+                document.getElementById('stage1-area').classList.remove('hidden');
+                startStage1();
+            } else if (stage === 2) {
+                document.getElementById('stage2-area').classList.remove('hidden');
+                startStage2();
+            } else if (stage === 3) {
+                document.getElementById('stage3-area').classList.remove('hidden');
+                startStage3();
+            } else if (stage === 4) {
+                document.getElementById('stage4-area').classList.remove('hidden');
+                startStage4();
+            } else if (stage === 5) {
+                document.getElementById('complete-area').classList.remove('hidden');
+                showComplete();
+            }
+
+            updateStats();
+        }
+
+        // ==================== 阶段1：盲测筛查 ====================
+        function startStage1() {
+            currentWordIndex = 0;
+            updateStage1Progress();
+            document.getElementById('dictation-input').value = '';
+            document.getElementById('dictation-input').focus();
+            setTimeout(() => playCurrentWord(), 300);
+        }
+
+        function updateStage1Progress() {
+            const progress = ((currentWordIndex) / currentGroupWords.length) * 100;
+            document.getElementById('stage1-progress').style.width = progress + '%';
+            document.getElementById('current-index').textContent = currentWordIndex + 1;
+        }
+
+        function submitDictation() {
+            const input = document.getElementById('dictation-input').value.trim().toLowerCase();
+            if (!input) {
+                showToast('请输入单词');
+                return;
+            }
+
+            const correct = currentGroupWords[currentWordIndex].word.toLowerCase();
+            const isCorrect = input === correct;
+            if (isCorrect) {
+                addWord(masteredWords, currentGroupWords[currentWordIndex]);
+                showToast('正确！');
+            } else {
+                addWord(failedWords, currentGroupWords[currentWordIndex]);
+                addWord(allWrongWords, currentGroupWords[currentWordIndex]);
+                showToast(`错误，正确答案是：${correct}`);
+            }
+            currentWordIndex++;
+            
+            if (currentWordIndex >= currentGroupWords.length) {
+                // 阶段1完成，进入阶段2
+                if (failedWords.length > 0) {
+                    currentGroup = [...failedWords];
+                    setStage(2);
+                } else {
+                    setStage(5);
+                }
+            } else {
+                updateStage1Progress();
+                document.getElementById('dictation-input').value = '';
+                document.getElementById('dictation-input').focus();
+                setTimeout(() => playCurrentWord(), 300);
+            }
+            updateStats();
+            saveProgress();
+        }
+
+        function skipWord() {
+            addWord(failedWords, currentGroupWords[currentWordIndex]);
+            addWord(allWrongWords, currentGroupWords[currentWordIndex]);
+            currentWordIndex++;
+            
+            if (currentWordIndex >= currentGroupWords.length) {
+                if (failedWords.length > 0) {
+                    currentGroup = [...failedWords];
+                    setStage(2);
+                } else {
+                    setStage(5);
+                }
+            } else {
+                updateStage1Progress();
+                document.getElementById('dictation-input').value = '';
+                document.getElementById('dictation-input').focus();
+                setTimeout(() => playCurrentWord(), 300);
+            }
+            updateStats();
+        }
+
+        // ==================== 阶段2：拼写强化 ====================
+        function startStage2() {
+            spellingRound = 1;
+            groupIndex = 0;
+            updateSpellingDisplay();
+            createCharDisplay();
+            document.getElementById('spelling-input').value = '';
+            document.getElementById('spelling-input').focus();
+            setTimeout(() => playCurrentWord(), 300);
+        }
+
+        function updateSpellingDisplay() {
+            const word = currentGroup[groupIndex];
+            document.getElementById('spelling-word').textContent = word.word;
+            document.getElementById('spelling-phonetic').textContent = word.phonetic;
+            document.getElementById('spelling-meaning').textContent = `${word.pos} ${word.meaning}`;
+            document.getElementById('spelling-round').textContent = spellingRound;
+        }
+
+        function createCharDisplay() {
+            const word = currentGroup[groupIndex].word;
+            const container = document.getElementById('char-display');
+            container.innerHTML = '';
+            for (let i = 0; i < word.length; i++) {
+                const box = document.createElement('div');
+                box.className = 'char-box';
+                box.id = `char-${i}`;
+                box.textContent = word[i];
+                container.appendChild(box);
+            }
+        }
+
+        function submitSpelling() {
+            const input = document.getElementById('spelling-input').value.trim().toLowerCase();
+            const correct = currentGroup[groupIndex].word.toLowerCase();
+            
+            if (input === correct) {
+                // 高亮所有字符为正确
+                for (let i = 0; i < correct.length; i++) {
+                    document.getElementById(`char-${i}`).classList.add('correct');
+                }
+                
+                setTimeout(() => {
+                    groupIndex++;
+                    if (groupIndex >= currentGroup.length) {
+                        spellingRound++;
+                        if (spellingRound > 3) {
+                            // 3轮完成，判断从哪个阶段来的
+                            if (postFunnelSpelling) {
+                                // 阶段4后的拼写训练完成，进入测试阶段
+                                postFunnelSpelling = false;
+                                postFunnelTest = true; // 标记即将进入阶段4后的测试
+                                setStage(3);
+                                startStage3();
+                            } else if (funnelPaused) {
+                                // 从漏斗暂停来的（旧逻辑，保留兼容）
+                                funnelPaused = false;
+                                setStage(4);
+                                updateFunnelDisplay();
+                                document.getElementById('funnel-input').value = '';
+                                document.getElementById('funnel-input').focus();
+                                setTimeout(() => playCurrentWord(), 300);
+                            } else {
+                                // 正常流程，进入阶段3
+                                setStage(3);
+                            }
+                        } else {
+                            // 下一轮
+                            groupIndex = 0;
+                            updateSpellingDisplay();
+                            createCharDisplay();
+                            document.getElementById('spelling-input').value = '';
+                            document.getElementById('spelling-input').focus();
+                            setTimeout(() => playCurrentWord(), 300);
+                        }
+                    } else {
+                        updateSpellingDisplay();
+                        createCharDisplay();
+                        document.getElementById('spelling-input').value = '';
+                        document.getElementById('spelling-input').focus();
+                        setTimeout(() => playCurrentWord(), 300);
+                    }
+                }, 500);
+            } else {
+                // 显示错误
+                document.getElementById('spelling-input').classList.add('incorrect');
+                
+                // 高亮错误的字符
+                for (let i = 0; i < Math.max(input.length, correct.length); i++) {
+                    const box = document.getElementById(`char-${i}`);
+                    if (box) {
+                        if (i >= input.length || input[i] !== correct[i]) {
+                            box.classList.add('wrong');
+                        } else {
+                            box.classList.add('correct');
+                        }
+                    }
+                }
+                
+                setTimeout(() => {
+                    document.getElementById('spelling-input').classList.remove('incorrect');
+                    document.getElementById('spelling-input').value = '';
+                    for (let i = 0; i < correct.length; i++) {
+                        document.getElementById(`char-${i}`).classList.remove('correct', 'wrong');
+                    }
+                    document.getElementById('spelling-input').focus();
+                }, 1000);
+            }
+        }
+
+        // ==================== 阶段3：闭环重测 ====================
+        function startStage3() {
+            currentWordIndex = 0;
+            failedWords = [];
+            document.getElementById('retest-count').textContent = currentGroup.length;
+            updateStage3Progress();
+            document.getElementById('retest-input').value = '';
+            document.getElementById('retest-input').focus();
+            setTimeout(() => playCurrentWord(), 300);
+        }
+
+        function updateStage3Progress() {
+            const progress = ((currentWordIndex) / currentGroup.length) * 100;
+            document.getElementById('stage3-progress').style.width = progress + '%';
+            document.getElementById('retest-index').textContent = currentWordIndex + 1;
+        }
+
+        function submitRetest() {
+            const input = document.getElementById('retest-input').value.trim().toLowerCase();
+            if (!input) {
+                showToast('请输入单词');
+                return;
+            }
+
+            const correct = currentGroup[currentWordIndex].word.toLowerCase();
+            if (input === correct) {
+                showToast('正确！');
+            } else {
+                addWord(failedWords, currentGroup[currentWordIndex]);
+                addWord(allWrongWords, currentGroup[currentWordIndex]);
+                showToast(`错误：${correct}`);
+            }
+
+            currentWordIndex++;
+            
+            if (currentWordIndex >= currentGroup.length) {
+                // 检查是否全部正确
+                if (failedWords.length === 0) {
+                    // 100%正确
+                    if (postFunnelTest) {
+                        // 阶段4后的测试全对，进入下一轮靶向收敛
+                        postFunnelTest = false;
+                        funnelRound++;
+                        showToast(`测试全对！开始第 ${funnelRound} 轮靶向收敛`);
+                        setTimeout(() => {
+                            startStage4();
+                        }, 1500);
+                    } else {
+                        // 正常流程，进入阶段4
+                        setStage(4);
+                    }
+                } else {
+                    // 有错误，先拼写强化再重新听写
+                    showToast(`有 ${failedWords.length} 个错误，先进行拼写强化`);
+                    currentGroup = [...failedWords];
+                    failedWords = [];
+                    setTimeout(() => {
+                        setStage(2);
+                        startStage2();
+                    }, 1500);
+                }
+            } else {
+                updateStage3Progress();
+                document.getElementById('retest-input').value = '';
+                document.getElementById('retest-input').focus();
+                setTimeout(() => playCurrentWord(), 300);
+            }
+        }
+
+        // ==================== 阶段4：全局漏斗 ====================
+        function startStage4() {
+            // 使用 Set 来跟踪已掌握的词，并从所有错词中过滤
+            const masteredSet = new Set(masteredWords.map(w => w.word));
+            
+            // 收集还未掌握的错词（漏斗效果）
+            const remainingWrongWords = allWrongWords.filter(w => !masteredSet.has(w.word));
+            
+            // 如果没有未掌握的错词，直接完成
+            if (remainingWrongWords.length === 0) {
+                setStage(5);
+                return;
+            }
+            
+            // 打乱并设置为本轮靶向收敛的词
+            funnelWords = shuffleArray([...remainingWrongWords]);
+            currentWordIndex = 0;
+            funnelCorrectCount = 0;
+            
+            // 更新轮次显示
+            const roundIndicator = document.getElementById('funnel-round-indicator');
+            if (roundIndicator) {
+                roundIndicator.textContent = `第 ${funnelRound} 轮靶向收敛`;
+            }
+            
+            updateFunnelDisplay();
+            document.getElementById('funnel-input').value = '';
+            document.getElementById('funnel-input').focus();
+            setTimeout(() => playCurrentWord(), 300);
+        }
+
+        function updateFunnelDisplay() {
+            document.getElementById('funnel-remaining').textContent = funnelWords.length - currentWordIndex;
+            document.getElementById('funnel-correct').textContent = funnelCorrectCount;
+            document.getElementById('funnel-index').textContent = currentWordIndex + 1;
+        }
+
+        function submitFunnel() {
+            const input = document.getElementById('funnel-input').value.trim().toLowerCase();
+            if (!input) {
+                showToast('请输入单词');
+                return;
+            }
+
+            const correct = funnelWords[currentWordIndex].word.toLowerCase();
+            if (input === correct) {
+                addWord(masteredWords, funnelWords[currentWordIndex]);
+                funnelCorrectCount++;
+                showToast('正确！');
+            } else {
+                // 错误，收集到本轮错词，继续听写其他词
+                const wrongWord = funnelWords[currentWordIndex];
+                addWord(funnelWrongWords, wrongWord);
+                showToast(`错误：${correct}`);
+            }
+            
+            currentWordIndex++;
+
+            if (currentWordIndex >= funnelWords.length) {
+                // 本轮靶向收敛完成，检查是否有错词
+                if (funnelWrongWords.length === 0) {
+                    // 全对，完成学习
+                    setStage(5);
+                } else {
+                    // 有错词，先统一进行拼写训练
+                    showToast(`本轮完成，${funnelWrongWords.length} 个错词需要拼写训练`);
+                    currentGroup = [...funnelWrongWords];
+                    funnelWrongWords = []; // 清空，准备收集下一轮错词
+                    postFunnelSpelling = true; // 标记来自阶段4后的拼写
+                    setTimeout(() => {
+                        setStage(2);
+                        startStage2();
+                    }, 1500);
+                }
+            } else {
+                updateFunnelDisplay();
+                document.getElementById('funnel-input').value = '';
+                document.getElementById('funnel-input').focus();
+                setTimeout(() => playCurrentWord(), 300);
+            }
+            updateStats();
+            saveProgress();
+        }
+
+        // ==================== 完成页面 ====================
+        function showComplete() {
+            // Mark current group as completed
+            groupStatus[currentGroupIndex] = 'completed';
+            saveGroupStatus();
+
+            document.getElementById('mastered-count').textContent = masteredWords.length;
+            const listContainer = document.getElementById('mastered-list');
+            listContainer.innerHTML = '';
+            masteredWords.forEach(word => {
+                const item = document.createElement('div');
+                item.className = 'word-list-item';
+                item.innerHTML = `<span>${word.word}</span><span>${word.meaning}</span>`;
+                listContainer.appendChild(item);
+            });
+
+            // Show/hide next group button
+            const nextBtn = document.getElementById('next-group-btn');
+            const titleEl = document.getElementById('complete-title');
+            const descEl = document.getElementById('complete-desc');
+            if (currentGroupIndex + 1 < TOTAL_GROUPS) {
+                nextBtn.style.display = 'inline-block';
+                titleEl.textContent = `恭喜完成第 ${currentGroupIndex + 1} 组学习！`;
+                descEl.textContent = `已完成 ${groupStatus.filter(s => s === 'completed').length}/${TOTAL_GROUPS} 组`;
+            } else {
+                nextBtn.style.display = 'none';
+                titleEl.textContent = '恭喜完成所有单词学习！';
+                descEl.textContent = `您已完成全部 ${TOTAL_GROUPS} 组共 ${ALL_WORDS.length} 个单词的学习`;
+            }
+
+            // 回传学习记录给主系统
+            sendStudyRecord();
+        }
+
+        // 回传学习记录给主系统
+        function sendStudyRecord() {
+            // 计算当前总时长 = 累计时长 + 当前会话时长
+            let currentTotalSeconds = totalSeconds;
+            if (sessionStartAt > 0) {
+                currentTotalSeconds += Math.floor((Date.now() - sessionStartAt) / 1000);
+            }
+            
+            const completedCount = groupStatus.filter(s => s === 'completed').length;
+            const record = {
+                type: 'listeningStudyComplete',
+                groupIndex: currentGroupIndex + 1,
+                totalGroups: TOTAL_GROUPS,
+                wordsTested: currentGroupWords.length,
+                masteredCount: masteredWords.length,
+                wrongCount: allWrongWords.length,
+                completedGroups: completedCount,
+                durationSeconds: currentTotalSeconds
+            };
+
+            // 如果在 iframe 中，回传给父窗口
+            if (window.parent !== window) {
+                window.parent.postMessage(record, '*');
+            } else {
+                // 如果不在 iframe 中，直接打印（调试用）
+                console.log('Study record:', record);
+            }
+        }
+
+        // ==================== 工具函数 ====================
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            return array;
+        }
+        
+        // 安全添加词到数组（避免重复）
+        function addWord(array, word) {
+            if (!array.some(w => w.word === word.word)) {
+                array.push(word);
+            }
+        }
+        
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.classList.add('show');
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 2000);
+        }
+
+        function updateStats() {
+            document.getElementById('stat-mastered').textContent = masteredWords.length;
+            const learning = currentGroupWords.length - masteredWords.length;
+            document.getElementById('stat-learning').textContent = learning;
+        }
+
+        // ==================== 分组功能 ====================
+        function renderGroupGrid() {
+            const grid = document.getElementById('group-grid');
+            grid.innerHTML = '';
+            for (let i = 0; i < TOTAL_GROUPS; i++) {
+                const btn = document.createElement('button');
+                btn.className = 'group-btn';
+                if (groupStatus[i] === 'completed') {
+                    btn.classList.add('completed');
+                }
+                const startNum = i * WORDS_PER_GROUP + 1;
+                const endNum = Math.min((i + 1) * WORDS_PER_GROUP, ALL_WORDS.length);
+                btn.textContent = `${i + 1}\n${startNum}-${endNum}`;
+                btn.style.whiteSpace = 'pre-line';
+                btn.onclick = () => selectGroup(i);
+                grid.appendChild(btn);
+            }
+            updateGroupInfo();
+        }
+
+        function selectGroup(index) {
+            currentGroupIndex = index;
+            updateGroupInfo();
+        }
+
+        function updateGroupInfo() {
+            const info = document.getElementById('group-info');
+            const completedCount = groupStatus.filter(s => s === 'completed').length;
+            info.textContent = `第 ${currentGroupIndex + 1} 组 / 共 ${TOTAL_GROUPS} 组（已完成 ${completedCount}/${TOTAL_GROUPS} 组，共 ${ALL_WORDS.length} 词）`;
+        }
+
+        function backToGroupSelection() {
+            // 退出前回传学习时长
+            sendStudyTime();
+            renderGroupGrid();
+            selectGroup(currentGroupIndex);
+            setStage(0);
+        }
+
+        // 回传学习时长（不需要学完一组）
+        function sendStudyTime() {
+            // 计算当前总时长 = 累计时长 + 当前会话时长
+            let currentTotalSeconds = totalSeconds;
+            if (sessionStartAt > 0) {
+                currentTotalSeconds += Math.floor((Date.now() - sessionStartAt) / 1000);
+            }
+            if (currentTotalSeconds <= 0) return; // 没有学习时长就不发送
+
+            const record = {
+                type: 'listeningStudyTime',
+                groupIndex: currentGroupIndex + 1,
+                totalGroups: TOTAL_GROUPS,
+                wordsTested: currentGroupWords ? currentGroupWords.length : 0,
+                masteredCount: masteredWords.length,
+                wrongCount: allWrongWords.length,
+                completedGroups: groupStatus.filter(s => s === 'completed').length,
+                durationSeconds: currentTotalSeconds
+            };
+
+            if (window.parent !== window) {
+                window.parent.postMessage(record, '*');
+            }
+            console.log('学习时长已回传:', currentTotalSeconds + '秒');
+        }
+
+        function startNextGroup() {
+            if (currentGroupIndex + 1 < TOTAL_GROUPS) {
+                selectGroup(currentGroupIndex + 1);
+                startLearning();
+            }
+        }
+        // ==================== 控制函数 ====================
+        function startLearning() {
+            // Get current group words
+            currentGroupWords = ALL_WORDS.slice(currentGroupIndex * WORDS_PER_GROUP, (currentGroupIndex + 1) * WORDS_PER_GROUP);
+
+            masteredWords = [];
+            failedWords = [];
+            allWrongWords = [];
+            funnelWrongWords = [];
+            currentGroup = [];
+            funnelRound = 1;
+            postFunnelSpelling = false;
+            postFunnelTest = false;
+
+            // 清零学习时长（每次开始学习从0计时）
+            totalSeconds = 0;
+            sessionStartAt = 0;
+
+            // Update total count display for current group
+            document.getElementById('total-count').textContent = currentGroupWords.length;
+
+            setStage(1);
+        }
+
+        function restartLearning() {
+            masteredWords = [];
+            failedWords = [];
+            allWrongWords = [];
+            funnelWrongWords = [];
+            currentGroup = [];
+            funnelWords = [];
+            funnelRound = 1;
+            postFunnelSpelling = false;
+            postFunnelTest = false;
+            // 只重置当前会话时间，不重置累计时长
+            sessionStartAt = 0;
+            // Reset current group only, not all groups
+            groupStatus[currentGroupIndex] = 'pending';
+            saveGroupStatus();
+            clearProgress();
+            renderGroupGrid();
+            selectGroup(currentGroupIndex);
+            setStage(0);
+        }
+
+        // 键盘事件
+        document.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                if (currentStage === 1) {
+                    submitDictation();
+                } else if (currentStage === 2) {
+                    submitSpelling();
+                } else if (currentStage === 3) {
+                    submitRetest();
+                } else if (currentStage === 4) {
+                    submitFunnel();
+                }
+            }
+        });
+
+        // 初始化
+        window.onload = init;
+
+        // iframe 关闭或页面卸载时回传学习时长
+        window.addEventListener('beforeunload', function() {
+            sendStudyTime();
+        });
+    </script></body></html>

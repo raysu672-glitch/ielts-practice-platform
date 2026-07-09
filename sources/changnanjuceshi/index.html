@@ -1,0 +1,583 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>长难句骨架测试</title><style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --red: #e53935;
+  --green: #2e7d32;
+  --blue: #1565c0;
+  --purple: #6a1b9a;
+  --bg: #f5f0e8;
+  --card: #fffdf7;
+  --shadow: 0 4px 20px rgba(0,0,0,0.10);
+  --radius: 14px;
+}
+body {
+  font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif;
+  background: var(--bg);
+  color: #2c2c2c;
+  min-height: 100vh;
+  padding: 20px;
+}
+
+/* 开始页面 */
+.start-page { max-width: 600px; margin: 60px auto; text-align: center; }
+.start-page h1 {
+  font-size: 2em;
+  background: linear-gradient(135deg, #1a237e, #6a1b9a);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  margin-bottom: 20px;
+}
+.start-page p { color: #666; margin-bottom: 30px; line-height: 1.8; }
+.start-btn {
+  padding: 14px 40px;
+  background: linear-gradient(135deg, #1a237e, #6a1b9a);
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  font-size: 1.1em;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.2s, opacity 0.2s;
+}
+.start-btn:hover { opacity: 0.9; transform: scale(1.02); }
+.start-btn:active { transform: scale(0.98); }
+
+/* 测试页面 */
+.test-page { display: none; max-width: 800px; margin: 0 auto; }
+.test-page.active { display: block; }
+
+.progress-info {
+  text-align: center;
+  margin-bottom: 20px;
+  color: #666;
+  font-size: 0.95em;
+}
+.progress-info strong { color: var(--blue); }
+
+.sentence-card {
+  background: var(--card);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 24px;
+  margin-bottom: 24px;
+}
+.sentence-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.sentence-num {
+  background: var(--blue);
+  color: #fff;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 0.85em;
+  font-weight: 700;
+}
+.sentence-pattern {
+  color: #1a237e;
+  font-weight: 600;
+  font-size: 0.95em;
+}
+.sentence-original {
+  background: #fff8f0;
+  border: 2px solid #ffccbc;
+  border-radius: 10px;
+  padding: 16px;
+  font-family: 'Georgia', serif;
+  font-size: 1.05em;
+  line-height: 1.8;
+  margin-bottom: 20px;
+}
+
+.blank-item {
+  border: 2px solid #e0e0e0;
+  border-radius: 10px;
+  padding: 14px 16px;
+  margin-bottom: 12px;
+  transition: border-color 0.3s;
+}
+.blank-item.correct { border-color: var(--green); background: #f1f8e9; }
+.blank-item.wrong { border-color: var(--red); background: #fff5f5; }
+.blank-label {
+  font-size: 0.82em;
+  color: #777;
+  margin-bottom: 8px;
+}
+.blank-input {
+  width: 100%;
+  padding: 10px 14px;
+  border: 2px solid #bdbdbd;
+  border-radius: 8px;
+  font-size: 1em;
+  outline: none;
+  transition: border-color 0.2s;
+  font-family: inherit;
+}
+.blank-input:focus { border-color: #5c6bc0; }
+.blank-input.correct-input { border-color: var(--green); background: #e8f5e9; }
+.blank-input.wrong-input { border-color: var(--red); background: #fff5f5; }
+.blank-answer {
+  display: none;
+  margin-top: 10px;
+  padding: 10px 14px;
+  background: #e8f5e9;
+  border-radius: 8px;
+  color: var(--green);
+  font-weight: 600;
+}
+.blank-answer.show { display: block; }
+.check-btn {
+  margin-top: 10px;
+  padding: 8px 20px;
+  background: var(--blue);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.9em;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.check-btn:hover { background: #0d47a1; }
+.check-btn:disabled { background: #aaa; cursor: default; }
+
+.nav-btns {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+  margin-top: 30px;
+}
+.nav-btn {
+  padding: 12px 30px;
+  border-radius: 10px;
+  font-size: 1em;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.2s, opacity 0.2s;
+}
+.nav-btn:hover { opacity: 0.9; transform: scale(1.02); }
+.nav-btn:active { transform: scale(0.98); }
+.nav-btn.primary {
+  background: linear-gradient(135deg, #1a237e, #6a1b9a);
+  color: #fff;
+  border: none;
+}
+.nav-btn.secondary {
+  background: #f5f5f5;
+  color: #666;
+  border: 1px solid #ddd;
+}
+
+/* 结果页面 */
+.result-page { display: none; max-width: 600px; margin: 40px auto; text-align: center; }
+.result-page.active { display: block; }
+
+.result-card {
+  background: var(--card);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 40px;
+}
+.result-score {
+  font-size: 4em;
+  font-weight: 800;
+  background: linear-gradient(135deg, #1a237e, #6a1b9a);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  margin: 20px 0;
+}
+.result-detail {
+  color: #666;
+  font-size: 1.1em;
+  margin-bottom: 30px;
+}
+.retry-btn {
+  padding: 14px 40px;
+  background: linear-gradient(135deg, #1a237e, #6a1b9a);
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  font-size: 1.1em;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.2s, opacity 0.2s;
+}
+.retry-btn:hover { opacity: 0.9; transform: scale(1.02); }
+
+.detail-section {
+  margin-top: 30px;
+  text-align: left;
+}
+.detail-section h3 {
+  font-size: 1.1em;
+  color: #1a237e;
+  margin-bottom: 16px;
+  padding-bottom: 8px;
+  border-bottom: 2px solid #e0e0e0;
+}
+.detail-item {
+  background: #f9f9f9;
+  border-radius: 10px;
+  padding: 16px;
+  margin-bottom: 12px;
+}
+.detail-item-num {
+  font-weight: 700;
+  color: var(--blue);
+  margin-bottom: 8px;
+}
+.detail-original {
+  font-family: 'Georgia', serif;
+  font-size: 0.95em;
+  color: #555;
+  margin-bottom: 10px;
+  line-height: 1.6;
+}
+.detail-blanks { padding-left: 10px; }
+.detail-blank {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-bottom: 6px;
+  font-size: 0.92em;
+}
+.detail-blank-icon { flex-shrink: 0; }
+.detail-blank-correct { color: var(--green); }
+.detail-blank-wrong { color: var(--red); }
+.detail-answer {
+  color: #666;
+  font-size: 0.88em;
+}
+</style></head><body><!-- 开始页面 --><div class="start-page" id="startPage"><h1>长难句骨架测试</h1><p>
+    本测试从60句长难句中随机抽取5句。<br>
+    每句设有若干空格，请你填写主句骨架的关键词。<br>
+    全部填写完毕后，系统将公布答案并计算正确率。
+  </p><button class="start-btn" onclick="startTest()">开始测试</button></div><!-- 测试页面 --><div class="test-page" id="testPage"><div class="progress-info">
+    句子 <strong id="currentNum">1</strong> / <strong>5</strong></div><div class="sentence-card" id="sentenceCard"><div class="sentence-header"><span class="sentence-num" id="sentenceNum">第1句</span><span class="sentence-pattern" id="sentencePattern"></span></div><div class="sentence-original" id="sentenceOriginal"></div><div id="blanksContainer"></div></div><div class="nav-btns"><button class="nav-btn secondary" id="prevBtn" onclick="prevSentence()" disabled>上一题</button><button class="nav-btn primary" id="nextBtn" onclick="nextSentence()">下一题</button><button class="nav-btn primary" id="submitBtn" onclick="submitTest()" style="display:none;">查看结果</button></div></div><!-- 结果页面 --><div class="result-page" id="resultPage"><div class="result-card"><h2>测试完成！</h2><div class="result-score" id="resultScore">0%</div><div class="result-detail" id="resultDetail"></div><div class="detail-section" id="detailSection"></div><button class="retry-btn" onclick="retryTest()">重新测试</button></div></div><script>
+const SENTENCES = [
+  {"num":1,"pattern":"主谓宾倒置与介词短语分隔模式","original":"A really hard curse that would definitely kill an ordinary wizard was put on the Defense Against the Dark Arts teacher position after that.","challenge1":{"boxes":[{"title":"a · 主语","answer":"A really hard curse（一个非常恶毒的诅咒）"},{"title":"b · 谓语","answer":"was put（被施加）"},{"title":"c · 宾语","answer":"on the Defense Against the Dark Arts teacher position（黑魔法防御术教师职位上）"}]}},
+  {"num":2,"pattern":"介词短语做状语后置模式","original":"The scientists who study ocean currents claim that the cold water near the North Pole flows constantly toward the equator.","challenge1":{"boxes":[{"title":"a · 主语","answer":"The scientists（科学家们）"},{"title":"b · 谓语","answer":"claim（声称）"},{"title":"c · 宾语","answer":"that the cold water...（冷水...这件事）"}]}},
+  {"num":3,"pattern":"双宾语与定语从句嵌套模式","original":"The researchers who study communication among dolphins have given several examples that suggest they have a language of their own.","challenge1":{"boxes":[{"title":"a · 主语","answer":"The researchers（研究者们）"},{"title":"b · 谓语","answer":"have given（给出了）"},{"title":"c1 · 间接宾语","answer":"several examples（几个例子）"},{"title":"c2 · 直接宾语","answer":"that...（关于海豚有自己语言的建议）"}]}},
+  {"num":4,"pattern":"形式主语与不定式短语模式","original":"To find a man who can communicate with animals was considered impossible in the old days.","challenge1":{"boxes":[{"title":"a · 形式主语","answer":"To find a man（找到一个能跟动物交流的人）"},{"title":"b · 系动词","answer":"was considered（被认为是）"},{"title":"c · 表语","answer":"impossible（不可能的）"}]}},
+  {"num":5,"pattern":"并列复合句与时间状语前置模式","original":"Before people learned how to use computers, they used simple tools to process information, and they relied on mental abilities for most daily tasks.","challenge1":{"boxes":[{"title":"a1 · 前句主语","answer":"they（他们）"},{"title":"b1 · 前句谓语","answer":"used（使用）"},{"title":"c1 · 前句宾语","answer":"simple tools（简单工具）"},{"title":"a2 · 后句主语","answer":"they（他们）"},{"title":"b2 · 后句谓语","answer":"relied on（依靠）"},{"title":"c2 · 后句宾语","answer":"mental abilities（思维能力）"}]}},
+  {"num":6,"pattern":"介词短语做定语后置模式","original":"The expansion of universities and the increase in the number of students led to a growing need for financial support.","challenge1":{"boxes":[{"title":"a · 主语","answer":"The expansion of universities and the increase in the number of students（大学的扩张和学生数量的增加）"},{"title":"b · 谓语","answer":"led to（导致）"},{"title":"c · 宾语","answer":"a growing need for financial support（日益增长的财务支持需求）"}]}},
+  {"num":7,"pattern":"主语从句与表语从句嵌套模式","original":"What the public should know about pesticides is that they are designed to kill living organisms.","challenge1":{"boxes":[{"title":"a · 主语从句","answer":"What the public should know about pesticides（公众应该了解的关于杀虫剂的事）"},{"title":"b · 系动词","answer":"is（是）"},{"title":"c · 表语从句","answer":"that they are designed to kill living organisms（它们是为了杀死活体生物而设计的）"}]}},
+  {"num":8,"pattern":"There be句型与定语从句嵌套模式","original":"There are many problems in the world where nuclear weapons have been developed but never used in wars.","challenge1":{"boxes":[{"title":"a · 谓语","answer":"There are（存在着）"},{"title":"b · 主语","answer":"many problems（许多问题）"},{"title":"c · 定语从句","answer":"where nuclear weapons have been developed but never used in wars（核武器被研发但从未在战争中使用过）"}]}},
+  {"num":9,"pattern":"动名词短语做主语模式","original":"Teaching young children to read has become more easier with the use of computers in classrooms.","challenge1":{"boxes":[{"title":"a · 主语","answer":"Teaching young children to read（教小孩子阅读）"},{"title":"b · 系动词","answer":"has become（已经成为）"},{"title":"c · 表语","answer":"more easier（更容易的）"}]}},
+  {"num":10,"pattern":"宾语补足语与被动语态模式","original":"The ancient stadium, which once was thought to have been destroyed completely, has been restored to its former glory.","challenge1":{"boxes":[{"title":"a · 主语","answer":"The ancient stadium（古老的体育场）"},{"title":"b · 谓语","answer":"has been restored（已经被修复）"},{"title":"c · 宾语补足语（状语）","answer":"to its former glory（恢复其昔日的辉煌）"}]}},
+  {"num":11,"pattern":"形式宾语与不定式短语模式","original":"Scientists consider it a challenging task to predict exactly when an earthquake will occur.","challenge1":{"boxes":[{"title":"a · 主语","answer":"Scientists（科学家们）"},{"title":"b · 谓语","answer":"consider（认为）"},{"title":"c1 · 形式宾语","answer":"it（它）"},{"title":"c2 · 真正宾语","answer":"to predict exactly when an earthquake will occur（准确预测地震何时发生）"}]}},
+  {"num":12,"pattern":"定语从句与同位语隔离模式","original":"The theory, which has been widely accepted, that the brain needs stimulation to develop normally, is now being challenged by new research.","challenge1":{"boxes":[{"title":"a · 主语","answer":"The theory（这个理论）"},{"title":"b · 系动词","answer":"is（正在）"},{"title":"c · 表语","answer":"being challenged by new research（被新研究挑战）"}]}},
+  {"num":13,"pattern":"祈使句与条件状语从句模式","original":"Take this medicine twice a day, and you will recover from your illness within a week.","challenge1":{"boxes":[{"title":"a · 条件句主语（省略）","answer":"（你）"},{"title":"b1 · 条件句谓语","answer":"Take（服用）"},{"title":"c1 · 条件句宾语","answer":"this medicine（这种药）"},{"title":"b2 · 结果句谓语","answer":"will recover（将会康复）"}]}},
+  {"num":14,"pattern":"现在分词短语做状语模式","original":"Having finished the experiment, the scientist submitted the results to the academic journal for publication.","challenge1":{"boxes":[{"title":"a · 主语","answer":"the scientist（这位科学家）"},{"title":"b · 谓语","answer":"submitted（提交了）"},{"title":"c · 宾语","answer":"the results（结果）"}]}},
+  {"num":15,"pattern":"过去分词短语做后置定语模式","original":"The student selected for the scholarship had maintained an excellent academic record throughout college.","challenge1":{"boxes":[{"title":"a · 主语","answer":"The student（这个学生）"},{"title":"b · 谓语","answer":"had maintained（保持了）"},{"title":"c · 宾语","answer":"an excellent academic record（优秀的学业记录）"}]}},
+  {"num":16,"pattern":"宾语从句与宾语补足语模式","original":"Most people consider flying in an airplane to be much safer than driving a car on the highway.","challenge1":{"boxes":[{"title":"a · 主语","answer":"Most people（大多数人）"},{"title":"b · 谓语","answer":"consider（认为）"},{"title":"c1 · 宾语","answer":"flying in an airplane（乘坐飞机）"},{"title":"c2 · 宾语补足语","answer":"to be much safer（要安全得多）"}]}},
+  {"num":17,"pattern":"强调句型模式","original":"It was only after the civilization had developed agriculture that humans began to settle in permanent villages.","challenge1":{"boxes":[{"title":"a · 强调主语","answer":"It（它）"},{"title":"b · 系动词","answer":"was（是）"},{"title":"c · 被强调部分","answer":"only after the civilization had developed agriculture（直到文明发展到农业阶段之后）"}]}},
+  {"num":18,"pattern":"插入语与同位语从句模式","original":"The proposal, which the committee finally approved, that the museum should remain open on weekends, was welcomed by the public.","challenge1":{"boxes":[{"title":"a · 主语","answer":"The proposal（这个提议）"},{"title":"b · 谓语","answer":"was welcomed（受到欢迎）"},{"title":"c · 主语补足语（by短语）","answer":"by the public（被公众）"}]}},
+  {"num":19,"pattern":"虚拟语气与倒装模式","original":"Had the government not intervened, the endangered species would have become extinct.","challenge1":{"boxes":[{"title":"a · 条件句主语（省略）","answer":"the government（政府）"},{"title":"b · 条件句谓语","answer":"Had not intervened（如果没有干预）"},{"title":"c · 主句谓语","answer":"would have become extinct（可能已经灭绝）"}]}},
+  {"num":20,"pattern":"不定式短语做补语与复合宾语模式","original":"The detective found the missing documents hidden in a secret compartment behind the bookshelf.","challenge1":{"boxes":[{"title":"a · 主语","answer":"The detective（侦探）"},{"title":"b · 谓语","answer":"found（发现了）"},{"title":"c1 · 宾语","answer":"the missing documents（失踪的文件）"},{"title":"c2 · 宾语补足语","answer":"hidden in a secret compartment（藏在秘密隔间里）"}]}},
+  {"num":21,"pattern":"现在完成时与被动语态模式","original":"Since the beginning of this century, several major scientific discoveries have been made that changed our understanding of the universe.","challenge1":{"boxes":[{"title":"a · 主语","answer":"several major scientific discoveries（几项重大科学发现）"},{"title":"b · 谓语","answer":"have been made（已经被做出）"},{"title":"c · 定语从句","answer":"that changed our understanding of the universe（改变了我们对宇宙的理解）"}]}},
+  {"num":22,"pattern":"让步状语从句与介词短语模式","original":"Although he was exhausted from the long journey, the explorer continued his expedition into the jungle.","challenge1":{"boxes":[{"title":"a · 让步从句主语","answer":"he（他）"},{"title":"b · 从句谓语","answer":"was exhausted（筋疲力尽）"},{"title":"c · 主句主语","answer":"the explorer（探险家）"},{"title":"d · 主句谓语","answer":"continued（继续）"}]}},
+  {"num":23,"pattern":"独立主格结构模式","original":"The weather having changed suddenly, the outdoor concert had to be moved to an indoor venue.","challenge1":{"boxes":[{"title":"a · 独立主格主语","answer":"The weather（天气）"},{"title":"b · 独立主格谓语","answer":"having changed（突然变化）"},{"title":"c · 主句主语","answer":"the outdoor concert（户外音乐会）"},{"title":"d · 主句谓语","answer":"had to be moved（不得不被转移）"}]}},
+  {"num":24,"pattern":"主谓分隔与同位语后置模式","original":"The claim made by the famous scientist that human activities are causing global warming has been supported by extensive research.","challenge1":{"boxes":[{"title":"a · 主语","answer":"The claim（这个声明）"},{"title":"b · 谓语","answer":"has been supported（已经被支持）"},{"title":"c · 主语补足语","answer":"by extensive research（被大量研究）"}]}},
+  {"num":25,"pattern":"原因状语从句前置模式","original":"Because the river had flooded the surrounding fields, the farmers had to relocate their entire harvest.","challenge1":{"boxes":[{"title":"a · 原因从句主语","answer":"the river（河流）"},{"title":"b · 从句谓语","answer":"had flooded（已经淹没了）"},{"title":"c · 主句主语","answer":"the farmers（农民们）"},{"title":"d · 主句谓语","answer":"had to relocate（不得不转移）"}]}},
+  {"num":26,"pattern":"宾语从句前置与间接引语模式","original":"What the witness saw on that fateful night still haunts her memories despite the passage of many years.","challenge1":{"boxes":[{"title":"a · 主语从句","answer":"What the witness saw on that fateful night（证人在那个命运之夜所看到的）"},{"title":"b · 谓语","answer":"still haunts（仍然困扰）"},{"title":"c · 宾语","answer":"her memories（她的记忆）"}]}},
+  {"num":27,"pattern":"方式状语从句与比较结构模式","original":"The population of endangered animals is decreasing faster than scientists predicted in their earlier studies.","challenge1":{"boxes":[{"title":"a · 主语","answer":"The population of endangered animals（濒危动物的数量）"},{"title":"b · 谓语","answer":"is decreasing（正在减少）"},{"title":"c · 比较状语","answer":"than scientists predicted（比科学家们预测的更快）"}]}},
+  {"num":28,"pattern":"反身代词与强调结构模式","original":"The ancient Egyptians themselves built the pyramids without any external help from other civilizations.","challenge1":{"boxes":[{"title":"a · 主语","answer":"The ancient Egyptians（古埃及人）"},{"title":"b · 谓语","answer":"built（建造）"},{"title":"c · 宾语","answer":"the pyramids（金字塔）"}]}},
+  {"num":29,"pattern":"目的状语从句与结果状语从句模式","original":"The company invested heavily in new technology so that it could improve productivity, and consequently increased its profits.","challenge1":{"boxes":[{"title":"a · 主语","answer":"The company（公司）"},{"title":"b · 谓语","answer":"invested（投资）"},{"title":"c1 · 目的状语","answer":"so that it could improve productivity（以便提高生产力）"},{"title":"c2 · 结果状语","answer":"consequently increased its profits（因此增加了利润）"}]}},
+  {"num":30,"pattern":"分裂句与It is...that结构模式","original":"It is not the beauty of a building you should be looking at, but the strength of its foundation.","challenge1":{"boxes":[{"title":"a · 形式主语","answer":"It（它）"},{"title":"b · 系动词","answer":"is（是）"},{"title":"c · 表语","answer":"not the beauty...but the strength（不是美丽...而是坚固）"}]}},
+  {"num":31,"pattern":"并列定语从句模式","original":"The professor who taught the course was admired by students, who appreciated her unique teaching methods.","challenge1":{"boxes":[{"title":"a · 主语","answer":"The professor（教授）"},{"title":"b · 谓语","answer":"was admired（受到钦佩）"},{"title":"c1 · 第一定语从句","answer":"who taught the course（教这门课的）"},{"title":"c2 · 第二定语从句","answer":"who appreciated her unique teaching methods（欣赏她独特教学方法的）"}]}},
+  {"num":32,"pattern":"状语后置与介词短语模式","original":"The teacher explained the concept to the students in a way that everyone could understand clearly.","challenge1":{"boxes":[{"title":"a · 主语","answer":"The teacher（老师）"},{"title":"b · 谓语","answer":"explained（解释）"},{"title":"c1 · 宾语","answer":"the concept（这个概念）"},{"title":"c2 · 介词短语（方式状语）","answer":"in a way that everyone could understand（以一种每个人都能理解的方式）"}]}},
+  {"num":33,"pattern":"分隔不定式与形式主语模式","original":"It is necessary to carefully examine all the evidence before drawing any conclusions about the case.","challenge1":{"boxes":[{"title":"a · 形式主语","answer":"It（它）"},{"title":"b · 系动词","answer":"is（是）"},{"title":"c · 表语","answer":"necessary（必要的）"}]}},
+  {"num":34,"pattern":"直接引语与间接引语转换模式","original":"The historian claimed that the ancient civilization had possessed knowledge that was far ahead of its time.","challenge1":{"boxes":[{"title":"a · 主语","answer":"The historian（历史学家）"},{"title":"b · 谓语","answer":"claimed（声称）"},{"title":"c · 宾语从句","answer":"that the ancient civilization had possessed knowledge（古代文明拥有知识）"}]}},
+  {"num":35,"pattern":"名词性从句做宾语模式","original":"Nobody could explain why the ancient calculator was built and how it was used by the civilization.","challenge1":{"boxes":[{"title":"a · 主语","answer":"Nobody（没有人）"},{"title":"b · 谓语","answer":"could explain（能够解释）"},{"title":"c1 · 宾语从句1","answer":"why the ancient calculator was built（为什么这个古代计算器被建造）"},{"title":"c2 · 宾语从句2","answer":"how it was used（它是如何被使用的）"}]}},
+  {"num":36,"pattern":"省略引导词的名词性从句模式","original":"What remains unclear is whether the government will implement the new policy before the end of this year.","challenge1":{"boxes":[{"title":"a · 主语从句","answer":"What remains unclear（什么仍然不清楚）"},{"title":"b · 系动词","answer":"is（是）"},{"title":"c · 表语从句","answer":"whether the government will implement the new policy（政府是否将在今年年底前实施新政策）"}]}},
+  {"num":37,"pattern":"倒装与介词短语做表语模式","original":"Of all the factors that affect the climate, human activities are among the most significant contributors to global warming.","challenge1":{"boxes":[{"title":"a · 主语","answer":"human activities（人类活动）"},{"title":"b · 系动词","answer":"are（是）"},{"title":"c · 表语","answer":"among the most significant contributors（最重要的因素之一）"}]}},
+  {"num":38,"pattern":"with独立结构模式","original":"With the new regulations having been approved, the company can now proceed with its expansion plans.","challenge1":{"boxes":[{"title":"a · with独立结构主语","answer":"the new regulations（新法规）"},{"title":"b · with独立结构谓语","answer":"having been approved（已经被批准）"},{"title":"c · 主句主语","answer":"the company（公司）"},{"title":"d · 主句谓语","answer":"can now proceed（现在可以继续）"}]}},
+  {"num":39,"pattern":"双重否定与肯定结构模式","original":"Not until the evidence became overwhelming did the scientists accept that their original theory was flawed.","challenge1":{"boxes":[{"title":"a · 时间状语（前置）","answer":"Not until the evidence became overwhelming（直到证据变得无可辩驳）"},{"title":"b · 主句谓语（倒装）","answer":"did accept（确实接受）"},{"title":"c · 宾语从句","answer":"that their original theory was flawed（他们的原始理论有缺陷）"}]}},
+  {"num":40,"pattern":"先行词与多个定语从句模式","original":"The student who won the competition received a scholarship which enabled her to study at the university where her mother had taught.","challenge1":{"boxes":[{"title":"a · 主语","answer":"The student（这个学生）"},{"title":"b · 谓语","answer":"received（获得了）"},{"title":"c1 · 第一定语从句","answer":"who won the competition（赢得比赛的）"},{"title":"c2 · 第二定语从句","answer":"which enabled her to study（使她能够学习）"}]}},
+  {"num":41,"pattern":"否定转移与宾语从句模式","original":"I don't think that anyone could have predicted such an unexpected outcome from the experiment.","challenge1":{"boxes":[{"title":"a · 主语","answer":"I（我）"},{"title":"b · 谓语","answer":"don't think（不认为）"},{"title":"c · 宾语从句","answer":"that anyone could have predicted（任何人都能够预测）"}]}},
+  {"num":42,"pattern":"主系表结构与不定式做表语模式","original":"The purpose of education appears to be not merely to transmit knowledge but to develop critical thinking skills.","challenge1":{"boxes":[{"title":"a · 主语","answer":"The purpose of education（教育的目的）"},{"title":"b · 系动词","answer":"appears to be（似乎是）"},{"title":"c · 表语","answer":"not merely to transmit knowledge but to develop critical thinking skills（不仅是传授知识，而且是培养批判性思维能力）"}]}},
+  {"num":43,"pattern":"同位语从句与形式主语模式","original":"It is a well-documented fact that the human brain continues to develop well into a person's twenties.","challenge1":{"boxes":[{"title":"a · 形式主语","answer":"It（它）"},{"title":"b · 系动词","answer":"is（是）"},{"title":"c · 表语","answer":"a well-documented fact（一个被充分记录的事实）"}]}},
+  {"num":44,"pattern":"省略与替代结构模式","original":"Studying harder may not guarantee success, but it certainly increases the chances of achieving one's goals.","challenge1":{"boxes":[{"title":"a · 主语","answer":"Studying harder（更努力地学习）"},{"title":"b · 谓语","answer":"may not guarantee（可能不会保证）"},{"title":"c · 宾语","answer":"success（成功）"}]}},
+  {"num":45,"pattern":"并列复合句与转折结构模式","original":"The ancient city was abandoned centuries ago, yet its ruins still attract thousands of visitors every year who come to admire its architectural marvels.","challenge1":{"boxes":[{"title":"a1 · 前句主语","answer":"The ancient city（这座古城）"},{"title":"b1 · 前句谓语","answer":"was abandoned（被遗弃）"},{"title":"a2 · 后句主语","answer":"its ruins（它的废墟）"},{"title":"b2 · 后句谓语","answer":"still attract（仍然吸引）"}]}},
+  {"num":46,"pattern":"宾语补足语与介词短语模式","original":"The committee elected the professor as president of the university, which surprised many people in the academic community.","challenge1":{"boxes":[{"title":"a · 主语","answer":"The committee（委员会）"},{"title":"b · 谓语","answer":"elected（选举）"},{"title":"c1 · 宾语","answer":"the professor（教授）"},{"title":"c2 · 宾语补足语","answer":"as president of the university（作为大学校长）"}]}},
+  {"num":47,"pattern":"被动语态与by短语后置模式","original":"The discovery of the new species was celebrated by the scientific community, which called it a breakthrough in biological research.","challenge1":{"boxes":[{"title":"a · 主语","answer":"The discovery of the new species（新物种的发现）"},{"title":"b · 谓语","answer":"was celebrated（受到庆祝）"},{"title":"c · 主语补足语","answer":"by the scientific community（被科学界）"}]}},
+  {"num":48,"pattern":"who引导的强调结构模式","original":"It is the combination of talent and hard work that produces outstanding achievements in any field.","challenge1":{"boxes":[{"title":"a · 形式主语","answer":"It（它）"},{"title":"b · 系动词","answer":"is（是）"},{"title":"c · 表语","answer":"the combination of talent and hard work（才能和努力的结合）"}]}},
+  {"num":49,"pattern":"多重后置定语与名词中心词模式","original":"The modern research university laboratory building constructed last year provides state-of-the-art facilities for graduate students studying advanced physics.","challenge1":{"boxes":[{"title":"a · 主语","answer":"The modern research university laboratory building（现代研究型大学实验室建筑）"},{"title":"b · 谓语","answer":"provides（提供）"},{"title":"c · 宾语","answer":"state-of-the-art facilities（最先进的设施）"}]}},
+  {"num":50,"pattern":"让步状语与并列结构模式","original":"Whether you agree with the policy or not, the government will implement it next month as scheduled.","challenge1":{"boxes":[{"title":"a · 让步从句主语","answer":"you（你）"},{"title":"b · 从句谓语","answer":"agree or not（同意与否）"},{"title":"c · 主句主语","answer":"the government（政府）"},{"title":"d · 主句谓语","answer":"will implement（将实施）"}]}},
+  {"num":51,"pattern":"结果状语从句与复合谓语模式","original":"The hurricane was so powerful that it destroyed the entire coastal town, leaving thousands of residents homeless.","challenge1":{"boxes":[{"title":"a · 主语","answer":"The hurricane（飓风）"},{"title":"b · 谓语","answer":"was so powerful（如此强大）"},{"title":"c · 结果状语从句","answer":"that it destroyed the entire coastal town（以至于摧毁了整个沿海城镇）"}]}},
+  {"num":52,"pattern":"破折号插入与列举模式","original":"Bullying can take a variety of forms, from the verbal – being taunted or called hurtful names – to the physical – being kicked or shoved – as well as indirect forms, such as being excluded from social groups.","challenge1":{"boxes":[{"title":"a · 主语","answer":"Bullying（霸凌）"},{"title":"b · 谓语","answer":"can take（能够采取）"},{"title":"c · 宾语","answer":"a variety of forms（各种各样的形式）"}]}},
+  {"num":53,"pattern":"Combine A with B 搭配模式","original":"Ants combine the evidence of visual landmarks with a mental library of local directions, all within a framework which is consulted and updated.","challenge1":{"boxes":[{"title":"a · 主语","answer":"Ants（蚂蚁）"},{"title":"b · 谓语","answer":"combine（结合）"},{"title":"c1 · 宾语A部分","answer":"the evidence（证据）"},{"title":"c2 · 宾语B部分","answer":"a mental library（记忆库）"}]}},
+  {"num":54,"pattern":"表语从句与同位语嵌套模式","original":"Summer leaves are green because they are full of chlorophyll, the molecule that captures sunlight and converts that energy into new building materials for the tree.","challenge1":{"boxes":[{"title":"a · 主句主语","answer":"Summer leaves（夏天的树叶）"},{"title":"b · 主句系动词","answer":"are（是）"},{"title":"c · 主句表语","answer":"green（绿色的）"}]}},
+  {"num":55,"pattern":"The More... the More 句型与形式主语模式","original":"The bigger the mass at each end of the pole, the easier it is for the tightrope walker to maintain his or her balance.","challenge1":{"boxes":[{"title":"a · 形式主语","answer":"it（形式主语）"},{"title":"b · 系动词","answer":"is（是）"},{"title":"c · 表语","answer":"the easier（越容易）"}]}},
+  {"num":56,"pattern":"There be 句型与并列定语从句模式","original":"There are plenty of places around the globe where people have no access to heavy machinery, but do know how to deal with wind, sailing and basic mechanical principles.","challenge1":{"boxes":[{"title":"a · 谓语","answer":"There are（存在着）"},{"title":"b · 主语","answer":"plenty of places（许多地方）"}]}},
+  {"num":57,"pattern":"被动修饰与对比状语模式","original":"The average captive animal will have a greater life expectancy compared with its wild counterpart.","challenge1":{"boxes":[{"title":"a · 主语","answer":"The average captive animal（一般被圈养的动物）"},{"title":"b · 谓语","answer":"will have（将拥有）"},{"title":"c · 宾语","answer":"a greater life expectancy（更长的预期寿命）"}]}},
+  {"num":58,"pattern":"主语从句与同位语隔离模式","original":"How caffeine works to thwart diabetes, a condition characterized by high levels of glucose in the blood, remains unknown.","challenge1":{"boxes":[{"title":"a · 主语从句","answer":"How caffeine works to thwart diabetes（咖啡因如何发挥作用来阻碍糖尿病）"},{"title":"b · 系动词","answer":"remains（仍然是）"},{"title":"c · 表语","answer":"unknown（未知的）"}]}},
+  {"num":59,"pattern":"同位语从句与定语从句双重嵌套模式","original":"The first evidence that refuted the idea that the brain was a stable organ was produced over 30 years ago.","challenge1":{"boxes":[{"title":"a · 主语","answer":"The first evidence（最初的证据）"},{"title":"b · 谓语","answer":"was produced（被提出）"}]}},
+  {"num":60,"pattern":"并列句与复杂对比状语模式","original":"At the time, the casts were used for medical research and consequently, in the nineteenth century life-casting was considered an inferior copy of the art of sculpture.","challenge1":{"boxes":[{"title":"a1 · 前半句主语","answer":"the casts（模型）"},{"title":"b1 · 前半句谓语","answer":"were used（被使用）"},{"title":"a2 · 后半句主语","answer":"life-casting（活体灌模）"},{"title":"b2 · 后半句谓语","answer":"was considered（被认为）"}]}}
+];
+
+let testSentences = [];
+let currentIndex = 0;
+let userAnswers = [];
+let submitted = [];
+let testStartTime = Date.now();
+
+function getQueryParam(name) {
+  try { return new URLSearchParams(window.location.search).get(name); } catch (e) { return null; }
+}
+
+function sendTestComplete(scorePercent, correctCount, totalCount) {
+  try {
+    if (window.parent && window.parent.postMessage) {
+      window.parent.postMessage({
+        type: 'genericTestComplete',
+        moduleType: getQueryParam('module_type') || 'sentence',
+        moduleName: getQueryParam('module_name') || '长难句分析',
+        student_id: getQueryParam('student_id'),
+        testType: 'module_test',
+        scorePercent: scorePercent,
+        correctCount: correctCount,
+        totalCount: totalCount,
+        durationSeconds: Math.max(0, Math.round((Date.now() - testStartTime) / 1000)),
+        details: userAnswers
+      }, '*');
+    }
+  } catch (e) {}
+}
+
+function startTest() {
+  document.getElementById('startPage').style.display = 'none';
+  document.getElementById('testPage').classList.add('active');
+  testSentences = [...SENTENCES].sort(() => Math.random() - 0.5).slice(0, 5);
+  userAnswers = testSentences.map(s => ({ answers: s.challenge1.boxes.map(() => ''), checked: [] }));
+  submitted = testSentences.map(() => false);
+  currentIndex = 0;
+  testStartTime = Date.now();
+  renderSentence();
+}
+
+function renderSentence() {
+  const s = testSentences[currentIndex];
+  const boxes = s.challenge1.boxes;
+  document.getElementById('currentNum').textContent = currentIndex + 1;
+  document.getElementById('sentenceNum').textContent = '第' + (currentIndex + 1) + '句';
+  document.getElementById('sentencePattern').textContent = s.pattern;
+  document.getElementById('sentenceOriginal').textContent = s.original;
+  const container = document.getElementById('blanksContainer');
+  container.innerHTML = '';
+  boxes.forEach((box, i) => {
+    const div = document.createElement('div');
+    div.className = 'blank-item';
+    div.id = 'blankItem' + i;
+    const label = document.createElement('div');
+    label.className = 'blank-label';
+    label.textContent = box.title;
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.className = 'blank-input';
+    input.id = 'blankInput' + i;
+    input.placeholder = '填写答案...';
+    input.value = userAnswers[currentIndex].answers[i];
+    input.addEventListener('input', (e) => {
+      userAnswers[currentIndex].answers[i] = e.target.value;
+    });
+    const checkBtn = document.createElement('button');
+    checkBtn.className = 'check-btn';
+    checkBtn.textContent = '检查';
+    checkBtn.onclick = () => checkBlank(i);
+    const answerDiv = document.createElement('div');
+    answerDiv.className = 'blank-answer';
+    answerDiv.id = 'blankAnswer' + i;
+    div.appendChild(label);
+    div.appendChild(input);
+    div.appendChild(checkBtn);
+    div.appendChild(answerDiv);
+    container.appendChild(div);
+  });
+  document.getElementById('prevBtn').disabled = currentIndex === 0;
+  if (currentIndex === 4) {
+    document.getElementById('nextBtn').style.display = 'none';
+    document.getElementById('submitBtn').style.display = 'inline-block';
+  } else {
+    document.getElementById('nextBtn').style.display = 'inline-block';
+    document.getElementById('submitBtn').style.display = 'none';
+  }
+  if (submitted[currentIndex]) {
+    showAnswersForSentence(currentIndex);
+  }
+}
+
+function checkBlank(index) {
+  const s = testSentences[currentIndex];
+  const box = s.challenge1.boxes[index];
+  const userAnswer = userAnswers[currentIndex].answers[index].trim().toLowerCase();
+  const correctAnswer = box.answer.toLowerCase();
+  const input = document.getElementById('blankInput' + index);
+  const blankItem = document.getElementById('blankItem' + index);
+  const answerDiv = document.getElementById('blankAnswer' + index);
+  let isCorrect = false;
+  if (!userAnswer || userAnswer.length === 0) {
+    isCorrect = false;
+  } else {
+    const correctKeywords = correctAnswer.split(/[（），,()]/).filter(k => k.length > 1);
+    for (const keyword of correctKeywords) {
+      const kw = keyword.trim();
+      if (userAnswer.includes(kw) || (kw.includes(userAnswer) && userAnswer.length >= kw.length * 0.5)) {
+        isCorrect = true;
+        break;
+      }
+    }
+  }
+  if (isCorrect) {
+    input.classList.add('correct-input');
+    input.classList.remove('wrong-input');
+    blankItem.classList.add('correct');
+    blankItem.classList.remove('wrong');
+    userAnswers[currentIndex].checked[index] = true;
+  } else {
+    input.classList.add('wrong-input');
+    input.classList.remove('correct-input');
+    blankItem.classList.add('wrong');
+    blankItem.classList.remove('correct');
+    userAnswers[currentIndex].checked[index] = false;
+  }
+  answerDiv.textContent = '正确答案：' + box.answer;
+  answerDiv.classList.add('show');
+}
+
+function showAnswersForSentence(idx) {
+  const s = testSentences[idx];
+  const boxes = s.challenge1.boxes;
+  boxes.forEach((box, i) => {
+    const input = document.getElementById('blankInput' + i);
+    const blankItem = document.getElementById('blankItem' + i);
+    const answerDiv = document.getElementById('blankAnswer' + i);
+    const checkBtn = blankItem.querySelector('.check-btn');
+    if (checkBtn) checkBtn.style.display = 'none';
+    const userAnswer = userAnswers[idx].answers[i].trim().toLowerCase();
+    const correctAnswer = box.answer.toLowerCase();
+    const correctKeywords = correctAnswer.split(/[（），,()]/).filter(k => k.length > 1);
+    let isCorrect = false;
+    if (!userAnswer || userAnswer.length === 0) {
+      isCorrect = false;
+    } else {
+      for (const keyword of correctKeywords) {
+        const kw = keyword.trim();
+        if (userAnswer.includes(kw) || (kw.includes(userAnswer) && userAnswer.length >= kw.length * 0.5)) {
+          isCorrect = true;
+          break;
+        }
+      }
+    }
+    if (input) {
+      if (isCorrect) {
+        input.classList.add('correct-input');
+        input.disabled = true;
+        blankItem.classList.add('correct');
+      } else {
+        input.classList.add('wrong-input');
+        input.disabled = true;
+        blankItem.classList.add('wrong');
+      }
+    }
+    if (answerDiv) {
+      answerDiv.textContent = '正确答案：' + box.answer;
+      answerDiv.classList.add('show');
+    }
+  });
+}
+
+function prevSentence() {
+  if (currentIndex > 0) {
+    currentIndex--;
+    renderSentence();
+  }
+}
+
+function nextSentence() {
+  if (currentIndex < 4) {
+    currentIndex++;
+    renderSentence();
+  }
+}
+
+function submitTest() {
+  for (let i = 0; i < 5; i++) {
+    submitted[i] = true;
+  }
+  let totalBlanks = 0;
+  let correctBlanks = 0;
+  testSentences.forEach((s, sIdx) => {
+    const boxes = s.challenge1.boxes;
+    boxes.forEach((box, bIdx) => {
+      totalBlanks++;
+      const userAnswer = userAnswers[sIdx].answers[bIdx].trim().toLowerCase();
+      const correctAnswer = box.answer.toLowerCase();
+      const correctKeywords = correctAnswer.split(/[（），,()]/).filter(k => k.length > 1);
+      if (!userAnswer || userAnswer.length === 0) {
+        // 空答案，不增加correctBlanks
+      } else {
+        for (const keyword of correctKeywords) {
+          const kw = keyword.trim();
+          if (userAnswer.includes(kw) || (kw.includes(userAnswer) && userAnswer.length >= kw.length * 0.5)) {
+            correctBlanks++;
+            break;
+          }
+        }
+      }
+    });
+  });
+  const percentage = Math.round((correctBlanks / totalBlanks) * 100);
+  sendTestComplete(percentage, correctBlanks, totalBlanks);
+  document.getElementById('testPage').classList.remove('active');
+  document.getElementById('resultPage').classList.add('active');
+  document.getElementById('resultScore').textContent = percentage + '%';
+  document.getElementById('resultDetail').textContent = '共 ' + totalBlanks + ' 个空，你答对了 ' + correctBlanks + ' 个';
+  const detailSection = document.getElementById('detailSection');
+  detailSection.innerHTML = '<h3>详细结果</h3>';
+  testSentences.forEach((s, sIdx) => {
+    const boxes = s.challenge1.boxes;
+    const sentenceDiv = document.createElement('div');
+    sentenceDiv.className = 'detail-item';
+    let sentenceHTML = '<div class="detail-item-num">第' + (sIdx + 1) + '句 - ' + s.pattern + '</div>';
+    sentenceHTML += '<div class="detail-original">' + s.original + '</div>';
+    sentenceHTML += '<div class="detail-blanks">';
+    boxes.forEach((box, bIdx) => {
+      const userAnswer = userAnswers[sIdx].answers[bIdx].trim().toLowerCase();
+      const correctAnswer = box.answer.toLowerCase();
+      const correctKeywords = correctAnswer.split(/[（），,()]/).filter(k => k.length > 1);
+      let isCorrect = false;
+      if (!userAnswer || userAnswer.length === 0) {
+        isCorrect = false;
+      } else {
+        for (const keyword of correctKeywords) {
+          const kw = keyword.trim();
+          if (userAnswer.includes(kw) || (kw.includes(userAnswer) && userAnswer.length >= kw.length * 0.5)) {
+            isCorrect = true;
+            break;
+          }
+        }
+      }
+      const icon = isCorrect ? '' : '';
+      const className = isCorrect ? 'detail-blank-correct' : 'detail-blank-wrong';
+      sentenceHTML += '<div class="detail-blank ' + className + '">';
+      sentenceHTML += '<span class="detail-blank-icon">' + icon + '</span>';
+      sentenceHTML += '<span>' + box.title + '：你的答案「' + userAnswers[sIdx].answers[bIdx] + '」</span>';
+      sentenceHTML += '</div>';
+      sentenceHTML += '<div class="detail-answer">正确答案：' + box.answer + '</div>';
+    });
+    sentenceHTML += '</div>';
+    sentenceDiv.innerHTML = sentenceHTML;
+    detailSection.appendChild(sentenceDiv);
+  });
+  renderSentence();
+}
+
+function retryTest() {
+  document.getElementById('resultPage').classList.remove('active');
+  document.getElementById('startPage').style.display = 'block';
+}
+</script></body></html>

@@ -1,0 +1,1666 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>雅思阅读 · 同义替换测试（无提示版）</title><style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg-dark: #0a0e1a;
+    --bg-card: #141828;
+    --bg-card2: #1a1f36;
+    --purple: #8b5cf6;
+    --purple-glow: rgba(139,92,246,0.4);
+    --green: #22d3a7;
+    --green-glow: rgba(34,211,167,0.4);
+    --red: #f43f5e;
+    --red-glow: rgba(244,63,94,0.4);
+    --gold: #fbbf24;
+    --gold-glow: rgba(251,191,36,0.4);
+    --blue: #38bdf8;
+    --text: #e2e8f0;
+    --text-dim: #94a3b8;
+    --text-dimmer: #64748b;
+    --border: rgba(255,255,255,0.08);
+  }
+
+  body {
+    font-family: "Segoe UI", "PingFang SC", "Hiragino Sans GB", sans-serif;
+    background: var(--bg-dark);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+    position: relative;
+  }
+
+  /* ===== Animated background ===== */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background:
+      radial-gradient(ellipse at 20% 50%, rgba(139,92,246,0.08) 0%, transparent 50%),
+      radial-gradient(ellipse at 80% 20%, rgba(34,211,167,0.06) 0%, transparent 50%),
+      radial-gradient(ellipse at 50% 80%, rgba(56,189,248,0.05) 0%, transparent 50%);
+    z-index: 0;
+    pointer-events: none;
+  }
+
+  /* ===== Particle canvas ===== */
+  #particleCanvas {
+    position: fixed;
+    inset: 0;
+    z-index: 999;
+    pointer-events: none;
+  }
+
+  /* ===== Page header ===== */
+  .page-header {
+    background: rgba(20,24,40,0.85);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+    padding: 14px 20px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .logo-section {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-shrink: 0;
+  }
+  .logo-badge {
+    width: 140px; height: 50px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    background: rgba(255,255,255,0.1);
+    border-radius: 8px;
+    padding: 4px;
+  }
+  .logo-badge img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    filter: brightness(1.2) contrast(1.1);
+  }
+  .logo-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: #fff;
+    letter-spacing: 0.5px;
+  }
+  .author-info {
+    margin-left: auto;
+    margin-right: 12px;
+    font-size: 13px;
+    color: var(--text-dim);
+    font-weight: 500;
+  }
+  .page-header h1 { font-size: 15px; font-weight: 600; letter-spacing: 0.5px; }
+  .page-header p { font-size: 11px; color: var(--text-dim); margin-top: 2px; }
+
+  /* Sound toggle */
+  .sound-toggle {
+    margin-left: auto;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    width: 36px; height: 36px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    color: var(--text-dim);
+    font-size: 16px;
+    transition: all 0.2s;
+  }
+  .sound-toggle:hover { background: rgba(255,255,255,0.1); color: var(--text); }
+  .sound-toggle.muted { color: var(--text-dimmer); }
+
+  .container {
+    max-width: 780px;
+    margin: 0 auto;
+    padding: 20px 16px;
+    position: relative;
+    z-index: 1;
+  }
+
+  /* ===== XP & Level bar ===== */
+  .level-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 16px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 12px 16px;
+  }
+  .level-badge {
+    background: linear-gradient(135deg, var(--gold), #f59e0b);
+    color: #1a1a1a;
+    font-weight: 700;
+    font-size: 13px;
+    padding: 4px 12px;
+    border-radius: 20px;
+    white-space: nowrap;
+    box-shadow: 0 0 15px var(--gold-glow);
+    flex-shrink: 0;
+  }
+  .xp-bar-wrap { flex: 1; }
+  .xp-label { display: flex; justify-content: space-between; font-size: 11px; color: var(--text-dim); margin-bottom: 4px; }
+  .xp-bar { height: 8px; background: rgba(255,255,255,0.06); border-radius: 4px; overflow: hidden; }
+  .xp-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--gold), #f59e0b);
+    border-radius: 4px;
+    transition: width 0.6s cubic-bezier(0.4,0,0.2,1);
+    box-shadow: 0 0 10px var(--gold-glow);
+  }
+
+  /* ===== Stats bar ===== */
+  .stats-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+  .stat-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 12px;
+    text-align: center;
+    transition: transform 0.2s;
+  }
+  .stat-num { font-size: 22px; font-weight: 700; }
+  .stat-lbl { font-size: 10px; color: var(--text-dim); margin-top: 2px; text-transform: uppercase; letter-spacing: 1px; }
+  .stat-num.purple { color: var(--purple); text-shadow: 0 0 12px var(--purple-glow); }
+  .stat-num.green  { color: var(--green); text-shadow: 0 0 12px var(--green-glow); }
+  .stat-num.red    { color: var(--red); text-shadow: 0 0 12px var(--red-glow); }
+  .stat-num.gold   { color: var(--gold); text-shadow: 0 0 12px var(--gold-glow); }
+
+  /* ===== Combo display ===== */
+  .combo-display {
+    position: fixed;
+    top: 80px;
+    right: 20px;
+    z-index: 200;
+    text-align: right;
+    pointer-events: none;
+    opacity: 0;
+    transform: scale(0.8) translateY(10px);
+    transition: all 0.3s cubic-bezier(0.34,1.56,0.64,1);
+  }
+  .combo-display.active {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+  .combo-num {
+    font-size: 48px;
+    font-weight: 900;
+    background: linear-gradient(135deg, var(--gold), #ff6b6b, var(--purple));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    line-height: 1;
+    filter: drop-shadow(0 0 20px rgba(251,191,36,0.5));
+  }
+  .combo-label {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--gold);
+    text-transform: uppercase;
+    letter-spacing: 3px;
+  }
+
+  /* ===== Progress ===== */
+  .progress-wrap {
+    margin-bottom: 16px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 12px 16px;
+  }
+  .progress-label { display: flex; justify-content: space-between; font-size: 12px; color: var(--text-dim); margin-bottom: 6px; }
+  .progress-bar { height: 6px; background: rgba(255,255,255,0.06); border-radius: 3px; overflow: hidden; }
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--purple), var(--blue));
+    border-radius: 3px;
+    transition: width 0.5s cubic-bezier(0.4,0,0.2,1);
+    box-shadow: 0 0 10px var(--purple-glow);
+  }
+
+  /* ===== Timer ===== */
+  .timer-display {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--blue);
+    text-shadow: 0 0 10px rgba(56,189,248,0.3);
+    margin-bottom: 12px;
+    font-variant-numeric: tabular-nums;
+  }
+  .timer-icon { font-size: 16px; }
+
+  /* ===== Status hint ===== */
+  .status-hint {
+    background: rgba(139,92,246,0.1);
+    border: 1px solid rgba(139,92,246,0.25);
+    border-radius: 12px;
+    padding: 10px 14px;
+    font-size: 13px;
+    color: #c4b5fd;
+    margin-bottom: 16px;
+    line-height: 1.5;
+    text-align: center;
+  }
+
+  /* ===== Word grid ===== */
+  .words-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 18px;
+    justify-content: center;
+  }
+  .word-btn {
+    padding: 8px 16px;
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 10px;
+    font-size: 13px;
+    cursor: pointer;
+    background: var(--bg-card);
+    color: var(--text);
+    transition: all 0.2s cubic-bezier(0.4,0,0.2,1);
+    user-select: none;
+    -webkit-user-select: none;
+    position: relative;
+    overflow: hidden;
+  }
+  .word-btn::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, rgba(255,255,255,0.05), transparent);
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+  .word-btn:hover:not(:disabled):not(.used) {
+    border-color: var(--purple);
+    color: #fff;
+    box-shadow: 0 0 20px var(--purple-glow), inset 0 0 20px rgba(139,92,246,0.1);
+    transform: translateY(-2px);
+  }
+  .word-btn:hover:not(:disabled):not(.used)::before { opacity: 1; }
+  .word-btn:active:not(:disabled):not(.used) { transform: translateY(0) scale(0.97); }
+
+  .word-btn.anchor {
+    background: linear-gradient(135deg, var(--purple), #6d28d9);
+    color: #fff;
+    border-color: var(--purple);
+    box-shadow: 0 0 25px var(--purple-glow);
+    transform: scale(1.05);
+  }
+  .word-btn.correct {
+    background: linear-gradient(135deg, var(--green), #059669);
+    color: #fff;
+    border-color: var(--green);
+    box-shadow: 0 0 25px var(--green-glow);
+    animation: correctPop 0.5s cubic-bezier(0.34,1.56,0.64,1);
+  }
+  .word-btn.wrong {
+    background: linear-gradient(135deg, var(--red), #dc2626);
+    color: #fff;
+    border-color: var(--red);
+    box-shadow: 0 0 25px var(--red-glow);
+    animation: wrongShake 0.5s;
+  }
+  .word-btn.used {
+    opacity: 0.2;
+    text-decoration: line-through;
+    cursor: default;
+    filter: grayscale(1);
+  }
+  .word-btn:disabled { cursor: default; }
+
+  @keyframes correctPop {
+    0% { transform: scale(1); }
+    40% { transform: scale(1.2); }
+    100% { transform: scale(1.05); }
+  }
+  @keyframes wrongShake {
+    0%,100% { transform: translateX(0); }
+    15% { transform: translateX(-8px) rotate(-2deg); }
+    30% { transform: translateX(8px) rotate(2deg); }
+    45% { transform: translateX(-6px) rotate(-1deg); }
+    60% { transform: translateX(6px) rotate(1deg); }
+    75% { transform: translateX(-3px); }
+    90% { transform: translateX(3px); }
+  }
+
+  /* ===== Chain box ===== */
+  .chain-box {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px 16px;
+    margin-bottom: 14px;
+    display: none;
+  }
+  .chain-box.show { display: block; animation: slideIn 0.3s ease; }
+  .chain-label { font-size: 11px; color: var(--text-dim); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 1px; }
+  .chain-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chain-tag {
+    padding: 5px 12px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 500;
+  }
+  .chain-tag.anchor-tag {
+    background: linear-gradient(135deg, var(--purple), #6d28d9);
+    color: #fff;
+    box-shadow: 0 0 12px var(--purple-glow);
+  }
+  .chain-tag.correct-tag {
+    background: linear-gradient(135deg, var(--green), #059669);
+    color: #fff;
+    box-shadow: 0 0 12px var(--green-glow);
+    animation: tagPop 0.4s cubic-bezier(0.34,1.56,0.64,1);
+  }
+
+  @keyframes tagPop {
+    0% { transform: scale(0); opacity: 0; }
+    100% { transform: scale(1); opacity: 1; }
+  }
+  @keyframes slideIn {
+    0% { opacity: 0; transform: translateY(8px); }
+    100% { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ===== Feedback ===== */
+  .feedback-box {
+    border-radius: 12px;
+    padding: 10px 14px;
+    font-size: 13px;
+    margin-bottom: 14px;
+    display: none;
+    line-height: 1.5;
+    animation: slideIn 0.3s ease;
+  }
+  .feedback-box.show { display: block; }
+  .feedback-box.ok {
+    background: rgba(34,211,167,0.1);
+    color: var(--green);
+    border: 1px solid rgba(34,211,167,0.25);
+  }
+  .feedback-box.err {
+    background: rgba(244,63,94,0.1);
+    color: var(--red);
+    border: 1px solid rgba(244,63,94,0.25);
+  }
+  .feedback-box.info {
+    background: rgba(56,189,248,0.1);
+    color: var(--blue);
+    border: 1px solid rgba(56,189,248,0.25);
+  }
+
+  /* ===== Action buttons ===== */
+  .action-row {
+    display: none;
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+  .action-row.show { display: flex; animation: slideIn 0.3s ease; }
+  .btn-primary {
+    padding: 10px 24px;
+    background: linear-gradient(135deg, var(--purple), #6d28d9);
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    box-shadow: 0 0 20px var(--purple-glow);
+  }
+  .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 4px 25px var(--purple-glow); }
+  .btn-primary:active { transform: translateY(0); }
+  .btn-outline {
+    padding: 10px 24px;
+    background: rgba(255,255,255,0.04);
+    color: var(--text-dim);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .btn-outline:hover { background: rgba(255,255,255,0.08); color: var(--text); border-color: rgba(255,255,255,0.2); }
+
+  /* ===== Completed groups ===== */
+  .completed-section { margin-top: 4px; }
+  .done-group {
+    background: rgba(34,211,167,0.06);
+    border: 1px solid rgba(34,211,167,0.15);
+    border-radius: 12px;
+    padding: 10px 14px;
+    margin-bottom: 8px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    align-items: center;
+    animation: slideIn 0.4s ease;
+  }
+  .done-group-num {
+    font-size: 11px;
+    color: var(--green);
+    background: rgba(34,211,167,0.1);
+    padding: 2px 10px;
+    border-radius: 10px;
+    border: 1px solid rgba(34,211,167,0.2);
+    flex-shrink: 0;
+    font-weight: 600;
+  }
+  .done-word {
+    font-size: 12px;
+    color: var(--green);
+    padding: 3px 10px;
+    background: rgba(34,211,167,0.08);
+    border-radius: 10px;
+    border: 1px solid rgba(34,211,167,0.15);
+  }
+  .missed-word {
+    font-size: 12px;
+    color: #f43f5e;
+    padding: 3px 10px;
+    background: rgba(244,63,94,0.15);
+    border-radius: 10px;
+    border: 2px solid #f43f5e;
+    animation: missedPulse 1.5s ease-in-out infinite;
+  }
+
+  @keyframes missedPulse {
+    0%, 100% {
+      box-shadow: 0 0 5px rgba(244,63,94,0.5);
+      transform: scale(1);
+    }
+    50% {
+      box-shadow: 0 0 15px rgba(244,63,94,0.8);
+      transform: scale(1.05);
+    }
+  }
+
+  /* ===== End screen highlight ===== */
+  .end-missed-section {
+    margin: 20px auto;
+    max-width: 600px;
+    background: rgba(244,63,94,0.08);
+    border: 2px solid rgba(244,63,94,0.3);
+    border-radius: 16px;
+    padding: 20px;
+    display: none;
+  }
+  .end-missed-section.show {
+    display: block;
+    animation: slideIn 0.5s ease;
+  }
+  .end-missed-title {
+    font-size: 14px;
+    color: #f43f5e;
+    font-weight: 600;
+    margin-bottom: 12px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    text-align: center;
+  }
+  .end-missed-words {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: center;
+  }
+  .end-missed-word {
+    padding: 8px 16px;
+    background: rgba(244,63,94,0.15);
+    border: 1px solid #f43f5e;
+    border-radius: 10px;
+    font-size: 13px;
+    color: #fff;
+    animation: missedHighlight 2s ease-in-out infinite;
+  }
+  @keyframes missedHighlight {
+    0%, 100% {
+      background: rgba(244,63,94,0.15);
+      box-shadow: 0 0 5px rgba(244,63,94,0.3);
+    }
+    50% {
+      background: rgba(244,63,94,0.3);
+      box-shadow: 0 0 15px rgba(244,63,94,0.6);
+    }
+  }
+
+  /* ===== End screen ===== */
+  #endScreen {
+    display: none;
+    text-align: center;
+    padding: 40px 20px;
+    background: var(--bg-card);
+    border-radius: 16px;
+    border: 1px solid var(--border);
+    animation: slideIn 0.5s ease;
+  }
+  #endScreen.show { display: block; }
+  .end-round { font-size: 13px; color: var(--text-dim); margin-bottom: 8px; }
+  .end-score {
+    font-size: 52px;
+    font-weight: 900;
+    margin-bottom: 4px;
+    background: linear-gradient(135deg, var(--purple), var(--gold));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    filter: drop-shadow(0 0 30px var(--purple-glow));
+  }
+  .end-detail { font-size: 14px; color: var(--text-dim); margin-bottom: 10px; line-height: 1.7; }
+  .end-xp {
+    font-size: 18px;
+    color: var(--gold);
+    font-weight: 700;
+    margin-bottom: 28px;
+    text-shadow: 0 0 15px var(--gold-glow);
+  }
+  .end-btn-row { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+
+  /* ===== Floating score text ===== */
+  .float-score {
+    position: fixed;
+    z-index: 1000;
+    pointer-events: none;
+    font-weight: 900;
+    font-size: 28px;
+    animation: floatUp 1s ease-out forwards;
+  }
+  .float-score.positive {
+    color: var(--green);
+    text-shadow: 0 0 15px var(--green-glow);
+  }
+  .float-score.negative {
+    color: var(--red);
+    text-shadow: 0 0 15px var(--red-glow);
+  }
+  .float-score.combo {
+    color: var(--gold);
+    font-size: 36px;
+    text-shadow: 0 0 20px var(--gold-glow);
+  }
+  @keyframes floatUp {
+    0% { opacity: 1; transform: translateY(0) scale(1); }
+    50% { opacity: 1; transform: translateY(-30px) scale(1.1); }
+    100% { opacity: 0; transform: translateY(-60px) scale(0.8); }
+  }
+
+  /* ===== Screen flash ===== */
+  .screen-flash {
+    position: fixed;
+    inset: 0;
+    z-index: 998;
+    pointer-events: none;
+    animation: flashAnim 0.4s ease-out forwards;
+  }
+  .screen-flash.green { background: rgba(34,211,167,0.15); }
+  .screen-flash.red { background: rgba(244,63,94,0.12); }
+  .screen-flash.gold { background: rgba(251,191,36,0.15); }
+  @keyframes flashAnim {
+    0% { opacity: 1; }
+    100% { opacity: 0; }
+  }
+
+  /* ===== Level up overlay ===== */
+  .levelup-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 2000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0,0,0,0.6);
+    animation: levelUpIn 0.3s ease;
+  }
+  .levelup-content {
+    text-align: center;
+    animation: levelUpBounce 0.6s cubic-bezier(0.34,1.56,0.64,1);
+  }
+  .levelup-title {
+    font-size: 48px;
+    font-weight: 900;
+    background: linear-gradient(135deg, var(--gold), #ff6b6b, var(--purple));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    filter: drop-shadow(0 0 40px var(--gold-glow));
+    margin-bottom: 8px;
+  }
+  .levelup-sub { font-size: 16px; color: var(--gold); font-weight: 600; }
+  @keyframes levelUpIn {
+    0% { opacity: 0; }
+    100% { opacity: 1; }
+  }
+  @keyframes levelUpBounce {
+    0% { transform: scale(0.5); opacity: 0; }
+    60% { transform: scale(1.1); }
+    100% { transform: scale(1); opacity: 1; }
+  }
+
+  /* ===== Responsive ===== */
+  @media (max-width: 480px) {
+    .stats-row { grid-template-columns: repeat(2, 1fr); }
+    .word-btn { font-size: 12px; padding: 6px 12px; }
+    .combo-display { top: 70px; right: 10px; }
+    .combo-num { font-size: 36px; }
+  }
+</style></head><body><canvas id="particleCanvas"></canvas><div class="page-header"><div class="logo-section"><div class="logo-badge"><img src="logo.png" alt="藕叶英语"></div><div class="logo-title">阅读同义替换测试（无提示版）</div></div><div class="author-info">著作人：苏宁</div><div class="sound-toggle" id="soundToggle" onclick="toggleSound()"></div></div><div class="container"><div id="mainArea"><!-- Level & XP --><div class="level-row"><div class="level-badge" id="levelBadge">Lv.1</div><div class="xp-bar-wrap"><div class="xp-label"><span id="xpText">0 / 100 XP</span><span id="levelTitle">词场新兵</span></div><div class="xp-bar"><div class="xp-fill" id="xpFill" style="width:0%"></div></div></div></div><!-- Stats --><div class="stats-row"><div class="stat-card"><div class="stat-num purple" id="sDone">0/10</div><div class="stat-lbl">完成组</div></div><div class="stat-card"><div class="stat-num" id="sTotal">—</div><div class="stat-lbl">词数</div></div><div class="stat-card"><div class="stat-num green" id="sRight">0</div><div class="stat-lbl">正确</div></div><div class="stat-card"><div class="stat-num red" id="sWrong">0</div><div class="stat-lbl">错误</div></div></div><!-- Timer --><div class="timer-display"><span class="timer-icon">计时</span><span id="timerText">00:00</span></div><!-- Progress --><div class="progress-wrap"><div class="progress-label"><span id="progressText">第 1 轮 · 随机抽取 10 组</span><span id="progressPct">0%</span></div><div class="progress-bar"><div class="progress-fill" id="progressFill" style="width:0%"></div></div></div><!-- Hint --><div class="status-hint" id="statusHint"> 点击任意单词开始练习 — 它将成为参照词</div><!-- Words --><div class="words-grid" id="wordsGrid"></div><!-- Chain --><div class="chain-box" id="chainBox"><div class="chain-label"> 当前同义链</div><div class="chain-tags" id="chainTags"></div></div><!-- Feedback --><div class="feedback-box" id="feedbackBox"></div><!-- Actions --><div class="action-row" id="actionRow"><button class="btn-primary" onclick="confirmGroup()">继续</button></div><div class="completed-section" id="completedSection"></div></div><div id="endScreen"><div class="end-round" id="endRound"></div><div class="end-score" id="endScore"></div><div class="end-detail" id="endDetail"></div><div class="end-missed-section" id="endMissedSection"><div class="end-missed-title"> 还需要巩固的词汇</div><div class="end-missed-words" id="endMissedWords"></div></div><div class="end-xp" id="endXp"></div><div class="end-btn-row"><button class="btn-primary" onclick="startGame()"> 换10组再战</button></div></div></div><!-- Combo display --><div class="combo-display" id="comboDisplay"><div class="combo-num" id="comboNum">0</div><div class="combo-label">COMBO</div></div><script>
+// ============================================================
+//  词库
+// ============================================================
+const ALL_GROUPS = [
+  ["account", "description", "reports", "records"],
+  ["minute（微小的｜minute）", "very small", "tiny（极小的）", "microscopic"],
+  ["fast", "stop eating", "starve", "eat no food"],
+  ["coat", "a lay of", "cover"],
+  ["digit", "finger", "toe"],
+  ["produce", "agricultural products", "things connected with farming", "fruit and vegetables"],
+  ["fine（罚款）", "punishment", "be fined", "be punished", "penalize", "charge"],
+  ["fine（优良的）", "refined", "made of small grains", "minute（微小的｜fine）"],
+  ["sound", "good", "healthy", "correct（正确的）", "reliable", "sensible"],
+  ["ground（碎末）", "small pieces of solid matter", "crushed stuff"],
+  ["ground（碾碎的）", "cut into small pieces", "smashed"],
+  ["Act", "law", "motion", "legislation"],
+  ["coin", "first used", "invent", "devise", "introduce", "forge"],
+  ["lead", "a chemical element"],
+  ["successive", "consecutive", "sequent", "serial"],
+  ["belief（信念）", "opinion", "view"],
+  ["manage", "succeed in doing"],
+  ["undesirable", "harmful", "unwanted", "detrimental", "potential danger"],
+  ["likelihood", "probability", "possibility"],
+  ["film", "thin sheet", "thin layer", "covering", "coating"],
+  ["novel", "new（新的｜novel）", "unusual（不寻常的｜novel）", "unique（独特的｜novel）", "fresh（新鲜的｜novel）"],
+  ["deliver", "realize（实现｜deliver）", "do", "make"],
+  ["contract（收缩）", "reduce（减少｜contract）", "shrink（收缩｜contract）", "become smaller or less", "compress"],
+  ["contract（患病）", "become infected with a disease", "get an illness", "become ill"],
+  ["approach（接近）", "get closer to", "come near", "access"],
+  ["approach（处理）", "address（处理｜approach）", "deal with（处理｜approach）", "cope with（应付｜approach）", "tackle（处理｜approach）", "attack", "grapple with"],
+  ["culture（养殖）", "cultivation", "the growing of plants or animals"],
+  ["culture（文化｜culture）", "society", "civilization", "a set of ideas or beliefs"],
+  ["vehicle", "medium", "channel（渠道｜vehicle）"],
+  ["passage", "channel（渠道｜passage）", "corridor", "lane", "crossing", "passageway"],
+  ["early", "previous", "ancient", "before", "ago"],
+  ["now", "today", "nowadays", "current", "recently（最近｜now）", "currently", "at present", "present-day"],
+  ["future", "further", "will", "pave the way", "wait and see", "new（新的｜future）", "in future decades", "prediction（预测｜future）"],
+  ["具体数字", "figures", "the amount of", "how many", "proportion", "percent"],
+  ["physical（身体的）", "medical", "connected with a person's body", "relating to body"],
+  ["physical（物理的）", "real things", "able to be seen or touched"],
+  ["climatic conditions", "floods", "droughts", "hurricanes"],
+  ["examples of", "a list of", "a number of", "2个及以上的具体例子"],
+  ["items", "a list of objects", "things", "plenty of goods"],
+  ["environment（环境｜environment）", "CO2 emissions", "conservation", "energy loss", "energy concerns", "ecological", "green efforts", "carbon footprint", "greenhouse gas", "green issues", "carbon emission", "climate change"],
+  ["because", "as", "since", "for", "in that", "on account of", "owing to（由于｜because）"],
+  ["so", "hence", "thus", "therefore", "as a result of", "consequently"],
+  ["way", "method", "approach（方法）"],
+  ["and", "as well as", "both and", "not only but also", "besides", "in addition", "can also be", "also part of", "other than", "but is accompanied by"],
+  ["cause（导致）", "lead to", "result in", "contribute to（促成｜cause）", "account for", "give rise to", "sow the seeds of", "trigger", "spark off", "precipitate", "attribute to"],
+  ["cause（动机）", "motive（动机｜cause）", "reason", "the reason why", "may be because", "explains", "explanation"],
+  ["money（钱｜money）", "charging", "cost", "price", "profits", "financial（金融的｜money）", "economic", "low-income", "value", "savings"],
+  ["problems", "challenges", "difficult", "difficulties", "hurdles", "risks", "dilemmas", "pitfalls"],
+  ["called", "known as", "named", "referred to", "act as", "which is", "同位语，破折号，引号"],
+  ["look like", "like（像｜look like）", "resemblance", "resemble", "be similar to"],
+  ["for example", "for instance", "such as", "like（像｜for example）", "including", "say", "namely", "e.g."],
+  ["stop", "curb", "halt", "quit", "prevent（阻止｜stop）", "prohibit", "restrict", "restrain", "inhibit", "hinder", "obstruct", "thwart", "withdraw", "constrain", "curtail"],
+  ["conditions", "factors", "situations", "aspects"],
+  ["decline（拒绝）", "turn down", "refuse", "reject", "denial", "revolt"],
+  ["recognize（认出｜recognize）", "admit", "identify（识别｜recognize）", "perceive（察觉｜recognize）", "acknowledge", "understand（理解｜recognize）", "know", "realize（意识到）"],
+  ["copy", "imitate", "imitation", "mimic", "replicate", "duplicate", "follow（跟随｜copy）"],
+  ["poor", "deprived", "socially-disadvantaged", "vulnerable（脆弱的｜poor）"],
+  ["new（新的｜new）", "recently（最近｜new）", "fresh（新鲜的｜new）", "put forward"],
+  ["disease", "illness", "disorder", "ailments", "sickness", "malady", "health problem"],
+  ["change（改变｜change）", "become different", "vary（变化｜change）", "alter", "adjust（调整｜change）", "shift（转变）", "switch（转换｜change）"],
+  ["idea", "inspiration", "conceive of", "theory", "perception", "belief（相信）"],
+  ["achieve", "accomplish（完成｜achieve）", "reach", "fulfill（履行）", "realize（实现｜achieve）", "succeed in", "complete", "carry out（执行｜achieve）", "finish"],
+  ["food", "agriculture", "crops", "farming", "fodder", "diet", "delicacy"],
+  ["suit（适合｜suit）", "in keeping with", "according to（根据｜suit）", "in accordance with", "fit", "agree with"],
+  ["track", "path", "road", "route", "trail"],
+  ["weapons", "arrows and bows", "gun", "knife", "bomb"],
+  ["increase（增加｜increase）", "rise", "grow", "ascend", "expand", "soar", "surge", "burst", "boost", "escalate"],
+  ["show", "indicate", "demonstrate", "illustrate", "reveal", "display", "exhibit", "manifest"],
+  ["measure（测量）", "calculate", "assess", "check", "evaluate", "estimate"],
+  ["measure（措施）", "step", "methods", "degree", "amount", "way of judging", "action"],
+  ["ignore", "neglect", "overlook", "pay no attention", "take no notice", "fail to take into account"],
+  ["traditional", "conventional", "normal and ordinary", "well-known"],
+  ["address（处理｜address）", "cope with（应付｜address）", "deal with（处理｜address）", "tackle（处理｜address）", "take care of", "handle"],
+  ["worldwide（全球的｜worldwide）", "a number of countries", "global", "international", "different cultures", "around the world", "in the world"],
+  ["public（公共的｜public）", "communal", "shared"],
+  ["understand（理解｜understand）", "interpret", "comprehend", "follow（跟随｜understand）", "grasp"],
+  ["control", "master", "harness", "manipulate", "able to exercise power", "engage sb in"],
+  ["data", "information"],
+  ["enemy", "foe", "opponent", "rival"],
+  ["beat", "not live up to", "defeat"],
+  ["culture（文化｜culture）", "historical and religious value", "western societies", "worldwide（全球的｜culture）"],
+  ["period", "for days", "months", "years", "last about years", "hours"],
+  ["incorrect", "wrong", "misguided", "inaccurate", "mistake", "fault"],
+  ["back", "support（支持｜back）", "advocate", "sponsor（赞助｜back）", "endorse"],
+  ["vary（变化｜vary）", "differ", "change（改变｜vary）", "shift（移动）", "switch（转换｜vary）", "in different ways depending on"],
+  ["main", "chief", "primary", "principal", "major"],
+  ["adapt", "use many different", "suit（适合｜adapt）", "adjust（调整｜adapt）", "modify", "change（改变｜adapt）", "in order to deal with"],
+  ["climate", "in the hot sun", "weather"],
+  ["unusual（不寻常的｜unusual）", "unconventional", "odd", "rare", "strange", "different from other", "obscure"],
+  ["popular", "be accepted on a large scale", "prevalent", "common", "ordinary"],
+  ["aim", "goal", "purpose", "intention", "objective", "want to", "be to do", "intend to"],
+  ["dissatisfy", "complain about", "not content with"],
+  ["agreeable", "pleasant", "enjoyable", "friendly"],
+  ["store", "lock in", "accumulate", "collect", "gather", "hoard", "keep（保持｜store）"],
+  ["feature", "characteristics", "trait（特质｜feature）", "property", "attribute"],
+  ["most", "the majority of", "over half of"],
+  ["replace", "displace（取代）", "supersede", "take the place of", "substitute"],
+  ["sign", "symbol", "indication（指示｜sign）", "signal", "token", "mark"],
+  ["many", "a great deal of", "a considerable amount of", "a lot of", "numerous", "plenty of", "quite a few", "a large number of"],
+  ["feed on", "eat", "consume", "prey on"],
+  ["development", "progress", "improvement", "advance", "enhancement", "evolution", "growth"],
+  ["based on", "have its origins in", "have its roots in", "derive from", "evolve from"],
+  ["thanks to", "owing to（由于｜thanks to）", "due to", "stem from", "because of"],
+  ["carry out（执行｜carry out）", "fulfill（满足）", "accomplish（完成｜carry out）", "perform", "execute", "implement", "conduct", "undertake"],
+  ["fail to", "without", "not do", "unable to", "bungle"],
+  ["depend on", "rely on", "count on", "be dependent on"],
+  ["back up", "support（支持｜back up）", "favor", "promote", "contribute to（促成｜back up）", "useful", "beneficial（有益的｜back up）"],
+  ["given that", "considering", "concerning", "according to（根据｜given that）"],
+  ["renewed interest", "focus once again on"],
+  ["be more likely to", "be feel more obliged to", "be feel inclined to", "be liable to", "be prone to"],
+  ["sustainable", "environment（环境｜sustainable）", "environmental", "ecology", "long-term", "chronic"],
+  ["complex（复杂的）", "complicated", "perplexing", "confusing", "sophisticated"],
+  ["complex（综合体）", "buildings", "constructions"],
+  ["vessels（容器）", "artifacts", "artefacts", "ornaments", "containers", "jars"],
+  ["vessels（船只）", "ships", "large boats"],
+  ["classify", "categorize", "be divided into distinct types", "identify（识别｜classify）", "taxonomy", "methods for assessing"],
+  ["contrast", "rather than", "instead of", "two opposing views"],
+  ["predict", "prediction（预测｜predict）", "projection", "forecast"],
+  ["weaknesses", "bad aspects", "disadvantages", "drawbacks", "demerits"],
+  ["strengths", "good aspects", "advantages", "merits"],
+  ["discard", "abandon", "being left behind", "disposed of", "cast off", "get rid of"],
+  ["personality", "character", "trait（特质｜personality）", "temperament"],
+  ["warning", "cautionary", "convince show against"],
+  ["consult", "ask for advice", "discuss with", "confer"],
+  ["emerge", "appear", "become visible", "come into view", "come out", "show out"],
+  ["criteria", "standard", "level", "norm", "benchmark"],
+  ["domain", "area", "field", "subject", "discipline"],
+  ["evidence", "clues", "facts or signs", "indication（指示｜evidence）", "proof"],
+  ["distinct", "different", "differ from", "distinguish", "diverse"],
+  ["release", "issue", "launch", "publish"],
+  ["maintain", "ensure", "remain", "keep（保持｜maintain）", "make at the same level", "continue to"],
+  ["incident", "events", "happening", "occurrence"],
+  ["damp", "wet", "moist", "moisture", "humid", "soaked"],
+  ["foster", "cultivate", "raise", "nurture", "rear", "look after"],
+  ["extinct", "die out", "disappear（消失｜extinct）", "vanish（消失｜extinct）", "no longer exist"],
+  ["chilly", "cold temperature", "freezing"],
+  ["escape", "avoid", "steer clear of", "keep away", "elude"],
+  ["advertising", "marketing", "commercial（商业的｜advertising）"],
+  ["commercial（商业的｜commercial）", "money（钱｜commercial）", "market", "profit", "profitable（有利可图的｜commercial）", "financial（金融的｜commercial）", "funding", "lucrative", "investment", "invest", "sponsor（赞助｜commercial）"],
+  ["mixture", "combination", "combine", "a cocktail of", "mixing", "blend", "integrate", "integration", "merge", "conflate", "incorporate"],
+  ["limitation（限制｜limitation）", "restriction", "limit", "not enough degree of freedom"],
+  ["community", "a cross-section of society", "general public"],
+  ["emotions", "anxiety", "feelings", "sentimental"],
+  ["livestock", "animals", "sheep", "cattle"],
+  ["welfare", "well-being", "the general health", "standard of living"],
+  ["remains", "bones", "that are left"],
+  ["inadequate", "limited", "not enough", "too little", "few", "scarce", "insufficient", "shortage（短缺｜inadequate）"],
+  ["subsidy", "financial assistance"],
+  ["precipitation", "rainfall", "snowfall", "hail"],
+  ["independent", "self-reliant", "depend on themselves", "himself or herself"],
+  ["obey", "comply with", "abide by"],
+  ["distrust", "suspicion and disbelief", "skeptic", "sceptic", "skeptical"],
+  ["beneficial（有益的｜beneficial）", "positive aspects", "better at", "favorable", "advantageous"],
+  ["civil", "municipal", "metropolitan", "urban", "public（公共的｜civil）"],
+  ["productive", "creative", "inspiring", "active", "fruitful", "profitable（有利可图的｜productive）", "inventive"],
+  ["fatigue", "tiredness", "exhausted"],
+  ["juvenile", "small", "young", "tiny（小的）", "cubs"],
+  ["fundamental", "rudimentary", "preliminary", "basic"],
+  ["initial", "at first", "start", "early on", "premiere"],
+  ["defect", "disadvantage", "shortage（短缺｜defect）", "downside", "weakness", "limitation（限制｜defect）"],
+  ["venue", "place", "spot", "site"],
+  ["feasible", "practical", "attainable（可达到的｜feasible）", "workable"],
+  ["urge", "desire", "impulse", "instinct", "advise", "call for（要求｜urge）", "have strong wish to do", "push", "press"],
+  ["cue", "hint", "clue"],
+  ["artificial", "synthetic", "man-made"],
+  ["detect", "find", "discover or notice", "perceive（察觉｜detect）", "recognize（认出｜detect）"],
+  ["surrounding", "setting", "environment（环境｜surrounding）"],
+  ["threaten", "warn", "endanger", "jeopardise", "risk", "hazard", "intimidate"],
+  ["backward", "primitive", "underdeveloped"],
+  ["exchange", "swap and share", "switch（转换｜exchange）", "trade"],
+  ["separate", "divide", "move apart", "segregate"],
+  ["establishment", "shop", "hotel", "organization", "institution"],
+  ["analyse", "look at", "examine"],
+  ["accurate", "precise", "exact", "fewer errors", "flawless", "negligible mistakes"],
+  ["abundant", "sufficient", "adequate", "ample", "substantial", "considerable"],
+  ["overcome", "conquer", "get over", "prevent（阻止｜overcome）"],
+  ["priority", "most important", "preferential", "preference"],
+  ["flexibility", "versatile", "adaptable", "all-round"],
+  ["exclusive", "unique（独特的｜exclusive）", "sole", "only", "restricted"],
+  ["accessible", "reachable", "attainable（可达到的｜accessible）", "obtainable", "available"],
+  ["alternative", "unlike standard", "different from the usual or traditional"],
+  ["lack of clarity", "have unconscious notions", "no one knows for certain"],
+  ["be subjected to", "undergo", "be exposed to", "suffer from", "be afflicted with"],
+  ["benefit the ecosystem", "recover the biodiversity"],
+  ["less cooperative", "lack of willingness to"],
+  ["alien", "not local", "not native", "outsider", "not indigenous"],
+  ["contradict", "paradoxical", "refute", "dispute"],
+  ["etiquette", "good manner", "polite", "politeness", "respect"],
+  ["evaporate", "disappear（消失｜evaporate）", "fade away", "vanish（消失｜evaporate）", "become less"],
+  ["diminish", "decrease（减少｜diminish）", "reduce（减少｜diminish）", "drop", "decline（下降）", "fall", "lower", "shrink（收缩｜diminish）", "minimize"],
+  ["prestige", "symbol of status", "social position", "reputation"],
+  ["implications", "hidden effects", "implies or suggests", "consequence"],
+  ["redress", "correct（纠正）", "fix", "repair", "rectify", "amend", "make up for", "compensate", "remedy"],
+  ["hygiene", "cleanliness", "keep clean"],
+  ["chaos", "panic", "uncontrolled", "a state of disorder"],
+  ["scrutiny", "close examination", "careful examination of"],
+  ["obsession", "excessive focus on"],
+  ["clamor", "demand", "call for（要求｜clamor）", "ask for", "claim"],
+  ["mortality rate", "death rate"],
+  ["fragile", "delicate", "vulnerable（脆弱的｜fragile）", "unstable", "weak"],
+  ["succumb", "give in", "submit", "yield", "surrender", "cave in"],
+  ["folklore", "traditional customs", "widespread ideas", "local belief", "common beliefs", "widely accepted"],
+  ["dislodge", "knock down", "force out", "remove", "displace（移置）"],
+  ["undisputed", "undeniable", "unquestionable", "beyond doubt"],
+  ["transparent", "easy to comprehend", "open and honest"],
+  ["congregate", "gather together", "assemble"],
+  ["incentive", "motive（动机｜incentive）", "stimulus"],
+  ["mitigate", "decrease（减少｜mitigate）", "reduce（减少｜mitigate）", "ease off", "lessen", "dampen"],
+  ["innate", "build-in", "inborn", "natural", "unchangeable"],
+  ["confidential", "hidden", "secret", "undisclosed"],
+  ["pinpoint", "identify（识别｜pinpoint）", "find out", "discover exactly"],
+  ["alleviate", "decrease（减少｜alleviate）", "ease", "relieve"],
+  ["revered", "respectful", "honorable", "esteemed"],
+  ["symbiotic", "partnership", "mutually beneficial", "interdependent"],
+  ["individual", "one-on-one", "personal", "private"],
+  ["indigenous", "local", "native", "original", "endemic"],
+  ["peripheral", "unimportant", "minor", "marginal", "fringe"],
+  ["phase out", "gradually eliminate", "gradually abolish"],
+  ["compromise", "harm", "damage", "jeopardize", "concede", "settle", "reach a settlement", "agreement"],
+  ["initiative", "scheme", "project", "program", "a new plan"],
+  ["vicinity", "nearby", "neighborhood"],
+  ["imperative", "pressing", "crucial", "critical", "urgent", "vital", "things that are obligated"],
+  ["proliferate", "multiply", "increase（增加｜proliferate）", "breed", "reproduce", "spread", "propagate"],
+  ["chastise", "speak angrily", "reprimand", "rebuke", "berate"],
+  ["homogeneous", "similar", "uniform", "consistent", "identical"],
+];
+
+// ============================================================
+//  Level system
+// ============================================================
+const LEVEL_TITLES = [
+  "词场新兵","词汇学徒","同义猎人","替换达人","语义大师",
+  "雅思先锋","词源考古家","语言宗师","词汇至尊","传说·万词归一"
+];
+const XP_PER_LEVEL = 100;
+
+let totalXP = 0;
+let playerLevel = 1;
+let roundXP = 0;
+
+function getLevelTitle(lv) {
+  return LEVEL_TITLES[Math.min(lv - 1, LEVEL_TITLES.length - 1)];
+}
+
+function addXP(amount) {
+  totalXP += amount;
+  roundXP += amount;
+  const oldLevel = playerLevel;
+  playerLevel = Math.floor(totalXP / XP_PER_LEVEL) + 1;
+  updateXPBar();
+  if (playerLevel > oldLevel) {
+    showLevelUp(playerLevel);
+  }
+}
+
+function updateXPBar() {
+  const xpInLevel = totalXP % XP_PER_LEVEL;
+  const pct = (xpInLevel / XP_PER_LEVEL) * 100;
+  document.getElementById('xpFill').style.width = pct + '%';
+  document.getElementById('xpText').textContent = `${xpInLevel} / ${XP_PER_LEVEL} XP`;
+  document.getElementById('levelBadge').textContent = `Lv.${playerLevel}`;
+  document.getElementById('levelTitle').textContent = getLevelTitle(playerLevel);
+}
+
+function showLevelUp(lv) {
+  playSound('levelup');
+  const overlay = document.createElement('div');
+  overlay.className = 'levelup-overlay';
+  overlay.innerHTML = `
+    <div class="levelup-content"><div class="levelup-title">LEVEL UP!</div><div class="levelup-sub">Lv.${lv} · ${getLevelTitle(lv)}</div></div>
+  `;
+  document.body.appendChild(overlay);
+  spawnParticleBurst(window.innerWidth / 2, window.innerHeight / 2, 80, ['#fbbf24','#f59e0b','#ff6b6b','#8b5cf6','#22d3a7']);
+  setTimeout(() => overlay.remove(), 1800);
+}
+
+// ============================================================
+//  Sound system (Web Audio API)
+// ============================================================
+let audioCtx = null;
+let soundEnabled = true;
+
+function getAudioCtx() {
+  if (!audioCtx) {
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  }
+  return audioCtx;
+}
+
+function playSound(type) {
+  if (!soundEnabled) return;
+  try {
+    const ctx = getAudioCtx();
+    if (ctx.state === 'suspended') ctx.resume();
+    const now = ctx.currentTime;
+
+    if (type === 'click') {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(800, now);
+      osc.frequency.exponentialRampToValueAtTime(1200, now + 0.05);
+      gain.gain.setValueAtTime(0.1, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
+      osc.connect(gain).connect(ctx.destination);
+      osc.start(now);
+      osc.stop(now + 0.1);
+    }
+    else if (type === 'correct') {
+      [523.25, 659.25, 783.99].forEach((freq, i) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(freq, now + i * 0.08);
+        gain.gain.setValueAtTime(0.12, now + i * 0.08);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.08 + 0.2);
+        osc.connect(gain).connect(ctx.destination);
+        osc.start(now + i * 0.08);
+        osc.stop(now + i * 0.08 + 0.25);
+      });
+    }
+    else if (type === 'wrong') {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(200, now);
+      osc.frequency.exponentialRampToValueAtTime(100, now + 0.2);
+      gain.gain.setValueAtTime(0.08, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+      osc.connect(gain).connect(ctx.destination);
+      osc.start(now);
+      osc.stop(now + 0.3);
+    }
+    else if (type === 'combo') {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(880, now);
+      osc.frequency.exponentialRampToValueAtTime(1760, now + 0.15);
+      gain.gain.setValueAtTime(0.12, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+      osc.connect(gain).connect(ctx.destination);
+      osc.start(now);
+      osc.stop(now + 0.25);
+    }
+    else if (type === 'complete') {
+      [523.25, 659.25, 783.99, 1046.5].forEach((freq, i) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(freq, now + i * 0.12);
+        gain.gain.setValueAtTime(0.15, now + i * 0.12);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.12 + 0.3);
+        osc.connect(gain).connect(ctx.destination);
+        osc.start(now + i * 0.12);
+        osc.stop(now + i * 0.12 + 0.35);
+      });
+    }
+    else if (type === 'levelup') {
+      [523.25, 659.25, 783.99, 1046.5, 1318.5].forEach((freq, i) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(freq, now + i * 0.1);
+        gain.gain.setValueAtTime(0.15, now + i * 0.1);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.1 + 0.4);
+        osc.connect(gain).connect(ctx.destination);
+        osc.start(now + i * 0.1);
+        osc.stop(now + i * 0.1 + 0.45);
+      });
+    }
+    else if (type === 'skip') {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(440, now);
+      osc.frequency.exponentialRampToValueAtTime(220, now + 0.15);
+      gain.gain.setValueAtTime(0.08, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
+      osc.connect(gain).connect(ctx.destination);
+      osc.start(now);
+      osc.stop(now + 0.2);
+    }
+    else if (type === 'endgame') {
+      [392, 523.25, 659.25, 783.99, 659.25, 783.99, 1046.5].forEach((freq, i) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(freq, now + i * 0.15);
+        gain.gain.setValueAtTime(0.12, now + i * 0.15);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.15 + 0.35);
+        osc.connect(gain).connect(ctx.destination);
+        osc.start(now + i * 0.15);
+        osc.stop(now + i * 0.15 + 0.4);
+      });
+    }
+  } catch(e) {}
+}
+
+function toggleSound() {
+  soundEnabled = !soundEnabled;
+  const btn = document.getElementById('soundToggle');
+  btn.textContent = soundEnabled ? '' : '';
+  btn.classList.toggle('muted', !soundEnabled);
+}
+
+// ============================================================
+//  Particle system
+// ============================================================
+const canvas = document.getElementById('particleCanvas');
+const pCtx = canvas.getContext('2d');
+let particles = [];
+
+function resizeCanvas() {
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+}
+resizeCanvas();
+window.addEventListener('resize', resizeCanvas);
+
+class Particle {
+  constructor(x, y, color, vx, vy, size, life, type) {
+    this.x = x; this.y = y;
+    this.color = color;
+    this.vx = vx; this.vy = vy;
+    this.size = size;
+    this.life = life;
+    this.maxLife = life;
+    this.type = type || 'circle';
+    this.rotation = Math.random() * Math.PI * 2;
+    this.rotSpeed = (Math.random() - 0.5) * 0.2;
+  }
+  update() {
+    this.x += this.vx;
+    this.y += this.vy;
+    this.vy += 0.12;
+    this.vx *= 0.99;
+    this.life--;
+    this.rotation += this.rotSpeed;
+  }
+  draw(ctx) {
+    const alpha = Math.max(0, this.life / this.maxLife);
+    const sz = this.size * (0.5 + 0.5 * alpha);
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.translate(this.x, this.y);
+    ctx.rotate(this.rotation);
+
+    if (this.type === 'star') {
+      ctx.fillStyle = this.color;
+      ctx.beginPath();
+      for (let i = 0; i < 5; i++) {
+        const angle = (i * 4 * Math.PI) / 5 - Math.PI / 2;
+        ctx.lineTo(Math.cos(angle) * sz, Math.sin(angle) * sz);
+        const angle2 = angle + (2 * Math.PI) / 10;
+        ctx.lineTo(Math.cos(angle2) * sz * 0.4, Math.sin(angle2) * sz * 0.4);
+      }
+      ctx.closePath();
+      ctx.fill();
+    } else if (this.type === 'diamond') {
+      ctx.fillStyle = this.color;
+      ctx.beginPath();
+      ctx.moveTo(0, -sz);
+      ctx.lineTo(sz * 0.6, 0);
+      ctx.lineTo(0, sz);
+      ctx.lineTo(-sz * 0.6, 0);
+      ctx.closePath();
+      ctx.fill();
+    } else {
+      ctx.fillStyle = this.color;
+      ctx.beginPath();
+      ctx.arc(0, 0, sz, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.restore();
+  }
+}
+
+function spawnParticleBurst(x, y, count, colors, types) {
+  const typeList = types || ['circle', 'star', 'diamond'];
+  for (let i = 0; i < count; i++) {
+    const angle = (Math.PI * 2 * i) / count + (Math.random() - 0.5) * 0.5;
+    const speed = 3 + Math.random() * 6;
+    const vx = Math.cos(angle) * speed;
+    const vy = Math.sin(angle) * speed - 2;
+    const color = colors[Math.floor(Math.random() * colors.length)];
+    const size = 2 + Math.random() * 5;
+    const life = 40 + Math.floor(Math.random() * 30);
+    const type = typeList[Math.floor(Math.random() * typeList.length)];
+    particles.push(new Particle(x, y, color, vx, vy, size, life, type));
+  }
+}
+
+function animateParticles() {
+  pCtx.clearRect(0, 0, canvas.width, canvas.height);
+  particles = particles.filter(p => p.life > 0);
+  particles.forEach(p => {
+    p.update();
+    p.draw(pCtx);
+  });
+  requestAnimationFrame(animateParticles);
+}
+animateParticles();
+
+// ============================================================
+//  Visual effects
+// ============================================================
+function showFloatScore(x, y, text, type) {
+  const el = document.createElement('div');
+  el.className = 'float-score ' + type;
+  el.textContent = text;
+  el.style.left = x + 'px';
+  el.style.top = y + 'px';
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 1000);
+}
+
+function screenFlash(color) {
+  const el = document.createElement('div');
+  el.className = 'screen-flash ' + color;
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 400);
+}
+
+// ============================================================
+//  Timer
+// ============================================================
+let timerInterval = null;
+let timerSeconds = 0;
+
+function startTimer() {
+  timerSeconds = 0;
+  clearInterval(timerInterval);
+  updateTimerDisplay();
+  timerInterval = setInterval(() => {
+    timerSeconds++;
+    updateTimerDisplay();
+  }, 1000);
+}
+
+function stopTimer() {
+  clearInterval(timerInterval);
+}
+
+function updateTimerDisplay() {
+  const m = String(Math.floor(timerSeconds / 60)).padStart(2, '0');
+  const s = String(timerSeconds % 60).padStart(2, '0');
+  document.getElementById('timerText').textContent = `${m}:${s}`;
+}
+
+function formatTime(sec) {
+  const m = Math.floor(sec / 60);
+  const s = sec % 60;
+  return m > 0 ? `${m}分${s}秒` : `${s}秒`;
+}
+
+// ============================================================
+//  Game state
+// ============================================================
+let round = 0;
+let rightCount = 0, wrongCount = 0, groupsDone = 0;
+let allMissedWords = [];
+let activeGroups = [], allWords = [], wordToGroup = {};
+let anchorGroupIdx = null, currentChain = [], usedWords = new Set();
+let combo = 0;
+let maxCombo = 0;
+let groupWrongCount = 0;
+
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function startGame() {
+  round++;
+  rightCount = 0; wrongCount = 0; groupsDone = 0;
+  try {
+    _track_sentFinal = false;
+    _track_sessionStart = Date.now();
+    _track_rightCount = 0;
+    _track_wrongCount = 0;
+  } catch (e) {}
+  allMissedWords = [];
+  anchorGroupIdx = null; currentChain = []; usedWords = new Set();
+  combo = 0; maxCombo = 0; roundXP = 0;
+  groupWrongCount = 0;
+
+  const indices = shuffle([...Array(ALL_GROUPS.length).keys()]).slice(0, 10);
+  activeGroups = indices.map(i => ALL_GROUPS[i]);
+
+  allWords = [];
+  wordToGroup = {};
+  activeGroups.forEach((grp, gi) => {
+    grp.forEach(w => {
+      allWords.push(w);
+      wordToGroup[w] = gi;
+    });
+  });
+  allWords = shuffle(allWords);
+
+  document.getElementById('endScreen').classList.remove('show');
+  document.getElementById('mainArea').style.display = '';
+  document.getElementById('completedSection').innerHTML = '';
+  document.getElementById('chainBox').classList.remove('show');
+  document.getElementById('actionRow').classList.remove('show');
+  document.getElementById('comboDisplay').classList.remove('active');
+  hideFeedback();
+
+  document.getElementById('progressText').textContent = `第 ${round} 轮 · 随机抽取 10 组`;
+  document.getElementById('sTotal').textContent = allWords.length;
+
+  renderGrid();
+  updateStats();
+  setHint(' 点击任意单词开始练习 — 它将成为参照词');
+  startTimer();
+}
+
+function renderGrid() {
+  const grid = document.getElementById('wordsGrid');
+  grid.innerHTML = '';
+  allWords.forEach(w => {
+    const btn = document.createElement('button');
+    btn.className = 'word-btn' + (usedWords.has(w) ? ' used' : '');
+    btn.id = 'wb_' + CSS.escape(w);
+    btn.textContent = w;
+    if (usedWords.has(w)) {
+      btn.disabled = true;
+    } else {
+      btn.addEventListener('click', (e) => handleWordClick(w, e));
+    }
+    grid.appendChild(btn);
+  });
+}
+
+function getBtn(w) {
+  return document.getElementById('wb_' + CSS.escape(w));
+}
+
+function handleWordClick(word, event) {
+  if (usedWords.has(word)) return;
+  const gi = wordToGroup[word];
+  playSound('click');
+
+  if (anchorGroupIdx === null) {
+    anchorGroupIdx = gi;
+    currentChain = [word];
+    groupWrongCount = 0;
+    const btn = getBtn(word);
+    btn.classList.add('anchor');
+    btn.disabled = true;
+
+    document.getElementById('chainBox').classList.add('show');
+    document.getElementById('actionRow').classList.add('show');
+    renderChain();
+    const grpSize = activeGroups[gi].length;
+    setHint(` "${word}" 已选为参照词，共 ${grpSize} 个同义词，还剩 ${grpSize - 1} 个`);
+    hideFeedback();
+  } else {
+    if (gi === anchorGroupIdx) {
+      rightCount++;
+      recordAnswer(true, { word: word });
+      combo++;
+      if (combo > maxCombo) maxCombo = combo;
+      currentChain.push(word);
+
+      const btn = getBtn(word);
+      btn.classList.add('correct');
+      btn.disabled = true;
+      renderChain();
+
+      const comboBonus = Math.min(combo, 5);
+      const xpGain = 10 + (comboBonus - 1) * 5;
+      addXP(xpGain);
+
+      const rect = btn.getBoundingClientRect();
+      const cx = rect.left + rect.width / 2;
+      const cy = rect.top + rect.height / 2;
+
+      screenFlash('green');
+      spawnParticleBurst(cx, cy, 20, ['#22d3a7', '#34d399', '#6ee7b7', '#a7f3d0']);
+      showFloatScore(cx - 20, cy - 30, `+${xpGain} XP`, 'positive');
+
+      if (combo >= 2) {
+        playSound('combo');
+        document.getElementById('comboNum').textContent = combo;
+        document.getElementById('comboDisplay').classList.add('active');
+        if (combo >= 3) {
+          showFloatScore(cx + 40, cy - 60, `${combo}x COMBO!`, 'combo');
+        }
+      }
+
+      playSound('correct');
+
+      const grp = activeGroups[anchorGroupIdx];
+      const remaining = grp.filter(
+        w => !usedWords.has(w) && !currentChain.includes(w)
+      );
+      if (remaining.length === 0) {
+        // 全部选对，自动进入下一组
+        showFeedback(` 这组 ${grp.length} 个同义词全部找到！自动进入下一组`, 'ok');
+        playSound('complete');
+        spawnParticleBurst(window.innerWidth / 2, window.innerHeight / 2, 50, ['#fbbf24','#f59e0b','#22d3a7','#8b5cf6','#38bdf8'], ['star','diamond']);
+        addXP(15);
+        updateStats();
+        setTimeout(() => finishGroup(), 1200);
+      } else {
+        setHint(` 已找到 ${currentChain.length} / ${grp.length}，还剩 ${remaining.length} 个`);
+        showFeedback(` 正确！还有 ${remaining.length} 个同义词待发现`, 'ok');
+      }
+    } else {
+      wrongCount++;
+      recordAnswer(false, { word: word });
+      combo = 0;
+      document.getElementById('comboDisplay').classList.remove('active');
+      groupWrongCount++;
+
+      const btn = getBtn(word);
+      btn.classList.add('wrong');
+      setTimeout(() => btn.classList.remove('wrong'), 500);
+
+      const rect = btn.getBoundingClientRect();
+      const cx = rect.left + rect.width / 2;
+      const cy = rect.top + rect.height / 2;
+
+      screenFlash('red');
+      spawnParticleBurst(cx, cy, 10, ['#f43f5e', '#fb7185', '#fda4af']);
+      showFloatScore(cx - 15, cy - 30, 'MISS', 'negative');
+
+      playSound('wrong');
+      // 无提示版：不显示正确答案
+      const grpWrong = activeGroups[anchorGroupIdx];
+      const remainingWrong = grpWrong.filter(
+        w => !usedWords.has(w) && !currentChain.includes(w)
+      );
+      setHint(` 已找到 ${currentChain.length} / ${grpWrong.length}，还剩 ${remainingWrong.length} 个`);
+      if (groupWrongCount >= 3) {
+        showFeedback(` 已选错 3 次，自动跳过这组`, 'err');
+        updateStats();
+        setTimeout(() => finishGroup(), 800);
+      } else {
+        showFeedback(` "${word}" 不属于这组，已选错 ${groupWrongCount}/3 次`, 'err');
+      }
+    }
+    updateStats();
+  }
+}
+
+function renderChain() {
+  const c = document.getElementById('chainTags');
+  c.innerHTML = '';
+  currentChain.forEach((w, i) => {
+    const t = document.createElement('span');
+    t.className = 'chain-tag ' + (i === 0 ? 'anchor-tag' : 'correct-tag');
+    t.textContent = w;
+    if (i > 0) t.style.animationDelay = (i * 0.05) + 's';
+    c.appendChild(t);
+  });
+}
+
+function confirmGroup() {
+  // 旧版保留兼容：用户点击"继续"按钮时手动结束当前组
+  if (anchorGroupIdx === null) return;
+  playSound('click');
+  finishGroup();
+}
+
+function finishGroup() {
+  const grp = activeGroups[anchorGroupIdx];
+  const found = [...currentChain];
+  const missed = grp.filter(w => !found.includes(w));
+  grp.forEach(w => usedWords.add(w));
+  groupsDone++;
+
+  // 记录未找到的词
+  missed.forEach(w => {
+    if (!allMissedWords.includes(w)) {
+      allMissedWords.push(w);
+    }
+  });
+
+  renderDoneGroup(groupsDone, found, missed);
+
+  anchorGroupIdx = null;
+  currentChain = [];
+
+  document.getElementById('chainBox').classList.remove('show');
+  document.getElementById('actionRow').classList.remove('show');
+  hideFeedback();
+
+  renderGrid();
+  updateStats();
+
+  const remaining = allWords.filter(w => !usedWords.has(w));
+  if (remaining.length === 0) {
+    endGame();
+  } else {
+    setHint(' 点击任意单词，开始新的同义词组！');
+  }
+}
+
+function renderDoneGroup(num, found, missed) {
+  const container = document.getElementById('completedSection');
+  const d = document.createElement('div');
+  d.className = 'done-group';
+
+  const numSpan = document.createElement('span');
+  numSpan.className = 'done-group-num';
+  numSpan.textContent = `第${num}组`;
+  d.appendChild(numSpan);
+
+  found.forEach(w => {
+    const s = document.createElement('span');
+    s.className = 'done-word';
+    s.textContent = w;
+    d.appendChild(s);
+  });
+  missed.forEach(w => {
+    const s = document.createElement('span');
+    s.className = 'missed-word';
+    s.textContent = w;
+    d.appendChild(s);
+  });
+  container.appendChild(d);
+}
+
+function updateStats() {
+  document.getElementById('sDone').textContent = groupsDone + '/10';
+  document.getElementById('sRight').textContent = rightCount;
+  document.getElementById('sWrong').textContent = wrongCount;
+  const pct = Math.round(groupsDone / 10 * 100);
+  document.getElementById('progressFill').style.width = pct + '%';
+  document.getElementById('progressPct').textContent = pct + '%';
+}
+
+function setHint(msg) {
+  document.getElementById('statusHint').textContent = msg;
+}
+
+function showFeedback(msg, type) {
+  const box = document.getElementById('feedbackBox');
+  box.className = 'feedback-box show ' + type;
+  box.textContent = msg;
+}
+
+function hideFeedback() {
+  document.getElementById('feedbackBox').className = 'feedback-box';
+}
+
+function endGame() {
+  stopTimer();
+  playSound('endgame');
+
+  document.getElementById('mainArea').style.display = 'none';
+  const total = rightCount + wrongCount;
+  const acc = total > 0 ? Math.round(rightCount / total * 100) : 100;
+
+  const nonAnchorWords = allWords.length - 10;
+  const nonAnchorAcc = Math.round(rightCount / nonAnchorWords * 100);
+
+  let rating = '';
+  if (nonAnchorAcc >= 90 && wrongCount <= 2) rating = ' 完美通关！';
+  else if (nonAnchorAcc >= 75) rating = ' 优秀！';
+  else if (nonAnchorAcc >= 60) rating = ' 不错！';
+  else rating = ' 继续加油！';
+
+  document.getElementById('endRound').textContent = `第 ${round} 轮完成`;
+  document.getElementById('endScore').textContent = `${nonAnchorAcc}%`;
+  document.getElementById('endDetail').innerHTML =
+    `找对 <strong>${rightCount}</strong> 个 · 选错 <strong>${wrongCount}</strong> 个 · 总词数 <strong>${nonAnchorWords}</strong>（不含10个首词）· 最高连击 <strong>${maxCombo}</strong> · 用时 <strong>${formatTime(timerSeconds)}</strong><br>${rating}`;
+  document.getElementById('endXp').textContent = `+${roundXP} XP`;
+
+  const missedSection = document.getElementById('endMissedSection');
+  const missedWordsContainer = document.getElementById('endMissedWords');
+  missedWordsContainer.innerHTML = '';
+  if (allMissedWords.length > 0) {
+    allMissedWords.forEach(w => {
+      const span = document.createElement('span');
+      span.className = 'end-missed-word';
+      span.textContent = w;
+      missedWordsContainer.appendChild(span);
+    });
+    missedSection.classList.add('show');
+  } else {
+    missedSection.classList.remove('show');
+  }
+
+  document.getElementById('endScreen').classList.add('show');
+  _track_sendToParent(false);
+
+  setTimeout(() => {
+    spawnParticleBurst(window.innerWidth / 2, window.innerHeight / 3, 60, ['#fbbf24','#8b5cf6','#22d3a7','#38bdf8','#f43f5e'], ['star','diamond']);
+  }, 300);
+}
+
+startGame();
+
+/* ============================================================
+   【模块追踪系统】学习时长 + 答题正确率  通过 postMessage 发送给主页面
+   ============================================================ */
+const TRACK_MODULE_TYPE = 'reading_synonym';
+const TRACK_MODULE_NAME = '阅读同义替换';
+
+let _track_studentId = null;
+let _track_sessionStart = null;
+let _track_rightCount = 0;
+let _track_wrongCount = 0;
+let _track_sentFinal = false;
+
+/* ----- 检查是否在 iframe 中运行 ----- */
+function _track_isInIframe() {
+    try {
+        return window.self !== window.top;
+    } catch (e) {
+        return true;
+    }
+}
+
+/* ----- 通过 postMessage 发送学习数据给主页面 ----- */
+function _track_sendToParent(isExit) {
+    if (!_track_sessionStart) return;
+    if (_track_sentFinal && isExit) return;
+    const now = Date.now();
+    const duration = Math.round((now - _track_sessionStart) / 1000);
+    const total = _track_rightCount + _track_wrongCount;
+    if (!isExit && duration < 1 && total === 0) return;
+    if (isExit && duration < 1 && total === 0) return;
+    const expectedTotal = (typeof allWords !== 'undefined' && allWords.length > 10) ? allWords.length - 10 : total;
+    const scorePercent = expectedTotal > 0 ? Math.round(_track_rightCount / expectedTotal * 100) : 0;
+    try {
+        if (window.parent && window.parent.postMessage) {
+            window.parent.postMessage({
+                type: 'genericTestComplete',
+                moduleType: TRACK_MODULE_TYPE,
+                moduleName: TRACK_MODULE_NAME,
+                student_id: _track_studentId,
+                testType: 'module_test',
+                scorePercent: scorePercent,
+                correctCount: _track_rightCount,
+                totalCount: expectedTotal,
+                durationSeconds: duration,
+                rightCount: _track_rightCount,
+                wrongCount: _track_wrongCount,
+                isExit: !!isExit
+            }, '*');
+        }
+    } catch (e) {
+        console.warn('[Track] 发送学习数据失败:', e);
+    }
+    if (!isExit) _track_sentFinal = true;
+}
+
+/* ----- 监听主页面请求保存 ----- */
+window.addEventListener('message', function(event) {
+    if (event.data && event.data.type === 'requestSave') {
+        _track_sendToParent(true);
+    }
+});
+
+/* ----- 记录一道题的对错（被原有答题逻辑调用） ----- */
+function recordAnswer(isCorrect, questionInfo) {
+    if (isCorrect) _track_rightCount++;
+    else _track_wrongCount++;
+}
+
+/* ----- 页面加载时：启动追踪 ----- */
+(function _track_init() {
+    try {
+        // 尝试从 URL 参数获取 student_id（主页面传递）
+        const urlParams = new URLSearchParams(window.location.search);
+        const urlStudentId = urlParams.get('student_id');
+        if (urlStudentId) {
+            _track_studentId = urlStudentId;
+        }
+
+        // 启动计时
+        _track_sessionStart = Date.now();
+        _track_rightCount = 0;
+        _track_wrongCount = 0;
+
+        console.log('[Track] 同义替换测试（无提示版）追踪已启动');
+    } catch (e) {
+        console.warn('[Track] 初始化失败:', e);
+    }
+})();
+
+/* ----- 页面关闭/切换时发送最后一次数据 ----- */
+window.addEventListener('beforeunload', function() {
+    _track_sendToParent(true);
+});
+window.addEventListener('pagehide', function() {
+    _track_sendToParent(true);
+});
+
+</script></body></html>
