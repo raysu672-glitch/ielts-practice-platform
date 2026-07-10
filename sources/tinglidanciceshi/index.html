@@ -210,6 +210,12 @@
             justify-content: center;
             margin-top: 20px;
         }
+        .student-actions {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
 
         /* === 页面切换 === */
         .screen { display: none; }
@@ -1851,7 +1857,7 @@
                 const s = students[i];
                 const statusBadge = s.status === 'active' ? 'badge-success">正常' : 'badge-danger">禁用';
                 const toggleBtn = s.status === 'active' ? 'btn-danger">禁用' : 'btn-success">启用';
-                html += '<tr><td>' + s.student_id + '</td><td>' + s.name + '</td><td>' + s.target_score + '分</td><td><span class="badge ' + statusBadge + '</span></td><td><button class="btn btn-sm btn-secondary" onclick="resetPassword(\'' + s.student_id + '\')">重置密码</button><button class="btn btn-sm ' + toggleBtn + '</button></td></tr>';
+                html += '<tr><td>' + s.student_id + '</td><td>' + s.name + '</td><td>' + s.target_score + '分</td><td><span class="badge ' + statusBadge + '</span></td><td><div class="student-actions"><button class="btn btn-sm btn-secondary" onclick="resetPassword(\'' + s.student_id + '\')">重置密码</button><button class="btn btn-sm ' + toggleBtn + '</button></div></td></tr>';
             }
             html += '</tbody></table>';
             container.innerHTML = html;
