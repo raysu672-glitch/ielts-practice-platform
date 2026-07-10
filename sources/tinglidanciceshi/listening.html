@@ -388,6 +388,7 @@
         let postFunnelTest = false;  // 标记是否来自阶段4后的测试阶段
         let sessionStartAt = 0;      // 当前学习会话开始时间戳（进入学习时设置）
         let totalSeconds = 0;        // 累计学习时长（已保存的）
+        let reportedSeconds = 0;     // 已回传给主站的累计时长
         let heartbeatInterval = null;
 
         // ==================== 初始化 ====================
@@ -456,6 +457,7 @@
                     const data = JSON.parse(saved);
                     if (data.totalSecondsLearned) {
                         totalSeconds = data.totalSecondsLearned;
+                        reportedSeconds = totalSeconds;
                         updateTimeDisplay();
                     }
                 } catch (e) {
@@ -963,13 +965,22 @@
             sendStudyRecord();
         }
 
-        // 回传学习记录给主系统
-        function sendStudyRecord() {
-            // 计算当前总时长 = 累计时长 + 当前会话时长
+        function getUnreportedStudySeconds() {
             let currentTotalSeconds = totalSeconds;
             if (sessionStartAt > 0) {
                 currentTotalSeconds += Math.floor((Date.now() - sessionStartAt) / 1000);
             }
+            if (currentTotalSeconds < reportedSeconds) reportedSeconds = 0;
+            return {
+                currentTotalSeconds: currentTotalSeconds,
+                durationSeconds: Math.max(0, currentTotalSeconds - reportedSeconds)
+            };
+        }
+
+        // 回传学习记录给主系统
+        function sendStudyRecord() {
+            const timing = getUnreportedStudySeconds();
+            if (timing.durationSeconds <= 0) return;
             
             const completedCount = groupStatus.filter(s => s === 'completed').length;
             const record = {
@@ -980,12 +991,13 @@
                 masteredCount: masteredWords.length,
                 wrongCount: allWrongWords.length,
                 completedGroups: completedCount,
-                durationSeconds: currentTotalSeconds
+                durationSeconds: timing.durationSeconds
             };
 
             // 如果在 iframe 中，回传给父窗口
             if (window.parent !== window) {
                 window.parent.postMessage(record, '*');
+                reportedSeconds = timing.currentTotalSeconds;
             } else {
                 // 如果不在 iframe 中，直接打印（调试用）
                 console.log('Study record:', record);
@@ -1064,12 +1076,8 @@
 
         // 回传学习时长（不需要学完一组）
         function sendStudyTime() {
-            // 计算当前总时长 = 累计时长 + 当前会话时长
-            let currentTotalSeconds = totalSeconds;
-            if (sessionStartAt > 0) {
-                currentTotalSeconds += Math.floor((Date.now() - sessionStartAt) / 1000);
-            }
-            if (currentTotalSeconds <= 0) return; // 没有学习时长就不发送
+            const timing = getUnreportedStudySeconds();
+            if (timing.durationSeconds <= 0) return;
 
             const record = {
                 type: 'listeningStudyTime',
@@ -1079,13 +1087,14 @@
                 masteredCount: masteredWords.length,
                 wrongCount: allWrongWords.length,
                 completedGroups: groupStatus.filter(s => s === 'completed').length,
-                durationSeconds: currentTotalSeconds
+                durationSeconds: timing.durationSeconds
             };
 
             if (window.parent !== window) {
                 window.parent.postMessage(record, '*');
+                reportedSeconds = timing.currentTotalSeconds;
             }
-            console.log('学习时长已回传:', currentTotalSeconds + '秒');
+            console.log('学习时长已回传:', timing.durationSeconds + '秒');
         }
 
         function startNextGroup() {
@@ -1111,6 +1120,7 @@
             // 清零学习时长（每次开始学习从0计时）
             totalSeconds = 0;
             sessionStartAt = 0;
+            reportedSeconds = 0;
 
             // Update total count display for current group
             document.getElementById('total-count').textContent = currentGroupWords.length;
@@ -1156,6 +1166,12 @@
 
         // 初始化
         window.onload = init;
+
+        window.addEventListener('message', function(event) {
+            if (event.data && event.data.type === 'requestSave') {
+                sendStudyTime();
+            }
+        });
 
         // iframe 关闭或页面卸载时回传学习时长
         window.addEventListener('beforeunload', function() {

@@ -1590,7 +1590,7 @@ function _track_isInIframe() {
 /* ----- 通过 postMessage 发送学习数据给主页面 ----- */
 function _track_sendToParent(isExit) {
     if (!_track_sessionStart) return;
-    if (_track_sentFinal && isExit) return;
+    if (_track_sentFinal || isExit) return;
     const now = Date.now();
     const duration = Math.round((now - _track_sessionStart) / 1000);
     const total = _track_rightCount + _track_wrongCount;
@@ -1612,13 +1612,14 @@ function _track_sendToParent(isExit) {
                 durationSeconds: duration,
                 rightCount: _track_rightCount,
                 wrongCount: _track_wrongCount,
+                completed: true,
                 isExit: !!isExit
             }, '*');
         }
     } catch (e) {
         console.warn('[Track] 发送学习数据失败:', e);
     }
-    if (!isExit) _track_sentFinal = true;
+    _track_sentFinal = true;
 }
 
 /* ----- 监听主页面请求保存 ----- */

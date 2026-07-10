@@ -9,6 +9,8 @@
 | `sources/` | 前端静态站点与各学习/测试模块，每个模块独立维护 |
 | `scripts/local_server.py` | 本地静态文件服务和 SQLite API |
 | `scripts/deploy.py` | Linux 服务器覆盖部署脚本，凭据从环境变量读取 |
+| `scripts/repair_tracking_data.py` | 清理旧版重复学习会话、测试镜像会话和未完成阅读测试记录 |
+| `tests/` | 时长统计、历史类型和数据修复回归测试 |
 | `data/` | 本地运行数据库目录，不提交真实数据库 |
 | `docs/` | 架构、前台清单、部署迁移等项目文档 |
 | `DEV_SERVER.md` | 本地开发服务端口与启动方式 |
@@ -54,6 +56,12 @@ $env:IELTS_DEPLOY_DOMAIN="training.oyenglish.com.cn"
 python scripts/deploy.py
 ```
 
+若服务器包含 2026-07-10 之前产生的重复追踪数据，首次发布修复版时使用：
+
+```powershell
+python scripts/deploy.py --repair-tracking-data
+```
+
 更完整的 GitHub 推送、备份、部署和回滚流程见 `DEPLOY.md`。
 
 ## 维护原则
@@ -65,3 +73,10 @@ python scripts/deploy.py
 | 音频保护 | `*.mp3`、`sources/tinglidanciceshi/audio/`、`sources/daanjutingxie/A听力答案句/` 只在本地或服务器本地维护，不提交 GitHub |
 | 凭据保护 | GitHub Token、服务器密码、SSH 私钥只放环境变量或系统凭据管理 |
 | 验证优先 | 修改后至少运行 Python 语法检查、本地健康检查和关键页面 HTTP 检查 |
+
+## 回归测试
+
+```powershell
+python -m unittest discover -s tests -p "test_*.py" -v
+node tests/test_tracking_utils.js
+```

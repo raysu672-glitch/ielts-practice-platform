@@ -342,6 +342,7 @@ function sendTestComplete(scorePercent, correctCount, totalCount) {
         correctCount: correctCount,
         totalCount: totalCount,
         durationSeconds: Math.max(0, Math.round((Date.now() - testStartTime) / 1000)),
+        completed: true,
         details: userAnswers
       }, '*');
     }

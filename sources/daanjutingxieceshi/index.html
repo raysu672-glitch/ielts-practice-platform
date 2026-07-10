@@ -94,6 +94,7 @@ function sendTestComplete(scorePercent) {
         correctCount: score,
         totalCount: testQuestions.length,
         durationSeconds: Math.max(0, Math.round((Date.now() - testStartTime) / 1000)),
+        completed: true,
         details: testQuestions.map(function(q) {
           return {
             id: q.id,

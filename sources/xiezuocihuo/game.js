@@ -198,11 +198,10 @@ function selectCategory(catId) {
   showStudyCard(studyIndex);
 }
 
-function backToCategory() {
-  // 发送学习时长给父页面（中途退出也记录）
+function reportPhraseStudy(minSeconds) {
   if (phraseStartTime > 0 && window.parent !== window) {
     var elapsed = Math.floor((Date.now() - phraseStartTime) / 1000);
-    if (elapsed > 5) { // 至少5秒才记录
+    if (elapsed >= (minSeconds || 0)) {
       window.parent.postMessage({
         type: 'phraseStudyComplete',
         moduleType: 'writing_phrase',
@@ -211,9 +210,16 @@ function backToCategory() {
         totalCorrect: totalCorrect,
         totalWords: vocab.length
       }, '*');
+      phraseStartTime = 0;
+      return true;
     }
-    phraseStartTime = 0;
   }
+  return false;
+}
+
+function backToCategory() {
+  // 发送学习时长给父页面（中途退出也记录）
+  reportPhraseStudy(5);
   
   // 停止 Fever 计时器
   if (feverTimer) clearInterval(feverTimer);
@@ -1134,17 +1140,7 @@ function showFinish() {
   exitFeverMode();
   
   // 发送学习时长给父页面（iframe 通信）
-  if (phraseStartTime > 0 && window.parent !== window) {
-    var elapsed = Math.floor((Date.now() - phraseStartTime) / 1000);
-    window.parent.postMessage({
-      type: 'phraseStudyComplete',
-      moduleType: 'writing_phrase',
-      categoryId: currentCategoryId,
-      durationSeconds: elapsed,
-      totalCorrect: totalCorrect,
-      totalWords: vocab.length
-    }, '*');
-  }
+  reportPhraseStudy(0);
   
   var overlay = document.createElement('div');
   overlay.className = 'finish-overlay';
@@ -1394,19 +1390,6 @@ buildCategoryPage();
 /* ── 监听父页面请求保存（主页面返回时触发） ── */
 window.addEventListener('message', function(e) {
   if (e.data && e.data.type === 'requestSave') {
-    if (phraseStartTime > 0 && window.parent !== window) {
-      var elapsed = Math.floor((Date.now() - phraseStartTime) / 1000);
-      if (elapsed > 5) {
-        window.parent.postMessage({
-          type: 'phraseStudyComplete',
-          moduleType: 'writing_phrase',
-          categoryId: currentCategoryId,
-          durationSeconds: elapsed,
-          totalCorrect: totalCorrect,
-          totalWords: vocab.length
-        }, '*');
-      }
-      phraseStartTime = 0;
-    }
+    reportPhraseStudy(5);
   }
 });

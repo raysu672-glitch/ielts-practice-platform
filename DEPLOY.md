@@ -50,6 +50,14 @@ $env:GITHUB_TOKEN="你的 GitHub Token"
 python scripts/deploy.py
 ```
 
+修复 2026-07-10 之前由重复上报产生的测试会话、重复学习会话和未完成阅读测试记录时，使用：
+
+```powershell
+python scripts/deploy.py --repair-tracking-data
+```
+
+该参数会在远程代码和数据库目录完成整站备份后，停止 `ielts` 服务，运行一次性数据修复，再由部署流程重启服务。修复脚本还会在数据库同目录保留一份带时间戳的 `.bak` 副本。
+
 首次部署或需要补齐系统依赖时：
 
 ```powershell

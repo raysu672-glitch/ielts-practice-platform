@@ -244,6 +244,21 @@ WantedBy=multi-user.target
     log("systemd service ready")
 
 
+def repair_tracking_data(ssh: paramiko.SSHClient) -> None:
+    log("Repairing legacy duplicate tracking data...")
+    run(ssh, "systemctl stop ielts", check=False)
+    try:
+        run(
+            ssh,
+            f"python3 {shell_quote(DEPLOY_DIR)}/scripts/repair_tracking_data.py "
+            f"--db {shell_quote(DEPLOY_DIR)}/data/ielts_local.db --apply",
+            timeout=600,
+        )
+    finally:
+        run(ssh, "systemctl start ielts", check=False)
+    log("Tracking data repair complete")
+
+
 def setup_nginx(ssh: paramiko.SSHClient) -> None:
     log("Configuring Nginx...")
     nginx_conf = f"""server {{
@@ -336,6 +351,11 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
     parser.add_argument("--no-backup", action="store_true", help="Skip remote backup")
     parser.add_argument("--skip-nginx", action="store_true", help="Do not rewrite Nginx config")
     parser.add_argument("--skip-systemd", action="store_true", help="Do not rewrite or restart systemd service")
+    parser.add_argument(
+        "--repair-tracking-data",
+        action="store_true",
+        help="Repair legacy duplicate study/test rows after the remote backup",
+    )
     return parser.parse_args(argv)
 
 
@@ -350,6 +370,8 @@ def main(argv: list[str]) -> int:
         if not args.no_backup:
             backup_remote(ssh)
         upload_files(ssh, include_data=args.include_data)
+        if args.repair_tracking_data:
+            repair_tracking_data(ssh)
         if not args.skip_systemd:
             setup_systemd(ssh)
         if args.provision and not args.skip_nginx:

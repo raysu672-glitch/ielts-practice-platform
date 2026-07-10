@@ -3639,12 +3639,11 @@ function _track_sendToParent(isExit) {
                 totalCount: total,
                 isExit: !!isExit
             }, '*');
+            _track_sessionStart = null;
         }
     } catch (e) {
         console.warn('[Track] 发送学习数据失败:', e);
     }
-    // 非退出时重置计时起点（每次发送增量）
-    if (!isExit) _track_sessionStart = Date.now();
 }
 
 /* ----- 监听主页面请求保存 ----- */

@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>藕叶英语 - 学习追踪系统</title><script src="local_db_client.js"></script><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script><style>
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>藕叶英语 - 学习追踪系统</title><script src="local_db_client.js"></script><script src="tracking_utils.js"></script><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script><style>
         /* === 设计系统 === */
         :root {
             --brand: #5c6bc0;
@@ -725,7 +725,7 @@
             th, td { padding: 8px 10px; }
             .tab { padding: 8px 12px; font-size: .82rem; }
         }
-    </style></head><body class="auth-view"><div class="container"><div class="brand-mark"><img class="brand-logo-img" src="logo.png" alt="藕叶英语"><div class="brand-tagline">基础训练学习追踪系统</div></div><div class="card screen active auth-card" id="studentLoginScreen"><h1>学生登录</h1><p class="subtitle">输入学号和密码开始学习</p><div class="input-group"><label>学号</label><input type="text" id="studentId" placeholder="请输入学号" onkeypress="if(event.key==='Enter')studentLogin()"></div><div class="input-group"><label>密码</label><input type="password" id="studentPassword" placeholder="请输入密码" onkeypress="if(event.key==='Enter')studentLogin()"></div><div class="btn-group"><button class="btn btn-block" onclick="studentLogin()">登录</button></div></div><div class="card screen auth-card" id="teacherLoginScreen"><h1>教师登录</h1><p class="subtitle">请输入教师密码</p><div class="input-group"><label>教师密码</label><input type="password" id="teacherPassword" placeholder="请输入密码" onkeypress="if(event.key==='Enter')verifyTeacherPassword()"></div><div class="btn-group"><button class="btn btn-block" onclick="verifyTeacherPassword()">确认</button></div><div class="auth-footer"><a class="teacher-entry-link" href="javascript:void(0)" onclick="showScreen('studentLoginScreen')">返回学生登录</a></div></div><div class="card screen" id="teacherDashboard"><div class="admin-header"><h2><img class="admin-header-logo" src="logo.png" alt="藕叶英语">教师后台</h2><button class="btn btn-secondary btn-sm" onclick="teacherLogout()">退出</button></div><div class="tab-bar"><div class="tab active" onclick="switchTeacherTab('students')">学生管理</div><div class="tab" onclick="switchTeacherTab('records')">测试记录</div><div class="tab" onclick="switchTeacherTab('progress')">学习进度</div><div class="tab" onclick="switchTeacherTab('standards')">达标标准</div></div><div id="tabStudents" class="tab-content"><div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:20px;"><button class="btn btn-sm" onclick="showAddStudentModal()">添加学生</button><button class="btn btn-sm btn-secondary" onclick="showBatchImportModal()">批量导入</button><button class="btn btn-sm btn-secondary" onclick="exportStudentsExcel()">导出学生名单</button><button class="btn btn-sm btn-secondary" onclick="exportRecordsExcel()">导出测试记录</button></div><div id="studentsList"></div></div><div id="tabRecords" class="tab-content" style="display:none;"><div id="recordsList"></div></div><div id="tabProgress" class="tab-content" style="display:none;"><div id="teacherStudentProgress"></div></div><div id="tabStandards" class="tab-content" style="display:none;"><div id="standardsList"></div></div></div><div class="card screen" id="studentHome"><div class="admin-header"><div><h2 id="studentWelcome">你好！</h2></div><div><button class="btn btn-secondary btn-sm" onclick="showChangePasswordModal()">改密码</button><button class="btn btn-secondary btn-sm" onclick="studentLogout()">退出</button></div></div><h3 style="text-align:center; color:#667eea; margin-bottom:20px;">学习进度表</h3><div class="tab-bar"><div class="tab active" onclick="switchStudentTab('progress')">学习进度</div><div class="tab" onclick="switchStudentTab('history')">历史记录</div></div><div id="studentTabProgress"><div id="progressTable"></div></div><div id="studentTabHistory" style="display:none;"><div class="history-chart" id="historyChart"></div><div id="studentHistoryList"></div></div></div><div class="card screen" id="testScreen"><div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div><div class="question-counter" id="questionCounter">第 1 / 50 题</div><div style="text-align:center;"><span id="testModeLabel" style="background:#e9ecef; padding:5px 15px; border-radius:20px; font-size:0.9rem;">随机测试</span></div><div style="text-align:center; margin:20px 0;"><div id="statusIcon" style="font-size:3rem;"></div><div id="timerDisplay" style="font-size:1.5rem; color:#667eea;">准备中...</div></div><div class="input-group"><label>请输入你听到的单词：</label><input type="text" id="answerInput" placeholder="输入单词..." autocomplete="off" onkeypress="if(event.key==='Enter')submitAnswer()"></div><div class="btn-group"><button class="btn btn-secondary" onclick="cancelTestAndReturn()">返回主页</button><button class="btn btn-secondary" onclick="skipWord()">跳过</button><button class="btn" onclick="submitAnswer()">提交</button></div></div><!-- 学习功能主界面 --><div class="card screen" id="learnScreen"><div class="admin-header"><h2> 单词学习</h2><button class="btn btn-secondary btn-sm" onclick="exitLearn()">返回</button></div><div id="learnStats" style="margin-bottom:20px; padding:15px; background:#f8f9fa; border-radius:10px;"><div style="display:grid; grid-template-columns:repeat(4, 1fr); gap:15px; text-align:center;"><div><div class="stat-value" id="learnMastered">0</div><div class="stat-label">已掌握</div></div><div><div class="stat-value" id="learnLearning">0</div><div class="stat-label">学习中</div></div><div><div class="stat-value" id="learnNew">0</div><div class="stat-label">未接触</div></div><div><div class="stat-value" id="learnTime">0:00</div><div class="stat-label">本次时长</div></div></div></div><div id="learnContent"><div style="text-align:center; padding:40px;"><h3 style="margin-bottom:20px;">开始学习</h3><p style="color:#666; margin-bottom:30px;">每次学习50个单词，系统会根据你的掌握情况智能安排</p><button class="btn" onclick="startLearnSession()">开始学习</button></div></div></div><!-- 学习测试界面 --><div class="card screen" id="learnTestScreen"><div class="progress-bar"><div class="progress-fill" id="learnProgressFill"></div></div><div class="question-counter" id="learnQuestionCounter">第 1 / 50 题</div><div style="text-align:center;"><span id="learnModeLabel" style="background:#e9ecef; padding:5px 15px; border-radius:20px; font-size:0.9rem;">初始测试</span></div><div style="text-align:center; margin:20px 0;"><div id="learnStatusIcon" style="font-size:3rem;"></div><div id="learnTimerDisplay" style="font-size:1.5rem; color:#667eea;">准备中...</div></div><div class="input-group"><label>请输入你听到的单词：</label><input type="text" id="learnAnswerInput" placeholder="输入单词..." autocomplete="off" onkeypress="if(event.key==='Enter')learnSubmitAnswer()"></div><div class="btn-group"><button class="btn btn-secondary" onclick="learnSkipWord()">跳过</button><button class="btn" onclick="learnSubmitAnswer()">提交</button></div></div><!-- 三次拼写练习界面 --><div class="card screen" id="practiceScreen"><div class="admin-header"><h3> 拼写练习 <span id="practiceProgress">(1/3)</span></h3><div>第 <span id="practiceGroupNum">1</span> 组 - 剩余 <span id="practiceRemaining">10</span> 词</div></div><div style="text-align:center; margin:30px 0;"><div id="practiceWord" style="font-size:2.5rem; font-weight:bold; color:#667eea; margin-bottom:5px;"></div><div id="practiceHint" style="font-size:0.9rem; color:#999; margin-bottom:15px;"></div><button class="btn btn-sm btn-secondary" onclick="playPracticeWord()"> 播放发音</button></div><div class="input-group"><label>请拼写上面的单词：</label><input type="text" id="practiceInput" placeholder="输入单词..." autocomplete="off" onkeypress="if(event.key==='Enter')submitPractice()"></div><div id="practiceFeedback" style="margin:15px 0; padding:10px; border-radius:8px; display:none;"></div><div class="btn-group"><button class="btn" onclick="submitPractice()">提交</button></div></div><!-- 学习结果界面 --><div class="card screen" id="learnResultScreen"><h1>学习完成！</h1><div style="text-align:center; margin:20px 0;"><div style="font-size:1.2rem; color:#667eea; margin-bottom:10px;">本次学习时长</div><div id="learnResultTime" style="font-size:3rem; font-weight:bold;">0:00</div></div><div class="stats-grid"><div class="stat-box"><div class="stat-value" id="learnResultInitial">0</div><div class="stat-label">初始正确</div></div><div class="stat-box"><div class="stat-value" id="learnResultWrong">0</div><div class="stat-label">需练习</div></div><div class="stat-box"><div class="stat-value" id="learnResultMastered">0</div><div class="stat-label">已掌握</div></div><div class="stat-box"><div class="stat-value" id="learnResultGroups">0</div><div class="stat-label">完成组数</div></div></div><div class="btn-group"><button class="btn" onclick="showLearnScreen()">继续学习</button><button class="btn btn-secondary" onclick="exitLearn()">返回主页</button></div></div><div class="card screen" id="resultScreen"><h1>测试完成！</h1><div id="resultStudentInfo" style="text-align:center; color:#667eea; margin:10px 0;"></div><div id="resultPassStatus" class="pass-status"></div><div style="text-align:center;"><div id="resultScore" style="font-size:4rem; font-weight:bold; background:linear-gradient(135deg,#667eea,#764ba2); -webkit-background-clip:text; -webkit-text-fill-color:transparent;">0%</div><p style="color:#666;">正确率（达标线：<span id="resultThreshold">80%</span>）</p></div><div class="stats-grid"><div class="stat-box"><div class="stat-value" id="resultCorrect">0</div><div class="stat-label">正确</div></div><div class="stat-box"><div class="stat-value" id="resultIncorrect">0</div><div class="stat-label">错误</div></div><div class="stat-box"><div class="stat-value" id="resultSkipped">0</div><div class="stat-label">跳过</div></div><div class="stat-box"><div class="stat-value" id="resultWrongCount">0</div><div class="stat-label">新增错题</div></div></div><div id="resultErrorList"></div><div class="btn-group"><button class="btn" onclick="downloadResult()">下载结果</button><button class="btn btn-secondary" onclick="backToStudentHome()">返回主页</button></div></div><!-- 通用外部模块学习界面（iframe 嵌入，用于所有配置了 url 的模块） --><div class="card screen" id="genericScreen" style="padding:0; overflow:hidden;"><div class="admin-header" style="padding:15px 20px;"><h2 id="genericScreenTitle"> 外部模块学习</h2><button class="btn btn-secondary btn-sm" onclick="exitGenericIframe()">返回</button></div><iframe id="genericIframe" src="" style="width:100%; height:calc(100vh - 120px); border:none;" allow="autoplay"></iframe></div><!-- 写作词伙学习界面（iframe 嵌入完整功能） --><div class="card screen" id="phraseScreen" style="padding:0; overflow:hidden;"><div class="admin-header" style="padding:15px 20px;"><h2> 写作词伙练习</h2><button class="btn btn-secondary btn-sm" onclick="exitPhrase()">返回</button></div><iframe id="phraseIframe" src="" style="width:100%; height:calc(100vh - 120px); border:none;" allow="autoplay"></iframe></div><!-- 新版听力学习界面（iframe 嵌入） --><div class="card screen" id="listeningScreen" style="padding:0; overflow:hidden;"><div class="admin-header" style="padding:15px 20px;"><h2> 听力单词学习</h2><button class="btn btn-secondary btn-sm" onclick="exitListening()">返回</button></div><iframe id="listeningIframe" src="" style="width:100%; height:calc(100vh - 120px); border:none;" allow="autoplay"></iframe></div></div><div class="modal" id="addStudentModal"><div class="modal-content"><div class="modal-header"><h3>添加学生</h3><button class="modal-close" onclick="closeModal('addStudentModal')">关闭</button></div><div class="input-group"><label>姓名 *</label><input type="text" id="newStudentName" placeholder="请输入姓名"></div><div class="input-group"><label>目标分数 *</label><select id="newStudentTarget"><option value="6">6 分</option><option value="6.5" selected>6.5 分</option><option value="7">7 分</option></select></div><p style="color:#666; font-size:0.85rem; margin-bottom:15px;">学号将自动生成，初始密码为 123456</p><div class="btn-group"><button class="btn" onclick="addStudent()">添加</button><button class="btn btn-secondary" onclick="closeModal('addStudentModal')">取消</button></div></div></div><div class="modal" id="batchImportModal"><div class="modal-content"><div class="modal-header"><h3>批量导入学生</h3><button class="modal-close" onclick="closeModal('batchImportModal')">关闭</button></div><p style="margin-bottom:15px;">每行一个学生，格式：姓名,目标分数（可选，默认6.5）</p><p style="color:#666; font-size:0.85rem; margin-bottom:10px;">示例：<br>张三<br>李四,6<br>王五,7</p><div class="input-group"><label>学生列表</label><textarea id="batchStudentList" rows="10" placeholder="每行一个学生"></textarea></div><div class="btn-group"><button class="btn" onclick="batchImportStudents()">导入</button><button class="btn btn-secondary" onclick="closeModal('batchImportModal')">取消</button></div></div></div><div class="modal" id="changePasswordModal"><div class="modal-content"><div class="modal-header"><h3>修改密码</h3><button class="modal-close" onclick="closeModal('changePasswordModal')">关闭</button></div><div class="input-group"><label>新密码</label><input type="password" id="newPassword" placeholder="请输入新密码"></div><div class="input-group"><label>确认密码</label><input type="password" id="confirmPassword" placeholder="请再次输入新密码"></div><div class="btn-group"><button class="btn" onclick="changePassword()">确认修改</button><button class="btn btn-secondary" onclick="closeModal('changePasswordModal')">取消</button></div></div></div><div class="toast" id="toast"></div><script>
+    </style></head><body class="auth-view"><div class="container"><div class="brand-mark"><img class="brand-logo-img" src="logo.png" alt="藕叶英语"><div class="brand-tagline">基础训练学习追踪系统</div></div><div class="card screen active auth-card" id="studentLoginScreen"><h1>学生登录</h1><p class="subtitle">输入学号和密码开始学习</p><div class="input-group"><label>学号</label><input type="text" id="studentId" placeholder="请输入学号" onkeypress="if(event.key==='Enter')studentLogin()"></div><div class="input-group"><label>密码</label><input type="password" id="studentPassword" placeholder="请输入密码" onkeypress="if(event.key==='Enter')studentLogin()"></div><div class="btn-group"><button class="btn btn-block" onclick="studentLogin()">登录</button></div></div><div class="card screen auth-card" id="teacherLoginScreen"><h1>教师登录</h1><p class="subtitle">请输入教师密码</p><div class="input-group"><label>教师密码</label><input type="password" id="teacherPassword" placeholder="请输入密码" onkeypress="if(event.key==='Enter')verifyTeacherPassword()"></div><div class="btn-group"><button class="btn btn-block" onclick="verifyTeacherPassword()">确认</button></div><div class="auth-footer"><a class="teacher-entry-link" href="javascript:void(0)" onclick="showScreen('studentLoginScreen')">返回学生登录</a></div></div><div class="card screen" id="teacherDashboard"><div class="admin-header"><h2><img class="admin-header-logo" src="logo.png" alt="藕叶英语">教师后台</h2><button class="btn btn-secondary btn-sm" onclick="teacherLogout()">退出</button></div><div class="tab-bar"><div class="tab active" onclick="switchTeacherTab('students')">学生管理</div><div class="tab" onclick="switchTeacherTab('records')">测试记录</div><div class="tab" onclick="switchTeacherTab('progress')">学习进度</div><div class="tab" onclick="switchTeacherTab('standards')">达标标准</div></div><div id="tabStudents" class="tab-content"><div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:20px;"><button class="btn btn-sm" onclick="showAddStudentModal()">添加学生</button><button class="btn btn-sm btn-secondary" onclick="showBatchImportModal()">批量导入</button><button class="btn btn-sm btn-secondary" onclick="exportStudentsExcel()">导出学生名单</button><button class="btn btn-sm btn-secondary" onclick="exportRecordsExcel()">导出测试记录</button></div><div id="studentsList"></div></div><div id="tabRecords" class="tab-content" style="display:none;"><div id="recordsList"></div></div><div id="tabProgress" class="tab-content" style="display:none;"><div id="teacherStudentProgress"></div></div><div id="tabStandards" class="tab-content" style="display:none;"><div id="standardsList"></div></div></div><div class="card screen" id="studentHome"><div class="admin-header"><div><h2 id="studentWelcome">你好！</h2></div><div><button class="btn btn-secondary btn-sm" onclick="showChangePasswordModal()">改密码</button><button class="btn btn-secondary btn-sm" onclick="studentLogout()">退出</button></div></div><h3 style="text-align:center; color:#667eea; margin-bottom:20px;">学习进度表</h3><div class="tab-bar"><div class="tab active" data-student-tab="progress" onclick="switchStudentTab('progress')">学习进度</div><div class="tab" data-student-tab="history" onclick="switchStudentTab('history')">历史记录</div></div><div id="studentTabProgress"><div id="progressTable"></div></div><div id="studentTabHistory" style="display:none;"><div class="history-chart" id="historyChart"></div><div id="studentHistoryList"></div></div></div><div class="card screen" id="testScreen"><div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div><div class="question-counter" id="questionCounter">第 1 / 50 题</div><div style="text-align:center;"><span id="testModeLabel" style="background:#e9ecef; padding:5px 15px; border-radius:20px; font-size:0.9rem;">随机测试</span></div><div style="text-align:center; margin:20px 0;"><div id="statusIcon" style="font-size:3rem;"></div><div id="timerDisplay" style="font-size:1.5rem; color:#667eea;">准备中...</div></div><div class="input-group"><label>请输入你听到的单词：</label><input type="text" id="answerInput" placeholder="输入单词..." autocomplete="off" onkeypress="if(event.key==='Enter')submitAnswer()"></div><div class="btn-group"><button class="btn btn-secondary" onclick="cancelTestAndReturn()">返回主页</button><button class="btn btn-secondary" onclick="skipWord()">跳过</button><button class="btn" onclick="submitAnswer()">提交</button></div></div><!-- 学习功能主界面 --><div class="card screen" id="learnScreen"><div class="admin-header"><h2> 单词学习</h2><button class="btn btn-secondary btn-sm" onclick="exitLearn()">返回</button></div><div id="learnStats" style="margin-bottom:20px; padding:15px; background:#f8f9fa; border-radius:10px;"><div style="display:grid; grid-template-columns:repeat(4, 1fr); gap:15px; text-align:center;"><div><div class="stat-value" id="learnMastered">0</div><div class="stat-label">已掌握</div></div><div><div class="stat-value" id="learnLearning">0</div><div class="stat-label">学习中</div></div><div><div class="stat-value" id="learnNew">0</div><div class="stat-label">未接触</div></div><div><div class="stat-value" id="learnTime">0:00</div><div class="stat-label">本次时长</div></div></div></div><div id="learnContent"><div style="text-align:center; padding:40px;"><h3 style="margin-bottom:20px;">开始学习</h3><p style="color:#666; margin-bottom:30px;">每次学习50个单词，系统会根据你的掌握情况智能安排</p><button class="btn" onclick="startLearnSession()">开始学习</button></div></div></div><!-- 学习测试界面 --><div class="card screen" id="learnTestScreen"><div class="progress-bar"><div class="progress-fill" id="learnProgressFill"></div></div><div class="question-counter" id="learnQuestionCounter">第 1 / 50 题</div><div style="text-align:center;"><span id="learnModeLabel" style="background:#e9ecef; padding:5px 15px; border-radius:20px; font-size:0.9rem;">初始测试</span></div><div style="text-align:center; margin:20px 0;"><div id="learnStatusIcon" style="font-size:3rem;"></div><div id="learnTimerDisplay" style="font-size:1.5rem; color:#667eea;">准备中...</div></div><div class="input-group"><label>请输入你听到的单词：</label><input type="text" id="learnAnswerInput" placeholder="输入单词..." autocomplete="off" onkeypress="if(event.key==='Enter')learnSubmitAnswer()"></div><div class="btn-group"><button class="btn btn-secondary" onclick="learnSkipWord()">跳过</button><button class="btn" onclick="learnSubmitAnswer()">提交</button></div></div><!-- 三次拼写练习界面 --><div class="card screen" id="practiceScreen"><div class="admin-header"><h3> 拼写练习 <span id="practiceProgress">(1/3)</span></h3><div>第 <span id="practiceGroupNum">1</span> 组 - 剩余 <span id="practiceRemaining">10</span> 词</div></div><div style="text-align:center; margin:30px 0;"><div id="practiceWord" style="font-size:2.5rem; font-weight:bold; color:#667eea; margin-bottom:5px;"></div><div id="practiceHint" style="font-size:0.9rem; color:#999; margin-bottom:15px;"></div><button class="btn btn-sm btn-secondary" onclick="playPracticeWord()"> 播放发音</button></div><div class="input-group"><label>请拼写上面的单词：</label><input type="text" id="practiceInput" placeholder="输入单词..." autocomplete="off" onkeypress="if(event.key==='Enter')submitPractice()"></div><div id="practiceFeedback" style="margin:15px 0; padding:10px; border-radius:8px; display:none;"></div><div class="btn-group"><button class="btn" onclick="submitPractice()">提交</button></div></div><!-- 学习结果界面 --><div class="card screen" id="learnResultScreen"><h1>学习完成！</h1><div style="text-align:center; margin:20px 0;"><div style="font-size:1.2rem; color:#667eea; margin-bottom:10px;">本次学习时长</div><div id="learnResultTime" style="font-size:3rem; font-weight:bold;">0:00</div></div><div class="stats-grid"><div class="stat-box"><div class="stat-value" id="learnResultInitial">0</div><div class="stat-label">初始正确</div></div><div class="stat-box"><div class="stat-value" id="learnResultWrong">0</div><div class="stat-label">需练习</div></div><div class="stat-box"><div class="stat-value" id="learnResultMastered">0</div><div class="stat-label">已掌握</div></div><div class="stat-box"><div class="stat-value" id="learnResultGroups">0</div><div class="stat-label">完成组数</div></div></div><div class="btn-group"><button class="btn" onclick="showLearnScreen()">继续学习</button><button class="btn btn-secondary" onclick="exitLearn()">返回主页</button></div></div><div class="card screen" id="resultScreen"><h1>测试完成！</h1><div id="resultStudentInfo" style="text-align:center; color:#667eea; margin:10px 0;"></div><div id="resultPassStatus" class="pass-status"></div><div style="text-align:center;"><div id="resultScore" style="font-size:4rem; font-weight:bold; background:linear-gradient(135deg,#667eea,#764ba2); -webkit-background-clip:text; -webkit-text-fill-color:transparent;">0%</div><p style="color:#666;">正确率（达标线：<span id="resultThreshold">80%</span>）</p></div><div class="stats-grid"><div class="stat-box"><div class="stat-value" id="resultCorrect">0</div><div class="stat-label">正确</div></div><div class="stat-box"><div class="stat-value" id="resultIncorrect">0</div><div class="stat-label">错误</div></div><div class="stat-box"><div class="stat-value" id="resultSkipped">0</div><div class="stat-label">跳过</div></div><div class="stat-box"><div class="stat-value" id="resultWrongCount">0</div><div class="stat-label">新增错题</div></div></div><div id="resultErrorList"></div><div class="btn-group"><button class="btn" onclick="downloadResult()">下载结果</button><button class="btn btn-secondary" onclick="backToStudentHome()">返回主页</button></div></div><!-- 通用外部模块学习界面（iframe 嵌入，用于所有配置了 url 的模块） --><div class="card screen" id="genericScreen" style="padding:0; overflow:hidden;"><div class="admin-header" style="padding:15px 20px;"><h2 id="genericScreenTitle"> 外部模块学习</h2><button class="btn btn-secondary btn-sm" onclick="exitGenericIframe()">返回</button></div><iframe id="genericIframe" src="" style="width:100%; height:calc(100vh - 120px); border:none;" allow="autoplay"></iframe></div><!-- 写作词伙学习界面（iframe 嵌入完整功能） --><div class="card screen" id="phraseScreen" style="padding:0; overflow:hidden;"><div class="admin-header" style="padding:15px 20px;"><h2> 写作词伙练习</h2><button class="btn btn-secondary btn-sm" onclick="exitPhrase()">返回</button></div><iframe id="phraseIframe" src="" style="width:100%; height:calc(100vh - 120px); border:none;" allow="autoplay"></iframe></div><!-- 新版听力学习界面（iframe 嵌入） --><div class="card screen" id="listeningScreen" style="padding:0; overflow:hidden;"><div class="admin-header" style="padding:15px 20px;"><h2> 听力单词学习</h2><button class="btn btn-secondary btn-sm" onclick="exitListening()">返回</button></div><iframe id="listeningIframe" src="" style="width:100%; height:calc(100vh - 120px); border:none;" allow="autoplay"></iframe></div></div><div class="modal" id="addStudentModal"><div class="modal-content"><div class="modal-header"><h3>添加学生</h3><button class="modal-close" onclick="closeModal('addStudentModal')">关闭</button></div><div class="input-group"><label>姓名 *</label><input type="text" id="newStudentName" placeholder="请输入姓名"></div><div class="input-group"><label>目标分数 *</label><select id="newStudentTarget"><option value="6">6 分</option><option value="6.5" selected>6.5 分</option><option value="7">7 分</option></select></div><p style="color:#666; font-size:0.85rem; margin-bottom:15px;">学号将自动生成，初始密码为 123456</p><div class="btn-group"><button class="btn" onclick="addStudent()">添加</button><button class="btn btn-secondary" onclick="closeModal('addStudentModal')">取消</button></div></div></div><div class="modal" id="batchImportModal"><div class="modal-content"><div class="modal-header"><h3>批量导入学生</h3><button class="modal-close" onclick="closeModal('batchImportModal')">关闭</button></div><p style="margin-bottom:15px;">每行一个学生，格式：姓名,目标分数（可选，默认6.5）</p><p style="color:#666; font-size:0.85rem; margin-bottom:10px;">示例：<br>张三<br>李四,6<br>王五,7</p><div class="input-group"><label>学生列表</label><textarea id="batchStudentList" rows="10" placeholder="每行一个学生"></textarea></div><div class="btn-group"><button class="btn" onclick="batchImportStudents()">导入</button><button class="btn btn-secondary" onclick="closeModal('batchImportModal')">取消</button></div></div></div><div class="modal" id="changePasswordModal"><div class="modal-content"><div class="modal-header"><h3>修改密码</h3><button class="modal-close" onclick="closeModal('changePasswordModal')">关闭</button></div><div class="input-group"><label>新密码</label><input type="password" id="newPassword" placeholder="请输入新密码"></div><div class="input-group"><label>确认密码</label><input type="password" id="confirmPassword" placeholder="请再次输入新密码"></div><div class="btn-group"><button class="btn" onclick="changePassword()">确认修改</button><button class="btn btn-secondary" onclick="closeModal('changePasswordModal')">取消</button></div></div></div><div class="toast" id="toast"></div><script>
         // Supabase 为备用数据源；生产默认使用同域 SQLite API。
         const SUPABASE_URL = window.IELTS_SUPABASE_URL || '';
         const SUPABASE_KEY = window.IELTS_SUPABASE_KEY || '';
@@ -1337,6 +1337,14 @@
             });
         }
 
+        function getStudySessions(sessions) {
+            return window.TrackingUtils.filterStudySessions(sessions);
+        }
+
+        function getModuleStudySessions(sessions, moduleId) {
+            return getModuleSessions(getStudySessions(sessions), moduleId);
+        }
+
         function formatDuration(seconds) {
             seconds = Math.max(0, Number(seconds) || 0);
             if (seconds <= 0) return '-';
@@ -1392,6 +1400,7 @@
         }
 
         const studySaveCache = {};
+        const testSaveCache = {};
 
         function getStudySaveKey(record) {
             return [
@@ -1405,13 +1414,25 @@
             ].join('|');
         }
 
+        function getTestSaveKey(record) {
+            return [
+                record.student_id,
+                record.module_type,
+                record.test_type,
+                record.score,
+                record.correct_count,
+                record.total_count,
+                Math.round((Number(record.duration_seconds) || 0) / 3) * 3
+            ].join('|');
+        }
+
         async function saveStudySession(payload) {
             if (!db) return { skipped: true, reason: 'db_missing' };
             const studentId = payload.student_id || (currentStudent && currentStudent.student_id);
             if (!studentId) return { skipped: true, reason: 'student_missing' };
             const moduleType = normalizeModuleType(payload.moduleType || payload.module_type || (window._currentModule && window._currentModule.id));
             const module = getModuleById(moduleType);
-            const duration = Math.max(0, Number(payload.durationSeconds || payload.duration_seconds || 0));
+            const duration = Math.max(0, Math.round(Number(payload.durationSeconds || payload.duration_seconds || 0)));
             const sessionKind = payload.sessionKind || payload.session_kind || 'study';
             if (duration <= 0 && sessionKind !== 'test') return { skipped: true, reason: 'empty_duration' };
 
@@ -1459,7 +1480,7 @@
                 ? Number(payload.scorePercent)
                 : (payload.score_percent != null ? Number(payload.score_percent) : (payload.score != null ? Number(payload.score) : (totalCount > 0 ? Math.round(correctCount / totalCount * 100) : 0)));
             const threshold = payload.passThreshold != null ? Number(payload.passThreshold) : (payload.pass_threshold != null ? Number(payload.pass_threshold) : await getPassThreshold(moduleType, currentStudent));
-            const duration = Math.max(0, Number(payload.durationSeconds || payload.duration_seconds || 0));
+            const duration = Math.max(0, Math.round(Number(payload.durationSeconds || payload.duration_seconds || 0)));
             const isPassed = payload.isPassed != null ? !!payload.isPassed : (payload.is_passed != null ? !!payload.is_passed : score >= threshold);
             const nowIso = new Date().toISOString();
             const record = {
@@ -1477,22 +1498,15 @@
                 ended_at: payload.endedAt || payload.ended_at || nowIso,
                 details: payload.details || []
             };
+            const cacheKey = getTestSaveKey(record);
+            const cacheTime = testSaveCache[cacheKey];
+            if (cacheTime && Date.now() - cacheTime < 5000) {
+                return { skipped: true, reason: 'duplicate' };
+            }
+            testSaveCache[cacheKey] = Date.now();
             const result = await db.from('test_records').insert(record);
+            if (result.error) delete testSaveCache[cacheKey];
             if (!result.error) {
-                await saveStudySession({
-                    student_id: studentId,
-                    module_type: moduleType,
-                    module_name: record.module_name,
-                    session_kind: 'test',
-                    words_tested: totalCount,
-                    initial_correct: correctCount,
-                    initial_wrong: Math.max(0, totalCount - correctCount),
-                    score_percent: score,
-                    duration_seconds: duration,
-                    started_at: record.started_at,
-                    ended_at: record.ended_at,
-                    details: record.details
-                });
                 if (window._currentModule && normalizeModuleType(window._currentModule.id) === moduleType) {
                     window._currentModule.reported = true;
                 }
@@ -1521,7 +1535,7 @@
 
         function buildDailyStudyRows(sessions, moduleId) {
             const rows = {};
-            (sessions || []).forEach(function(session) {
+            getStudySessions(sessions).forEach(function(session) {
                 const dateKey = getChinaDateKey(session.created_at);
                 if (!rows[dateKey]) {
                     rows[dateKey] = { date: dateKey, moduleSeconds: 0, totalSeconds: 0, moduleCount: 0, totalCount: 0, latest: session.created_at };
@@ -1550,14 +1564,14 @@
             const recordsResult = await db.from('test_records').select('*').eq('student_id', currentStudent.student_id);
             const records = recordsResult.data || [];
             const sessionsResult = await db.from('study_sessions').select('*').eq('student_id', currentStudent.student_id);
-            const sessions = sessionsResult.data || [];
+            const sessions = getStudySessions(sessionsResult.data || []);
             const wrongResult = await db.from('wrong_words').select('*').eq('student_id', currentStudent.student_id).eq('is_mastered', false);
             const wrongCount = wrongResult.data ? wrongResult.data.length : 0;
 
-            const totalStudySeconds = sessions.reduce(function(sum, s) { return sum + (Number(s.duration_seconds) || 0); }, 0);
-            const todayKey = new Date().toLocaleDateString('zh-CN');
+            const totalStudySeconds = window.TrackingUtils.sumDuration(sessions);
+            const todayKey = getChinaDateKey();
             const todayStudySeconds = sessions.filter(function(s) {
-                return new Date(s.created_at).toLocaleDateString('zh-CN') === todayKey;
+                return getChinaDateKey(s.created_at) === todayKey;
             }).reduce(function(sum, s) { return sum + (Number(s.duration_seconds) || 0); }, 0);
             const availableModules = MODULES.filter(isModuleAvailable);
             const testableModules = availableModules.filter(function(m) { return m.id === 'dictation' || m.test_url; });
@@ -1577,8 +1591,8 @@
                 const m = availableModules[i];
                 const moduleTarget = getModuleTarget(m);
                 const moduleRecords = getModuleRecords(records, m.id);
-                const modSessions = getModuleSessions(sessions, m.id);
-                const modSeconds = modSessions.reduce(function(sum, s) { return sum + (Number(s.duration_seconds) || 0); }, 0);
+                const modSessions = getModuleStudySessions(sessions, m.id);
+                const modSeconds = window.TrackingUtils.sumDuration(modSessions);
                 const bestScore = getBestScore(moduleRecords);
                 const passCount = getPassCount(moduleRecords);
                 const progressPercent = bestScore > 0 ? Math.min(100, Math.round((bestScore / moduleTarget) * 100)) : 0;
@@ -1649,8 +1663,9 @@
         }
         
         function switchStudentTab(tab) {
-            document.querySelectorAll('#studentHome .tab').forEach(function(t) { t.classList.remove('active'); });
-            event.target.classList.add('active');
+            document.querySelectorAll('#studentHome [data-student-tab]').forEach(function(t) {
+                t.classList.toggle('active', t.getAttribute('data-student-tab') === tab);
+            });
             document.getElementById('studentTabProgress').style.display = tab === 'progress' ? 'block' : 'none';
             document.getElementById('studentTabHistory').style.display = tab === 'history' ? 'block' : 'none';
             if (tab === 'history') {
@@ -1672,32 +1687,22 @@
             let html = '';
             for (let i = 0; i < records.length; i++) {
                 const r = records[i];
-                const typeText = r.test_type === 'random' ? '随机测试' : '错题测试';
+                const module = getModuleById(r.module_type);
+                const moduleName = r.module_name || (module ? module.name : normalizeModuleType(r.module_type));
+                const typeText = window.TrackingUtils.getTestTypeLabel(r.test_type);
                 const dateStr = new Date(r.created_at).toLocaleString('zh-CN');
                 const color = r.is_passed ? 'color:#28a745;' : 'color:#dc3545;';
                 const badgeClass = r.is_passed ? 'badge-success' : 'badge-danger';
                 const statusText = r.is_passed ? '达标' : '未达标';
-                
-                // 解析错题详情（包括跳过和答错的）
-                let wrongWords = [];
-                let hasDetails = false;
-                if (r.details) {
-                    try {
-                        const details = JSON.parse(r.details);
-                        // 所有不正确的都算作错题（包括跳过和拼写错误）
-                        wrongWords = details.filter(function(d) { return !d.isCorrect; });
-                        hasDetails = true;
-                    } catch (e) {
-                        wrongWords = [];
-                    }
-                }
-                // 如果没有details，从正确数计算错题数
-                const wrongCount = hasDetails ? wrongWords.length : (r.total_count - r.correct_count);
+                const wrongWords = window.TrackingUtils.getWrongWordDetails(r.details);
+                const wrongCount = Math.max(0, Number(r.total_count) - Number(r.correct_count));
+                const wrongWordList = wrongWords.map(function(w) { return w.word; }).join(',');
                 
                 html += '<div style="padding:15px;border-bottom:1px solid #eee; cursor:pointer;" onclick="toggleHistoryDetail(' + i + ')">';
                 html += '<div style="display:flex;justify-content:space-between;align-items:center;">';
-                html += '<div><span style="font-weight:600;">' + typeText + '</span>';
-                html += '<span style="color:#666;font-size:0.85rem;margin-left:10px;">' + dateStr + '</span></div>';
+                html += '<div><span style="font-weight:600;">' + escapeHtml(moduleName) + '</span>';
+                html += '<span class="badge badge-info" style="margin-left:8px;">' + escapeHtml(typeText) + '</span>';
+                html += '<span style="color:#666;font-size:0.85rem;margin-left:10px;">' + escapeHtml(dateStr) + '</span></div>';
                 html += '<div><span style="font-size:1.2rem;font-weight:bold;' + color + '">' + r.score + '%</span>';
                 html += '<span class="badge ' + badgeClass + '" style="margin-left:10px;">' + statusText + '</span></div>';
                 html += '</div>';
@@ -1705,16 +1710,17 @@
                 html += '<span style="color:#28a745;">正确: ' + r.correct_count + '/' + r.total_count + '</span>';
                 html += ' <span style="color:#dc3545;margin-left:10px;">错题: ' + wrongCount + '个</span>';
                 html += ' <span style="color:#666;margin-left:10px;">达标线: ' + r.pass_threshold + '%</span>';
-                if (hasDetails && wrongWords.length > 0) {
+                if (Number(r.duration_seconds) > 0) {
+                    html += ' <span style="color:#666;margin-left:10px;">测试时长: ' + escapeHtml(formatDuration(r.duration_seconds)) + '</span>';
+                }
+                if (wrongWords.length > 0) {
                     html += ' <span style="color:#667eea;margin-left:10px;">(点击查看详情)</span>';
                 }
                 html += '</div>';
                 
-                // 测错题按钮
-                if (wrongCount > 0) {
-                    const wrongWordList = hasDetails ? wrongWords.map(function(w) { return w.word; }).join(',') : '';
+                if (wrongWordList) {
                     html += '<div style="margin-top:10px;">';
-                    html += '<button class="btn btn-sm" style="padding:6px 16px;font-size:0.85rem;" onclick="event.stopPropagation();startWrongWordsTestFromHistory(\'' + wrongWordList + '\')">测错题</button>';
+                    html += '<button class="btn btn-sm" style="padding:6px 16px;font-size:0.85rem;" onclick="event.stopPropagation();startWrongWordsTestFromHistory(\'' + escapeJsString(wrongWordList) + '\')">测错题</button>';
                     html += '</div>';
                 }
                 
@@ -1725,12 +1731,12 @@
                     for (let j = 0; j < wrongWords.length; j++) {
                         const w = wrongWords[j];
                         html += '<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px dashed #e0d6b8;">';
-                        html += '<div><span style="font-weight:600;color:#333;">' + w.word + '</span>';
+                        html += '<div><span style="font-weight:600;color:#333;">' + escapeHtml(w.word) + '</span>';
                         if (w.phonetic) {
-                            html += ' <span style="color:#666;font-size:0.85rem;">' + w.phonetic + '</span>';
+                            html += ' <span style="color:#666;font-size:0.85rem;">' + escapeHtml(w.phonetic) + '</span>';
                         }
                         html += '</div>';
-                        html += '<div style="color:#dc3545;font-size:0.9rem;">你的答案: ' + (w.userAnswer || '未作答') + '</div>';
+                        html += '<div style="color:#dc3545;font-size:0.9rem;">你的答案: ' + escapeHtml(w.userAnswer || '未作答') + '</div>';
                         html += '</div>';
                     }
                     html += '</div>';
@@ -1741,7 +1747,7 @@
             container.innerHTML = html;
             
             // 简单图表
-            const reversed = records.slice().reverse();
+            const reversed = records.slice(0, 20).reverse();
             let chartHtml = '<div style="display:flex;align-items:flex-end;height:150px;padding:10px;background:#f8f9fa;border-radius:10px;">';
             for (let i = 0; i < reversed.length; i++) {
                 const r = reversed[i];
@@ -2164,16 +2170,16 @@
             for (let i = 0; i < students.length; i++) {
                 const s = students[i];
                 const studentRecordsAll = (allRecords || []).filter(function(r) { return r.student_id === s.student_id; });
-                const studentSessionsAll = (allStudySessions || []).filter(function(r) { return r.student_id === s.student_id; });
+                const studentSessionsAll = getStudySessions(allStudySessions).filter(function(r) { return r.student_id === s.student_id; });
                 for (let j = 0; j < modules.length; j++) {
                     const module = modules[j];
                     const studentRecords = getModuleRecords(studentRecordsAll, module.id);
-                    const studentSessions = getModuleSessions(studentSessionsAll, module.id);
+                    const studentSessions = getModuleStudySessions(studentSessionsAll, module.id);
                     const target = getModuleTargetForScore(module, getStudentTargetScoreValue(s));
                     const bestScore = getBestScore(studentRecords);
                     const passCount = getPassCount(studentRecords);
                     const passRate = studentRecords.length > 0 ? Math.round(passCount / studentRecords.length * 100) : 0;
-                    const totalSeconds = studentSessions.reduce(function(sum, r) { return sum + (Number(r.duration_seconds) || 0); }, 0);
+                    const totalSeconds = window.TrackingUtils.sumDuration(studentSessions);
                     const todaySeconds = studentSessions.filter(function(r) { return getChinaDateKey(r.created_at) === todayKey; }).reduce(function(sum, r) { return sum + (Number(r.duration_seconds) || 0); }, 0);
                     let status = 'not_started';
                     let statusText = '未开始';
@@ -2333,7 +2339,7 @@
             html += '<th><select class="records-filter-control" onchange="setProgressColumnFilter(\'todayDurationRange\',this.value)">' + todayDurationOptions + '</select></th>';
             html += '<th><select class="records-filter-control" onchange="setProgressColumnFilter(\'status\',this.value)"><option value="">全部</option><option value="passed"' + (_progressColumnFilters.status === 'passed' ? ' selected' : '') + '>已达标</option><option value="in_progress"' + (_progressColumnFilters.status === 'in_progress' ? ' selected' : '') + '>进行中</option><option value="not_started"' + (_progressColumnFilters.status === 'not_started' ? ' selected' : '') + '>未开始</option></select></th>';
             html += '</tr>';
-            html += '<tr class="records-header-row"><th>学号</th><th>姓名</th><th>模块</th><th>达标线</th><th>最高分</th><th>测试次数</th><th>达标次数</th><th>达标率</th><th>模块总时长</th><th>今日时长</th><th>状态</th></tr></thead><tbody>';
+            html += '<tr class="records-header-row"><th>学号</th><th>姓名</th><th>模块</th><th>达标线</th><th>最高分</th><th>测试次数</th><th>达标次数</th><th>达标率</th><th>模块学习时长</th><th>今日学习时长</th><th>状态</th></tr></thead><tbody>';
 
             for (let i = 0; i < filteredRows.length; i++) {
                 const row = filteredRows[i];
@@ -2373,12 +2379,12 @@
             const wrongCount = wrongResult.data ? wrongResult.data.length : 0;
 
             const sessionsResult = await db.from('study_sessions').select('*').eq('student_id', studentId);
-            const allSessions = sessionsResult.data || [];
+            const allSessions = getStudySessions(sessionsResult.data || []);
             const selectedRecords = getModuleRecords(records, filterModuleId);
-            const selectedSessions = getModuleSessions(allSessions, filterModuleId);
+            const selectedSessions = getModuleStudySessions(allSessions, filterModuleId);
             const selectedBestScore = getBestScore(selectedRecords);
             const selectedPassCount = getPassCount(selectedRecords);
-            const selectedSeconds = selectedSessions.reduce(function(sum, s) { return sum + (Number(s.duration_seconds) || 0); }, 0);
+            const selectedSeconds = window.TrackingUtils.sumDuration(selectedSessions);
 
             let html = '<div style="margin-bottom:20px;">';
             html += '<button class="btn btn-sm btn-secondary" onclick="loadTeacherProgressData()"> 返回汇总</button>';
@@ -2411,10 +2417,10 @@
                 const m = MODULES[i];
                 const moduleTarget = getModuleTargetForScore(m, studentTargetScore);
                 const moduleRecords = getModuleRecords(records, m.id);
-                const moduleSessions = getModuleSessions(allSessions, m.id);
+                const moduleSessions = getModuleStudySessions(allSessions, m.id);
                 const bestScore = getBestScore(moduleRecords);
                 const passCount = getPassCount(moduleRecords);
-                const moduleTotalSeconds = moduleSessions.reduce(function(sum, s) { return sum + (Number(s.duration_seconds) || 0); }, 0);
+                const moduleTotalSeconds = window.TrackingUtils.sumDuration(moduleSessions);
                 const progressPercent = bestScore > 0 ? Math.min(100, Math.round((bestScore / moduleTarget) * 100)) : 0;
                 let statusClass = 'badge-info';
                 let statusText = '未开始';
@@ -2469,7 +2475,7 @@
             html += '<div><div style="font-size:1.5rem; font-weight:bold; color:#667eea;">' + records.length + '</div><div style="color:#666; font-size:0.9rem;">全部测试次数</div></div>';
             html += '<div><div style="font-size:1.5rem; font-weight:bold; color:#28a745;">' + selectedPassCount + '</div><div style="color:#666; font-size:0.9rem;">本模块达标次数</div></div>';
             html += '<div><div style="font-size:1.5rem; font-weight:bold; color:#11998e;">' + (selectedRecords.length > 0 ? Math.round(selectedPassCount / selectedRecords.length * 100) : 0) + '%</div><div style="color:#666; font-size:0.9rem;">本模块达标率</div></div>';
-            html += '<div><div style="font-size:1.5rem; font-weight:bold; color:#764ba2;">' + formatDuration(allSessions.reduce(function(sum, s) { return sum + (Number(s.duration_seconds) || 0); }, 0)) + '</div><div style="color:#666; font-size:0.9rem;">全部学习时长</div></div>';
+            html += '<div><div style="font-size:1.5rem; font-weight:bold; color:#764ba2;">' + formatDuration(window.TrackingUtils.sumDuration(allSessions)) + '</div><div style="color:#666; font-size:0.9rem;">全部学习时长</div></div>';
             html += '</div></div>';
 
             container.innerHTML = html;
@@ -3950,7 +3956,11 @@
 
         async function saveCurrentModuleFallback() {
             const current = window._currentModule;
-            if (!current || current.reported || current.mode === 'test') return;
+            if (!current || current.mode === 'test') return;
+            if (current.pendingStudySave) {
+                try { await current.pendingStudySave; } catch (e) {}
+            }
+            if (current.reported) return;
             const duration = Math.floor((Date.now() - current.startedAt) / 1000);
             if (duration < 3) return;
             const result = await saveStudySession({
@@ -4038,33 +4048,51 @@
         window.openListeningIframe = openListeningIframe;
         window.exitListening = exitListening;
 
+        function isTrustedModuleMessage(event, current) {
+            if (!current || !current.id || !currentStudent) return false;
+            if (event.origin !== window.location.origin) return false;
+            const iframeId = current.id === 'dictation' && current.mode === 'study'
+                ? 'listeningIframe'
+                : 'genericIframe';
+            const iframe = document.getElementById(iframeId);
+            return !!(iframe && iframe.contentWindow && event.source === iframe.contentWindow);
+        }
+
         window.addEventListener('message', async function(event) {
             const data = event.data;
             if (!data || !data.type) return;
+            const current = window._currentModule;
+            if (!isTrustedModuleMessage(event, current)) return;
 
             try {
                 if (data.type === 'genericStudyComplete' || data.type === 'phraseStudyComplete' || data.type === 'listeningStudyComplete' || data.type === 'listeningStudyTime') {
-                    const current = window._currentModule || {};
-                    const moduleType = data.type === 'listeningStudyComplete' || data.type === 'listeningStudyTime'
-                        ? 'dictation'
-                        : (data.moduleType || data.module_type || current.id);
+                    if (current.mode !== 'study') return;
+                    const moduleType = current.id;
                     const module = getModuleById(moduleType);
                     const totalWords = data.totalWords || data.totalCount || data.wordsTested || 0;
                     const totalCorrect = data.totalCorrect || data.rightCount || data.masteredCount || data.correctCount || 0;
-                    const result = await saveStudySession({
-                        student_id: data.student_id,
+                    const endedAt = data.endedAt || data.ended_at || new Date().toISOString();
+                    const elapsedSeconds = Math.max(0, Math.ceil((Date.now() - current.startedAt) / 1000));
+                    const reportedSeconds = Math.max(0, Math.round(Number(data.durationSeconds || data.duration_seconds || 0)));
+                    const durationSeconds = Math.min(reportedSeconds, elapsedSeconds + 5);
+                    const startedAt = data.startedAt || data.started_at || new Date(new Date(endedAt).getTime() - durationSeconds * 1000).toISOString();
+                    const savePromise = saveStudySession({
+                        student_id: currentStudent.student_id,
                         module_type: moduleType,
-                        module_name: data.moduleName || data.module_name || current.name || (module ? module.name : moduleType),
+                        module_name: current.name || (module ? module.name : moduleType),
                         session_kind: 'study',
                         totalWords: totalWords,
                         totalCorrect: totalCorrect,
                         wrongCount: data.wrongCount != null ? data.wrongCount : Math.max(0, totalWords - totalCorrect),
                         completedGroups: data.completedGroups || 0,
-                        durationSeconds: data.durationSeconds || 0,
-                        started_at: data.startedAt || data.started_at || (current.startedAt ? new Date(current.startedAt).toISOString() : null),
-                        ended_at: data.endedAt || data.ended_at || new Date().toISOString(),
+                        durationSeconds: durationSeconds,
+                        started_at: startedAt,
+                        ended_at: endedAt,
                         details: data.details || []
                     });
+                    current.pendingStudySave = savePromise;
+                    const result = await savePromise;
+                    if (current.pendingStudySave === savePromise) current.pendingStudySave = null;
                     if (result.error) {
                         console.error('保存学习记录失败:', result.error);
                         showToast('保存学习时长失败', 'error');
@@ -4076,26 +4104,29 @@
                 }
 
                 if (data.type === 'genericTestComplete' || data.type === 'moduleTestComplete') {
-                    const current = window._currentModule || {};
-                    const moduleType = data.moduleType || data.module_type || current.id;
+                    if (current.mode !== 'test' || data.completed !== true) return;
+                    const moduleType = current.id;
                     const module = getModuleById(moduleType);
+                    const durationSeconds = Math.max(0, Math.round(Number(data.durationSeconds || data.duration_seconds || 0)));
+                    const endedAt = data.endedAt || data.ended_at || new Date().toISOString();
+                    const startedAt = data.startedAt || data.started_at || new Date(new Date(endedAt).getTime() - durationSeconds * 1000).toISOString();
                     const result = await saveModuleTestRecord({
-                        student_id: data.student_id,
+                        student_id: currentStudent.student_id,
                         module_type: moduleType,
-                        module_name: data.moduleName || data.module_name || current.name || (module ? module.name : moduleType),
+                        module_name: current.name || (module ? module.name : moduleType),
                         test_type: data.testType || data.test_type || 'module_test',
                         score_percent: data.scorePercent != null ? data.scorePercent : data.score,
                         correct_count: data.correctCount || data.correct_count || data.rightCount || 0,
                         total_count: data.totalCount || data.total_count || 0,
-                        duration_seconds: data.durationSeconds || data.duration_seconds || 0,
-                        started_at: data.startedAt || data.started_at || (current.startedAt ? new Date(current.startedAt).toISOString() : null),
-                        ended_at: data.endedAt || data.ended_at || new Date().toISOString(),
+                        duration_seconds: durationSeconds,
+                        started_at: startedAt,
+                        ended_at: endedAt,
                         details: data.details || []
                     });
                     if (result.error) {
                         console.error('保存测试记录失败:', result.error);
                         showToast('保存测试记录失败', 'error');
-                    } else {
+                    } else if (!result.skipped) {
                         showToast('测试记录已保存');
                         try { loadProgressTable(); } catch(e) {}
                     }
