@@ -98,3 +98,23 @@
 | 浏览器异常 | Playwright `pageerror` | 0 个 |
 
 截图：`teacher-tracking-fixed.png`、`student-history-fixed.png`。
+
+## 线上部署与回归
+
+| 项目 | 结果 |
+|---|---|
+| 目标服务器 | `47.103.199.114`，部署目录 `/var/www/ielts`，服务端口 `49182` |
+| 整站备份 | `/root/ielts_backups/ielts_20260710_164003.tar.gz` |
+| 数据库副本 | `/var/www/ielts/data/ielts_local.db.tracking_fix_20260710_164010.bak` |
+| 清理结果 | 测试镜像会话 12 条、双写学习会话 7 条、未完成/重复阅读测试 26 条 |
+| 阅读同义替换 | 学生 `2025001`：学习时长 `5分18秒`、有效测试 1 次、最高分 11% |
+| 听力1000词 | 学习时长从混合值修正为 `5分51秒`，测试时长保留在历史记录中 |
+| 学生历史 | 仅剩有效记录；显示“听力1000词/随机测试”和“阅读同义替换/模块测试” |
+| 服务状态 | `ielts`、`nginx` 均为 active；内网健康检查和主站均返回 200 |
+| 浏览器回归 | 教师汇总/详情、学生进度/历史全部通过，`pageerror` 为 0 |
+
+线上截图：`online-teacher-tracking-fixed.png`、`online-student-history-fixed.png`（验证后未纳入 Git）。
+
+## GitHub 状态
+
+本地提交为 `4c03ae2 Fix learning time and student history tracking`。当前 GitHub CLI 账号 `baifagg` 对远端 `raysu672-glitch/ielts-practice-platform` 无写权限，推送返回 403；本机未发现仓库所有者凭据或可用 GitHub SSH Key。
