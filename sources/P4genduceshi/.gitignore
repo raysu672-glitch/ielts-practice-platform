@@ -1,0 +1,28 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.so
+.Python
+
+# Virtual environments
+.env
+.venv/
+venv/
+
+# Large binaries not needed for GitHub Pages
+backend/models/
+backend/ffmpeg.exe
+*.zip
+
+# IDE
+.idea/
+.vscode/
+
+# Logs
+*.log
+
+# OS
+.DS_Store
+Thumbs.db

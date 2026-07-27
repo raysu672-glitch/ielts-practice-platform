@@ -31,6 +31,7 @@
 | 答案句听写测试 | `sources/daanjutingxieceshi/` | 测试 | `sources/daanjutingxieceshi/README.md` |
 | 写作句子翻译 | `sources/juzifanyixin/` | 学习 | `sources/juzifanyixin/README.md` |
 | 听力 P4 跟读 | `sources/P4gendu/` | 学习 | `sources/P4gendu/README.md` |
+| 听力 P4 跟读测试 | `sources/P4genduceshi/` | 测试 | `sources/P4genduceshi/README.md` |
 
 ## 本地运行
 

@@ -16,7 +16,8 @@
 | 答案句听写学习 | `daanjutingxie/` | `listening_synonym` | `/daanjutingxie/` | 主站记录 iframe 学习时长 |
 | 答案句听写测试 | `daanjutingxieceshi/` | `listening_synonym` | `/daanjutingxieceshi/` | `postMessage: genericTestComplete` |
 | 写作句子翻译 | `juzifanyixin/` | `writing_translate` | `/juzifanyixin/` | 主站记录 iframe 学习时长 |
-| 听力 P4 跟读 | `P4gendu/` | `listening_p4_speed` | `/P4gendu/` | 主站记录 iframe 学习时长 |
+| 听力 P4 跟读学习 | `P4gendu/` | `listening_p4_speed` | `/P4gendu/` | 主站记录 iframe 学习时长 |
+| 听力 P4 跟读测试 | `P4genduceshi/` | `listening_p4_speed` | `/P4genduceshi/` | `postMessage: genericTestComplete` |
 
 ## 维护规则
 

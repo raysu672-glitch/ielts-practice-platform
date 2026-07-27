@@ -78,7 +78,8 @@ python scripts/deploy.py --include-data
 |---|---|---|
 | `sources/tinglidanciceshi/audio/` | `/var/www/ielts/sources/tinglidanciceshi/audio/` | 听力1000词单词音频 |
 | `sources/daanjutingxie/A听力答案句/` | `/var/www/ielts/sources/daanjutingxie/A听力答案句/` | 答案句听写音频 |
-| `sources/P4gendu/C4T1S4.mp3` | `/var/www/ielts/sources/P4gendu/C4T1S4.mp3` | P4 跟读音频 |
+| `sources/P4gendu/C4T1S4.mp3` | `/var/www/ielts/sources/P4gendu/C4T1S4.mp3` | P4 跟读学习音频 |
+| `sources/P4genduceshi/C4T1S4.mp3` | `/var/www/ielts/sources/P4genduceshi/C4T1S4.mp3` | P4 跟读测试音频 |
 
 服务器需要音频时，部署后用 SFTP、`scp` 或 `rsync` 单独同步到上述相对路径。代码部署脚本会保留服务器已有音频目录；如果服务器没有这些文件，相关页面会使用浏览器 TTS 或外部音频地址作为兜底，具体取决于模块实现。
 

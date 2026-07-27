@@ -18,6 +18,7 @@ data/*.sqlite3
 sources/tinglidanciceshi/audio/
 sources/daanjutingxie/A听力答案句/
 sources/P4gendu/C4T1S4.mp3
+sources/P4genduceshi/C4T1S4.mp3
 
 # Python cache
 __pycache__/
