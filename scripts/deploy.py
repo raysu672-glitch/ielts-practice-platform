@@ -213,11 +213,13 @@ After=network.target
 Type=simple
 User=www-data
 WorkingDirectory={DEPLOY_DIR}
+Environment=IELTS_P4_ASR_BASE={env("IELTS_P4_ASR_BASE", "https://p4.oyenglish.com.cn")}
 ExecStart=/usr/bin/python3 {DEPLOY_DIR}/scripts/local_server.py \\
     --host 127.0.0.1 \\
     --port {SERVICE_PORT} \\
     --static-dir {DEPLOY_DIR}/sources \\
-    --db {DEPLOY_DIR}/data/ielts_local.db
+    --db {DEPLOY_DIR}/data/ielts_local.db \\
+    --p4-asr-base {env("IELTS_P4_ASR_BASE", "https://p4.oyenglish.com.cn")}
 Restart=always
 RestartSec=5
 StandardOutput=journal

@@ -398,12 +398,12 @@
         <main>
             <!-- 评分标准 -->
             <section>
-                <h2>📋 评分标准</h2>
+                <h2>评分标准</h2>
                 <div class="standard-box">
-                    <strong>测试流程：</strong>点击「开始测试」后，系统会同时播放原音频并开始录制你的跟读；音频播放结束后自动停止录音，并将录音上传到后端进行识别打分。<br>
-                    <strong>评分方式：</strong>后端使用 Whisper 模型将录音转成文字，再与原文进行逐词比对，使用最长公共子序列（LCS）算法计算匹配度。<br>
+                    <strong>测试流程：</strong>点击「开始测试」后，系统会同时播放原音频并开始录制你的跟读；音频播放结束后自动停止录音，并将录音经主站服务转发到语音识别后端打分。<br>
+                    <strong>评分方式：</strong>后端使用腾讯云英文语音识别将录音转成文字，再与原文进行逐词比对，使用最长公共子序列（LCS）算法计算匹配度。<br>
                     <strong>得分公式：</strong>得分 = 匹配单词数 ÷ 原文总单词数 × 100<br>
-                    <strong>💡 小提示：</strong>建议佩戴耳机测试，避免原音频被麦克风收进去；后端识别需要一些时间，请耐心等待。
+                    <strong>小提示：</strong>建议佩戴耳机测试，避免原音频被麦克风收进去；识别需要一些时间，请耐心等待。
                 </div>
             </section>
 
@@ -411,7 +411,6 @@
             <section>
                 <div class="test-controls">
                     <button id="testBtn" class="test-btn">
-                        <span>▶</span>
                         <span id="testBtnText">开始测试</span>
                     </button>
                 </div>
@@ -429,7 +428,7 @@
 
             <!-- 原文显示 -->
             <section>
-                <h2>📝 原文</h2>
+                <h2>原文</h2>
                 <div class="text-container" id="textContainer">
                     <!-- 动态生成文本 -->
                 </div>
@@ -437,7 +436,7 @@
 
             <!-- 结果区 -->
             <section class="result-section" id="resultSection">
-                <h2>🎯 测试结果</h2>
+                <h2>测试结果</h2>
                 <div class="score-display">
                     <div class="score-number" id="scoreNumber">0%</div>
                     <div class="score-label">跟读得分</div>
@@ -448,14 +447,14 @@
                     <a id="downloadRecording" class="download-link" href="#" download="recording.webm">下载录音</a>
                 </div>
                 <div class="recognized-text-area" id="recognizedTextArea">
-                    <h3>识别到的文字（调试用）</h3>
+                    <h3>识别到的文字</h3>
                     <p id="recognizedText"></p>
                 </div>
             </section>
 
             <!-- 历史记录 -->
             <section>
-                <h2>📊 测试历史</h2>
+                <h2>测试历史</h2>
                 <div class="history-list" id="historyList">
                     <div class="empty-history">暂无测试记录</div>
                 </div>
@@ -466,7 +465,24 @@
     <script src="config.js"></script>
     <script>
         // ==================== 配置 ====================
-        const API_BASE = (window.API_CONFIG && window.API_CONFIG.API_BASE) || 'http://localhost:8000';
+        function resolveApiBase() {
+            var configured = window.API_CONFIG && window.API_CONFIG.API_BASE;
+            if (configured == null || configured === '') {
+                return '';
+            }
+            return String(configured).replace(/\/$/, '');
+        }
+
+        function resolveTranscribeUrl() {
+            var path = (window.API_CONFIG && window.API_CONFIG.TRANSCRIBE_PATH) || '/api/p4/transcribe';
+            if (/^https?:\/\//i.test(path)) {
+                return path;
+            }
+            return resolveApiBase() + path;
+        }
+
+        const API_BASE = resolveApiBase();
+        const TRANSCRIBE_URL = resolveTranscribeUrl();
 
         // ==================== 课程数据 ====================
         const currentLesson = {
@@ -764,7 +780,7 @@
                 const form = new FormData();
                 form.append('file', state.userRecordingBlob, 'recording.webm');
 
-                const res = await fetch(`${API_BASE}/transcribe`, {
+                const res = await fetch(TRANSCRIBE_URL, {
                     method: 'POST',
                     body: form
                 });
@@ -775,10 +791,13 @@
                 }
 
                 const data = await res.json();
+                if (data && data.error) {
+                    throw new Error(data.error);
+                }
                 displayResult(data);
             } catch (err) {
                 console.error('上传/识别失败:', err);
-                showError(`识别失败：${err.message}，请检查后端是否已启动（${API_BASE}）`);
+                showError(`识别失败：${err.message}，请确认主站服务可用（${TRANSCRIBE_URL}）`);
                 state.isScoring = false;
                 updateTestButton('ready');
                 elements.statusText.textContent = '识别失败，请重试';

@@ -30,6 +30,7 @@ $env:GITHUB_TOKEN="你的 GitHub Token"
 | `IELTS_DEPLOY_DIR` | 否 | 服务器部署目录，默认 `/var/www/ielts` |
 | `IELTS_BACKUP_DIR` | 否 | 服务器备份目录，默认 `/root/ielts_backups` |
 | `IELTS_SERVICE_PORT` | 否 | Python 服务端口，默认 `49182` |
+| `IELTS_P4_ASR_BASE` | 否 | P4 跟读评分上游地址，默认 `https://p4.oyenglish.com.cn` |
 | `IELTS_CERTBOT_EMAIL` | 仅首次 HTTPS | Let's Encrypt 邮箱 |
 
 ## 覆盖部署

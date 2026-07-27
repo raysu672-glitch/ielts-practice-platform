@@ -14,7 +14,9 @@ import mimetypes
 import os
 import sqlite3
 import sys
+import urllib.error
 import urllib.parse
+import urllib.request
 from contextlib import closing
 from http import HTTPStatus
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
@@ -25,6 +27,7 @@ from typing import Any
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_STATIC_DIR = ROOT / "sources"
 DEFAULT_DB_PATH = ROOT / "data" / "ielts_local.db"
+DEFAULT_P4_ASR_BASE = "https://p4.oyenglish.com.cn"
 
 ALLOWED_TABLES = {
     "teacher_config",
@@ -343,6 +346,7 @@ def query_db(db_path: Path, payload: dict[str, Any]) -> dict[str, Any]:
 class LocalHandler(SimpleHTTPRequestHandler):
     static_dir: Path = DEFAULT_STATIC_DIR
     db_path: Path = DEFAULT_DB_PATH
+    p4_asr_base: str = DEFAULT_P4_ASR_BASE
 
     def end_headers(self) -> None:
         self.send_header("Access-Control-Allow-Origin", "*")
@@ -356,12 +360,25 @@ class LocalHandler(SimpleHTTPRequestHandler):
 
     def do_GET(self) -> None:
         if self.path.startswith("/api/health"):
-            self.send_json({"ok": True, "db": str(self.db_path)})
+            self.send_json(
+                {
+                    "ok": True,
+                    "db": str(self.db_path),
+                    "p4_asr_base": self.p4_asr_base,
+                }
+            )
+            return
+        if self.path.startswith("/api/p4/health"):
+            self.proxy_p4_health()
             return
         super().do_GET()
 
     def do_POST(self) -> None:
-        if not self.path.startswith("/api/db"):
+        parsed = urllib.parse.urlparse(self.path)
+        if parsed.path == "/api/p4/transcribe":
+            self.proxy_p4_transcribe()
+            return
+        if not parsed.path.startswith("/api/db"):
             self.send_error(HTTPStatus.NOT_FOUND, "API not found")
             return
         try:
@@ -371,6 +388,59 @@ class LocalHandler(SimpleHTTPRequestHandler):
             self.send_json(result)
         except Exception as exc:
             self.send_json({"data": None, "error": {"message": str(exc)}}, status=500)
+
+    def proxy_p4_health(self) -> None:
+        target = self.p4_asr_base.rstrip("/") + "/"
+        try:
+            req = urllib.request.Request(target, method="GET")
+            with urllib.request.urlopen(req, timeout=20) as resp:
+                body = resp.read()
+                self.send_response(resp.getcode())
+                content_type = resp.headers.get("Content-Type", "application/json; charset=utf-8")
+                self.send_header("Content-Type", content_type)
+                self.send_header("Content-Length", str(len(body)))
+                self.end_headers()
+                self.wfile.write(body)
+        except Exception as exc:
+            self.send_json(
+                {"ok": False, "error": {"message": f"P4 ASR health check failed: {exc}"}},
+                status=502,
+            )
+
+    def proxy_p4_transcribe(self) -> None:
+        target = self.p4_asr_base.rstrip("/") + "/transcribe"
+        try:
+            length = int(self.headers.get("Content-Length", "0"))
+            body = self.rfile.read(length) if length > 0 else b""
+            content_type = self.headers.get("Content-Type", "application/octet-stream")
+            req = urllib.request.Request(
+                target,
+                data=body,
+                method="POST",
+                headers={"Content-Type": content_type},
+            )
+            with urllib.request.urlopen(req, timeout=360) as resp:
+                resp_body = resp.read()
+                self.send_response(resp.getcode())
+                resp_type = resp.headers.get("Content-Type", "application/json; charset=utf-8")
+                self.send_header("Content-Type", resp_type)
+                self.send_header("Content-Length", str(len(resp_body)))
+                self.end_headers()
+                self.wfile.write(resp_body)
+        except urllib.error.HTTPError as exc:
+            err_body = exc.read() if hasattr(exc, "read") else b""
+            if not err_body:
+                err_body = json.dumps(
+                    {"error": f"P4 ASR upstream HTTP {exc.code}"},
+                    ensure_ascii=False,
+                ).encode("utf-8")
+            self.send_response(exc.code)
+            self.send_header("Content-Type", "application/json; charset=utf-8")
+            self.send_header("Content-Length", str(len(err_body)))
+            self.end_headers()
+            self.wfile.write(err_body)
+        except Exception as exc:
+            self.send_json({"error": f"P4 ASR proxy failed: {exc}"}, status=502)
 
     def translate_path(self, path: str) -> str:
         path = urllib.parse.urlparse(path).path
@@ -408,6 +478,11 @@ def main(argv: list[str]) -> int:
     parser.add_argument("--port", type=int, default=49182)
     parser.add_argument("--static-dir", default=str(DEFAULT_STATIC_DIR))
     parser.add_argument("--db", default=str(DEFAULT_DB_PATH))
+    parser.add_argument(
+        "--p4-asr-base",
+        default=os.environ.get("IELTS_P4_ASR_BASE", DEFAULT_P4_ASR_BASE),
+        help="Upstream P4 ASR service base URL used by /api/p4/* proxy",
+    )
     args = parser.parse_args(argv)
     options = vars(args)
 
@@ -417,9 +492,11 @@ def main(argv: list[str]) -> int:
 
     LocalHandler.static_dir = static_dir
     LocalHandler.db_path = db_path
+    LocalHandler.p4_asr_base = str(args.p4_asr_base).rstrip("/")
     server = ThreadingHTTPServer((args.host, args.port), LocalHandler)
     print(f"Serving {static_dir} on http://{args.host}:{args.port}")
     print(f"SQLite database: {db_path}")
+    print(f"P4 ASR proxy target: {LocalHandler.p4_asr_base}")
     server.serve_forever()
     return 0
 

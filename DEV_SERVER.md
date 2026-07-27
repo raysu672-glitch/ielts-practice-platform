@@ -2,7 +2,7 @@
 
 | 服务 | 端口 | 启动命令 | 备注 |
 |---|---:|---|---|
-| 本地静态页 + SQLite API | 49182 | `python scripts/local_server.py --host 127.0.0.1 --port 49182 --static-dir sources --db data/ielts_local.db` | 主站访问 `http://127.0.0.1:49182/tinglidanciceshi/`；教师入口 `http://127.0.0.1:49182/tinglidanciceshi/?role=teacher` |
+| 本地静态页 + SQLite API | 49182 | `python scripts/local_server.py --host 127.0.0.1 --port 49182 --static-dir sources --db data/ielts_local.db` | 主站访问 `http://127.0.0.1:49182/tinglidanciceshi/`；教师入口 `http://127.0.0.1:49182/tinglidanciceshi/?role=teacher`；P4 评分代理 `http://127.0.0.1:49182/api/p4/transcribe` |
 | 回归验证服务 | 49247 | `python scripts/local_server.py --host 127.0.0.1 --port 49247 --static-dir sources --db data/verification_tracking.db` | 使用数据库副本验证统计和历史，不修改正式本地数据；验证结束后停止 |
 
 ## 本地测试账号
