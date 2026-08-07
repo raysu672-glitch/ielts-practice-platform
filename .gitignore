@@ -50,3 +50,8 @@ id_ed25519*
 Thumbs.db
 .idea/
 .vscode/
+
+# Writing backend local DB / restore scratch
+*.db
+sources/_restore*/
+sources/xiezuopigai/**/ielts-student-practice-screenshots/

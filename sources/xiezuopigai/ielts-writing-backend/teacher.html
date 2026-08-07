@@ -1,0 +1,1206 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>老师查看 - IELTS 写作训练数据</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      background: #f5f7fa;
+      color: #333;
+      line-height: 1.6;
+    }
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 16px 20px 24px;
+      min-height: 100%;
+    }
+    .container.detail-mode {
+      max-width: none;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      padding-bottom: 12px;
+    }
+    h1 { color: #2c3e50; margin-bottom: 6px; font-size: 1.35rem; }
+    .subtitle { color: #7f8c8d; margin-bottom: 14px; }
+    .toolbar { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; align-items: center; }
+    .btn {
+      background: #3498db;
+      color: white;
+      border: none;
+      padding: 8px 18px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    .btn:hover { background: #2980b9; }
+    .btn.secondary { background: #95a5a6; }
+    .btn.secondary:hover { background: #7f8c8d; }
+    .btn:disabled { opacity: 0.6; cursor: not-allowed; }
+    .btn.success { background: #27ae60; }
+    .btn.success:hover { background: #219150; }
+    .list-table {
+      width: 100%;
+      border-collapse: collapse;
+      background: white;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    }
+    .list-table th, .list-table td {
+      padding: 14px 16px;
+      text-align: left;
+      border-bottom: 1px solid #eef1f4;
+      font-size: 14px;
+    }
+    .list-table th {
+      background: #f8f9fb;
+      color: #5f6b7a;
+      font-weight: 600;
+    }
+    .list-table tr.row-click { cursor: pointer; transition: background 0.15s; }
+    .list-table tr.row-click:hover { background: #f0f7fc; }
+    .list-table tr:last-child td { border-bottom: none; }
+    .name-cell { font-weight: 600; color: #2c3e50; }
+    .meta { color: #95a5a6; font-size: 13px; font-weight: 400; }
+    .date-cell { color: #5f6b7a; white-space: nowrap; }
+    .badge {
+      display: inline-block;
+      background: #e8f4f8;
+      color: #2980b9;
+      padding: 2px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+    .badge.done { background: #d5f4e6; color: #27ae60; }
+    .badge.pending { background: #fef5e7; color: #d68910; }
+    .loading, .empty, .error { text-align: center; padding: 48px 20px; color: #7f8c8d; }
+    .error { color: #e74c3c; }
+    .hidden { display: none !important; }
+    .toast {
+      position: fixed;
+      right: 20px;
+      bottom: 20px;
+      background: #2c3e50;
+      color: #fff;
+      padding: 10px 16px;
+      border-radius: 8px;
+      font-size: 14px;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s;
+      z-index: 20;
+    }
+    .toast.show { opacity: 1; }
+    .toast.ok { background: #27ae60; }
+    .toast.err { background: #e74c3c; }
+
+    /* 三栏详情 */
+    #detailView {
+      flex: 1;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+    }
+    .detail-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 10px;
+    }
+    .detail-title { font-size: 16px; font-weight: 700; color: #2c3e50; }
+    .split-board {
+      flex: 1;
+      min-height: 420px;
+      display: grid !important;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr) !important;
+      gap: 12px;
+      width: 100%;
+    }
+    .pane {
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+      min-height: 0;
+      overflow: hidden;
+    }
+    .pane-head {
+      padding: 12px 14px;
+      border-bottom: 1px solid #eef1f4;
+      font-weight: 700;
+      color: #2c3e50;
+      font-size: 14px;
+      background: #fbfcfd;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+    }
+    .pane-body {
+      padding: 12px 14px;
+      overflow: auto;
+      flex: 1;
+      min-height: 0;
+    }
+    .essay-text {
+      white-space: pre-wrap;
+      word-break: break-word;
+      font-size: 14px;
+      color: #34495e;
+      line-height: 1.75;
+    }
+    .essay-mark {
+      background: #ffe3e3;
+      color: #c0392b;
+      border-bottom: 2px solid #e74c3c;
+      border-radius: 2px;
+      padding: 0 2px;
+      cursor: pointer;
+    }
+    .essay-mark.active {
+      background: #e74c3c;
+      color: #fff;
+      box-shadow: 0 0 0 3px rgba(231, 76, 60, 0.28);
+    }
+    .error-text.clickable {
+      cursor: pointer;
+      text-decoration: underline;
+      text-underline-offset: 3px;
+    }
+    .error-text.clickable:hover { color: #922b21; }
+    .checkpoint-item {
+      border-left: 4px solid #3498db;
+      padding: 10px 12px;
+      margin-bottom: 10px;
+      background: #fafbfc;
+      border-radius: 0 8px 8px 0;
+      cursor: pointer;
+      transition: background 0.15s, border-color 0.15s;
+    }
+    .checkpoint-item:hover { background: #f3f8fc; }
+    .checkpoint-item.active {
+      border-left-color: #e74c3c;
+      background: #fff5f5;
+    }
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+    .stat-item {
+      background: #e8f4f8;
+      padding: 10px;
+      border-radius: 8px;
+      text-align: center;
+    }
+    .stat-value { font-size: 20px; font-weight: 700; color: #2980b9; }
+    .stat-label { font-size: 12px; color: #7f8c8d; }
+    .type-stats {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin: 8px 0 14px;
+    }
+    .type-tag {
+      background: #ecf0f1;
+      padding: 4px 10px;
+      border-radius: 16px;
+      font-size: 12px;
+    }
+    .type-tag .count { font-weight: 600; color: #2980b9; }
+    .checkpoint-header {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 6px;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .category {
+      display: inline-block;
+      background: #3498db;
+      color: white;
+      padding: 2px 10px;
+      border-radius: 12px;
+      font-size: 12px;
+    }
+    .behavior {
+      font-size: 12px;
+      padding: 2px 8px;
+      border-radius: 4px;
+    }
+    .behavior.self { background: #d5f4e6; color: #27ae60; }
+    .behavior.hint { background: #fef9e7; color: #f39c12; }
+    .behavior.answer { background: #fadbd8; color: #e74c3c; }
+    .error-text { color: #e74c3c; font-weight: 500; }
+    .corrected-text { color: #27ae60; font-weight: 500; }
+    .sentence, .time { font-size: 12px; color: #95a5a6; margin-top: 6px; }
+    .teacher-form {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      height: 100%;
+      min-height: 0;
+    }
+    .teacher-form label {
+      font-size: 13px;
+      font-weight: 600;
+      color: #5f6b7a;
+    }
+    .teacher-form textarea {
+      width: 100%;
+      border: 1px solid #dce3ea;
+      border-radius: 8px;
+      padding: 10px 12px;
+      font-size: 14px;
+      line-height: 1.6;
+      resize: vertical;
+      font-family: inherit;
+      color: #2c3e50;
+      background: #fff;
+    }
+    .teacher-form textarea:focus {
+      outline: none;
+      border-color: #3498db;
+      box-shadow: 0 0 0 3px rgba(52,152,219,0.15);
+    }
+    #teacherRevision { flex: 1.4; min-height: 180px; }
+    #teacherComment { flex: 0.8; min-height: 120px; }
+    .teacher-actions {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+      margin-top: 4px;
+    }
+    .save-hint { font-size: 12px; color: #95a5a6; }
+    .badge.new { background: #fdecea; color: #c0392b; margin-left: 6px; }
+    .teacher-readonly {
+      white-space: pre-wrap;
+      word-break: break-word;
+      font-size: 14px;
+      line-height: 1.7;
+      color: #2c3e50;
+      background: #f8fafc;
+      border: 1px solid #e8eef4;
+      border-radius: 8px;
+      padding: 12px;
+      min-height: 80px;
+    }
+    .teacher-readonly.empty { color: #95a5a6; }
+    .unseen-banner {
+      background: #fff4e5;
+      color: #9a5b00;
+      border: 1px solid #f5c97a;
+      border-radius: 10px;
+      padding: 10px 14px;
+      margin-bottom: 12px;
+      font-size: 14px;
+    }
+    .topic-cell {
+      max-width: 420px;
+      min-width: 160px;
+      color: #2c3e50;
+      font-size: 13px;
+      line-height: 1.45;
+      word-break: break-word;
+      white-space: normal;
+    }
+    .topic-cell .topic-empty { color: #95a5a6; }
+    .detail-topic {
+      margin-top: 6px;
+      padding: 10px 12px;
+      background: #f8fafc;
+      border: 1px solid #e8eef4;
+      border-radius: 8px;
+      color: #34495e;
+      font-size: 13px;
+      line-height: 1.55;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+    .btn.rewrite {
+      background: #b0b8c1;
+      color: #fff;
+      cursor: not-allowed;
+      opacity: 0.85;
+      font-weight: 600;
+    }
+    .btn.rewrite:disabled,
+    .btn.rewrite:disabled:hover {
+      background: #b0b8c1;
+      opacity: 0.7;
+      cursor: not-allowed;
+    }
+    .btn.rewrite.ready {
+      background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+      cursor: pointer;
+      opacity: 1;
+      animation: rewritePulse 1.6s ease-in-out infinite;
+      box-shadow: 0 4px 14px rgba(231, 76, 60, 0.35);
+    }
+    .btn.rewrite.ready:hover {
+      background: linear-gradient(135deg, #ff6b5a 0%, #e74c3c 100%);
+    }
+    @keyframes rewritePulse {
+      0%, 100% { transform: scale(1); box-shadow: 0 4px 14px rgba(231, 76, 60, 0.35); }
+      50% { transform: scale(1.04); box-shadow: 0 6px 18px rgba(231, 76, 60, 0.5); }
+    }
+    .ops-cell { white-space: nowrap; }
+    .detail-head-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+    .attempt-badge {
+      display: inline-block;
+      background: #eef2f6;
+      color: #5f6b7a;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 600;
+      margin-left: 6px;
+    }
+    .topic-group {
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+      margin-bottom: 14px;
+      overflow: hidden;
+    }
+    .topic-group-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 12px;
+      flex-wrap: wrap;
+      padding: 14px 16px;
+      background: #fbfcfd;
+      border-bottom: 1px solid #eef1f4;
+    }
+    .topic-group-title {
+      font-weight: 700;
+      color: #2c3e50;
+      font-size: 14px;
+      line-height: 1.5;
+      max-width: 640px;
+      word-break: break-word;
+    }
+    .topic-group-meta {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+      margin-top: 8px;
+    }
+    .topic-group .list-table { box-shadow: none; border-radius: 0; }
+
+    @media (max-width: 720px) {
+      .split-board {
+        grid-template-columns: 1fr !important;
+        overflow: auto;
+      }
+      .pane { min-height: 280px; }
+      .container.detail-mode { height: auto; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container" id="pageContainer">
+    <h1>作文批改报告</h1>
+    <p class="subtitle" id="pageSubtitle">先选择已提交的学生记录，再查看详细改错数据</p>
+
+    <div class="toolbar" id="listToolbar">
+      <button class="btn" onclick="loadData()">刷新列表</button>
+      <span id="listCount" class="meta"></span>
+    </div>
+    <div class="toolbar hidden" id="detailToolbar">
+      <button class="btn secondary" onclick="showList()">返回列表</button>
+      <button class="btn" onclick="loadData()">刷新</button>
+    </div>
+
+    <div id="listView">
+      <div class="loading">正在加载数据...</div>
+    </div>
+    <div id="detailView" class="hidden"></div>
+  </div>
+  <div class="toast" id="toast"></div>
+
+  <script>
+    const pageParams = new URLSearchParams(location.search);
+    // 主站 iframe 会传入 mode=history/study，学生只读用 role=student（勿再用 mode=student）
+    const isStudentMode =
+      pageParams.get('role') === 'student' || pageParams.get('mode') === 'student';
+    const forcedStudentId = (pageParams.get('student_id') || '').trim();
+
+    let allRecords = [];
+    let currentRecordId = null;
+
+    function getWritingApiRoot() {
+      const q = new URLSearchParams(location.search).get('api_root');
+      if (q) return q.replace(/\/$/, '');
+      if (/\/xiezuopigai\//.test(location.pathname)) return '/api/writing';
+      return '';
+    }
+    function writingApi(path) {
+      const clean = String(path || '').replace(/^\//, '');
+      const root = getWritingApiRoot();
+      return root ? `${root}/${clean}` : `/api/${clean}`;
+    }
+
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text == null ? '' : String(text);
+      return div.innerHTML;
+    }
+
+    function formatDate(value) {
+      if (!value) return '-';
+      const raw = String(value).trim();
+      // SQLite / utcnow 存的是 UTC 无时区字符串，按北京时间展示
+      let date = null;
+      const m = raw.match(/^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2})(?::(\d{2}))?/);
+      if (m) {
+        date = new Date(Date.UTC(
+          Number(m[1]), Number(m[2]) - 1, Number(m[3]),
+          Number(m[4]), Number(m[5]), Number(m[6] || 0)
+        ));
+      } else {
+        date = new Date(raw);
+      }
+      if (!date || Number.isNaN(date.getTime())) return raw;
+      return date.toLocaleString('zh-CN', {
+        timeZone: 'Asia/Shanghai',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false
+      }).replace(/\//g, '-');
+    }
+
+    function topicLabel(topic, maxLen) {
+      const t = String(topic || '').trim();
+      if (!t) return { text: '（未填写题目）', empty: true, full: '' };
+      const limit = maxLen || 48;
+      if (t.length <= limit) return { text: t, empty: false, full: t };
+      return { text: t.slice(0, limit) + '…', empty: false, full: t };
+    }
+
+    function rewriteButtonHtml(record, options) {
+      if (!isStudentMode) return '';
+      const opts = options || {};
+      const compact = !!opts.compact;
+      const errorCount = Number(record.errorCount);
+      const passErrorMax = Number(record.passErrorMax);
+      const errLabel = Number.isFinite(errorCount) ? errorCount : '?';
+      const passMax = Number.isFinite(passErrorMax) ? passErrorMax : 3;
+      let cls = 'btn rewrite';
+      let title = '';
+      let label = '再写一遍';
+      let disabled = 'disabled';
+
+      if (!String(record.topicKey || '').trim()) {
+        title = '无题目记录不能再写';
+        label = '再写一遍';
+      } else if (record.canRewrite) {
+        cls = 'btn rewrite ready';
+        disabled = '';
+        title = `语法/词汇错误 ${errLabel} 个（需≤${passMax} 才结束），可再写`;
+        label = compact ? '再写一遍' : `再写一遍（错误 ${errLabel} 个）`;
+      } else if (record.topicCompleted) {
+        title = `语法/词汇错误≤${passMax}，本题已结束`;
+        label = `已结束（错误 ${errLabel}/${passMax}）`;
+      } else if (!record.teacherReviewed) {
+        title = '老师批改后才能再写一遍';
+        label = '再写一遍';
+      } else {
+        title = '当前版本不可再写';
+      }
+
+      return `<button type="button" class="${cls}" ${disabled} title="${escapeHtml(title)}" onclick="event.stopPropagation();startRewrite(${Number(record.id)})">${escapeHtml(label)}</button>`;
+    }
+
+    function topicStatusBadge(latest) {
+      if (latest.canRewrite) {
+        return '<span class="badge done">可再写</span>';
+      }
+      if (latest.topicCompleted) {
+        return '<span class="badge">已结束</span>';
+      }
+      if (!latest.teacherReviewed) {
+        return '<span class="badge pending">待批改</span>';
+      }
+      return '<span class="badge pending">待批改</span>';
+    }
+
+    function groupRecordsByTopic(records) {
+      const map = new Map();
+      records.forEach(rec => {
+        const key = String(rec.topicKey || '').trim() || ('__empty__:' + rec.id);
+        if (!map.has(key)) map.set(key, []);
+        map.get(key).push(rec);
+      });
+      const groups = [];
+      map.forEach((items, key) => {
+        const ordered = items.slice().sort((a, b) => {
+          const ta = String(a.createdAt || '');
+          const tb = String(b.createdAt || '');
+          if (ta !== tb) return ta < tb ? -1 : 1;
+          return Number(a.id) - Number(b.id);
+        });
+        const latest = ordered[ordered.length - 1];
+        groups.push({
+          key,
+          topic: latest.topic || '',
+          latest,
+          items: ordered.slice().reverse(),
+          attemptCount: Number(latest.attemptCount) || ordered.length,
+          passErrorMax: Number(latest.passErrorMax) || 3
+        });
+      });
+      groups.sort((a, b) => {
+        const ta = String(a.latest.createdAt || '');
+        const tb = String(b.latest.createdAt || '');
+        if (ta !== tb) return ta < tb ? 1 : -1;
+        return Number(b.latest.id) - Number(a.latest.id);
+      });
+      return groups;
+    }
+
+    function startRewrite(recordId) {
+      const record = allRecords.find(r => String(r.id) === String(recordId));
+      if (!record) {
+        showToast('记录不存在', 'err');
+        return;
+      }
+      if (!String(record.topicKey || '').trim()) {
+        showToast('无题目记录不能再写', 'err');
+        return;
+      }
+      if (!record.canRewrite) {
+        const passMax = Number(record.passErrorMax) || 3;
+        if (record.topicCompleted) {
+          showToast(`语法/词汇错误已≤${passMax}，本题已结束`, 'err');
+        } else {
+          showToast('老师批改后才能再写一遍', 'err');
+        }
+        return;
+      }
+      const studentId = String(record.studentId || forcedStudentId || '').trim();
+      const studentName = String(record.studentName || '').trim();
+      const nextAttempt = (Number(record.attemptCount) || 1) + 1;
+      const passErrorMax = Number(record.passErrorMax) || 3;
+      const payload = {
+        topic: String(record.topic || '').trim(),
+        sourceRecordId: record.id,
+        studentId,
+        studentName,
+        nextAttempt,
+        passErrorMax,
+        errorCount: Number(record.errorCount) || 0
+      };
+      try {
+        sessionStorage.setItem('ielts_rewrite_payload', JSON.stringify(payload));
+      } catch (e) {
+        showToast('无法保存再写数据', 'err');
+        return;
+      }
+      const params = new URLSearchParams(location.search);
+      params.set('rewrite', '1');
+      if (studentId) params.set('student_id', studentId);
+      if (studentName) params.set('student_name', studentName);
+      params.delete('role');
+      params.delete('mode');
+      location.href = '../ielts-student-practice.html?' + params.toString();
+    }
+
+    function showToast(message, type) {
+      const el = document.getElementById('toast');
+      el.textContent = message;
+      el.className = 'toast show ' + (type || '');
+      clearTimeout(showToast._timer);
+      showToast._timer = setTimeout(() => {
+        el.className = 'toast';
+      }, 2200);
+    }
+
+    function applyPageChrome() {
+      const title = document.querySelector('h1');
+      if (isStudentMode) {
+        if (title) title.textContent = '我的作文批改历史';
+        document.getElementById('pageSubtitle').textContent = '按题目查看轮次；语法/词汇错误≤3 后本题结束';
+        document.title = '我的作文批改历史';
+      }
+    }
+
+    async function loadData() {
+      const listView = document.getElementById('listView');
+      if (currentRecordId == null) {
+        listView.innerHTML = '<div class="loading">正在加载数据...</div>';
+      }
+      document.getElementById('listCount').textContent = '';
+
+      try {
+        if (isStudentMode && !forcedStudentId) {
+          allRecords = [];
+          listView.innerHTML = '<div class="error">缺少学号，无法加载历史记录</div>';
+          return;
+        }
+
+        const url = isStudentMode
+          ? writingApi('student/records?student_id=' + encodeURIComponent(forcedStudentId))
+          : writingApi('teacher/records');
+        const resp = await fetch(url);
+        const result = await resp.json();
+
+        if (!result.success || !result.data || result.data.length === 0) {
+          allRecords = [];
+          currentRecordId = null;
+          showList();
+          listView.innerHTML = isStudentMode
+            ? '<div class="empty">你还没有提交过作文批改</div>'
+            : '<div class="empty">暂无学生提交记录</div>';
+          return;
+        }
+
+        allRecords = result.data;
+        if (currentRecordId != null) {
+          const still = allRecords.find(r => String(r.id) === String(currentRecordId));
+          if (still) {
+            showDetail(still.id);
+            return;
+          }
+        }
+        showList();
+        renderList(allRecords);
+      } catch (e) {
+        listView.innerHTML = `<div class="error">加载失败: ${escapeHtml(e.message)}</div>`;
+      }
+    }
+
+    function showList() {
+      currentRecordId = null;
+      document.getElementById('pageContainer').classList.remove('detail-mode');
+      document.getElementById('listToolbar').classList.remove('hidden');
+      document.getElementById('detailToolbar').classList.add('hidden');
+      document.getElementById('listView').classList.remove('hidden');
+      document.getElementById('detailView').classList.add('hidden');
+      document.getElementById('detailView').style.display = 'none';
+      document.getElementById('pageSubtitle').textContent = isStudentMode
+        ? '按题目查看轮次；语法/词汇错误≤3 后本题结束'
+        : '先选择已提交的学生记录，再查看详细改错数据';
+      if (allRecords.length) renderList(allRecords);
+    }
+
+    function renderStudentGroupedList(records) {
+      const groups = groupRecordsByTopic(records);
+      return groups.map(group => {
+        const topic = topicLabel(group.topic, 80);
+        const latest = group.latest;
+        const err = Number(latest.errorCount);
+        const passMax = Number(latest.passErrorMax) || group.passErrorMax || 3;
+        const errText = Number.isFinite(err) ? String(err) : '?';
+        const progress = `已写 ${group.attemptCount} 次 · 最新错误 ${errText} 个（≤${passMax} 结束）`;
+        const rows = group.items.map(record => {
+          const cpCount = Array.isArray(record.checkpoints) ? record.checkpoints.length : 0;
+          const reviewed = !!record.teacherReviewed;
+          const unseenBadge = record.hasUnseenFeedback
+            ? '<span class="badge new">新批改</span>'
+            : '';
+          const attempt = Number(record.attempt) || 1;
+          const recErr = Number(record.errorCount);
+          const errBadge = Number.isFinite(recErr)
+            ? `<span class="attempt-badge">错误 ${recErr}</span>`
+            : '';
+          return `
+            <tr class="row-click" onclick="showDetail(${Number(record.id)})">
+              <td><span class="attempt-badge">第 ${attempt} 次</span> ${errBadge}</td>
+              <td class="date-cell">${escapeHtml(formatDate(record.createdAt))}</td>
+              <td><span class="badge">${cpCount}</span></td>
+              <td>
+                <span class="badge ${reviewed ? 'done' : 'pending'}">${reviewed ? '已批改' : '未批改'}</span>
+                ${unseenBadge}
+              </td>
+            </tr>
+          `;
+        }).join('');
+        return `
+          <div class="topic-group">
+            <div class="topic-group-head">
+              <div>
+                <div class="topic-group-title ${topic.empty ? 'topic-empty' : ''}" title="${escapeHtml(topic.full || topic.text)}">${escapeHtml(topic.text)}</div>
+                <div class="topic-group-meta">
+                  <span class="badge">${escapeHtml(progress)}</span>
+                  ${topicStatusBadge(latest)}
+                </div>
+              </div>
+              <div class="ops-cell">${rewriteButtonHtml(latest)}</div>
+            </div>
+            <table class="list-table">
+              <thead>
+                <tr><th>轮次</th><th>提交日期</th><th>检查点</th><th>老师批改</th></tr>
+              </thead>
+              <tbody>${rows}</tbody>
+            </table>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function renderList(records) {
+      const listView = document.getElementById('listView');
+      const unseen = records.filter(r => r.hasUnseenFeedback).length;
+      const topicCount = isStudentMode
+        ? groupRecordsByTopic(records).length
+        : 0;
+      document.getElementById('listCount').textContent = isStudentMode
+        ? `共 ${topicCount} 道题 · ${records.length} 次提交`
+        : `共 ${records.length} 条提交`;
+
+      const banner = (isStudentMode && unseen > 0)
+        ? `<div class="unseen-banner">老师已批改 ${unseen} 篇作文，点击记录查看评语</div>`
+        : '';
+
+      if (isStudentMode) {
+        listView.innerHTML = banner + (records.length ? renderStudentGroupedList(records) : '<div class="empty">你还没有提交过作文批改</div>');
+        return;
+      }
+
+      const headCols = `<th>学生</th><th>学号</th><th>作文题目</th><th>轮次</th><th>错误数</th><th>提交日期</th><th>检查点</th><th>老师批改</th>`;
+
+      listView.innerHTML = banner + `
+        <table class="list-table">
+          <thead>
+            <tr>${headCols}</tr>
+          </thead>
+          <tbody>
+            ${records.map(record => {
+              const cpCount = Array.isArray(record.checkpoints) ? record.checkpoints.length : 0;
+              const reviewed = !!record.teacherReviewed;
+              const topic = topicLabel(record.topic, 52);
+              const topicCell = `<td class="topic-cell" title="${escapeHtml(topic.full || topic.text)}"><span class="${topic.empty ? 'topic-empty' : ''}">${escapeHtml(topic.text)}</span></td>`;
+              const attempt = Number(record.attempt) || 1;
+              const err = Number(record.errorCount);
+              const passMax = Number(record.passErrorMax) || 3;
+              const errText = Number.isFinite(err) ? `${err}` : '-';
+              const doneMark = record.topicCompleted ? ' · 已结束' : '';
+              return `
+                <tr class="row-click" onclick="showDetail(${Number(record.id)})">
+                  <td class="name-cell">${escapeHtml(record.studentName || '未命名')}</td>
+                  <td>${escapeHtml(record.studentId || '-')}</td>
+                  ${topicCell}
+                  <td><span class="attempt-badge">第 ${attempt} 次</span></td>
+                  <td><span class="attempt-badge" title="语法/词汇错误（≤${passMax} 结束）">${escapeHtml(errText)}${doneMark}</span></td>
+                  <td class="date-cell">${escapeHtml(formatDate(record.createdAt))}</td>
+                  <td><span class="badge">${cpCount}</span></td>
+                  <td>
+                    <span class="badge ${reviewed ? 'done' : 'pending'}">${reviewed ? '已批改' : '待批改'}</span>
+                  </td>
+                </tr>
+              `;
+            }).join('')}
+          </tbody>
+        </table>
+      `;
+    }
+
+    async function ackFeedbackIfNeeded(record) {
+      if (!isStudentMode || !forcedStudentId || !record || !record.hasUnseenFeedback) return;
+      try {
+        const resp = await fetch(writingApi('student/records/' + record.id + '/ack-feedback'), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ studentId: forcedStudentId })
+        });
+        const result = await resp.json();
+        if (resp.ok && result.success) {
+          record.hasUnseenFeedback = false;
+          record.studentFeedbackSeenAt = result.studentFeedbackSeenAt || '';
+          showToast('老师已批改，请查看右侧评语', 'ok');
+        }
+      } catch (e) {
+        console.warn('ack feedback failed', e);
+      }
+    }
+
+    function showDetail(recordId) {
+      const record = allRecords.find(r => String(r.id) === String(recordId));
+      if (!record) {
+        showList();
+        return;
+      }
+      currentRecordId = record.id;
+      document.getElementById('pageContainer').classList.add('detail-mode');
+      document.getElementById('listToolbar').classList.add('hidden');
+      document.getElementById('detailToolbar').classList.remove('hidden');
+      document.getElementById('listView').classList.add('hidden');
+      document.getElementById('detailView').classList.remove('hidden');
+      document.getElementById('detailView').style.display = 'flex';
+      document.getElementById('pageSubtitle').textContent = isStudentMode
+        ? '左：原文 · 中：错误统计与改错记录 · 右：老师修正与评语'
+        : '左：学生原文 · 中：错误统计与改错记录 · 右：老师修正与评语';
+      document.getElementById('detailView').innerHTML = renderRecord(record);
+      ackFeedbackIfNeeded(record);
+    }
+
+    function splitSentences(text) {
+      const raw = String(text || '').replace(/\s+/g, ' ').trim();
+      if (!raw) return [];
+      const protected = [];
+      const stash = (match) => {
+        protected.push(match);
+        return '§§' + (protected.length - 1) + '§§';
+      };
+      let work = raw.replace(/(?<=\d)\.(?=\d)/g, stash);
+      work = work.replace(/\.{2,}/g, stash);
+      work = work.replace(/\b(?:Mr|Mrs|Ms|Dr|Prof|Sr|Jr|vs|etc|approx|fig|eq|No|Vol|pp)\./gi, stash);
+      work = work.replace(/\b(?:e\.g|i\.e)\./gi, stash);
+      const parts = work.match(/[^.!?。！？]+[.!?。！？]?/g) || [];
+      return parts
+        .map(part => part.trim().replace(/§§(\d+)§§/g, (_, i) => protected[Number(i)] || ''))
+        .filter(Boolean);
+    }
+
+    function rangesOverlap(aStart, aEnd, bStart, bEnd) {
+      return aStart < bEnd && bStart < aEnd;
+    }
+
+    function locateErrorRanges(essay, checkpoints) {
+      const text = String(essay || '');
+      const lower = text.toLowerCase();
+      const sentences = splitSentences(text);
+      const sentenceOffsets = [];
+      let searchFrom = 0;
+      sentences.forEach(sentence => {
+        const idx = lower.indexOf(sentence.toLowerCase(), searchFrom);
+        const start = idx >= 0 ? idx : searchFrom;
+        sentenceOffsets.push({ start, end: start + sentence.length });
+        searchFrom = start + sentence.length;
+      });
+
+      const used = [];
+      const ranges = [];
+
+      checkpoints.forEach((cp, idx) => {
+        const needle = String(cp.errorText || '').trim();
+        if (!needle) {
+          ranges.push(null);
+          return;
+        }
+        const n = needle.toLowerCase();
+        const si = Number(cp.sentenceIndex);
+        const preferred = Number.isInteger(si) && sentenceOffsets[si] ? sentenceOffsets[si] : null;
+
+        function findInWindow(winStart, winEnd) {
+          let pos = lower.indexOf(n, winStart);
+          while (pos >= 0 && pos + needle.length <= winEnd) {
+            const end = pos + needle.length;
+            const conflict = used.some(u => rangesOverlap(pos, end, u.start, u.end));
+            if (!conflict) return { start: pos, end };
+            pos = lower.indexOf(n, pos + 1);
+          }
+          return null;
+        }
+
+        let found = preferred ? findInWindow(preferred.start, preferred.end) : null;
+        if (!found) found = findInWindow(0, text.length);
+        if (!found) {
+          ranges.push(null);
+          return;
+        }
+        used.push(found);
+        ranges.push({ start: found.start, end: found.end, idx });
+      });
+
+      return ranges;
+    }
+
+    function renderEssayWithMarks(essay, checkpoints) {
+      const text = String(essay || '');
+      if (!text) return '<span class="meta">（无原文）</span>';
+      const ranges = locateErrorRanges(text, checkpoints).filter(Boolean)
+        .sort((a, b) => a.start - b.start || a.idx - b.idx);
+
+      let html = '';
+      let cursor = 0;
+      ranges.forEach(range => {
+        if (range.start < cursor) return;
+        html += escapeHtml(text.slice(cursor, range.start));
+        html += `<mark class="essay-mark" id="essay-err-${range.idx}" data-idx="${range.idx}" onclick="focusEssayError(${range.idx})" title="点击查看对应改错记录">${escapeHtml(text.slice(range.start, range.end))}</mark>`;
+        cursor = range.end;
+      });
+      html += escapeHtml(text.slice(cursor));
+      return html;
+    }
+
+    function focusEssayError(idx) {
+      document.querySelectorAll('.essay-mark.active').forEach(el => el.classList.remove('active'));
+      document.querySelectorAll('.checkpoint-item.active').forEach(el => el.classList.remove('active'));
+
+      const mark = document.getElementById('essay-err-' + idx);
+      const item = document.getElementById('cp-item-' + idx);
+      if (item) {
+        item.classList.add('active');
+        item.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }
+      if (mark) {
+        mark.classList.add('active');
+        mark.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      } else {
+        showToast('作文中未定位到该错误片段', 'err');
+      }
+    }
+
+    function renderRecord(record) {
+      const behaviorText = {
+        0: { text: '自己改好', class: 'self' },
+        1: { text: '提示后改好', class: 'hint' },
+        2: { text: '看答案', class: 'answer' }
+      };
+
+      const checkpoints = Array.isArray(record.checkpoints) ? record.checkpoints : [];
+      const totalCheckpoints = checkpoints.length;
+      const selfCount = checkpoints.filter(c => c.hintLevelUsed === 0).length;
+      const hintCount = checkpoints.filter(c => c.hintLevelUsed === 1).length;
+      const answerCount = checkpoints.filter(c => c.hintLevelUsed === 2).length;
+      const avgTime = totalCheckpoints > 0
+        ? Math.round(checkpoints.reduce((sum, c) => sum + (Number(c.timeSpent) || 0), 0) / totalCheckpoints)
+        : 0;
+
+      const typeStats = {};
+      checkpoints.forEach(cp => {
+        const key = cp.category || '未分类';
+        typeStats[key] = (typeStats[key] || 0) + 1;
+      });
+
+      const identity = record.studentId
+        ? `${escapeHtml(record.studentName || '未命名')} <span class="meta">（学号 ${escapeHtml(record.studentId)}）</span>`
+        : escapeHtml(record.studentName || '未命名');
+
+      const essay = record.essay || '';
+      const revision = record.teacherRevision || '';
+      const comment = record.teacherComment || '';
+      const updatedAt = record.teacherUpdatedAt ? formatDate(record.teacherUpdatedAt) : '';
+      const located = locateErrorRanges(essay, checkpoints);
+      const reviewed = !!record.teacherReviewed;
+      const topicFull = String(record.topic || '').trim();
+
+      const teacherPane = isStudentMode
+        ? `
+          <section class="pane">
+            <div class="pane-head">
+              <span>老师修正与评语</span>
+              <span class="meta">${reviewed ? (updatedAt ? '批改于 ' + escapeHtml(updatedAt) : '已批改') : '尚未批改'}</span>
+            </div>
+            <div class="pane-body">
+              <div class="teacher-form">
+                <label>老师进一步修正</label>
+                <div class="teacher-readonly ${revision.trim() ? '' : 'empty'}">${revision.trim() ? escapeHtml(revision) : '老师尚未填写修正稿'}</div>
+                <label>老师评语</label>
+                <div class="teacher-readonly ${comment.trim() ? '' : 'empty'}">${comment.trim() ? escapeHtml(comment) : '老师尚未填写评语'}</div>
+                ${!reviewed ? '<p class="meta" style="margin-top:8px;">提交后请耐心等待老师批改；批改完成后会在历史列表中提示「新批改」。</p>' : ''}
+              </div>
+            </div>
+          </section>
+        `
+        : `
+          <section class="pane">
+            <div class="pane-head">
+              <span>老师修正与评语</span>
+              <span class="meta" id="teacherSaveMeta">${updatedAt ? '上次保存 ' + escapeHtml(updatedAt) : '尚未保存'}</span>
+            </div>
+            <div class="pane-body">
+              <div class="teacher-form">
+                <label for="teacherRevision">进一步修正（可直接改写学生作文）</label>
+                <textarea id="teacherRevision" placeholder="在此粘贴或编写老师修正后的作文...">${escapeHtml(revision)}</textarea>
+                <label for="teacherComment">评语</label>
+                <textarea id="teacherComment" placeholder="对学生作文的整体评语、亮点与建议...">${escapeHtml(comment)}</textarea>
+                <div class="teacher-actions">
+                  <button class="btn success" id="saveTeacherFeedbackBtn" onclick="saveTeacherFeedback(${Number(record.id)})">保存</button>
+                  <button class="btn secondary" type="button" onclick="fillRevisionFromEssay(${Number(record.id)})">用原文填充修正区</button>
+                  <span class="save-hint">保存后可再次打开继续修改</span>
+                </div>
+              </div>
+            </div>
+          </section>
+        `;
+
+      const attempt = Number(record.attempt) || 1;
+      const err = Number(record.errorCount);
+      const passMax = Number(record.passErrorMax) || 3;
+      const errText = Number.isFinite(err) ? String(err) : '?';
+      const doneHint = record.topicCompleted ? ' · 已结束' : '';
+      const attemptLabel = `<span class="attempt-badge">第 ${attempt} 次</span> <span class="attempt-badge">语法/词汇错误 ${escapeHtml(errText)}（≤${passMax} 结束）${doneHint}</span>`;
+
+      // 再写按钮以该题最新一轮的 canRewrite 为准
+      let rewriteSource = record;
+      if (isStudentMode && String(record.topicKey || '').trim()) {
+        const sameTopic = allRecords
+          .filter(r => String(r.topicKey || '') === String(record.topicKey || ''))
+          .sort((a, b) => {
+            const ta = String(a.createdAt || '');
+            const tb = String(b.createdAt || '');
+            if (ta !== tb) return ta < tb ? -1 : 1;
+            return Number(a.id) - Number(b.id);
+          });
+        if (sameTopic.length) rewriteSource = sameTopic[sameTopic.length - 1];
+      }
+
+      const rewriteAction = isStudentMode
+        ? `<div class="detail-head-actions">${rewriteButtonHtml(rewriteSource)}</div>`
+        : '';
+
+      return `
+        <div class="detail-head">
+          <div>
+            <div class="detail-title">${identity} ${attemptLabel}</div>
+            <div class="meta">提交于 ${escapeHtml(formatDate(record.createdAt))} · 点击红色错误可定位到左侧作文</div>
+            <div class="detail-topic"><strong>题目：</strong>${topicFull ? escapeHtml(topicFull) : '（未填写题目）'}</div>
+          </div>
+          ${rewriteAction}
+        </div>
+        <div class="split-board">
+          <section class="pane">
+            <div class="pane-head">学生作文<span class="meta">红色标注为错误位置</span></div>
+            <div class="pane-body" id="essayPaneBody">
+              <div class="essay-text" id="essayTextPanel">${renderEssayWithMarks(essay, checkpoints)}</div>
+            </div>
+          </section>
+
+          <section class="pane">
+            <div class="pane-head">错误统计与改错记录</div>
+            <div class="pane-body">
+              <div class="stats-grid">
+                <div class="stat-item">
+                  <div class="stat-value">${totalCheckpoints}</div>
+                  <div class="stat-label">总检查点</div>
+                </div>
+                <div class="stat-item">
+                  <div class="stat-value" style="color:#27ae60">${selfCount}</div>
+                  <div class="stat-label">自己改好</div>
+                </div>
+                <div class="stat-item">
+                  <div class="stat-value" style="color:#f39c12">${hintCount}</div>
+                  <div class="stat-label">提示后改好</div>
+                </div>
+                <div class="stat-item">
+                  <div class="stat-value" style="color:#e74c3c">${answerCount}</div>
+                  <div class="stat-label">看答案</div>
+                </div>
+                <div class="stat-item">
+                  <div class="stat-value">${avgTime}s</div>
+                  <div class="stat-label">平均用时</div>
+                </div>
+              </div>
+
+              <strong style="font-size:13px;">错误类型</strong>
+              <div class="type-stats">
+                ${Object.keys(typeStats).length
+                  ? Object.entries(typeStats).map(([type, count]) =>
+                      `<span class="type-tag">${escapeHtml(type)} <span class="count">${count}</span></span>`
+                    ).join('')
+                  : '<span class="meta">暂无</span>'}
+              </div>
+
+              <strong style="font-size:13px;">改错记录</strong>
+              <div style="margin-top:10px;">
+                ${checkpoints.length === 0
+                  ? '<p class="meta">暂无检查点</p>'
+                  : checkpoints.map((cp, idx) => {
+                      const behavior = behaviorText[cp.hintLevelUsed] || { text: '未完成', class: 'hint' };
+                      const answer = cp.studentAnswer == null ? '' : String(cp.studentAnswer);
+                      const canLocate = !!located[idx];
+                      return `
+                        <div class="checkpoint-item" id="cp-item-${idx}" onclick="focusEssayError(${idx})">
+                          <div class="checkpoint-header">
+                            <span class="category">${escapeHtml(cp.category || '未分类')}</span>
+                            <span class="behavior ${behavior.class}">${behavior.text}</span>
+                          </div>
+                          <div>
+                            <span class="error-text ${canLocate ? 'clickable' : ''}" title="${canLocate ? '点击定位到作文' : '作文中未找到该片段'}">${escapeHtml(cp.errorText || '')}</span>
+                            →
+                            <span class="corrected-text">${escapeHtml(cp.correctedText || '')}</span>
+                          </div>
+                          <div class="sentence">第 ${(Number(cp.sentenceIndex) || 0) + 1} 句${canLocate ? '' : ' · 未在原文定位到'}</div>
+                          <div class="time">用时: ${Number(cp.timeSpent) || 0}秒 | 学生答案: ${escapeHtml(answer.substring(0, 80))}${answer.length > 80 ? '...' : ''}</div>
+                        </div>
+                      `;
+                    }).join('')}
+              </div>
+            </div>
+          </section>
+
+          ${teacherPane}
+        </div>
+      `;
+    }
+
+    function fillRevisionFromEssay(recordId) {
+      if (isStudentMode) return;
+      const record = allRecords.find(r => String(r.id) === String(recordId));
+      const box = document.getElementById('teacherRevision');
+      if (!record || !box) return;
+      if (box.value.trim() && !confirm('修正区已有内容，确定用学生原文覆盖吗？')) return;
+      box.value = record.essay || '';
+    }
+
+    async function saveTeacherFeedback(recordId) {
+      if (isStudentMode) {
+        showToast('学生端仅可查看，不能批改', 'err');
+        return;
+      }
+      const revisionEl = document.getElementById('teacherRevision');
+      const commentEl = document.getElementById('teacherComment');
+      const btn = document.getElementById('saveTeacherFeedbackBtn');
+      if (!revisionEl || !commentEl) return;
+
+      const teacherRevision = revisionEl.value;
+      const teacherComment = commentEl.value;
+      if (btn) btn.disabled = true;
+
+      try {
+        const resp = await fetch(writingApi('teacher/records/' + recordId + '/feedback'), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ teacherRevision, teacherComment })
+        });
+        const result = await resp.json();
+        if (!resp.ok || !result.success) {
+          throw new Error(result.message || ('保存失败: ' + resp.status));
+        }
+
+        const idx = allRecords.findIndex(r => String(r.id) === String(recordId));
+        if (idx >= 0) {
+          allRecords[idx].teacherRevision = teacherRevision;
+          allRecords[idx].teacherComment = teacherComment;
+          allRecords[idx].teacherUpdatedAt = result.teacherUpdatedAt || '';
+          allRecords[idx].teacherReviewed = !!(teacherRevision.trim() || teacherComment.trim());
+        }
+
+        const meta = document.getElementById('teacherSaveMeta');
+        if (meta) {
+          meta.textContent = '上次保存 ' + formatDate(result.teacherUpdatedAt || new Date().toISOString());
+        }
+        showToast('已保存老师修正与评语', 'ok');
+      } catch (e) {
+        showToast(e.message || '保存失败', 'err');
+      } finally {
+        if (btn) btn.disabled = false;
+      }
+    }
+
+    applyPageChrome();
+    loadData();
+  </script>
+</body>
+</html>

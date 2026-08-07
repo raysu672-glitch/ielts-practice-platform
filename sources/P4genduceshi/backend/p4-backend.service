@@ -1,0 +1,17 @@
+[Unit]
+Description=P4 Shadow Reading Backend
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/p4-backend
+Environment="TENCENT_SECRET_ID=你的SecretId"
+Environment="TENCENT_SECRET_KEY=你的SecretKey"
+Environment="TENCENT_REGION=ap-shanghai"
+ExecStart=/opt/p4-backend/venv/bin/uvicorn app_tencent:app --host 0.0.0.0 --port 8000
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,3516 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>雅思写作自动改错训练</title>
+  <style>
+    :root {
+      --ink: #1e2329;
+      --muted: #65717f;
+      --line: #d8dee6;
+      --soft: #f4f7fa;
+      --panel: #ffffff;
+      --accent: #167a72;
+      --accent-dark: #0e5e58;
+      --accent-2: #245da8;
+      --warn: #b56a00;
+      --danger: #b82e34;
+      --green-soft: #e8f5f2;
+      --yellow-soft: #fff5df;
+      --red-soft: #fff0f1;
+      --blue-soft: #eaf4ff;
+      --shadow: 0 8px 26px rgba(28, 39, 54, 0.08);
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body {
+      height: 100%;
+    }
+
+    body {
+      margin: 0;
+      color: var(--ink);
+      background: #edf1f5;
+      font-family: Inter, "Segoe UI", Arial, "Microsoft YaHei", sans-serif;
+      line-height: 1.5;
+    }
+
+    button, input, textarea, select { font: inherit; }
+    button { cursor: pointer; }
+
+    .app {
+      min-height: 100vh;
+      height: 100%;
+      display: grid;
+      grid-template-rows: auto 1fr;
+      overflow: hidden;
+    }
+
+    .app > main {
+      min-height: 0;
+      overflow: auto;
+    }
+
+    /* 训练页：禁止整页滚动，三栏各自滚动 */
+    .app.training-mode > main {
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+      padding: 14px 22px;
+      background: #ffffff;
+      border-bottom: 1px solid var(--line);
+      position: sticky;
+      top: 0;
+      z-index: 5;
+      flex-shrink: 0;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 240px;
+    }
+
+    .mark {
+      width: 34px;
+      height: 34px;
+      border-radius: 8px;
+      display: grid;
+      place-items: center;
+      color: #fff;
+      background: var(--accent);
+      font-weight: 800;
+    }
+
+    .brand h1 { margin: 0; font-size: 17px; line-height: 1.2; }
+    .brand p { margin: 2px 0 0; color: var(--muted); font-size: 12px; }
+
+    .status-strip {
+      flex: 1;
+      max-width: 620px;
+      display: grid;
+      gap: 7px;
+    }
+
+    .status-line {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .progress {
+      height: 10px;
+      background: #e7ecf1;
+      border-radius: 999px;
+      overflow: hidden;
+    }
+
+    .progress span {
+      display: block;
+      height: 100%;
+      width: 0;
+      border-radius: inherit;
+      background: var(--accent);
+      transition: width 0.2s ease;
+    }
+
+    .toolbar { display: flex; align-items: center; gap: 10px; }
+
+    .btn, .icon-btn {
+      border-radius: 8px;
+      border: 1px solid var(--line);
+      background: #fff;
+      color: var(--ink);
+      min-height: 38px;
+      padding: 8px 12px;
+    }
+
+    .btn.primary {
+      border-color: var(--accent);
+      background: var(--accent);
+      color: #fff;
+    }
+
+    .btn.primary:hover { background: var(--accent-dark); }
+
+    .btn:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+    }
+
+    .icon-btn {
+      width: 38px;
+      padding: 0;
+      display: grid;
+      place-items: center;
+      font-size: 18px;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: minmax(320px, 0.85fr) minmax(430px, 1.2fr) minmax(320px, 0.85fr);
+      gap: 14px;
+      padding: 14px;
+      min-height: 0;
+      flex: 1;
+      height: 100%;
+      align-items: stretch;
+    }
+
+    .pane {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+      height: 100%;
+    }
+
+    .pane-head {
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--line);
+      background: #fbfcfd;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 12px;
+      flex-shrink: 0;
+    }
+
+    .pane-head h2 { margin: 0; font-size: 15px; }
+    .pane-head small { display: block; margin-top: 2px; color: var(--muted); }
+
+    .pane-body {
+      padding: 16px;
+      overflow-y: auto;
+      overflow-x: hidden;
+      flex: 1;
+      min-height: 0;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      border-radius: 999px;
+      padding: 4px 9px;
+      font-size: 12px;
+      border: 1px solid #b9ded9;
+      color: var(--accent-dark);
+      background: var(--green-soft);
+      white-space: nowrap;
+    }
+
+    .badge.warn {
+      color: var(--warn);
+      background: var(--yellow-soft);
+      border-color: #f0cf8b;
+    }
+
+    .badge.danger {
+      color: var(--danger);
+      background: var(--red-soft);
+      border-color: #f3b7bb;
+    }
+
+    .badge.blue {
+      color: var(--accent-2);
+      background: var(--blue-soft);
+      border-color: #b9d3f3;
+    }
+
+    .stage { display: none; }
+    .stage.active { display: block; }
+    #trainingStage.stage.active {
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+      min-height: 0;
+      height: 100%;
+      overflow: hidden;
+    }
+
+    .start-card {
+      max-width: 720px;
+      margin: 60px auto;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+      padding: 32px;
+    }
+
+    .start-card h2 { margin: 0 0 8px; }
+    .start-card p { margin: 0 0 24px; color: var(--muted); }
+
+    .field { margin-bottom: 18px; }
+    .field label { display: block; color: var(--muted); font-size: 13px; margin-bottom: 6px; }
+    .field input, .field textarea {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 10px;
+      background: #fff;
+      color: var(--ink);
+    }
+    .field textarea { min-height: 160px; resize: vertical; }
+    .field textarea.topic-input { min-height: 88px; }
+    .field input:focus, .field textarea:focus { outline: 2px solid rgba(22, 122, 114, 0.22); border-color: var(--accent); }
+
+    .rewrite-banner {
+      display: none;
+      margin: 0 0 16px;
+      padding: 10px 12px;
+      border-radius: 8px;
+      border: 1px solid #f0cf8b;
+      background: var(--yellow-soft);
+      color: #5a3d00;
+      font-size: 14px;
+    }
+
+    .topic-readonly {
+      display: none;
+      margin-bottom: 18px;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--soft);
+      white-space: pre-wrap;
+      word-break: break-word;
+      font-size: 14px;
+      line-height: 1.6;
+      color: var(--ink);
+    }
+
+    .topic-readonly-label {
+      display: block;
+      color: var(--muted);
+      font-size: 13px;
+      margin-bottom: 6px;
+    }
+
+    .upload-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; margin-top: 10px; }
+
+    .file-label {
+      display: inline-flex;
+      align-items: center;
+      min-height: 38px;
+      padding: 8px 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      color: var(--ink);
+      cursor: pointer;
+      font-size: 14px;
+      margin: 0;
+    }
+    .file-label input { display: none; }
+
+    .sentence-list { display: grid; gap: 8px; }
+
+    .sentence {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      padding: 10px;
+      display: grid;
+      gap: 7px;
+      text-align: left;
+      width: 100%;
+    }
+
+    .sentence.active {
+      border-color: #86c7c0;
+      background: var(--green-soft);
+    }
+
+    .sentence.complete { background: #f8fbfa; }
+
+    .sentence-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .sentence p { margin: 0; font-size: 14px; }
+
+    .current-sentence {
+      border: 1px solid #b9d3f3;
+      background: var(--blue-soft);
+      border-radius: 8px;
+      padding: 13px;
+      margin-bottom: 14px;
+    }
+
+    .current-sentence h3 { margin: 0 0 6px; font-size: 15px; }
+    .current-sentence p { margin: 0; font-size: 16px; }
+
+    .error-mark {
+      color: #9b1c1c;
+      background: #ffe3e3;
+      text-decoration-line: underline;
+      text-decoration-style: wavy;
+      text-decoration-color: #c0392b;
+      text-decoration-thickness: 2px;
+      text-underline-offset: 3px;
+      font-weight: 700;
+      padding: 0 2px;
+      border-radius: 3px;
+      box-shadow: inset 0 -1px 0 rgba(192, 57, 43, 0.25);
+    }
+
+    .checkpoint {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 13px;
+      background: #fff;
+      margin-bottom: 12px;
+    }
+
+    .checkpoint.done {
+      border-color: #b9ded9;
+      background: #f6fcfa;
+    }
+
+    .checkpoint-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+
+    .checkpoint h3 { margin: 0; font-size: 16px; }
+
+    .question {
+      margin: 0 0 10px;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .answer-box { margin-bottom: 10px; }
+    .answer-box label { display: block; color: var(--muted); font-size: 12px; margin-bottom: 5px; }
+
+    textarea {
+      width: 100%;
+      min-height: 74px;
+      resize: vertical;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 9px 10px;
+      background: #fff;
+      color: var(--ink);
+    }
+
+    textarea:focus { outline: 2px solid rgba(22, 122, 114, 0.22); border-color: var(--accent); }
+
+    .checkpoint-actions {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .hint, .type-hint, .answer-reveal {
+      display: none;
+      margin-top: 10px;
+      padding: 10px 11px;
+      border-radius: 0 8px 8px 0;
+      font-size: 14px;
+    }
+
+    .hint.show, .type-hint.show, .answer-reveal.show { display: block; }
+
+    .hint {
+      border-left: 3px solid var(--accent-2);
+      background: var(--blue-soft);
+      color: #25445f;
+    }
+
+    .type-hint {
+      border-left: 3px solid var(--warn);
+      background: var(--yellow-soft);
+      color: #5a3d00;
+    }
+
+    .answer-reveal {
+      border: 1px solid #b9ded9;
+      background: #f6fcfa;
+      border-radius: 8px;
+      color: var(--ink);
+    }
+
+    .answer-reveal strong { display: block; margin-bottom: 5px; }
+
+    .submit-feedback {
+      display: none;
+      margin-top: 10px;
+      padding: 10px 11px;
+      border-radius: 8px;
+      font-size: 14px;
+      line-height: 1.55;
+    }
+    .submit-feedback.show { display: block; }
+    .submit-feedback.ok {
+      border: 1px solid #9fd0c6;
+      background: #f0faf7;
+      color: #1a6b5c;
+    }
+    .submit-feedback.bad {
+      border: 1px solid #f0b4ae;
+      background: #fff6f5;
+      color: #9b2c20;
+    }
+    .submit-feedback .ref-answer {
+      margin-top: 8px;
+      padding-top: 8px;
+      border-top: 1px dashed rgba(0,0,0,0.12);
+      color: var(--ink);
+    }
+
+    .report-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .metric {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--soft);
+      padding: 10px;
+    }
+
+    .metric strong { display: block; font-size: 20px; line-height: 1.1; }
+    .metric span { color: var(--muted); font-size: 12px; }
+
+    .type-list { display: grid; gap: 9px; }
+
+    .type-row {
+      display: grid;
+      grid-template-columns: 92px 1fr 30px;
+      gap: 9px;
+      align-items: center;
+      font-size: 13px;
+    }
+
+    .bar {
+      height: 9px;
+      border-radius: 999px;
+      overflow: hidden;
+      background: #e8edf2;
+    }
+
+    .bar span {
+      display: block;
+      height: 100%;
+      border-radius: inherit;
+      background: var(--accent);
+    }
+
+    .review-list { display: grid; gap: 10px; }
+
+    .review-item {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 11px;
+      background: #fff;
+    }
+
+    .review-item strong { display: block; margin-bottom: 5px; font-size: 14px; }
+    .review-item p { margin: 0; color: var(--muted); font-size: 13px; }
+
+    .report-card {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px;
+      background: #fff;
+      margin-bottom: 12px;
+    }
+
+    .report-card h3 { margin: 0 0 8px; font-size: 15px; }
+
+    .toast {
+      position: fixed;
+      right: 18px;
+      bottom: 18px;
+      padding: 10px 13px;
+      border-radius: 8px;
+      color: #fff;
+      background: var(--ink);
+      box-shadow: var(--shadow);
+      opacity: 0;
+      transform: translateY(8px);
+      transition: 0.2s ease;
+      pointer-events: none;
+      z-index: 10;
+    }
+
+    .toast.show { opacity: 1; transform: translateY(0); }
+
+    .report-stage {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 24px;
+    }
+
+    .report-stage h2 { margin: 0 0 6px; }
+    .report-stage > p { margin: 0 0 20px; color: var(--muted); }
+
+    @media (max-width: 1140px) {
+      .topbar { flex-wrap: wrap; }
+      .status-strip { order: 3; max-width: none; width: 100%; }
+      .layout {
+        grid-template-columns: 1fr;
+        overflow-y: auto;
+        height: auto;
+      }
+      .pane {
+        height: auto;
+        max-height: 60vh;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .topbar, .layout, .start-card, .report-stage { padding: 10px; }
+      .brand { min-width: 0; }
+      .toolbar, .top-actions { width: 100%; justify-content: space-between; }
+      .report-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header class="topbar">
+      <div class="brand">
+        <div class="mark">P</div>
+        <div>
+          <h1>雅思写作自动改错训练</h1>
+          <p>上传作文，系统找错，学生逐句掌握</p>
+        </div>
+      </div>
+      <div class="status-strip" aria-label="改错进度" id="statusStrip" style="display:none;">
+        <div class="status-line">
+          <span id="sentenceStatus">第 1 / 5 句</span>
+          <span id="checkpointStatus">完成 0 / 0 个检查点</span>
+        </div>
+        <div class="progress"><span id="progressBar"></span></div>
+      </div>
+      <div class="toolbar" id="topToolbar" style="display:none;">
+        <button class="icon-btn" id="prevSentence" title="上一句" aria-label="上一句">‹</button>
+        <button class="icon-btn" id="nextSentence" title="下一句" aria-label="下一句">›</button>
+        <button class="btn primary" id="finishAll">完成训练</button>
+      </div>
+    </header>
+
+    <main>
+      <!-- 阶段 1：开始 -->
+      <section class="stage active" id="startStage">
+        <div class="start-card">
+          <h2 id="startTitle">开始改错训练</h2>
+          <div id="rewriteBanner" class="rewrite-banner">请根据同一题目重新写作；本页不显示上次内容与老师批改。</div>
+          <p id="startHint">先粘贴作文题目，再粘贴或上传作文正文，系统会自动找出常见语法错误。</p>
+
+          <div class="field" id="studentNameField">
+            <label for="studentName">你的名字</label>
+            <input type="text" id="studentName" placeholder="例如：Anna Chen">
+          </div>
+
+          <div class="field" id="topicField">
+            <label for="topicInput">作文题目</label>
+            <textarea id="topicInput" class="topic-input" placeholder="请单独粘贴本次写作题目 / Writing Task Prompt，例如：
+
+Some people think that the increasing use of computers and mobile phones for communication has a negative effect on young people's reading and writing skills. To what extent do you agree or disagree?"></textarea>
+          </div>
+          <div id="topicReadonlyWrap" style="display:none;">
+            <span class="topic-readonly-label">作文题目</span>
+            <div id="topicReadonly" class="topic-readonly" style="display:block;"></div>
+          </div>
+
+          <div class="field">
+            <label for="essayInput" id="essayInputLabel">作文内容</label>
+            <textarea id="essayInput" placeholder="把雅思作文正文粘贴到这里，或点击下方上传 .txt 文件。
+
+示例：
+Nowadays, many people choose to live in big cities because they can find better jobs and public services. However, people who lives in cities often feel more stressed than those in small towns."></textarea>
+            <div class="upload-actions" id="uploadActions">
+              <label class="file-label">上传文本
+                <input id="fileInput" type="file" accept=".txt,text/plain">
+              </label>
+              <button class="btn" id="loadSample">加载示例作文</button>
+            </div>
+          </div>
+
+          <button class="btn primary" id="startBtn" style="width:100%;">开始改错</button>
+        </div>
+      </section>
+
+      <!-- 阶段 2 & 3：训练 -->
+      <section class="stage" id="trainingStage">
+        <div class="layout">
+          <section class="pane">
+            <div class="pane-head">
+              <div>
+                <h2>完整作文</h2>
+                <small>点击句子可快速跳转</small>
+              </div>
+              <span class="badge blue" id="essayBadge">0 个检查点</span>
+            </div>
+            <div class="pane-body">
+              <div class="sentence-list" id="sentenceList"></div>
+            </div>
+          </section>
+
+          <section class="pane">
+            <div class="pane-head">
+              <div>
+                <h2>当前句检查点</h2>
+                <small>先独立判断，提示逐层开放</small>
+              </div>
+              <span class="badge warn" id="currentBadge">待完成</span>
+            </div>
+            <div class="pane-body">
+              <div class="current-sentence">
+                <h3 id="currentTitle">第 1 句</h3>
+                <p id="currentText"></p>
+              </div>
+              <div id="checkpointList"></div>
+            </div>
+          </section>
+
+          <section class="pane">
+            <div class="pane-head">
+              <div>
+                <h2>学习统计</h2>
+                <small>实时反馈训练效果</small>
+              </div>
+              <span class="badge" id="statBadge">训练中</span>
+            </div>
+            <div class="pane-body">
+              <div class="report-grid">
+                <div class="metric"><strong id="metricDone">0%</strong><span>完成率</span></div>
+                <div class="metric"><strong id="metricTypes">0</strong><span>错误类别</span></div>
+                <div class="metric"><strong id="metricAvgHint">0.0</strong><span>平均提示层级</span></div>
+              </div>
+              <div class="report-card">
+                <h3>错误类型分布</h3>
+                <div class="type-list" id="typeList"></div>
+              </div>
+              <div class="report-card">
+                <h3>当前提示说明</h3>
+                <p style="margin:0;color:var(--muted);font-size:14px;">第 1 层：自己找错并修改。<br>第 2 层：在检查点内点「我不知道错在哪」标红位置。<br>第 3 层：提示错误类型。<br>第 4 层：可查看参考答案，但仍需自己输入正确答案并提交；全部提交正确后才能完成训练。</p>
+              </div>
+            </div>
+          </section>
+        </div>
+      </section>
+
+      <!-- 阶段 4：报告 -->
+      <section class="stage" id="reportStage">
+        <div class="report-stage">
+          <h2>训练完成</h2>
+          <p id="reportSummary">你已经完成了本篇作文的语法改错训练。</p>
+
+          <div class="report-grid">
+            <div class="metric"><strong id="reportDone">0%</strong><span>完成率</span></div>
+            <div class="metric"><strong id="reportTotal">0</strong><span>总检查点</span></div>
+            <div class="metric"><strong id="reportAvgHint">0.0</strong><span>平均提示层级</span></div>
+          </div>
+
+          <div class="report-card">
+            <h3>错误类型分布</h3>
+            <div class="type-list" id="reportTypeList"></div>
+          </div>
+
+          <div class="report-card">
+            <h3>建议复习点</h3>
+            <div class="review-list" id="reviewList"></div>
+          </div>
+
+          <div class="report-card">
+            <h3>针对性练习</h3>
+            <p style="margin:0 0 12px;color:var(--muted);font-size:14px;">根据你的错误类型，生成 3 道练习题巩固语法点。</p>
+            <div id="exerciseSection">
+              <button class="btn primary" id="generateExercisesBtn">生成针对性练习</button>
+            </div>
+            <div id="exerciseList" style="margin-top:16px;"></div>
+          </div>
+
+          <div class="upload-actions">
+            <button class="btn primary" id="restartBtn">再练一篇</button>
+            <button class="btn" id="backToStartBtn">返回首页</button>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div class="toast" id="toast">已保存</div>
+
+  <script>
+    // ===== 类型定义（开发时参考，运行时仅作注释） =====
+    // interface Checkpoint {
+    //   ruleId: string;
+    //   category: string;
+    //   question: string;
+    //   hints: string[];
+    //   answer: string;
+    //   explanation: string;
+    //   highlight: string;
+    // }
+    // interface Sentence {
+    //   text: string;
+    //   checkpoints: Checkpoint[];
+    // }
+    // interface PracticeState {
+    //   studentName: string;
+    //   currentSentence: number;
+    //   sentences: Sentence[];
+    //   done: Set<string>;
+    //   hintLevels: Record<string, number>;
+    //   answers: Record<string, string>;
+    // }
+
+    // ===== 规则库 =====
+    const grammarRules = [
+      // 主谓一致
+      {
+        id: "sv-people-who",
+        category: "主谓一致",
+        pattern: /\bpeople\s+who\s+(\w+)s\b/gi,
+        question: "这句话里有一个主谓一致问题，请找出来并修改。",
+        hints: [
+          "提示：看一下 who 指代的是单数还是复数。",
+          "提示：who 指代 people，是复数名词。"
+        ],
+        explanation: "who 指代 people（复数），所以动词用原形，不用第三人称单数。",
+        getAnswer: (sentence) => sentence.replace(/\bpeople\s+who\s+(\w+)s\b/gi, (match, verb) => `people who ${verb}`)
+      },
+      {
+        id: "sv-cost-are",
+        category: "主谓一致",
+        pattern: /\bthe\s+cost\s+of\s+.*?\s+are\b/gi,
+        question: "这句话的谓语动词有问题，请先找出真正的主语。",
+        hints: [
+          "提示：不要被 of 后面的名词干扰。",
+          "提示：主语是 the cost，不是 of 后面的内容。"
+        ],
+        explanation: "the cost of ... 的核心主语是 cost，为单数，谓语动词用 is。",
+        getAnswer: (sentence) => sentence.replace(/(\bthe\s+cost\s+of\s+.*?\s+)are\b/gi, "$1is")
+      },
+      {
+        id: "sv-there-is-many",
+        category: "主谓一致",
+        pattern: /\bthere\s+is\s+many\b/gi,
+        question: "这句话的 there be 句型主谓不一致，请修改。",
+        hints: [
+          "提示：many 后面通常接复数名词。",
+          "提示：there be 动词要和后面的主语保持一致。"
+        ],
+        explanation: "many 表示复数概念，there be 句型中 be 动词要用 are。",
+        getAnswer: (sentence) => sentence.replace(/\bthere\s+is\s+many\b/gi, "there are many")
+      },
+      {
+        id: "sv-number-of-are",
+        category: "主谓一致",
+        pattern: /\bthe\s+number\s+of\s+.*?\s+are\b/gi,
+        question: "这句话主语是单数还是复数？请修改谓语动词。",
+        hints: [
+          "提示：the number of 强调的是数量本身。",
+          "提示：number 是单数，谓语动词用单数。"
+        ],
+        explanation: "the number of + 复数名词 表示「……的数量」，整体作主语时谓语用单数。",
+        getAnswer: (sentence) => sentence.replace(/(\bthe\s+number\s+of\s+.*?\s+)are\b/gi, "$1is")
+      },
+      {
+        id: "sv-people-is",
+        category: "主谓一致",
+        pattern: /\bpeople\s+is\b/gi,
+        question: "这句话里 people 的谓语动词使用是否正确？",
+        hints: [
+          "提示：people 本身是复数名词。",
+          "提示：people 的谓语动词应该用复数形式。"
+        ],
+        explanation: "people 是复数名词，谓语动词用 are，不用 is。",
+        getAnswer: (sentence) => sentence.replace(/\bpeople\s+is\b/gi, "people are")
+      },
+
+      // 冠词
+      {
+        id: "art-a-important",
+        category: "冠词使用",
+        pattern: /\ba\s+[aeiou]/gi,
+        question: "这句话里有一个冠词使用错误，请找出来并修改。",
+        hints: [
+          "提示：注意 a 和 an 的区别。",
+          "提示：an 用于以元音音素开头的单词前。"
+        ],
+        explanation: "a 用于辅音音素开头的单词前，an 用于元音音素开头的单词前。",
+        getAnswer: (sentence) => sentence.replace(/\ba\s+([aeiou]\w+)\b/gi, (match, word) => `an ${word}`)
+      },
+      {
+        id: "art-an-university",
+        category: "冠词使用",
+        pattern: /\ban\s+university\b/gi,
+        question: "这句话里的冠词使用是否正确？",
+        hints: [
+          "提示：university 的发音以什么音素开头？",
+          "提示：不要只看拼写，要看发音。"
+        ],
+        explanation: "university 的发音以 /j/（辅音音素）开头，所以用 a，不用 an。",
+        getAnswer: (sentence) => sentence.replace(/\ban\s+university\b/gi, "a university")
+      },
+      {
+        id: "art-the-education-general",
+        category: "冠词使用",
+        pattern: /\bthe\s+education\s+(is|should|can|will|has|have|plays)/gi,
+        question: "这里的 education 前面是否需要加 the？",
+        hints: [
+          "提示：education 表示抽象概念时通常不加 the。",
+          "提示：这里 education 是泛指还是特指？"
+        ],
+        explanation: "表示抽象、泛指的概念（如 education, life, health）时，一般不加 the。",
+        getAnswer: (sentence) => sentence.replace(/\bthe\s+education\b/gi, "education")
+      },
+
+      // 动词形式
+      {
+        id: "vform-spend-time-to",
+        category: "动词形式",
+        pattern: /\bspend\s+.*?\s+time\s+to\s+\w+/gi,
+        question: "这句话里 spend time 后面的动词形式是否正确？",
+        hints: [
+          "提示：spend time 后面通常接什么形式？",
+          "提示：spend time (in) doing something 是固定搭配。"
+        ],
+        explanation: "spend time (in) doing something 是固定搭配，表示「花时间做某事」。",
+        getAnswer: (sentence) => sentence.replace(/\bspend\s+(.*?)\s+time\s+to\s+(\w+)\b/gi, (match, mid, verb) => `spend ${mid} time ${verb.replace(/e$/, '')}ing`)
+      },
+      {
+        id: "vform-enjoy-to",
+        category: "动词形式",
+        pattern: /\benjoy\s+to\s+\w+/gi,
+        question: "这句话里 enjoy 后面的动词形式是否正确？",
+        hints: [
+          "提示：enjoy 后面通常接动名词还是不定式？",
+          "提示：enjoy doing something 是固定搭配。"
+        ],
+        explanation: "enjoy 后面接动名词（doing），不接不定式（to do）。",
+        getAnswer: (sentence) => sentence.replace(/\benjoy\s+to\s+(\w+)\b/gi, (match, verb) => `enjoy ${verb.replace(/e$/, '')}ing`)
+      },
+      {
+        id: "vform-avoid-to",
+        category: "动词形式",
+        pattern: /\bavoid\s+to\s+\w+/gi,
+        question: "这句话里 avoid 后面的动词形式是否正确？",
+        hints: [
+          "提示：avoid 后面接什么形式？",
+          "提示：avoid doing something 是固定搭配。"
+        ],
+        explanation: "avoid 后面接动名词（doing），表示「避免做某事」。",
+        getAnswer: (sentence) => sentence.replace(/\bavoid\s+to\s+(\w+)\b/gi, (match, verb) => `avoid ${verb.replace(/e$/, '')}ing`)
+      },
+      {
+        id: "vform-made-him-to",
+        category: "动词形式",
+        pattern: /\bmade?\s+\w+\s+to\s+\w+/gi,
+        question: "这句话里 make 后面的动词形式是否正确？",
+        hints: [
+          "提示：make 作为使役动词，后面接什么形式？",
+          "提示：make somebody do something。"
+        ],
+        explanation: "make 作为使役动词，后面接省略 to 的不定式，即 make somebody do something。",
+        getAnswer: (sentence) => sentence.replace(/\b(made?)\s+(\w+)\s+to\s+(\w+)\b/gi, "$1 $2 $3")
+      },
+
+      // 比较级最高级
+      {
+        id: "comp-more-healthier",
+        category: "比较级",
+        pattern: /\bmore\s+\w+er\b/gi,
+        question: "这句话里的比较级表达是否正确？",
+        hints: [
+          "提示：healthier 本身是什么形式？",
+          "提示：more 和 -er 能不能同时使用？"
+        ],
+        explanation: "healthier 本身已是比较级，不需要再加 more。",
+        getAnswer: (sentence) => sentence.replace(/\bmore\s+(\w+er)\b/gi, "$1")
+      },
+      {
+        id: "comp-more-easier",
+        category: "比较级",
+        pattern: /\bmore\s+easier\b/gi,
+        question: "这句话里的比较级表达是否正确？",
+        hints: [
+          "提示：easier 本身已是比较级。",
+          "提示：不要重复使用 more 和 -er。"
+        ],
+        explanation: "easier 本身已是比较级，不需要再加 more。",
+        getAnswer: (sentence) => sentence.replace(/\bmore\s+easier\b/gi, "easier")
+      },
+      {
+        id: "comp-most-fastest",
+        category: "最高级",
+        pattern: /\bmost\s+\w+est\b/gi,
+        question: "这句话里的最高级表达是否正确？",
+        hints: [
+          "提示：fastest 本身已是最高级。",
+          "提示：most 和 -est 不能同时使用。"
+        ],
+        explanation: "fastest 本身已是最高级，不需要再加 most。",
+        getAnswer: (sentence) => sentence.replace(/\bmost\s+(\w+est)\b/gi, "$1")
+      },
+
+      // 介词搭配
+      {
+        id: "prep-depend-of",
+        category: "介词搭配",
+        pattern: /\bdepend\s+of\b/gi,
+        question: "这句话里的介词搭配是否正确？",
+        hints: [
+          "提示：depend 后面通常接哪个介词？",
+          "提示：depend on 是固定搭配。"
+        ],
+        explanation: "depend on 是固定搭配，表示「取决于」。",
+        getAnswer: (sentence) => sentence.replace(/\bdepend\s+of\b/gi, "depend on")
+      },
+      {
+        id: "prep-discuss-about",
+        category: "介词搭配",
+        pattern: /\bdiscuss\s+about\b/gi,
+        question: "这句话里的动词搭配是否正确？",
+        hints: [
+          "提示：discuss 是及物动词还是不及物动词？",
+          "提示：discuss 后面直接接宾语，不需要 about。"
+        ],
+        explanation: "discuss 是及物动词，后面直接接宾语，不需要加 about。",
+        getAnswer: (sentence) => sentence.replace(/\bdiscuss\s+about\b/gi, "discuss")
+      },
+      {
+        id: "prep-different-than",
+        category: "介词搭配",
+        pattern: /\bdifferent\s+than\b/gi,
+        question: "这句话里的介词搭配是否正确？",
+        hints: [
+          "提示：different 后面通常接 from 还是 than？",
+          "提示：英式英语中常用 different from。"
+        ],
+        explanation: "different from 是标准搭配，表示「与……不同」。",
+        getAnswer: (sentence) => sentence.replace(/\bdifferent\s+than\b/gi, "different from")
+      },
+
+      // 名词单复数
+      {
+        id: "noun-quantifier-student",
+        category: "名词单复数",
+        pattern: /\b(many|these|those|some|several|few)\s+student\b/gi,
+        question: "这句话里的名词单复数是否正确？",
+        hints: [
+          "提示：many/these/those/some 后面接可数名词的什么形式？",
+          "提示：这些词后面接复数名词。"
+        ],
+        explanation: "many/these/those/some/several/few 后面接可数名词复数形式。",
+        getAnswer: (sentence) => sentence.replace(/\b(many|these|those|some|several|few)\s+student\b/gi, (match, quantifier) => `${quantifier} students`)
+      },
+      {
+        id: "noun-exchange-student",
+        category: "名词单复数",
+        pattern: /\bexchange\s+student\s+\w+/gi,
+        question: "这里的 exchange student 单复数是否正确？",
+        hints: [
+          "提示：根据上下文判断学生是单数还是复数。",
+          "提示：these 后面通常接复数名词。"
+        ],
+        explanation: "当表示多个交换生时，student 要用复数 students。",
+        getAnswer: (sentence) => sentence.replace(/\b(exchange\s+)student(\s+\w+)/gi, "$1students$2")
+      },
+      {
+        id: "noun-informations",
+        category: "名词单复数",
+        pattern: /\binformations\b/gi,
+        question: "这句话里的名词单复数是否正确？",
+        hints: [
+          "提示：information 是可数名词还是不可数名词？",
+          "提示：information 是不可数名词，没有复数形式。"
+        ],
+        explanation: "information 是不可数名词，没有复数形式。",
+        getAnswer: (sentence) => sentence.replace(/\binformations\b/gi, "information")
+      },
+
+      // 形容词副词
+      {
+        id: "adjadv-work-hardly",
+        category: "形容词副词",
+        pattern: /\bwork\s+hardly\b/gi,
+        question: "这句话里的 hardly 使用是否正确？",
+        hints: [
+          "提示：hardly 是什么意思？",
+          "提示：hard 本身可以作副词，表示「努力地」。"
+        ],
+        explanation: "hard 本身可作副词，表示「努力地」；hardly 表示「几乎不」，意思不同。",
+        getAnswer: (sentence) => sentence.replace(/\bwork\s+hardly\b/gi, "work hard")
+      },
+      {
+        id: "adjadv-drive-careless",
+        category: "形容词副词",
+        pattern: /\bdrive\s+careless\b/gi,
+        question: "这句话里修饰 drive 的词应该用什么词性？",
+        hints: [
+          "提示：drive 是动词，修饰动词用什么词？",
+          "提示：careless 是形容词，需要用副词形式修饰动词。"
+        ],
+        explanation: "修饰动词要用副词，careless 的副词形式是 carelessly。",
+        getAnswer: (sentence) => sentence.replace(/\bdrive\s+careless\b/gi, "drive carelessly")
+      },
+
+      // 时态语态
+      {
+        id: "tense-yesterday-go",
+        category: "时态",
+        pattern: /\byesterday\s+.*?\s+go\b/gi,
+        question: "这句话的时态是否正确？",
+        hints: [
+          "提示：yesterday 表示什么时间？",
+          "提示：yesterday 表示过去，动词要用过去式。"
+        ],
+        explanation: "yesterday 表示过去时间，动词 go 要用过去式 went。",
+        getAnswer: (sentence) => sentence.replace(/(\byesterday\s+.*?)\s+go\b/gi, "$1 went")
+      },
+      {
+        id: "tense-if-will",
+        category: "时态",
+        pattern: /\bif\s+\w+\s+will\b/gi,
+        question: "这句话的条件句时态是否正确？",
+        hints: [
+          "提示：if 引导的条件状语从句中通常用什么时态？",
+          "提示：第一条件句中，if 从句用一般现在时。"
+        ],
+        explanation: "第一条件句中，if 从句用一般现在时，主句用 will + 动词原形。",
+        getAnswer: (sentence) => sentence.replace(/\bif\s+(\w+)\s+will\s+(\w+)\b/gi, "if $1 $2")
+      },
+      {
+        id: "voice-homework-did",
+        category: "语态",
+        pattern: /\bthe\s+homework\s+did\s+by\b/gi,
+        question: "这句话的被动语态是否正确？",
+        hints: [
+          "提示：被动语态的基本结构是什么？",
+          "提示：be + 过去分词。"
+        ],
+        explanation: "被动语态要用 be + 过去分词结构，do 的过去分词是 done。",
+        getAnswer: (sentence) => sentence.replace(/\bthe\s+homework\s+did\s+by\b/gi, "the homework was done by")
+      },
+
+      // 易混淆词
+      {
+        id: "confuse-your-welcome",
+        category: "易混淆词",
+        pattern: /\byour\s+welcome\b/gi,
+        question: "这句话里的 your 使用是否正确？",
+        hints: [
+          "提示：your 和 you're 意思不同。",
+          "提示：you're = you are。"
+        ],
+        explanation: "your 是物主代词，you're = you are。「you're welcome」表示「不客气」。",
+        getAnswer: (sentence) => sentence.replace(/\byour\s+welcome\b/gi, "you're welcome")
+      },
+      {
+        id: "confuse-then-than",
+        category: "易混淆词",
+        pattern: /\btaller\s+then\b/gi,
+        question: "这句话里的 then 使用是否正确？",
+        hints: [
+          "提示：then 和 than 意思不同。",
+          "提示：比较级后面用 than。"
+        ],
+        explanation: "than 用于比较，then 表示时间顺序。",
+        getAnswer: (sentence) => sentence.replace(/\btaller\s+then\b/gi, "taller than")
+      },
+      {
+        id: "confuse-its-its",
+        category: "易混淆词",
+        pattern: /\bits\s+raining\b/gi,
+        question: "这句话里的 its 使用是否正确？",
+        hints: [
+          "提示：its 和 it's 意思不同。",
+          "提示：it's = it is。"
+        ],
+        explanation: "it's = it is，its 是物主代词。这里应该用 it's raining。",
+        getAnswer: (sentence) => sentence.replace(/\bits\s+raining\b/gi, "it's raining")
+      },
+
+      // 主谓一致（补充）
+      {
+        id: "sv-he-dont",
+        category: "主谓一致",
+        pattern: /\bhe\s+don't\b/gi,
+        question: "这句话里的助动词使用是否正确？",
+        hints: [
+          "提示：he 是第三人称单数。",
+          "提示：第三人称单数一般现在时的否定用 doesn't。"
+        ],
+        explanation: "he 是第三人称单数，一般现在时否定用 doesn't，不用 don't。",
+        getAnswer: (sentence) => sentence.replace(/\bhe\s+don't\b/gi, "he doesn't")
+      },
+      {
+        id: "sv-she-dont",
+        category: "主谓一致",
+        pattern: /\bshe\s+don't\b/gi,
+        question: "这句话里的助动词使用是否正确？",
+        hints: [
+          "提示：she 是第三人称单数。",
+          "提示：第三人称单数一般现在时的否定用 doesn't。"
+        ],
+        explanation: "she 是第三人称单数，一般现在时否定用 doesn't，不用 don't。",
+        getAnswer: (sentence) => sentence.replace(/\bshe\s+don't\b/gi, "she doesn't")
+      },
+      {
+        id: "sv-government-have",
+        category: "主谓一致",
+        pattern: /\bthe\s+government\s+have\b/gi,
+        question: "这句话里 government 的谓语动词是否正确？",
+        hints: [
+          "提示：government 在正式写作中通常看作单数还是复数？",
+          "提示：集体名词在正式写作中通常接单数动词。"
+        ],
+        explanation: "government 等集体名词在正式写作中通常看作单数，谓语用 has。",
+        getAnswer: (sentence) => sentence.replace(/\bthe\s+government\s+have\b/gi, "the government has")
+      },
+
+      // 冠词（补充）
+      {
+        id: "art-she-is-teacher",
+        category: "冠词使用",
+        pattern: /\bshe\s+is\s+teacher\b/gi,
+        question: "这句话里的名词前是否需要加冠词？",
+        hints: [
+          "提示：可数名词单数通常不能单独使用。",
+          "提示：teacher 是可数名词单数。"
+        ],
+        explanation: "可数名词单数前通常需要加冠词（a/an/the），这里用 a。",
+        getAnswer: (sentence) => sentence.replace(/\bshe\s+is\s+teacher\b/gi, "she is a teacher")
+      },
+      {
+        id: "art-i-bought-car",
+        category: "冠词使用",
+        pattern: /\bi\s+bought\s+car\b/gi,
+        question: "这句话里的名词前是否需要加冠词？",
+        hints: [
+          "提示：car 是可数名词单数。",
+          "提示：可数名词单数前需要加冠词。"
+        ],
+        explanation: "可数名词单数 car 前需要加冠词，这里用 a。",
+        getAnswer: (sentence) => sentence.replace(/\bi\s+bought\s+car\b/gi, "I bought a car")
+      },
+      {
+        id: "art-a-elephant",
+        category: "冠词使用",
+        pattern: /\ba\s+elephant\b/gi,
+        question: "这句话里的冠词使用是否正确？",
+        hints: [
+          "提示：elephant 以什么音素开头？",
+          "提示：元音音素开头的单词前用 an。"
+        ],
+        explanation: "elephant 以元音音素开头，前面用 an，不用 a。",
+        getAnswer: (sentence) => sentence.replace(/\ba\s+elephant\b/gi, "an elephant")
+      },
+      {
+        id: "art-the-life",
+        category: "冠词使用",
+        pattern: /\bthe\s+life\s+(is|can|should|will|has|have)\b/gi,
+        question: "这里的 life 前面是否需要加 the？",
+        hints: [
+          "提示：life 表示抽象概念时通常不加 the。",
+          "提示：这里 life 是泛指。"
+        ],
+        explanation: "表示抽象、泛指的 life 时，一般不加 the。",
+        getAnswer: (sentence) => sentence.replace(/\bthe\s+life\b/gi, "life")
+      },
+      {
+        id: "art-in-university",
+        category: "冠词使用",
+        pattern: /\bin\s+university\b/gi,
+        question: "这里的 university 前面是否需要加冠词？",
+        hints: [
+          "提示：university 是可数名词单数。",
+          "提示：表示在一所大学上学，用 at university 或 in a university。"
+        ],
+        explanation: "表示上大学时，常用 at university（不加冠词）或 in a university。",
+        getAnswer: (sentence) => sentence.replace(/\bin\s+university\b/gi, "at university")
+      },
+
+      // 动词形式（补充）
+      {
+        id: "vform-want-to-doing",
+        category: "动词形式",
+        pattern: /\bwant\s+to\s+\w+ing\b/gi,
+        question: "这句话里 want to 后面的动词形式是否正确？",
+        hints: [
+          "提示：want to 后面接什么形式？",
+          "提示：want to do something。"
+        ],
+        explanation: "want to 后面接动词原形，不接动名词。",
+        getAnswer: (sentence) => sentence.replace(/\bwant\s+to\s+(\w+)ing\b/gi, (match, verb) => `want to ${verb}`)
+      },
+      {
+        id: "vform-look-forward-to-do",
+        category: "动词形式",
+        pattern: /\blook\s+forward\s+to\s+\w+\b/gi,
+        question: "这句话里 look forward to 后面的动词形式是否正确？",
+        hints: [
+          "提示：look forward to 中的 to 是介词还是不定式符号？",
+          "提示：这里的 to 是介词，后面接 doing。"
+        ],
+        explanation: "look forward to 中的 to 是介词，后面接动名词 doing。",
+        getAnswer: (sentence) => sentence.replace(/\blook\s+forward\s+to\s+(\w+)\b/gi, (match, verb) => `look forward to ${verb.replace(/e$/, "")}ing`)
+      },
+      {
+        id: "vform-practice-to-speak",
+        category: "动词形式",
+        pattern: /\bpractice\s+to\s+\w+\b/gi,
+        question: "这句话里 practice 后面的动词形式是否正确？",
+        hints: [
+          "提示：practice 后面接什么形式？",
+          "提示：practice doing something。"
+        ],
+        explanation: "practice 后面接动名词 doing，不接不定式 to do。",
+        getAnswer: (sentence) => sentence.replace(/\bpractice\s+to\s+(\w+)\b/gi, (match, verb) => `practice ${verb.replace(/e$/, "")}ing`)
+      },
+      {
+        id: "vform-suggest-to-do",
+        category: "动词形式",
+        pattern: /\bsuggest\s+to\s+\w+\b/gi,
+        question: "这句话里 suggest 后面的动词形式是否正确？",
+        hints: [
+          "提示：suggest 后面接什么形式？",
+          "提示：suggest doing something。"
+        ],
+        explanation: "suggest 后面接动名词 doing，不接不定式 to do。",
+        getAnswer: (sentence) => sentence.replace(/\bsuggest\s+to\s+(\w+)\b/gi, (match, verb) => `suggest ${verb.replace(/e$/, "")}ing`)
+      },
+
+      // 比较级最高级（补充）
+      {
+        id: "comp-more-better",
+        category: "比较级",
+        pattern: /\bmore\s+better\b/gi,
+        question: "这句话里的比较级表达是否正确？",
+        hints: [
+          "提示：better 本身已是比较级。",
+          "提示：不要重复使用 more 和 -er。"
+        ],
+        explanation: "better 本身已是比较级，不需要再加 more。",
+        getAnswer: (sentence) => sentence.replace(/\bmore\s+better\b/gi, "better")
+      },
+      {
+        id: "comp-most-best",
+        category: "最高级",
+        pattern: /\bmost\s+best\b/gi,
+        question: "这句话里的最高级表达是否正确？",
+        hints: [
+          "提示：best 本身已是最高级。",
+          "提示：不要重复使用 most 和 -est。"
+        ],
+        explanation: "best 本身已是最高级，不需要再加 most。",
+        getAnswer: (sentence) => sentence.replace(/\bmost\s+best\b/gi, "best")
+      },
+
+      // 介词搭配（补充）
+      {
+        id: "prep-arrive-to",
+        category: "介词搭配",
+        pattern: /\barrive\s+to\b/gi,
+        question: "这句话里的介词搭配是否正确？",
+        hints: [
+          "提示：arrive 后面接什么介词？",
+          "提示：arrive at + 小地点，arrive in + 大地点。"
+        ],
+        explanation: "arrive 后面接 at（小地点）或 in（大地点），不接 to。",
+        getAnswer: (sentence) => sentence.replace(/\barrive\s+to\b/gi, "arrive at")
+      },
+      {
+        id: "prep-listen-music",
+        category: "介词搭配",
+        pattern: /\blisten\s+music\b/gi,
+        question: "这句话里的动词搭配是否正确？",
+        hints: [
+          "提示：listen 是及物动词还是不及物动词？",
+          "提示：listen to something 是固定搭配。"
+        ],
+        explanation: "listen 是不及物动词，后面接宾语时要加 to。",
+        getAnswer: (sentence) => sentence.replace(/\blisten\s+music\b/gi, "listen to music")
+      },
+      {
+        id: "prep-interested-on",
+        category: "介词搭配",
+        pattern: /\binterested\s+on\b/gi,
+        question: "这句话里的介词搭配是否正确？",
+        hints: [
+          "提示：interested 后面通常接什么介词？",
+          "提示：be interested in 是固定搭配。"
+        ],
+        explanation: "be interested in 是固定搭配，表示「对……感兴趣」。",
+        getAnswer: (sentence) => sentence.replace(/\binterested\s+on\b/gi, "interested in")
+      },
+
+      // 名词单复数（补充）
+      {
+        id: "noun-many-advice",
+        category: "名词单复数",
+        pattern: /\bmany\s+advice\b/gi,
+        question: "这句话里的名词单复数是否正确？",
+        hints: [
+          "提示：advice 是可数名词还是不可数名词？",
+          "提示：advice 不可数，用 much 修饰。"
+        ],
+        explanation: "advice 是不可数名词，不能用 many 修饰，要用 much。",
+        getAnswer: (sentence) => sentence.replace(/\bmany\s+advice\b/gi, "much advice")
+      },
+      {
+        id: "noun-childs",
+        category: "名词单复数",
+        pattern: /\bchilds\b/gi,
+        question: "这句话里的名词复数形式是否正确？",
+        hints: [
+          "提示：child 的复数形式是什么？",
+          "提示：child 是不规则变化。"
+        ],
+        explanation: "child 的复数形式是 children，不是 childs。",
+        getAnswer: (sentence) => sentence.replace(/\bchilds\b/gi, "children")
+      },
+
+      // 形容词副词（补充）
+      {
+        id: "adjadv-speak-loud",
+        category: "形容词副词",
+        pattern: /\bspeak\s+loud\b/gi,
+        question: "这句话里修饰 speak 的词应该用什么词性？",
+        hints: [
+          "提示：speak 是动词，修饰动词用什么词？",
+          "提示：loud 的副词形式是 loudly。"
+        ],
+        explanation: "修饰动词 speak 要用副词 loudly。",
+        getAnswer: (sentence) => sentence.replace(/\bspeak\s+loud\b/gi, "speak loudly")
+      },
+
+      // 时态语态（补充）
+      {
+        id: "tense-last-year-study",
+        category: "时态",
+        pattern: /\blast\s+year\s+.*?\s+study\b/gi,
+        question: "这句话的时态是否正确？",
+        hints: [
+          "提示：last year 表示什么时间？",
+          "提示：last year 表示过去，动词用过去式。"
+        ],
+        explanation: "last year 表示过去时间，动词 study 要用过去式 studied。",
+        getAnswer: (sentence) => sentence.replace(/(\blast\s+year\s+.*?)\s+study\b/gi, "$1 studied")
+      },
+      {
+        id: "tense-since-monday",
+        category: "时态",
+        pattern: /\bi\s+am\s+here\s+since\b/gi,
+        question: "这句话的时态是否正确？",
+        hints: [
+          "提示：since Monday 表示从过去持续到现在。",
+          "提示：since + 时间点通常用现在完成时。"
+        ],
+        explanation: "since + 时间点表示从过去持续到现在，通常用现在完成时。",
+        getAnswer: (sentence) => sentence.replace(/\bi\s+am\s+here\s+since\b/gi, "I have been here since")
+      },
+      {
+        id: "tense-have-went",
+        category: "时态",
+        pattern: /\bi\s+have\s+went\b/gi,
+        question: "这句话里的过去分词是否正确？",
+        hints: [
+          "提示：have 后面接什么形式？",
+          "提示：go 的过去分词是 gone，不是 went。"
+        ],
+        explanation: "现在完成时用 have + 过去分词，go 的过去分词是 gone。",
+        getAnswer: (sentence) => sentence.replace(/\bi\s+have\s+went\b/gi, "I have gone")
+      },
+
+      // 句子结构（补充）
+      {
+        id: "struc-however-comma",
+        category: "句子结构",
+        pattern: /\bhowever\s+\w+\b/gi,
+        question: "这句话里 however 的标点使用是否正确？",
+        hints: [
+          "提示：however 位于句首时，后面通常接什么标点？",
+          "提示：however 后面通常加逗号。"
+        ],
+        explanation: "however 位于句首作连接副词时，后面通常加逗号。",
+        getAnswer: (sentence) => sentence.replace(/\bhowever\s+(\w+)\b/gi, "However, $1")
+      },
+      {
+        id: "struc-run-on",
+        category: "句子结构",
+        pattern: /\w+\s+long\s+hours\s+they\s+feel\b/gi,
+        question: "这句话是不是两个独立句子连在一起？",
+        hints: [
+          "提示：两个独立句子不能只用逗号或空格连接。",
+          "提示：可以用 so 连接，或者分成两句。"
+        ],
+        explanation: "两个独立句子之间需要用连词、分号或句号连接，不能只用空格。",
+        getAnswer: (sentence) => sentence.replace(/(\w+\s+long\s+hours)\s+they\s+feel\b/gi, "$1, so they feel")
+      },
+      {
+        id: "struc-although-but",
+        category: "句子结构",
+        pattern: /\balthough\s+.*?\s+but\b/gi,
+        question: "这句话里 although 和 but 能否同时使用？",
+        hints: [
+          "提示：although 和 but 都是什么词？",
+          "提示：英语中 although 和 but 通常不同时使用。"
+        ],
+        explanation: "英语中 although 和 but 通常不同时使用，保留一个即可。",
+        getAnswer: (sentence) => sentence.replace(/\balthough\s+(.*?)\s+but\b/gi, "Although $1,")
+      },
+      {
+        id: "struc-very-unique",
+        category: "句子结构",
+        pattern: /\bvery\s+unique\b/gi,
+        question: "这句话里 very unique 的使用是否恰当？",
+        hints: [
+          "提示：unique 是什么意思？",
+          "提示：unique 表示独一无二的，通常不与 very 连用。"
+        ],
+        explanation: "unique 表示独一无二，是极端形容词，通常不与 very 连用。",
+        getAnswer: (sentence) => sentence.replace(/\bvery\s+unique\b/gi, "unique")
+      },
+
+      // 学术写作搭配（来自批改示例）
+      {
+        id: "acad-in-educational-field",
+        category: "冠词使用",
+        pattern: /\bin\s+educational\s+field\b/gi,
+        question: "这里的 educational field 前面是否需要冠词？",
+        hints: [
+          "提示：field 在这里是特指还是泛指？",
+          "提示：in the field of 是常见搭配。"
+        ],
+        explanation: "in the educational field 或 in the field of education 是标准表达，需要加 the。",
+        getAnswer: (sentence) => sentence.replace(/\bin\s+educational\s+field\b/gi, "in the educational field")
+      },
+      {
+        id: "acad-absolutely-obviously",
+        category: "副词冗余",
+        pattern: /\babsolutely\s*,\s*obviously\b/gi,
+        question: "这里连续使用两个副词是否合适？",
+        hints: [
+          "提示：副词叠加会让句子显得冗余。",
+          "提示：保留一个程度副词即可。"
+        ],
+        explanation: "Absolutely 和 Obviously 意思相近，连续使用显得冗余，保留一个即可。",
+        getAnswer: (sentence) => sentence.replace(/\babsolutely\s*,\s*obviously\b/gi, "Obviously")
+      },
+      {
+        id: "acad-aim-at-this-view",
+        category: "搭配用词",
+        pattern: /\baim\s+at\s+this\s+(view|perspective)\b/gi,
+        question: "这里的 aim at 使用是否地道？",
+        hints: [
+          "提示：aim at 通常表示「瞄准」具体目标。",
+          "提示：学术写作中表示「探讨观点」常用 address 或 examine。"
+        ],
+        explanation: "aim at 表示瞄准具体目标，探讨观点用 address this view 或 examine this perspective 更地道。",
+        getAnswer: (sentence) => sentence.replace(/\baim\s+at\s+this\s+(view|perspective)\b/gi, (match, noun) => `address this ${noun}`)
+      },
+      {
+        id: "acad-burden-broaden",
+        category: "拼写笔误",
+        pattern: /\bburden\s+broaden\b/gi,
+        question: "这里的 burden 是否多余？",
+        hints: [
+          "提示：broaden their horizons 是固定搭配。",
+          "提示：burden 意思为「负担」，放在这里不通。"
+        ],
+        explanation: "burden 是多余/笔误词汇，应删去，保留 broaden their horizons。",
+        getAnswer: (sentence) => sentence.replace(/\bburden\s+broaden\b/gi, "broaden")
+      },
+      {
+        id: "acad-knowledge-standard",
+        category: "搭配用词",
+        pattern: /\bknowledge\s+standard\b/gi,
+        question: "这里的 knowledge standard 是否符合英语习惯？",
+        hints: [
+          "提示：standard 和 knowledge 搭配是否自然？",
+          "提示：表示「扩大知识面」常用 knowledge base。"
+        ],
+        explanation: "knowledge standard 不是习惯搭配，建议改为 knowledge base 或 academic level。",
+        getAnswer: (sentence) => sentence.replace(/\bknowledge\s+standard\b/gi, "knowledge base")
+      },
+      {
+        id: "acad-exchange-chance-runon",
+        category: "句子结构",
+        pattern: /\bwhen\s+they\s+have\s+an\s+exchange\s+chance\s+that\s+means\b/gi,
+        question: "这句话是不是两个从句杂糅在一起？",
+        hints: [
+          "提示：when 引导的从句和 that means 从句之间缺少连接。",
+          "提示：可以改为 having an exchange opportunity means..."
+        ],
+        explanation: "when 从句和 that means 从句杂糅，可改为动名词结构 Having an exchange opportunity means...。",
+        getAnswer: (sentence) => sentence.replace(/\bwhen\s+they\s+have\s+an\s+exchange\s+chance\s+that\s+means\b/gi, "having an exchange opportunity means")
+      },
+      {
+        id: "acad-live-together-with-together",
+        category: "语义重复",
+        pattern: /\blive\s+together\s+with\b/gi,
+        question: "这里的 together 是否重复？",
+        hints: [
+          "提示：live with 已经表示「和……一起住」。",
+          "提示：together 和 with 语义重复。"
+        ],
+        explanation: "live with 已经包含「一起」的意思，再加 together 语义重复，应删去。",
+        getAnswer: (sentence) => sentence.replace(/\blive\s+together\s+with\b/gi, "live with")
+      },
+      {
+        id: "acad-disadvantages-exposed",
+        category: "搭配用词",
+        pattern: /\bdisadvantages\s+will\s+be\s+exposed\b/gi,
+        question: "这里的 disadvantages exposed 是否地道？",
+        hints: [
+          "提示：expose 通常用于「暴露秘密/真相」。",
+          "提示：表示「问题出现」常用 emerge 或 become apparent。"
+        ],
+        explanation: "disadvantages exposed 搭配不地道，表示问题浮现用 disadvantages may emerge。",
+        getAnswer: (sentence) => sentence.replace(/\bdisadvantages\s+will\s+be\s+exposed\b/gi, "disadvantages may emerge")
+      },
+      {
+        id: "acad-live-or-learning",
+        category: "平行结构",
+        pattern: /\blive\s+in\s+a\s+homestay\s+or\s+learning\b/gi,
+        question: "这里的 or 连接结构是否平行？",
+        hints: [
+          "提示：or 两边应该用相同的语法形式。",
+          "提示：live 是动词原形，learning 是 -ing 形式。"
+        ],
+        explanation: "or 连接平行结构，两边词性/形式要一致，应改为 live in a homestay or study at school。",
+        getAnswer: (sentence) => sentence.replace(/\blive\s+in\s+a\s+homestay\s+or\s+learning\b/gi, "live in a homestay or study")
+      },
+      {
+        id: "acad-carry-with-risk",
+        category: "搭配用词",
+        pattern: /\bcarry\s+with\s+the\s+risk\b/gi,
+        question: "这里的 carry with the risk 是否地道？",
+        hints: [
+          "提示：carry with 在这里多余。",
+          "提示：表示「面临风险」常用 face the risk of。"
+        ],
+        explanation: "carry with the risk 不是地道表达，应改为 face the risk of。",
+        getAnswer: (sentence) => sentence.replace(/\bcarry\s+with\s+the\s+risk\b/gi, "face the risk")
+      },
+      {
+        id: "acad-subjecting-to-prejudice",
+        category: "语态错误",
+        pattern: /\bor\s+subjecting\s+to\s+prejudice\b/gi,
+        question: "这里的 subjecting to 是否用了正确语态？",
+        hints: [
+          "提示：学生是「遭受偏见」还是「主动施加偏见」？",
+          "提示：表示被动遭受应用 be subjected to。"
+        ],
+        explanation: "表示「遭受偏见」要用被动语态 being subjected to prejudice。",
+        getAnswer: (sentence) => sentence.replace(/\bor\s+subjecting\s+to\s+prejudice\b/gi, "or being subjected to prejudice")
+      },
+      {
+        id: "acad-graduate-timely",
+        category: "搭配用词",
+        pattern: /\bgraduate\s+.*?(on\s+time)?timely\b/gi,
+        question: "这里的 timely 使用是否地道？",
+        hints: [
+          "提示：timely 通常用作形容词。",
+          "提示：表示「按时毕业」常用 graduate on time。"
+        ],
+        explanation: "timely 作副词不够地道，表示按时毕业应用 on time。",
+        getAnswer: (sentence) => sentence.replace(/\b(timely)\b/gi, "on time")
+      },
+      {
+        id: "acad-to-those-who-able",
+        category: "句式杂糅",
+        pattern: /\bto\s+those\s+who\s+.*?\s+are\s+able\s+to\b/gi,
+        question: "这里的 to those who... are able to 结构是否正确？",
+        hints: [
+          "提示：句首的 to 是否导致主语缺失？",
+          "提示：可以删去 to，直接用 those who... can。"
+        ],
+        explanation: "to those who... are able to 结构杂糅，to 导致后半句缺主语，应删去 to 或用 for those who...。",
+        getAnswer: (sentence) => sentence.replace(/\bto\s+those\s+who\s+(.*?)\s+are\s+able\s+to\b/gi, "those who are well-prepared can")
+      },
+      {
+        id: "acad-are-lack-of",
+        category: "搭配用词",
+        pattern: /\bare\s+lack\s+of\b/gi,
+        question: "这里的 are lack of 是否正确？",
+        hints: [
+          "提示：lack 可以作动词还是名词？",
+          "提示：be lacking in 或 lack（动词）是正确的。"
+        ],
+        explanation: "are lack of 是错误搭配，正确用法是 lack something（动词）或 be lacking in something。",
+        getAnswer: (sentence) => sentence.replace(/\bare\s+lack\s+of\b/gi, "lack")
+      },
+      {
+        id: "acad-visits-understanding",
+        category: "词序错误",
+        pattern: /\binternational\s+exchange\s+visits\s+understanding\b/gi,
+        question: "这里的 visits understanding 词序是否自然？",
+        hints: [
+          "提示：understanding 通常放在什么位置？",
+          "提示：a clear understanding of something 是常见表达。"
+        ],
+        explanation: "visits understanding 词序混乱，应改为 a clear understanding of exchange visits。",
+        getAnswer: (sentence) => sentence.replace(/\binternational\s+exchange\s+visits\s+understanding\b/gi, "international exchange visits, a clear understanding")
+      },
+      {
+        id: "acad-from-noun-perspective",
+        category: "冠词使用",
+        pattern: /\bfrom\s+(?!my\b|your\b|his\b|her\b|its\b|our\b|their\b)(\w+)\s+perspective\b/gi,
+        question: "这里的 from X perspective 是否缺少冠词？",
+        hints: [
+          "提示：perspective 前通常需要冠词。",
+          "提示：from a ... perspective 或 from the ... perspective 是标准搭配。"
+        ],
+        explanation: "from X perspective 缺少冠词，应改为 from a X perspective 或 from the X perspective。注意：from my/your/his/her/its/our/their perspective 是正确表达。",
+        getAnswer: (sentence) => sentence.replace(/\bfrom\s+(?!my\b|your\b|his\b|her\b|its\b|our\b|their\b)(\w+)\s+perspective\b/gi, "from a $1 perspective")
+      },
+
+      // ===== 新增：拼写与词形错误 =====
+      {
+        id: "spell-develope",
+        category: "拼写错误",
+        pattern: /\bdevelope\b/gi,
+        question: "这个单词的拼写是否正确？",
+        hints: [
+          "提示：develop 的动词形式不需要加 e。",
+          "提示：第三人称单数是 develops，名词是 development。"
+        ],
+        explanation: "develope 是错误拼写，正确形式是 develop。",
+        getAnswer: (sentence) => sentence.replace(/\bdevelope\b/gi, "develop")
+      },
+      {
+        id: "spell-foreigen",
+        category: "拼写错误",
+        pattern: /\bforeigen\b/gi,
+        question: "这个单词的拼写是否正确？",
+        hints: [
+          "提示：注意 eign 和 eign 的区别。",
+          "提示：foreign 是常见拼写错误高发词。"
+        ],
+        explanation: "foreigen 是错误拼写，正确形式是 foreign。",
+        getAnswer: (sentence) => sentence.replace(/\bforeigen\b/gi, "foreign")
+      },
+      {
+        id: "spell-mawy",
+        category: "拼写错误",
+        pattern: /\bmawy\b/gi,
+        question: "这个单词的拼写是否正确？",
+        hints: [
+          "提示：这是一个常见的拼写笔误。",
+          "提示：may 表示「可能」。"
+        ],
+        explanation: "mawy 是错误拼写，正确形式是 may。",
+        getAnswer: (sentence) => sentence.replace(/\bmawy\b/gi, "may")
+      },
+      {
+        id: "spell-chinese-lowercase",
+        category: "大小写错误",
+        pattern: /\bchinese\b/g,
+        question: "这个单词的大小写是否正确？",
+        hints: [
+          "提示：Chinese 是专有名词，指中国的/中国人/中文。",
+          "提示：专有名词首字母必须大写。"
+        ],
+        explanation: "Chinese 是专有名词，首字母必须大写。",
+        getAnswer: (sentence) => sentence.replace(/\bchinese\b/g, "Chinese")
+      },
+      {
+        id: "spell-english-lowercase",
+        category: "大小写错误",
+        pattern: /\benglish\b/g,
+        question: "这个单词的大小写是否正确？",
+        hints: [
+          "提示：English 是专有名词，指英语/英国的。",
+          "提示：专有名词首字母必须大写。"
+        ],
+        explanation: "English 是专有名词，首字母必须大写。",
+        getAnswer: (sentence) => sentence.replace(/\benglish\b/g, "English")
+      },
+      {
+        id: "spell-american-lowercase",
+        category: "大小写错误",
+        pattern: /\bamerican\b/g,
+        question: "这个单词的大小写是否正确？",
+        hints: [
+          "提示：American 是专有名词，指美国的/美国人。",
+          "提示：专有名词首字母必须大写。"
+        ],
+        explanation: "American 是专有名词，首字母必须大写。",
+        getAnswer: (sentence) => sentence.replace(/\bamerican\b/g, "American")
+      },
+      {
+        id: "spell-japanese-lowercase",
+        category: "大小写错误",
+        pattern: /\bjapanese\b/g,
+        question: "这个单词的大小写是否正确？",
+        hints: [
+          "提示：Japanese 是专有名词，指日本的/日本人/日语。",
+          "提示：专有名词首字母必须大写。"
+        ],
+        explanation: "Japanese 是专有名词，首字母必须大写。",
+        getAnswer: (sentence) => sentence.replace(/\bjapanese\b/g, "Japanese")
+      },
+
+      // ===== 新增：名词单复数扩展 =====
+      {
+        id: "noun-skill-plural",
+        category: "名词单复数",
+        pattern: /\b(social|problem-solving|communication|language|practical)\s+skill\b/gi,
+        question: "这里的 skill 应该用单数还是复数？",
+        hints: [
+          "提示：skill 是可数名词，表示「技能」。",
+          "提示：表示多种技能时通常用复数 skills。"
+        ],
+        explanation: "social skills / language skills 等表示多种技能时，通常用复数形式。",
+        getAnswer: (sentence) => sentence.replace(/\b(social|problem-solving|communication|language|practical)\s+skill\b/gi, "$1 skills")
+      },
+      {
+        id: "noun-foreigner-plural",
+        category: "名词单复数",
+        pattern: /\bchat\s+with\s+foreigner\b/gi,
+        question: "这里的 foreigner 应该用单数还是复数？",
+        hints: [
+          "提示：foreigner 是可数名词，表示「外国人」。",
+          "提示：chat with foreigners 表示「和外国人聊天」，通常用复数。"
+        ],
+        explanation: "chat with foreigners 是固定表达，foreigner 要用复数形式。",
+        getAnswer: (sentence) => sentence.replace(/\bchat\s+with\s+foreigner\b/gi, "chat with foreigners")
+      },
+      {
+        id: "noun-one-of-plural",
+        category: "名词单复数",
+        pattern: /\bone\s+of\s+the\s+(\w+)\b(?!\s*(s|es|ies)\b)/gi,
+        question: "one of the 后面的名词应该用单数还是复数？",
+        hints: [
+          "提示：one of the 表示「……之一」。",
+          "提示：one of the + 复数名词。"
+        ],
+        explanation: "one of the 后面必须接复数名词，表示「……之一」。",
+        getAnswer: (sentence) => sentence.replace(/\bone\s+of\s+the\s+(\w+)\b(?!\s*(s|es|ies)\b)/gi, "one of the $1s")
+      },
+
+      // ===== 新增：动词形式与句子结构 =====
+      {
+        id: "vform-students-live",
+        category: "动词形式",
+        pattern: /\bstudents\s+live\s+in\s+a\s+foreign\s+country\s+can\b/gi,
+        question: "这个句子的动词形式是否正确？",
+        hints: [
+          "提示：Students live in a foreign country 是一个完整句子。",
+          "提示：后半句 can also foster 需要主语，或者改为 living。"
+        ],
+        explanation: "Students living in a foreign country can also foster... 用现在分词作定语，或者拆成两个句子。",
+        getAnswer: (sentence) => sentence.replace(/\bstudents\s+live\s+in\s+a\s+foreign\s+country\s+can\b/gi, "students living in a foreign country can")
+      },
+      {
+        id: "vform-because-of-clause",
+        category: "连词误用",
+        pattern: /\bbecause\s+of\s+.*?\s+can\s+\w+/gi,
+        question: "because of 后面能接完整句子吗？",
+        hints: [
+          "提示：because of 是介词短语，后面接名词或名词短语。",
+          "提示：because 是连词，后面接完整句子。"
+        ],
+        explanation: "because of 后面不能接完整句子，接句子要用 because。",
+        getAnswer: (sentence) => sentence.replace(/\bbecause\s+of\s+(.*?)\s+can\s+(\w+)/gi, "because $1 can $2")
+      },
+      {
+        id: "vform-lead-to-increase",
+        category: "动词形式",
+        pattern: /\blead\s+to\s+increase\s+\w+\s+financial\s+burden\b/gi,
+        question: "lead to 后面的动词形式是否正确？",
+        hints: [
+          "提示：lead to 中的 to 是介词。",
+          "提示：lead to + 名词/动名词。"
+        ],
+        explanation: "lead to 中的 to 是介词，后面接名词或动名词，应改为 lead to increased / increasing。",
+        getAnswer: (sentence) => sentence.replace(/\blead\s+to\s+increase\s+(\w+)\s+financial\s+burden\b/gi, "lead to increased $1 financial burden")
+      },
+      {
+        id: "vform-both-have",
+        category: "主谓一致",
+        pattern: /\bboth\s+have\s+benefits\s+and\s+drawbacks\b/gi,
+        question: "这个句子的主语是什么？",
+        hints: [
+          "提示：句子主语是 taking part in international exchange visits。",
+          "提示：动名词作主语，谓语用单数。"
+        ],
+        explanation: "I think taking part in international exchange visits has both benefits and drawbacks. 动名词作主语，谓语用 has。",
+        getAnswer: (sentence) => sentence.replace(/\b(?:are\s+taking\s+part\s+in\s+international\s+exchange\s+visits\s+)?both\s+have\s+benefits\s+and\s+drawbacks\b/gi, "has both benefits and drawbacks")
+      },
+      {
+        id: "vform-its-vs-it's",
+        category: "代词",
+        pattern: /\bit's\s+merits\b/gi,
+        question: "这里的 it's 使用是否正确？",
+        hints: [
+          "提示：it's = it is。",
+          "提示：its 是物主代词，表示「它的」。"
+        ],
+        explanation: "its merits 表示「它的优点」，it's = it is，意思不通。",
+        getAnswer: (sentence) => sentence.replace(/\bit's\s+merits\b/gi, "its merits")
+      },
+      {
+        id: "vform-overweigh",
+        category: "拼写错误",
+        pattern: /\boverweigh\b/gi,
+        question: "这个单词的拼写是否正确？",
+        hints: [
+          "提示：outweigh 表示「超过/比……更重要」。",
+          "提示：over- 和 out- 前缀意思不同。"
+        ],
+        explanation: "overweigh 是错误拼写/搭配，正确表达是 outweigh（比……更重要）。",
+        getAnswer: (sentence) => sentence.replace(/\boverweigh\b/gi, "outweigh")
+      },
+    ];
+
+    // ===== 配置 =====
+    // 主站嵌入时走 /api/writing/*（由 local_server 代理到作文后端）；独立启动 FastAPI 时用 /api/*
+    function getWritingApiRoot() {
+      const q = new URLSearchParams(location.search).get("api_root");
+      if (q) return q.replace(/\/$/, "");
+      if (/\/xiezuopigai\//.test(location.pathname)) return "/api/writing";
+      return "";
+    }
+    function writingApi(path) {
+      const clean = String(path || "").replace(/^\//, "");
+      const root = getWritingApiRoot();
+      return root ? `${root}/${clean}` : `/api/${clean}`;
+    }
+    function getPlatformStudent() {
+      const params = new URLSearchParams(location.search);
+      return {
+        studentId: (params.get("student_id") || "").trim(),
+        studentName: (params.get("student_name") || "").trim()
+      };
+    }
+    function isRewriteMode() {
+      return new URLSearchParams(location.search).get("rewrite") === "1";
+    }
+    function readRewritePayload() {
+      try {
+        const raw = sessionStorage.getItem("ielts_rewrite_payload");
+        if (!raw) return null;
+        const data = JSON.parse(raw);
+        return data && typeof data === "object" ? data : null;
+      } catch (e) {
+        return null;
+      }
+    }
+    function applyRewriteStartPage(payload) {
+      const topic = String((payload && payload.topic) || "").trim();
+      const nextAttempt = Number(payload && payload.nextAttempt) || 0;
+      const passErrorMax = Number(payload && payload.passErrorMax) || 3;
+      const title = document.querySelector("#startTitle");
+      const banner = document.querySelector("#rewriteBanner");
+      const topicField = document.querySelector("#topicField");
+      const topicReadonlyWrap = document.querySelector("#topicReadonlyWrap");
+      const topicReadonly = document.querySelector("#topicReadonly");
+      const essayLabel = document.querySelector("#essayInputLabel");
+      const uploadActions = document.querySelector("#uploadActions");
+      const startBtn = document.querySelector("#startBtn");
+      const essayInput = document.querySelector("#essayInput");
+      const startHint = document.querySelector("#startHint");
+
+      if (title) {
+        title.textContent = nextAttempt > 0
+          ? `再写一遍 · 第 ${nextAttempt} 次`
+          : "再写一遍";
+      }
+      if (banner) {
+        banner.style.display = "block";
+        banner.textContent = `请根据同一题目重新写作；本页不显示上次内容与老师批改。语法/词汇错误≤${passErrorMax} 个后本题结束。`;
+      }
+      if (topicField) topicField.style.display = "none";
+      if (topicReadonlyWrap) topicReadonlyWrap.style.display = "block";
+      if (topicReadonly) topicReadonly.textContent = topic || "（未提供题目）";
+      if (essayLabel) essayLabel.textContent = "写作内容（请重新撰写）";
+      if (uploadActions) uploadActions.style.display = "none";
+      if (startBtn) startBtn.textContent = "提交并开始改错";
+      if (essayInput) {
+        essayInput.value = "";
+        essayInput.placeholder = "请在此重新撰写作文正文（空白开始，不显示上次作文）。";
+      }
+      if (startHint) {
+        startHint.textContent = `题目已锁定；请重新撰写正文。语法/词汇错误≤${passErrorMax} 个即结束本题。`;
+      }
+
+      state.topic = topic;
+      if (payload && payload.studentId) state.studentId = String(payload.studentId).trim();
+      if (payload && payload.studentName) {
+        state.studentName = String(payload.studentName).trim();
+        const nameInput = document.querySelector("#studentName");
+        if (nameInput) nameInput.value = state.studentName;
+      }
+    }
+    function clearRewriteModeFromUrl() {
+      try { sessionStorage.removeItem("ielts_rewrite_payload"); } catch (e) {}
+      const url = new URL(location.href);
+      if (!url.searchParams.has("rewrite")) return;
+      url.searchParams.delete("rewrite");
+      history.replaceState(null, "", url.pathname + url.search + url.hash);
+    }
+
+    // ===== 状态 =====
+    const state = {
+      studentName: "",
+      studentId: "",
+      topic: "",
+      essay: "",
+      sentences: [],
+      currentSentence: 0,
+      done: new Set(),
+      hintLevels: {},
+      answers: {},
+      verdicts: {}, // { checkpointId: 'correct' | 'incorrect' }
+      submitted: new Set(),
+      // 新增：学生行为记录
+      behaviors: {},  // { checkpointId: { hintLevelUsed, timeSpent, studentAnswer, firstOpenTime, submitTime } }
+      essayStartTime: null,
+      aiSupplementDone: false
+    };
+
+    // ===== DOM 元素 =====
+    const stages = {
+      start: document.querySelector("#startStage"),
+      training: document.querySelector("#trainingStage"),
+      report: document.querySelector("#reportStage")
+    };
+    const statusStrip = document.querySelector("#statusStrip");
+    const topToolbar = document.querySelector("#topToolbar");
+    const toast = document.querySelector("#toast");
+
+    // ===== 工具函数 =====
+    function showStage(name) {
+      Object.values(stages).forEach((el) => el.classList.remove("active"));
+      stages[name].classList.add("active");
+      const isTraining = name === "training";
+      statusStrip.style.display = isTraining ? "grid" : "none";
+      topToolbar.style.display = isTraining ? "flex" : "none";
+      document.querySelector(".app").classList.toggle("training-mode", isTraining);
+    }
+
+    function showToast(message) {
+      toast.textContent = message;
+      toast.classList.add("show");
+      window.clearTimeout(showToast.timer);
+      showToast.timer = window.setTimeout(() => toast.classList.remove("show"), 1500);
+    }
+
+    function splitEssayIntoSentences(text) {
+      text = String(text || "").replace(/\s+/g, " ").trim();
+      if (!text) return [];
+
+      const protectedParts = [];
+      const stash = (match) => {
+        protectedParts.push(match);
+        return "§§" + (protectedParts.length - 1) + "§§";
+      };
+
+      // 保护小数点 50.1、省略号、常见缩写，避免被当成句号断句
+      let work = text.replace(/(?<=\d)\.(?=\d)/g, stash);
+      work = work.replace(/\.{2,}/g, stash);
+      work = work.replace(/\b(?:Mr|Mrs|Ms|Dr|Prof|Sr|Jr|vs|etc|approx|fig|eq|No|Vol|pp)\./gi, stash);
+      work = work.replace(/\b(?:e\.g|i\.e)\./gi, stash);
+
+      const parts = work.match(/[^.!?。！？]+[.!?。！？]?/g) || [];
+      return parts
+        .map((part) =>
+          part
+            .trim()
+            .replace(/§§(\d+)§§/g, (_, i) => protectedParts[Number(i)] || "")
+        )
+        .filter(Boolean);
+    }
+
+    function checkpointId(sentenceIndex, checkpointIndex) {
+      return `${sentenceIndex}-${checkpointIndex}`;
+    }
+
+    /**
+     * 在原文中定位 highlight（忽略大小写；空白差异做宽松匹配）。
+     * 返回 { start, end } 或 null。fromIndex 用于跳过已占用区间。
+     */
+    function findHighlightRange(text, highlight, fromIndex) {
+      const source = String(text || "");
+      const needle = String(highlight || "").trim();
+      const startAt = Math.max(0, Number(fromIndex) || 0);
+      if (!source || !needle || startAt >= source.length) return null;
+
+      const lower = source.toLowerCase();
+      const nLower = needle.toLowerCase();
+      let idx = lower.indexOf(nLower, startAt);
+      if (idx >= 0) return { start: idx, end: idx + needle.length };
+
+      const pattern = needle
+        .split(/\s+/)
+        .filter(Boolean)
+        .map(escapeRegex)
+        .join("\\s+");
+      if (!pattern) return null;
+      try {
+        const re = new RegExp(pattern, "ig");
+        re.lastIndex = startAt;
+        const m = re.exec(source);
+        if (m) return { start: m.index, end: m.index + m[0].length };
+      } catch (e) {
+        /* ignore */
+      }
+      return null;
+    }
+
+    function rangesOverlap(a, b) {
+      return a.start < b.end && b.start < a.end;
+    }
+
+    /**
+     * 在检查点卡片内标红错误片段（顶部当前句不使用）。
+     */
+    function markHighlightsHtml(text, highlights) {
+      const source = String(text || "");
+      if (!source) return "";
+      const list = (Array.isArray(highlights) ? highlights : [highlights])
+        .map((h) => String(h || "").trim())
+        .filter(Boolean);
+      if (!list.length) return escapeHtml(source);
+
+      const ranges = [];
+      list.forEach((h) => {
+        let searchFrom = 0;
+        while (searchFrom < source.length) {
+          const range = findHighlightRange(source, h, searchFrom);
+          if (!range) break;
+          const overlap = ranges.some((r) => rangesOverlap(range, r));
+          if (!overlap) {
+            ranges.push(range);
+            break;
+          }
+          searchFrom = range.start + 1;
+        }
+      });
+      ranges.sort((a, b) => a.start - b.start);
+      if (!ranges.length) return escapeHtml(source);
+
+      let html = "";
+      let cursor = 0;
+      ranges.forEach((r) => {
+        html += escapeHtml(source.slice(cursor, r.start));
+        html += `<span class="error-mark">${escapeHtml(source.slice(r.start, r.end))}</span>`;
+        cursor = r.end;
+      });
+      html += escapeHtml(source.slice(cursor));
+      return html;
+    }
+
+    function applyRule(rule, sentence) {
+      const matches = [];
+      let match;
+      const pattern = new RegExp(rule.pattern.source, rule.pattern.flags);
+      while ((match = pattern.exec(sentence)) !== null) {
+        const highlight = match[0];
+        const answer = rule.getAnswer(sentence);
+        matches.push({
+          ruleId: rule.id,
+          category: rule.category,
+          question: rule.question,
+          hints: rule.hints,
+          answer,
+          explanation: rule.explanation,
+          highlight
+        });
+      }
+      return matches;
+    }
+
+    /**
+     * 从「原句 + 出错片段 + 整句修正」中抽出局部替换文本，便于叠到已部分修正的句子上。
+     */
+    function extractLocalReplacement(originalSentence, highlight, correctedSentence) {
+      if (!originalSentence || !highlight || !correctedSentence) return null;
+      const origLower = originalSentence.toLowerCase();
+      const hiLower = String(highlight).toLowerCase();
+      const idx = origLower.indexOf(hiLower);
+      if (idx < 0) return null;
+      const before = originalSentence.slice(0, idx);
+      const after = originalSentence.slice(idx + highlight.length);
+      const corrLower = correctedSentence.toLowerCase();
+      const beforeLower = before.toLowerCase();
+      const afterLower = after.toLowerCase();
+      if (!corrLower.startsWith(beforeLower) || !corrLower.endsWith(afterLower)) return null;
+      const startIdx = before.length;
+      const endIdx = correctedSentence.length - after.length;
+      if (endIdx < startIdx) return null;
+      return correctedSentence.slice(startIdx, endIdx);
+    }
+
+    function applyCheckpointFix(baseText, checkpoint) {
+      const base = baseText || "";
+      const rule = !checkpoint.aiDetected
+        ? grammarRules.find((r) => r.id === checkpoint.ruleId)
+        : null;
+      if (rule) {
+        return rule.getAnswer(base);
+      }
+
+      const original = checkpoint.originalSentence || base;
+      const fullCorrected = checkpoint.rawCorrected || checkpoint.answer || "";
+      const replacement = extractLocalReplacement(original, checkpoint.highlight, fullCorrected);
+      if (
+        replacement !== null &&
+        checkpoint.highlight &&
+        new RegExp(escapeRegex(checkpoint.highlight), "i").test(base)
+      ) {
+        return base.replace(new RegExp(escapeRegex(checkpoint.highlight), "i"), replacement);
+      }
+
+      // 当前基句仍是该错误的原句时，直接用整句修正
+      if (fullCorrected && base.trim().toLowerCase() === String(original).trim().toLowerCase()) {
+        return fullCorrected;
+      }
+      return fullCorrected || base;
+    }
+
+    /**
+     * 同句多个检查点：第 N 个正确答案 = 在已修正前 N-1 个错误的句子上再修第 N 个。
+     */
+    function withProgressiveAnswers(sentenceText, checkpoints) {
+      let working = sentenceText;
+      return (checkpoints || []).map((cp) => {
+        const baseText = working;
+        const rawCorrected = cp.rawCorrected || cp.answer;
+        const answer = applyCheckpointFix(working, { ...cp, rawCorrected });
+        working = answer;
+        return {
+          ...cp,
+          rawCorrected,
+          originalSentence: cp.originalSentence || sentenceText,
+          baseText,
+          answer
+        };
+      });
+    }
+
+    function generateCheckpoints(sentence) {
+      const checkpoints = [];
+      const seen = new Set();
+      let working = sentence;
+      for (const rule of grammarRules) {
+        // 在「已应用前面修正」的句子上继续匹配，保证答案递进
+        const matches = applyRule(rule, working);
+        if (matches.length > 0) {
+          const cp = matches[0];
+          const key = cp.highlight.toLowerCase();
+          if (!seen.has(key)) {
+            seen.add(key);
+            checkpoints.push({
+              ...cp,
+              baseText: working,
+              rawCorrected: cp.answer,
+              originalSentence: sentence
+            });
+            working = cp.answer;
+          }
+        }
+      }
+      return checkpoints;
+    }
+
+    /**
+     * 将 AI 补充的错误转换为前端 checkpoint 格式
+     */
+    function adaptAiCheckpoint(aiError, sentence) {
+      const highlight = aiError.matchedText || sentence;
+      const corrected = aiError.corrected || sentence;
+      const originalSentence = aiError.originalSentence || sentence;
+      return {
+        ruleId: aiError.id,
+        category: aiError.category,
+        question: aiError.question,
+        hints: aiError.hints,
+        answer: corrected,
+        rawCorrected: corrected,
+        originalSentence,
+        explanation: aiError.explanation,
+        highlight,
+        aiDetected: true
+      };
+    }
+
+    /**
+     * 调用后端 AI 补充检查
+     */
+    async function fetchAiSupplements(essay, ruleCheckpoints) {
+      try {
+        const existingErrors = ruleCheckpoints.map((cp, index) => ({
+          sentenceIndex: cp.sentenceIndex,
+          matchedText: cp.highlight,
+          ruleId: cp.ruleId
+        }));
+
+        const response = await fetch(writingApi("grammar-check"), {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ essay, existingErrors })
+        });
+
+        const result = await response.json().catch(() => null);
+        if (!response.ok) {
+          throw new Error((result && result.message) || `后端响应异常: ${response.status}`);
+        }
+        if (!result || !Array.isArray(result.data)) {
+          throw new Error((result && result.message) || "后端返回格式错误");
+        }
+
+        console.log("AI grammar-check meta:", result.meta, "count:", result.data.length);
+        return {
+          data: result.data,
+          failed: !!result.meta?.aiFailed || result.success === false,
+          message: result.meta?.aiMessage || result.message || "",
+          meta: result.meta || {}
+        };
+      } catch (error) {
+        console.error("AI 补充检查失败:", error);
+        return {
+          data: [],
+          failed: true,
+          message: (error && error.message) || "AI 分析失败或网络超时，当前仅显示规则检测结果"
+        };
+      }
+    }
+
+    function saveProgress() {
+      try {
+        localStorage.setItem("ielts_practice_state", JSON.stringify({
+          studentName: state.studentName,
+          studentId: state.studentId || "",
+          topic: state.topic || "",
+          essay: state.essay || "",
+          sentences: state.sentences,
+          currentSentence: state.currentSentence,
+          done: Array.from(state.done),
+          hintLevels: state.hintLevels,
+          answers: state.answers,
+          verdicts: state.verdicts || {},
+          submitted: Array.from(state.submitted),
+          behaviors: state.behaviors,
+          essayStartTime: state.essayStartTime,
+          aiSupplementDone: !!state.aiSupplementDone
+        }));
+      } catch (e) {
+        console.error("保存进度失败:", e);
+      }
+    }
+
+    function loadProgress() {
+      try {
+        const data = JSON.parse(localStorage.getItem("ielts_practice_state") || "null");
+        if (data) {
+          // 旧会话若 AI 未完成就中断，避免一直停留在「仅规则检查点」
+          if (data.sentences && data.sentences.length > 0 && !data.aiSupplementDone) {
+            localStorage.removeItem("ielts_practice_state");
+            const essayInput = document.querySelector("#essayInput");
+            const topicInput = document.querySelector("#topicInput");
+            if (essayInput && data.essay) essayInput.value = data.essay;
+            if (topicInput && data.topic) topicInput.value = data.topic;
+            if (data.studentName) state.studentName = data.studentName;
+            if (data.studentId) state.studentId = data.studentId;
+            if (data.topic) state.topic = data.topic;
+            return false;
+          }
+          state.studentName = data.studentName || "";
+          state.studentId = data.studentId || state.studentId || "";
+          state.topic = data.topic || "";
+          state.essay = data.essay || "";
+          state.sentences = data.sentences || [];
+          state.currentSentence = data.currentSentence || 0;
+          state.done = new Set(data.done || []);
+          state.hintLevels = data.hintLevels || {};
+          state.answers = data.answers || {};
+          state.verdicts = data.verdicts || {};
+          state.submitted = new Set(data.submitted || []);
+          // 旧进度可能把「答错」也标成完成：只保留真正答对的
+          Array.from(state.done).forEach((id) => {
+            if (state.verdicts[id] !== "correct") state.done.delete(id);
+          });
+          state.behaviors = data.behaviors || {};
+          state.essayStartTime = data.essayStartTime || null;
+          state.aiSupplementDone = !!data.aiSupplementDone;
+          // 旧进度可能未递进修正答案，加载时统一重建
+          state.sentences = (state.sentences || []).map((s) => ({
+            ...s,
+            checkpoints: withProgressiveAnswers(s.text, s.checkpoints || [])
+          }));
+          return true;
+        }
+      } catch (e) {
+        console.error("读取进度失败:", e);
+      }
+      return false;
+    }
+
+    // ===== 渲染函数 =====
+    function renderSentenceList() {
+      const list = document.querySelector("#sentenceList");
+      list.innerHTML = "";
+      state.sentences.forEach((sentence, index) => {
+        const complete = sentence.checkpoints.length === 0 ||
+          sentence.checkpoints.every((_, ci) => state.done.has(checkpointId(index, ci)));
+        const item = document.createElement("button");
+        item.className = "sentence";
+        item.type = "button";
+        if (index === state.currentSentence) item.classList.add("active");
+        if (complete) item.classList.add("complete");
+        item.innerHTML = `
+          <div class="sentence-top">
+            <span>第 ${index + 1} 句</span>
+            <span>${sentence.checkpoints.length} 个检查点</span>
+          </div>
+          <p>${sentence.text}</p>
+        `;
+        item.addEventListener("click", () => {
+          state.currentSentence = index;
+          render();
+        });
+        list.appendChild(item);
+      });
+    }
+
+    function renderCurrentSentence() {
+      const sentence = state.sentences[state.currentSentence];
+      document.querySelector("#currentTitle").textContent = `第 ${state.currentSentence + 1} 句`;
+      // 顶部当前句始终纯文本，不标红；红标只在检查点卡片内出现
+      document.querySelector("#currentText").textContent = sentence.text;
+    }
+
+    function renderCheckpoints() {
+      const sentence = state.sentences[state.currentSentence];
+      const list = document.querySelector("#checkpointList");
+      list.innerHTML = "";
+
+      if (!sentence.checkpoints || sentence.checkpoints.length === 0) {
+        list.innerHTML = `
+          <div class="checkpoint">
+            <p style="color:var(--muted);margin:0;">本句暂未发现常见语法错误。</p>
+            <p style="color:var(--muted);font-size:13px;margin-top:6px;">系统仅覆盖高频错误模式，复杂问题建议请老师人工检查。</p>
+          </div>
+        `;
+        return;
+      }
+
+      sentence.checkpoints.forEach((checkpoint, index) => {
+        const id = checkpointId(state.currentSentence, index);
+        const done = state.done.has(id);
+        const hintLevel = state.hintLevels[id] ?? -1;
+        const verdict = state.verdicts[id] || "";
+        const showAnswer = done || (hintLevel >= 2 && verdict !== "incorrect");
+
+        if (!state.behaviors[id]) {
+          state.behaviors[id] = {
+            firstOpenTime: new Date().toISOString(),
+            hintLevelUsed: -1,
+            timeSpent: 0,
+            studentAnswer: "",
+            submitTime: null
+          };
+        }
+
+        const card = document.createElement("div");
+        card.className = done ? "checkpoint done" : "checkpoint";
+        card.dataset.id = id;
+
+        const displayBase = checkpoint.baseText || sentence.text;
+        let currentSentenceHtml = escapeHtml(displayBase);
+        let markFound = false;
+        // 仅在检查点内、且已点「我不知道错在哪」后标红
+        if ((hintLevel >= 0 || done) && checkpoint.highlight) {
+          const marked = markHighlightsHtml(displayBase, checkpoint.highlight);
+          markFound = marked.includes("error-mark");
+          if (markFound) {
+            currentSentenceHtml = marked;
+          } else {
+            const markedOrig = markHighlightsHtml(sentence.text, checkpoint.highlight);
+            markFound = markedOrig.includes("error-mark");
+            currentSentenceHtml = markFound ? markedOrig : escapeHtml(displayBase);
+          }
+        }
+
+        let statusBadge = done ? "已完成" : "待修改";
+        let statusClass = done ? "badge" : "badge warn";
+        if (verdict === "correct" && done) {
+          statusBadge = "回答正确";
+          statusClass = "badge";
+        } else if (verdict === "incorrect" && !done) {
+          statusBadge = "请重试";
+          statusClass = "badge warn";
+        }
+
+        const feedbackHtml = verdict === "correct" && done
+          ? `<div class="submit-feedback show ok"><strong>回答正确</strong><div>已完成本检查点，可继续下一处。</div></div>`
+          : verdict === "incorrect" && !done
+            ? `<div class="submit-feedback show bad">
+                <strong>回答不正确</strong>
+                <div>请对照参考修改，在输入框中重新填写正确答案后再点「提交修改」。查看答案不能代替提交。</div>
+                <div class="ref-answer"><strong>参考修改</strong><div>${escapeHtml(checkpoint.answer || "")}</div>
+                <strong style="margin-top:8px;display:block;">规则说明</strong><div>${escapeHtml(checkpoint.explanation || "")}</div></div>
+              </div>`
+            : "";
+
+        const hintSnippet = checkpoint.highlight
+          ? (markFound
+              ? `错误位置已在下方句子中标红：<span class="error-mark">${escapeHtml(checkpoint.highlight)}</span>`
+              : `请重点检查：<span class="error-mark">${escapeHtml(checkpoint.highlight)}</span>（未能精确对齐原文，已单独标出）`)
+          : "暂无具体错误片段，请通读本句找错。";
+
+        card.innerHTML = `
+          <div class="checkpoint-head">
+            <h3>${done ? "检查点 " + (index + 1) + " - 已完成" : "检查点 " + (index + 1)}</h3>
+            <span class="${statusClass}">${statusBadge}</span>
+          </div>
+          <p class="question">${escapeHtml(checkpoint.question || "")}</p>
+          <div class="current-sentence" style="margin-bottom:10px;">
+            <p>${currentSentenceHtml}</p>
+          </div>
+          <div class="answer-box">
+            <label>学生修改</label>
+            <textarea data-answer-for="${id}" placeholder="只需写出改正后的那个词/短语，或整句亦可" ${done ? "readonly" : ""}>${escapeHtml(state.answers[id] || "")}</textarea>
+          </div>
+          <div class="checkpoint-actions">
+            <button class="btn" data-hint="${id}" ${done ? "disabled" : ""}>我不知道错在哪</button>
+            <button class="btn" data-type="${id}" ${hintLevel < 0 || done ? "disabled" : ""}>提示错误类型</button>
+            <button class="btn" data-answer="${id}" ${hintLevel < 1 || done ? "disabled" : ""}>查看答案</button>
+            <button class="btn primary" data-submit="${id}" ${done ? "disabled" : ""}>提交修改</button>
+          </div>
+          <div class="hint ${hintLevel >= 0 || done ? "show" : ""}">
+            <strong>位置提示</strong>
+            <div>${hintSnippet}</div>
+          </div>
+          <div class="type-hint ${hintLevel >= 1 ? "show" : ""}">
+            <strong>类型提示</strong>
+            <div>这是一个${escapeHtml(checkpoint.category || "")}问题。</div>
+            ${hintLevel >= 1 ? (checkpoint.hints || []).map((h) => `<div style="margin-top:4px;">${escapeHtml(h)}</div>`).join("") : ""}
+          </div>
+          <div class="answer-reveal ${showAnswer ? "show" : ""}">
+            <strong>参考修改</strong>
+            <div>${escapeHtml(checkpoint.answer || "")}</div>
+            <strong style="margin-top:8px;">规则说明</strong>
+            <div>${escapeHtml(checkpoint.explanation || "")}</div>
+          </div>
+          ${feedbackHtml}
+        `;
+        list.appendChild(card);
+      });
+
+      list.querySelectorAll("[data-hint]").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const id = btn.dataset.hint;
+          state.hintLevels[id] = Math.max(state.hintLevels[id] ?? -1, 0);
+          if (state.behaviors[id]) {
+            state.behaviors[id].hintLevelUsed = Math.max(state.behaviors[id].hintLevelUsed, 0);
+          }
+          showToast("已在检查点内标红错误位置");
+          render();
+        });
+      });
+
+      list.querySelectorAll("[data-type]").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const id = btn.dataset.type;
+          state.hintLevels[id] = Math.max(state.hintLevels[id] ?? -1, 1);
+          if (state.behaviors[id]) {
+            state.behaviors[id].hintLevelUsed = Math.max(state.behaviors[id].hintLevelUsed, 1);
+          }
+          showToast("已提示错误类型");
+          render();
+        });
+      });
+
+      list.querySelectorAll("[data-answer]").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const id = btn.dataset.answer;
+          state.hintLevels[id] = Math.max(state.hintLevels[id] ?? -1, 2);
+          if (state.behaviors[id]) {
+            state.behaviors[id].hintLevelUsed = Math.max(state.behaviors[id].hintLevelUsed, 2);
+          }
+          // 只展示参考答案，不自动填入、不标记完成；仍需学生自行输入并提交
+          showToast("已显示参考答案，请自己输入后提交");
+          render();
+        });
+      });
+
+      list.querySelectorAll("[data-submit]").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const id = btn.dataset.submit;
+          const textarea = list.querySelector(`textarea[data-answer-for="${id}"]`);
+          const answer = textarea.value.trim();
+          if (!answer) {
+            showToast("请先填写改正后的词或句子");
+            return;
+          }
+          const [si, ci] = id.split("-").map(Number);
+          const targetCheckpoint = state.sentences[si] && state.sentences[si].checkpoints[ci];
+          const correct = isAnswerCorrect(answer, targetCheckpoint);
+
+          state.answers[id] = answer;
+          state.submitted.add(id);
+          state.verdicts[id] = correct ? "correct" : "incorrect";
+
+          if (correct) {
+            state.done.add(id);
+          } else {
+            state.done.delete(id);
+            // 答错时展示参考，但必须自己改对后再提交才能完成
+            state.hintLevels[id] = Math.max(state.hintLevels[id] ?? -1, 2);
+            if (state.behaviors[id]) {
+              state.behaviors[id].hintLevelUsed = Math.max(state.behaviors[id].hintLevelUsed, 2);
+            }
+          }
+
+          const now = new Date();
+          if (!state.behaviors[id]) {
+            state.behaviors[id] = {
+              firstOpenTime: now.toISOString(),
+              hintLevelUsed: state.hintLevels[id] ?? -1,
+              timeSpent: 0,
+              studentAnswer: "",
+              submitTime: null
+            };
+          }
+          const firstOpen = new Date(state.behaviors[id].firstOpenTime);
+          state.behaviors[id].studentAnswer = answer;
+          state.behaviors[id].submitTime = now.toISOString();
+          state.behaviors[id].timeSpent = Math.round((now - firstOpen) / 1000);
+          state.behaviors[id].isCorrect = correct;
+          if (!correct) {
+            state.behaviors[id].hintLevelUsed = Math.max(state.behaviors[id].hintLevelUsed ?? -1, 2);
+          }
+
+          saveProgress();
+          showToast(correct ? "回答正确！" : "回答不正确，请对照参考后重新输入并提交");
+          render();
+        });
+      });
+    }
+
+
+    function escapeRegex(str) {
+      return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    }
+
+    function escapeHtml(str) {
+      return String(str || "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+    }
+
+    /** 提交判分用：折叠空白、忽略大小写与句末标点差异 */
+    function normalizeForCompare(text) {
+      return String(text || "")
+        .replace(/\u00a0/g, " ")
+        .replace(/\s+/g, " ")
+        .trim()
+        .replace(/[.。!！?？…]+$/g, "")
+        .toLowerCase();
+    }
+
+    function stripQuotes(text) {
+      return String(text || "").replace(/^["'“”‘’]+|["'“”‘’]+$/g, "");
+    }
+
+    function tokenizeForCompare(text) {
+      return stripQuotes(normalizeForCompare(text))
+        .split(/[^a-z0-9'’-]+/i)
+        .filter(Boolean);
+    }
+
+    function containsAsWord(haystack, word) {
+      const tokens = tokenizeForCompare(haystack);
+      const w = stripQuotes(normalizeForCompare(word));
+      if (!w) return false;
+      return tokens.includes(w) || stripQuotes(normalizeForCompare(haystack)) === w;
+    }
+
+    /**
+     * 对比错误片段与正确片段，找出「改对了的词」
+     * 例：have always been → has always been  => ["has"]
+     */
+    function getChangedCorrectTokens(errorPhrase, correctPhrase) {
+      const errTokens = tokenizeForCompare(errorPhrase);
+      const fixTokens = tokenizeForCompare(correctPhrase);
+      const changed = [];
+      const len = Math.max(errTokens.length, fixTokens.length);
+      for (let i = 0; i < len; i++) {
+        const e = errTokens[i] || "";
+        const f = fixTokens[i] || "";
+        if (f && f !== e) changed.push(f);
+      }
+      // 也收集只出现在正确侧的词
+      fixTokens.forEach((f) => {
+        if (f && !errTokens.includes(f) && !changed.includes(f)) changed.push(f);
+      });
+      return changed;
+    }
+
+    /**
+     * 从检查点推出「改正后的那个词/短语」。
+     * 优先用原句/基句与完整修正句的局部替换差。
+     */
+    function getExpectedLocalFix(checkpoint) {
+      if (!checkpoint) return "";
+      const highlight = String(checkpoint.highlight || "").trim();
+      const fullAnswer = String(checkpoint.answer || checkpoint.rawCorrected || "").trim();
+      const base = String(checkpoint.baseText || checkpoint.originalSentence || "").trim();
+      const original = String(checkpoint.originalSentence || checkpoint.baseText || "").trim();
+
+      let local = extractLocalReplacement(original, highlight, checkpoint.rawCorrected || fullAnswer);
+      if (local == null || !String(local).trim()) {
+        local = extractLocalReplacement(base, highlight, fullAnswer);
+      }
+      if (local != null && String(local).trim()) {
+        return String(local).trim();
+      }
+
+      // 基句含错误片段时，用整句答案替换后取对应位置
+      if (highlight && base && fullAnswer) {
+        const range = findHighlightRange(base, highlight);
+        if (range) {
+          const before = base.slice(0, range.start);
+          const after = base.slice(range.end);
+          const beforeN = normalizeForCompare(before);
+          const afterN = normalizeForCompare(after);
+          const fullN = normalizeForCompare(fullAnswer);
+          if (fullN.startsWith(beforeN) && fullN.endsWith(afterN)) {
+            const startIdx = before.length;
+            const endIdx = after.length === 0
+              ? fullAnswer.length
+              : fullAnswer.length - after.length;
+            if (endIdx >= startIdx) {
+              const mid = fullAnswer.slice(startIdx, endIdx).trim();
+              if (mid) return mid;
+            }
+          }
+        }
+      }
+
+      // 最后回退：若答案很短则整段当作局部修正
+      if (fullAnswer && fullAnswer.length <= 40 && (!base || fullAnswer.length < base.length * 0.5)) {
+        return fullAnswer;
+      }
+      return "";
+    }
+
+    /**
+     * 判对规则：
+     * 1) 整句与参考答案一致；或
+     * 2) 写了完整局部修正短语；或
+     * 3) 只写了改对的那一个词（如 have→has，交 has）；或
+     * 4) 较长文本已包含正确替换且去掉了原错误。
+     */
+    function isAnswerCorrect(studentText, checkpoint) {
+      const studentRaw = String(studentText || "").trim();
+      if (!studentRaw || !checkpoint) return false;
+
+      const a = stripQuotes(normalizeForCompare(studentRaw));
+      const expectedFull = String(checkpoint.answer || "").trim();
+      const b = stripQuotes(normalizeForCompare(expectedFull));
+      if (a && b && a === b) return true;
+
+      const localFix = getExpectedLocalFix(checkpoint);
+      const fixN = stripQuotes(normalizeForCompare(localFix));
+      const errN = stripQuotes(normalizeForCompare(checkpoint.highlight || ""));
+
+      // 只交改正后的整段局部短语
+      if (fixN && a === fixN) return true;
+
+      // 关键：只交「改动的那个词」
+      // 例：错误 have always been，正确 has always been，学生写 has
+      if (errN && fixN) {
+        const changedTokens = getChangedCorrectTokens(errN, fixN);
+        if (changedTokens.includes(a)) return true;
+        // 学生答案是多个改动词组成的短语
+        if (changedTokens.length && a === changedTokens.join(" ")) return true;
+        // 正确短语里有该词，且错误短语里没有该词（按词匹配，避免 have 包含 has 的误判）
+        if (a && containsAsWord(fixN, a) && !containsAsWord(errN, a)) return true;
+      }
+
+      // 相对整句答案：写了对的词，且该词不在错误片段里
+      if (a && b && containsAsWord(b, a) && errN && !containsAsWord(errN, a)) {
+        // 避免过短无意义答案（单字母等）
+        if (a.length >= 2) return true;
+      }
+
+      // 学生答案包含正确替换
+      if (fixN && a.includes(fixN)) {
+        if (a.length <= fixN.length + 8) return true;
+        if (!errN) return true;
+        if (errN === fixN) return true;
+        if (!a.includes(errN)) return true;
+        if (containsAsWord(a, fixN) && !containsAsWord(a, errN)) return true;
+      }
+
+      // 把局部修正套回基句后再比整句
+      const base = String(checkpoint.baseText || checkpoint.originalSentence || "");
+      const highlight = String(checkpoint.highlight || "");
+      if (localFix && highlight && base && findHighlightRange(base, highlight)) {
+        const applied = base.replace(
+          new RegExp(escapeRegex(highlight), "i"),
+          localFix
+        );
+        if (stripQuotes(normalizeForCompare(applied)) === a) return true;
+      }
+
+      // 学生只改了关键错误词：把错误短语里的错词换成学生答案后，应等于局部正确短语
+      if (a && errN && fixN && tokenizeForCompare(errN).length >= 1) {
+        const errTokens = tokenizeForCompare(errN);
+        const fixTokens = tokenizeForCompare(fixN);
+        if (errTokens.length === fixTokens.length) {
+          for (let i = 0; i < errTokens.length; i++) {
+            if (errTokens[i] !== fixTokens[i]) {
+              const trial = errTokens.slice();
+              trial[i] = a;
+              if (trial.join(" ") === fixTokens.join(" ")) return true;
+            }
+          }
+        }
+      }
+
+      return false;
+    }
+
+    function getTotalCheckpointCount() {
+      return state.sentences.reduce((sum, s) => sum + (s.checkpoints || []).length, 0);
+    }
+
+    /** 全部检查点均已提交正确答案后才算完成 */
+    function allCheckpointsCompleted() {
+      const total = getTotalCheckpointCount();
+      if (total === 0) return true;
+      return state.sentences.every((sentence, si) =>
+        (sentence.checkpoints || []).every((_, ci) => {
+          const id = checkpointId(si, ci);
+          return state.done.has(id) && state.verdicts[id] === "correct";
+        })
+      );
+    }
+
+    function updateFinishButton() {
+      const finishBtn = document.querySelector("#finishAll");
+      if (!finishBtn) return;
+      const ready = allCheckpointsCompleted();
+      const total = getTotalCheckpointCount();
+      const doneCount = state.done.size;
+      finishBtn.disabled = !ready;
+      finishBtn.title = ready
+        ? "完成训练"
+        : `还需提交正确答案：${doneCount}/${total}（查看答案不能代替提交）`;
+      finishBtn.textContent = ready ? "完成训练" : `完成训练（${doneCount}/${total}）`;
+    }
+
+    function renderStats() {
+      const total = state.sentences.reduce((sum, s) => sum + s.checkpoints.length, 0);
+      const completed = state.done.size;
+      const percent = total === 0 ? 0 : Math.round((completed / total) * 100);
+      const typeCounts = {};
+      state.sentences.forEach((sentence, si) => {
+        sentence.checkpoints.forEach((cp, ci) => {
+          typeCounts[cp.category] = (typeCounts[cp.category] || 0) + 1;
+        });
+      });
+      const maxCount = Math.max(...Object.values(typeCounts), 1);
+
+      let hintSum = 0;
+      state.done.forEach((id) => {
+        hintSum += (state.hintLevels[id] ?? -1) + 1;
+      });
+      const avgHint = completed === 0 ? 0 : hintSum / completed;
+
+      document.querySelector("#sentenceStatus").textContent =
+        `第 ${state.currentSentence + 1} / ${state.sentences.length} 句`;
+      document.querySelector("#checkpointStatus").textContent =
+        `完成 ${completed} / ${total} 个检查点`;
+      document.querySelector("#progressBar").style.width = `${percent}%`;
+      document.querySelector("#essayBadge").textContent = `${total} 个检查点`;
+      document.querySelector("#metricDone").textContent = `${percent}%`;
+      document.querySelector("#metricTypes").textContent = `${Object.keys(typeCounts).length}`;
+      document.querySelector("#metricAvgHint").textContent = avgHint.toFixed(1);
+
+      const typeList = document.querySelector("#typeList");
+      typeList.innerHTML = Object.entries(typeCounts)
+        .sort((a, b) => b[1] - a[1])
+        .map(([type, count]) => `
+          <div class="type-row">
+            <span>${type}</span>
+            <div class="bar"><span style="width: ${Math.max(18, Math.round((count / maxCount) * 100))}%"></span></div>
+            <strong>${count}</strong>
+          </div>
+        `)
+        .join("");
+
+      const currentSentenceObj = state.sentences[state.currentSentence];
+      const currentComplete = currentSentenceObj.checkpoints.length === 0 ||
+        currentSentenceObj.checkpoints.every(
+          (_, ci) => state.done.has(checkpointId(state.currentSentence, ci))
+        );
+      const badge = document.querySelector("#currentBadge");
+      badge.textContent = currentComplete ? "本句完成" : "待完成";
+      badge.className = currentComplete ? "badge" : "badge warn";
+      updateFinishButton();
+    }
+
+    function render() {
+      renderSentenceList();
+      renderCurrentSentence();
+      renderCheckpoints();
+      renderStats();
+    }
+
+    function renderReport() {
+      const total = state.sentences.reduce((sum, s) => sum + s.checkpoints.length, 0);
+      const completed = state.done.size;
+      const percent = total === 0 ? 0 : Math.round((completed / total) * 100);
+
+      let hintSum = 0;
+      state.done.forEach((id) => {
+        hintSum += (state.hintLevels[id] ?? -1) + 1;
+      });
+      const avgHint = completed === 0 ? 0 : hintSum / completed;
+
+      document.querySelector("#reportDone").textContent = `${percent}%`;
+      document.querySelector("#reportTotal").textContent = `${total}`;
+      document.querySelector("#reportAvgHint").textContent = avgHint.toFixed(1);
+      document.querySelector("#reportSummary").textContent =
+        `${state.studentName}，你已经完成了本篇作文的 ${total} 个检查点，完成率 ${percent}%。`;
+
+      const typeCounts = {};
+      state.sentences.forEach((sentence) => {
+        sentence.checkpoints.forEach((cp) => {
+          typeCounts[cp.category] = (typeCounts[cp.category] || 0) + 1;
+        });
+      });
+      const maxCount = Math.max(...Object.values(typeCounts), 1);
+      document.querySelector("#reportTypeList").innerHTML = Object.entries(typeCounts)
+        .sort((a, b) => b[1] - a[1])
+        .map(([type, count]) => `
+          <div class="type-row">
+            <span>${type}</span>
+            <div class="bar"><span style="width: ${Math.max(18, Math.round((count / maxCount) * 100))}%"></span></div>
+            <strong>${count}</strong>
+          </div>
+        `)
+        .join("");
+
+      const reviewList = document.querySelector("#reviewList");
+      const reviewItems = [];
+      Object.entries(typeCounts)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 3)
+        .forEach(([type]) => {
+          const example = state.sentences
+            .flatMap((s, si) => s.checkpoints.map((cp, ci) => ({ ...cp, si, ci })))
+            .find((cp) => cp.category === type && state.done.has(checkpointId(cp.si, cp.ci)));
+          if (example) {
+            reviewItems.push(`
+              <div class="review-item">
+                <strong>${type}</strong>
+                <p>${example.explanation}</p>
+              </div>
+            `);
+          }
+        });
+      reviewList.innerHTML = reviewItems.length
+        ? reviewItems.join("")
+        : "<p style=\"margin:0;color:var(--muted);font-size:14px;\">完成检查点后，这里会显示建议复习的语法点。</p>";
+    }
+
+    // ===== 核心流程 =====
+    async function startPractice() {
+      const platform = getPlatformStudent();
+      const rewrite = isRewriteMode();
+      const nameInput = document.querySelector("#studentName");
+      const name = (state.studentName || platform.studentName || (nameInput && nameInput.value) || "").trim();
+      const rewritePayload = rewrite ? readRewritePayload() : null;
+      const lockedTopic = rewrite
+        ? (state.topic || (rewritePayload && rewritePayload.topic) || "").trim()
+        : "";
+      const topic = lockedTopic || (document.querySelector("#topicInput")?.value || "").trim();
+      const text = document.querySelector("#essayInput").value.trim();
+
+      if (!platform.studentId && !name) {
+        showToast("请输入你的名字");
+        return;
+      }
+      if (!topic) {
+        showToast("请先粘贴作文题目");
+        return;
+      }
+      if (!text) {
+        showToast("请先粘贴或上传作文");
+        return;
+      }
+
+      state.essayStartTime = new Date().toISOString();
+
+      const rawSentences = splitEssayIntoSentences(text);
+      if (rawSentences.length === 0) {
+        showToast("未能识别出有效句子，请检查输入");
+        return;
+      }
+
+      state.studentId = platform.studentId || state.studentId || "";
+      state.studentName = name || platform.studentName || state.studentId || "学生";
+      state.topic = topic;
+      state.essay = text;
+      state.aiSupplementDone = false;
+      state.sentences = rawSentences.map((sentence) => ({
+        text: sentence,
+        checkpoints: generateCheckpoints(sentence)
+      }));
+      state.currentSentence = 0;
+      state.done = new Set();
+      state.hintLevels = {};
+      state.answers = {};
+      state.verdicts = {};
+      state.submitted = new Set();
+      state.behaviors = {};
+      localStorage.removeItem("ielts_practice_state");
+
+      if (rewrite) {
+        clearRewriteModeFromUrl();
+      }
+
+      // 规则检查点总数
+      const ruleCheckpointCount = state.sentences.reduce((sum, s) => sum + s.checkpoints.length, 0);
+
+      // 先进入训练页面，显示规则检测结果
+      showToast(`规则检测到 ${ruleCheckpointCount} 个错误，AI 正在补充检测...`);
+      saveProgress();
+      showStage("training");
+      render();
+
+      // 显示 AI 分析中的遮罩层
+      const aiLoadingOverlay = document.createElement("div");
+      aiLoadingOverlay.id = "aiLoadingOverlay";
+      aiLoadingOverlay.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.7);
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        z-index: 9999;
+        color: white;
+      `;
+      aiLoadingOverlay.innerHTML = `
+        <div style="font-size: 48px; margin-bottom: 20px;">
+          <div class="ai-spinner" style="
+            width: 60px;
+            height: 60px;
+            border: 4px solid rgba(255,255,255,0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+          "></div>
+        </div>
+        <h2 style="margin: 0 0 10px 0; font-size: 24px;">AI 正在分析作文...</h2>
+        <p style="margin: 0; font-size: 16px; opacity: 0.9;">已检测到 ${ruleCheckpointCount} 个规则错误，正在深度分析更多语法问题</p>
+        <p style="margin: 10px 0 0 0; font-size: 14px; opacity: 0.7;">请稍候，不要关闭页面</p>
+      `;
+      document.body.appendChild(aiLoadingOverlay);
+
+      // 添加旋转动画样式
+      if (!document.querySelector("#ai-spinner-style")) {
+        const style = document.createElement("style");
+        style.id = "ai-spinner-style";
+        style.textContent = `
+          @keyframes spin {
+            to { transform: rotate(360deg); }
+          }
+        `;
+        document.head.appendChild(style);
+      }
+
+      // 异步请求 AI 补充检查
+      const flatRuleCheckpoints = state.sentences.flatMap((s, si) =>
+        s.checkpoints.map((cp) => ({ ...cp, sentenceIndex: si }))
+      );
+      const aiResult = await fetchAiSupplements(text, flatRuleCheckpoints);
+      const aiErrors = aiResult.data || [];
+
+      // 移除加载遮罩
+      aiLoadingOverlay.remove();
+
+      // 合并 AI 补充的错误到对应句子（去重 + 保留同句多个错误）
+      let aiMergedCount = 0;
+      const seenHighlights = new Set();
+      state.sentences.forEach((s, si) => {
+        s.checkpoints.forEach((cp) => {
+          seenHighlights.add(`${si}-${String(cp.highlight || "").toLowerCase()}`);
+        });
+      });
+
+      for (const aiError of aiErrors) {
+        let si = Number.isInteger(aiError.sentenceIndex) ? aiError.sentenceIndex : -1;
+        if (si < 0 || si >= state.sentences.length) {
+          const needle = String(aiError.originalSentence || aiError.matchedText || "").toLowerCase().trim();
+          if (needle) {
+            si = state.sentences.findIndex((s) => s.text.toLowerCase().includes(needle) || needle.includes(s.text.toLowerCase()));
+          }
+        }
+        if (si < 0 || si >= state.sentences.length) si = 0;
+        const sentence = state.sentences[si].text;
+        const adapted = adaptAiCheckpoint(aiError, sentence);
+        const key = `${si}-${String(adapted.highlight || "").toLowerCase()}`;
+        if (!seenHighlights.has(key)) {
+          seenHighlights.add(key);
+          state.sentences[si].checkpoints.push(adapted);
+          aiMergedCount++;
+        }
+      }
+
+      // 同句多错：按检查点顺序递进叠加正确答案
+      state.sentences = state.sentences.map((s) => ({
+        ...s,
+        checkpoints: withProgressiveAnswers(s.text, s.checkpoints || [])
+      }));
+
+      state.aiSupplementDone = true;
+      state.essay = text;
+      saveProgress();
+
+      const totalCheckpointCount = state.sentences.reduce((sum, s) => sum + s.checkpoints.length, 0);
+
+      // 显示分析结果提示
+      const resultOverlay = document.createElement("div");
+      resultOverlay.id = "aiResultOverlay";
+      resultOverlay.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.7);
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        z-index: 9999;
+        color: white;
+      `;
+      
+      let resultMessage = "";
+      if (aiResult.failed) {
+        resultMessage = `
+          <div style="font-size: 48px; margin-bottom: 20px; color: #e74c3c;">
+            <div style="
+              width: 60px;
+              height: 60px;
+              border-radius: 50%;
+              background: #e74c3c;
+              display: flex;
+              justify-content: center;
+              align-items: center;
+              font-size: 36px;
+            ">!</div>
+          </div>
+          <h2 style="margin: 0 0 10px 0; font-size: 24px;">AI 分析未完成</h2>
+          <p style="margin: 0; font-size: 16px; opacity: 0.95; max-width: 420px; text-align: center;">${aiResult.message || "AI 暂时不可用"}</p>
+          <p style="margin: 12px 0 0 0; font-size: 15px; opacity: 0.9;">当前先用规则检测到的 ${totalCheckpointCount} 个检查点继续练习</p>
+        `;
+      } else if (aiMergedCount > 0) {
+        resultMessage = `
+          <div style="font-size: 48px; margin-bottom: 20px; color: #4CAF50;">
+            <div style="
+              width: 60px;
+              height: 60px;
+              border-radius: 50%;
+              background: #4CAF50;
+              display: flex;
+              justify-content: center;
+              align-items: center;
+              font-size: 36px;
+            ">✓</div>
+          </div>
+          <h2 style="margin: 0 0 10px 0; font-size: 24px;">分析完成！</h2>
+          <p style="margin: 0; font-size: 18px;">AI 额外发现了 ${aiMergedCount} 个错误</p>
+          <p style="margin: 10px 0 0 0; font-size: 16px; opacity: 0.9;">共 ${totalCheckpointCount} 个检查点等待你修正</p>
+        `;
+      } else if (totalCheckpointCount === 0) {
+        const rawHint = aiResult.meta && aiResult.meta.aiRaw
+          ? `（模型原始返回 ${aiResult.meta.aiRaw} 条，对齐后为 0）`
+          : "";
+        resultMessage = `
+          <div style="font-size: 48px; margin-bottom: 20px; color: #FF9800;">
+            <div style="
+              width: 60px;
+              height: 60px;
+              border-radius: 50%;
+              background: #FF9800;
+              display: flex;
+              justify-content: center;
+              align-items: center;
+              font-size: 36px;
+            ">!</div>
+          </div>
+          <h2 style="margin: 0 0 10px 0; font-size: 24px;">未发现明显错误</h2>
+          <p style="margin: 0; font-size: 16px; opacity: 0.9;">建议换一篇含语法错误的作文再试，或请老师进一步检查${rawHint}</p>
+        `;
+      } else {
+        resultMessage = `
+          <div style="font-size: 48px; margin-bottom: 20px; color: #4CAF50;">
+            <div style="
+              width: 60px;
+              height: 60px;
+              border-radius: 50%;
+              background: #4CAF50;
+              display: flex;
+              justify-content: center;
+              align-items: center;
+              font-size: 36px;
+            ">✓</div>
+          </div>
+          <h2 style="margin: 0 0 10px 0; font-size: 24px;">分析完成！</h2>
+          <p style="margin: 0; font-size: 16px;">共 ${totalCheckpointCount} 个检查点等待你修正</p>
+        `;
+      }
+      
+      resultOverlay.innerHTML = resultMessage;
+      document.body.appendChild(resultOverlay);
+      
+      // 2秒后自动关闭结果提示
+      setTimeout(() => {
+        resultOverlay.remove();
+        saveProgress();
+        render();
+      }, 2000);
+    }
+
+    async function finishPractice() {
+      if (!allCheckpointsCompleted()) {
+        const total = getTotalCheckpointCount();
+        showToast(`请先完成全部检查点（${state.done.size}/${total}），每处需提交正确答案`);
+        updateFinishButton();
+        return;
+      }
+      saveProgress();
+      
+      // 保存数据到后端
+      try {
+        const checkpoints = [];
+        state.sentences.forEach((sentence, si) => {
+          sentence.checkpoints.forEach((cp, ci) => {
+            const id = checkpointId(si, ci);
+            const behavior = state.behaviors[id] || {};
+            checkpoints.push({
+              sentenceIndex: si,
+              checkpointIndex: ci,
+              category: cp.category,
+              errorText: cp.highlight,
+              correctedText: cp.answer,
+              hintLevelUsed: behavior.hintLevelUsed ?? -1,
+              timeSpent: behavior.timeSpent ?? 0,
+              studentAnswer: state.answers[id] || ""
+            });
+          });
+        });
+
+        const totalStats = {};
+        checkpoints.forEach(cp => {
+          totalStats[cp.category] = (totalStats[cp.category] || 0) + 1;
+        });
+
+        const resp = await fetch(writingApi("save-practice"), {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            studentName: state.studentName,
+            studentId: state.studentId || "",
+            topic: state.topic || document.querySelector("#topicInput")?.value || "",
+            essay: state.essay || document.querySelector("#essayInput").value || "",
+            checkpoints,
+            totalStats
+          })
+        });
+        const result = await resp.json();
+        if (result.success) {
+          console.log("练习数据已保存到后端，记录ID:", result.recordId);
+        } else {
+          console.error("保存失败:", result.message);
+          showToast(result.message || "保存失败，请稍后重试");
+        }
+      } catch (e) {
+        console.error("保存练习数据失败:", e);
+      }
+
+      showStage("report");
+      renderReport();
+    }
+
+    function resetApp() {
+      localStorage.removeItem("ielts_practice_state");
+      const platform = getPlatformStudent();
+      state.studentName = platform.studentName || "";
+      state.studentId = platform.studentId || "";
+      state.topic = "";
+      state.essay = "";
+      state.sentences = [];
+      state.currentSentence = 0;
+      state.done = new Set();
+      state.hintLevels = {};
+      state.answers = {};
+      state.verdicts = {};
+      state.submitted = new Set();
+      state.behaviors = {};
+      state.essayStartTime = null;
+      state.aiSupplementDone = false;
+      document.querySelector("#studentName").value = state.studentName;
+      const topicInput = document.querySelector("#topicInput");
+      if (topicInput) topicInput.value = "";
+      document.querySelector("#essayInput").value = "";
+      showStage("start");
+    }
+
+    // ===== 事件监听 =====
+    document.querySelector("#startBtn").addEventListener("click", startPractice);
+
+    document.querySelector("#prevSentence").addEventListener("click", () => {
+      state.currentSentence = Math.max(state.currentSentence - 1, 0);
+      render();
+    });
+
+    document.querySelector("#nextSentence").addEventListener("click", () => {
+      state.currentSentence = Math.min(state.currentSentence + 1, state.sentences.length - 1);
+      render();
+    });
+
+    document.querySelector("#finishAll").addEventListener("click", finishPractice);
+
+    document.querySelector("#fileInput").addEventListener("change", (event) => {
+      const file = event.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        document.querySelector("#essayInput").value = reader.result;
+        showToast("文件已导入");
+      };
+      reader.onerror = () => {
+        showToast("文件读取失败");
+      };
+      reader.readAsText(file);
+      event.target.value = "";
+    });
+
+    document.querySelector("#loadSample").addEventListener("click", () => {
+      document.querySelector("#topicInput").value =
+        "Some people prefer to live in a big city, while others prefer to live in a small town. Discuss both views and give your own opinion.";
+      document.querySelector("#essayInput").value =
+        "Nowadays, many people choose to live in big cities because they can find better jobs and public services. " +
+        "However, people who lives in cities often feel more stressed than those in small towns. " +
+        "One reason is that the cost of living are much higher, especially rent and transport. " +
+        "In addition, some young workers spend too much time to commute, so they have little energy for family life. " +
+        "Although the government has built more parks, it still needs to make cities more healthier and less crowded.";
+      showToast("已加载示例题目和作文");
+    });
+
+    document.querySelector("#restartBtn").addEventListener("click", () => {
+      resetApp();
+    });
+
+    document.querySelector("#backToStartBtn").addEventListener("click", () => {
+      resetApp();
+    });
+
+    // ===== 针对性练习 =====
+    document.querySelector("#generateExercisesBtn").addEventListener("click", async () => {
+      const btn = document.querySelector("#generateExercisesBtn");
+      const list = document.querySelector("#exerciseList");
+      btn.disabled = true;
+      btn.textContent = "正在生成练习题...";
+      list.innerHTML = "";
+
+      // 收集错误类型及示例
+      const typeExamples = {};
+      state.sentences.forEach((s, si) => {
+        s.checkpoints.forEach((cp, ci) => {
+          if (!typeExamples[cp.category]) {
+            typeExamples[cp.category] = {
+              sentence: s.text,
+              error: cp.highlight,
+              corrected: cp.answer
+            };
+          }
+        });
+      });
+
+      const categories = Object.keys(typeExamples); // 所有错误类型，每个类别生成3道题
+      let allExercises = [];
+
+      for (const category of categories) {
+        const example = typeExamples[category];
+        try {
+          const resp = await fetch(writingApi("generate-exercises"), {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              category,
+              example_sentence: example.sentence,
+              example_error: example.error,
+              example_corrected: example.corrected
+            })
+          });
+          const result = await resp.json();
+          if (result.success && result.data) {
+            allExercises.push(...result.data.map(ex => ({ ...ex, category })));
+          }
+        } catch (e) {
+          console.error(`生成 ${category} 练习失败:`, e);
+        }
+      }
+
+      if (allExercises.length === 0) {
+        list.innerHTML = "<p style='color:var(--muted);'>练习题生成失败，请稍后重试。</p>";
+        btn.disabled = false;
+        btn.textContent = "重新生成练习";
+        return;
+      }
+
+      // 渲染练习题
+      allExercises.forEach((ex, idx) => {
+        const card = document.createElement("div");
+        card.className = "checkpoint";
+        card.style.marginBottom = "12px";
+        card.innerHTML = `
+          <div class="checkpoint-head">
+            <h3>练习 ${idx + 1}：${ex.category}</h3>
+          </div>
+          <p class="question">${ex.question}</p>
+          <div class="options" style="display:flex;flex-direction:column;gap:8px;margin:12px 0;">
+            ${ex.options.map((opt, i) => `
+              <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+                <input type="radio" name="ex-${idx}" value="${i}">
+                <span>${String.fromCharCode(65 + i)}. ${opt}</span>
+              </label>
+            `).join("")}
+          </div>
+          <button class="btn primary" data-check="${idx}">提交答案</button>
+          <div class="exercise-feedback" style="margin-top:10px;display:none;">
+            <strong>解析：</strong><span class="feedback-text"></span>
+          </div>
+        `;
+        list.appendChild(card);
+      });
+
+      // 绑定提交事件
+      list.querySelectorAll("[data-check]").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const idx = parseInt(btn.dataset.check);
+          const selected = list.querySelector(`input[name="ex-${idx}"]:checked`);
+          const feedback = btn.nextElementSibling;
+          const feedbackText = feedback.querySelector(".feedback-text");
+          if (!selected) {
+            showToast("请先选择一个选项");
+            return;
+          }
+          const answer = parseInt(selected.value);
+          const correct = allExercises[idx].answer;
+          feedback.style.display = "block";
+          if (answer === correct) {
+            feedbackText.textContent = `回答正确！${allExercises[idx].explanation}`;
+            feedbackText.style.color = "green";
+          } else {
+            feedbackText.textContent = `回答错误，正确答案是 ${String.fromCharCode(65 + correct)}。${allExercises[idx].explanation}`;
+            feedbackText.style.color = "red";
+          }
+          btn.disabled = true;
+        });
+      });
+
+      btn.textContent = "重新生成练习";
+      btn.disabled = false;
+    });
+
+    // ===== 初始化 =====
+    (function bootstrapPlatformIdentity() {
+      const platform = getPlatformStudent();
+      if (platform.studentId) state.studentId = platform.studentId;
+      if (platform.studentName) state.studentName = platform.studentName;
+
+      const nameField = document.querySelector("#studentNameField");
+      const nameInput = document.querySelector("#studentName");
+      const startHint = document.querySelector("#startHint");
+
+      // 主站已登录：不再显示姓名输入
+      if (platform.studentId) {
+        if (nameField) nameField.style.display = "none";
+        if (nameInput) nameInput.value = platform.studentName || platform.studentId;
+        if (startHint) {
+          startHint.textContent = platform.studentName
+            ? `${platform.studentName}，先粘贴作文题目，再粘贴或上传作文正文。`
+            : "先粘贴作文题目，再粘贴或上传作文正文。";
+        }
+      } else if (nameInput && platform.studentName) {
+        nameInput.value = platform.studentName;
+      }
+
+      // 再写一遍：清进度、锁定题目，不恢复旧训练
+      if (isRewriteMode()) {
+        localStorage.removeItem("ielts_practice_state");
+        const payload = readRewritePayload() || {
+          topic: "",
+          studentId: platform.studentId,
+          studentName: platform.studentName
+        };
+        applyRewriteStartPage(payload);
+        showStage("start");
+        return true;
+      }
+      return false;
+    })() || (function () {
+      if (loadProgress() && state.sentences.length > 0) {
+        const nameInput = document.querySelector("#studentName");
+        if (nameInput) nameInput.value = state.studentName;
+        showStage("training");
+        render();
+      } else {
+        showStage("start");
+      }
+    })();
+  </script>
+</body>
+</html>

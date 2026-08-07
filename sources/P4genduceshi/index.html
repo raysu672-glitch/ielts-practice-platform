@@ -1,0 +1,897 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>P4 跟读测试</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-primary: #0f172a;
+            --bg-secondary: #1e293b;
+            --bg-card: #1e293b;
+            --text-primary: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+            --accent: #f59e0b;
+            --accent-light: #fbbf24;
+            --accent-dark: #d97706;
+            --success: #22c55e;
+            --error: #ef4444;
+            --border: #334155;
+            --border-light: #475569;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Noto Sans SC', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        /* Header */
+        header {
+            text-align: center;
+            padding: 40px 0 30px;
+            border-bottom: 1px solid var(--border);
+            margin-bottom: 30px;
+        }
+
+        header h1 {
+            font-family: 'Playfair Display', serif;
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: var(--accent);
+            margin-bottom: 10px;
+            letter-spacing: 1px;
+        }
+
+        header .subtitle {
+            color: var(--text-secondary);
+            font-size: 1.1rem;
+        }
+
+        header .lesson-title {
+            color: var(--text-muted);
+            font-size: 0.95rem;
+            margin-top: 8px;
+        }
+
+        /* Section cards */
+        section {
+            background: var(--bg-card);
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 24px;
+            border: 1px solid var(--border);
+        }
+
+        section h2 {
+            font-size: 1.15rem;
+            color: var(--text-primary);
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* Scoring standard */
+        .standard-box {
+            background: rgba(245, 158, 11, 0.08);
+            border-left: 4px solid var(--accent);
+            padding: 16px 20px;
+            border-radius: 8px;
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+            line-height: 1.8;
+        }
+
+        .standard-box strong {
+            color: var(--accent-light);
+        }
+
+        /* Test button */
+        .test-controls {
+            text-align: center;
+            padding: 10px 0;
+        }
+
+        .test-btn {
+            font-family: 'Noto Sans SC', sans-serif;
+            font-size: 1.25rem;
+            font-weight: 700;
+            padding: 18px 48px;
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 12px;
+            min-width: 220px;
+            justify-content: center;
+            background: linear-gradient(135deg, var(--accent) 0%, var(--accent-dark) 100%);
+            color: #fff;
+            box-shadow: 0 10px 30px rgba(245, 158, 11, 0.3);
+        }
+
+        .test-btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 14px 40px rgba(245, 158, 11, 0.4);
+        }
+
+        .test-btn:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+        }
+
+        .test-btn.testing {
+            background: linear-gradient(135deg, var(--error) 0%, #b91c1c 100%);
+            box-shadow: 0 10px 30px rgba(239, 68, 68, 0.3);
+            animation: pulse 1.5s infinite;
+        }
+
+        .test-btn.scoring {
+            background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+            box-shadow: 0 10px 30px rgba(59, 130, 246, 0.3);
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.75; }
+        }
+
+        /* Status text */
+        .status-text {
+            text-align: center;
+            margin-top: 16px;
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+            min-height: 24px;
+        }
+
+        .status-text.testing {
+            color: var(--error);
+        }
+
+        .status-text.scoring {
+            color: #60a5fa;
+        }
+
+        /* Progress bar */
+        .progress-section {
+            padding-top: 10px;
+        }
+
+        .progress-bar {
+            height: 8px;
+            background: var(--border);
+            border-radius: 4px;
+            overflow: hidden;
+            margin-bottom: 10px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--accent) 0%, var(--accent-light) 100%);
+            width: 0%;
+            transition: width 0.1s linear;
+        }
+
+        .progress-time {
+            text-align: right;
+            color: var(--text-muted);
+            font-size: 0.85rem;
+            font-family: 'Playfair Display', serif;
+        }
+
+        /* Text display */
+        .text-container {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.35rem;
+            line-height: 2;
+            color: var(--text-primary);
+            max-height: 400px;
+            overflow-y: auto;
+            padding: 10px 4px;
+        }
+
+        .text-container::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .text-container::-webkit-scrollbar-track {
+            background: var(--bg-primary);
+            border-radius: 4px;
+        }
+
+        .text-container::-webkit-scrollbar-thumb {
+            background: var(--border-light);
+            border-radius: 4px;
+        }
+
+        .word {
+            display: inline;
+            padding: 2px 3px;
+            margin: 0 1px;
+            border-radius: 4px;
+            transition: all 0.15s ease;
+        }
+
+        /* Result section */
+        .result-section {
+            display: none;
+        }
+
+        .result-section.show {
+            display: block;
+            animation: fadeIn 0.5s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .score-display {
+            text-align: center;
+            padding: 30px 0;
+        }
+
+        .score-number {
+            font-family: 'Playfair Display', serif;
+            font-size: 5rem;
+            font-weight: 700;
+            color: var(--accent);
+            line-height: 1;
+        }
+
+        .score-label {
+            color: var(--text-secondary);
+            font-size: 1rem;
+            margin-top: 8px;
+        }
+
+        .score-detail {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            margin-top: 12px;
+        }
+
+        .playback-area {
+            margin-top: 20px;
+        }
+
+        .playback-area audio {
+            width: 100%;
+            height: 48px;
+        }
+
+        .download-link {
+            display: inline-block;
+            margin-top: 12px;
+            color: var(--accent);
+            text-decoration: none;
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+
+        .download-link:hover {
+            text-decoration: underline;
+        }
+
+        .recognized-text-area {
+            margin-top: 24px;
+            padding-top: 20px;
+            border-top: 1px solid var(--border);
+        }
+
+        .recognized-text-area h3 {
+            font-size: 0.95rem;
+            color: var(--text-secondary);
+            margin-bottom: 10px;
+        }
+
+        .recognized-text-area p {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            line-height: 1.7;
+            background: var(--bg-primary);
+            padding: 14px 16px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            min-height: 60px;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+
+        /* History */
+        .history-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .history-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 14px 18px;
+            background: var(--bg-primary);
+            border-radius: 10px;
+            border: 1px solid var(--border);
+        }
+
+        .history-time {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        .history-score {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--accent);
+        }
+
+        /* Error message */
+        .error-message {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            color: #fca5a5;
+            padding: 14px 18px;
+            border-radius: 10px;
+            margin-top: 16px;
+            display: none;
+        }
+
+        .error-message.show {
+            display: block;
+        }
+
+        /* Responsive */
+        @media (max-width: 640px) {
+            header h1 {
+                font-size: 1.8rem;
+            }
+
+            .test-btn {
+                font-size: 1.1rem;
+                padding: 16px 36px;
+                min-width: 180px;
+            }
+
+            .text-container {
+                font-size: 1.1rem;
+            }
+
+            .score-number {
+                font-size: 3.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>P4 跟读测试</h1>
+            <p class="subtitle">Shadow Reading Test</p>
+            <p class="lesson-title" id="lessonTitle">C4T1S4 - Urban Landscape</p>
+        </header>
+
+        <main>
+            <!-- 评分标准 -->
+            <section>
+                <h2>📋 评分标准</h2>
+                <div class="standard-box">
+                    <strong>测试流程：</strong>点击「开始测试」后，系统会同时播放原音频并开始录制你的跟读；音频播放结束后自动停止录音，并将录音上传到后端进行识别打分。<br>
+                    <strong>评分方式：</strong>后端使用 Whisper 模型将录音转成文字，再与原文进行逐词比对，使用最长公共子序列（LCS）算法计算匹配度。<br>
+                    <strong>得分公式：</strong>得分 = 匹配单词数 ÷ 原文总单词数 × 100<br>
+                    <strong>💡 小提示：</strong>建议佩戴耳机测试，避免原音频被麦克风收进去；后端识别需要一些时间，请耐心等待。
+                </div>
+            </section>
+
+            <!-- 测试控制 -->
+            <section>
+                <div class="test-controls">
+                    <button id="testBtn" class="test-btn">
+                        <span>▶</span>
+                        <span id="testBtnText">开始测试</span>
+                    </button>
+                </div>
+                <div class="status-text" id="statusText">准备就绪，点击按钮开始测试</div>
+                <div class="error-message" id="errorMessage"></div>
+            </section>
+
+            <!-- 进度条 -->
+            <section class="progress-section">
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill"></div>
+                </div>
+                <div class="progress-time" id="progressTime">0:00 / 0:00</div>
+            </section>
+
+            <!-- 原文显示 -->
+            <section>
+                <h2>📝 原文</h2>
+                <div class="text-container" id="textContainer">
+                    <!-- 动态生成文本 -->
+                </div>
+            </section>
+
+            <!-- 结果区 -->
+            <section class="result-section" id="resultSection">
+                <h2>🎯 测试结果</h2>
+                <div class="score-display">
+                    <div class="score-number" id="scoreNumber">0%</div>
+                    <div class="score-label">跟读得分</div>
+                    <div class="score-detail" id="scoreDetail">匹配 0 / 0 词</div>
+                </div>
+                <div class="playback-area">
+                    <audio id="playbackAudio" controls></audio>
+                    <a id="downloadRecording" class="download-link" href="#" download="recording.webm">下载录音</a>
+                </div>
+                <div class="recognized-text-area" id="recognizedTextArea">
+                    <h3>识别到的文字（调试用）</h3>
+                    <p id="recognizedText"></p>
+                </div>
+            </section>
+
+            <!-- 历史记录 -->
+            <section>
+                <h2>📊 测试历史</h2>
+                <div class="history-list" id="historyList">
+                    <div class="empty-history">暂无测试记录</div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script src="config.js"></script>
+    <script>
+        // ==================== 配置 ====================
+        const API_BASE = (window.API_CONFIG && window.API_CONFIG.API_BASE) || 'http://localhost:8000';
+
+        // ==================== 课程数据 ====================
+        const currentLesson = {
+            id: 1,
+            title: "C4T1S4 - Urban Landscape",
+            text: "Good day, ladies and gentlemen. I have been asked today to talk to you about the urban landscape. There are two major areas that I will focus on in my talk: how vegetation can have a significant effect on urban climate, and how we can better plan our cities using trees to provide a more comfortable environment for us to live in. Trees can have a significant impact on our cities. They can make a city, as a whole, a bit less windy or a bit more windy, if that's what you want. They can make it a bit cooler if it's a hot summer day in an Australian city, or they can make it a bit more humid if it's a dry inland city. On the local scale - that is, in particular areas within the city - trees can make the local area more shady, cooler, more humid and much less windy. In fact trees and planting of various kinds can be used to make city streets actually less dangerous in particular areas. How do trees do all that, you ask? Well, the main difference between a tree and a building is a tree has got an internal mechanism to keep the temperature regulated. It evaporates water through its leaves and that means that the temperature of the leaves is never very far from our own body temperature. The temperature of a building surface on a hot sunny day can easily be twenty degrees more than our temperature. Trees, on the other hand, remain cooler than buildings because they sweat. This means that they can humidify the air and cool it - a property which can be exploited to improve the local climate. Trees can also help break the force of winds. The reason that high buildings make it windier at ground level is that, as the wind goes higher and higher, it goes faster and faster. When the wind hits the building, it has to go somewhere. Some of it goes over the top and some goes around the sides of the building, forcing those high level winds down to ground level. That doesn't happen when you have trees. Trees filter the wind and considerably reduce it, preventing those very large strong gusts that you so often find around tall buildings. Another problem in built-up areas is that traffic noise is intensified by tall buildings. By planting a belt of trees at the side of the road, you can make things a little quieter, but much of the vehicle noise still goes through the trees. Trees can also help reduce the amount of noise in the surroundings, although the effect is not as large as people like to think. Low-frequency noise, in particular, just goes through the trees as though they aren't there. Although trees can significantly improve the local climate, they do however take up a lot of space. There are root systems to consider and branches blocking windows and so on. It may therefore be difficult to fit trees into the local landscape. There is not a great deal you can do if you have what we call a street canyon - a whole set of high-rises enclosed in a narrow street. Trees need water to grow. They also need some sunlight to grow and you need room to put them. If you have the chance of knocking buildings down and replacing them, then suddenly you can start looking at different ways to design the streets and to introduce.",
+            audioUrl: "C4T1S4.mp3",
+            duration: "4:08"
+        };
+
+        // ==================== 全局状态 ====================
+        const state = {
+            isTesting: false,
+            isScoring: false,
+            audioPlayer: null,
+            mediaRecorder: null,
+            recordedChunks: [],
+            recordingStream: null,
+            userRecordingBlob: null,
+            audioDuration: 0,
+            testStartTime: 0
+        };
+
+        function getQueryParam(name) {
+            try {
+                return new URLSearchParams(window.location.search).get(name);
+            } catch (e) {
+                return null;
+            }
+        }
+
+        function sendTestComplete(score, matched, total, recognizedText, elapsedSeconds) {
+            try {
+                if (!(window.parent && window.parent !== window && window.parent.postMessage)) return;
+                const durationSeconds = state.testStartTime
+                    ? Math.max(0, Math.round((Date.now() - state.testStartTime) / 1000))
+                    : Math.max(0, Math.round(Number(elapsedSeconds) || 0));
+                window.parent.postMessage({
+                    type: 'genericTestComplete',
+                    moduleType: getQueryParam('module_type') || 'listening_p4_speed',
+                    moduleName: getQueryParam('module_name') || '听力P4跟读倍速',
+                    student_id: getQueryParam('student_id'),
+                    testType: 'module_test',
+                    scorePercent: Number(score) || 0,
+                    correctCount: Number(matched) || 0,
+                    totalCount: Number(total) || 0,
+                    durationSeconds: durationSeconds,
+                    completed: true,
+                    details: {
+                        matched: Number(matched) || 0,
+                        total: Number(total) || 0,
+                        recognizedText: recognizedText || '',
+                        elapsedSeconds: Number(elapsedSeconds) || 0,
+                        lessonId: currentLesson.id,
+                        lessonTitle: currentLesson.title
+                    }
+                }, '*');
+            } catch (e) {
+                console.error('上报测试结果失败:', e);
+            }
+        }
+
+        // ==================== DOM 元素 ====================
+        const elements = {
+            testBtn: document.getElementById('testBtn'),
+            testBtnText: document.getElementById('testBtnText'),
+            statusText: document.getElementById('statusText'),
+            errorMessage: document.getElementById('errorMessage'),
+            progressFill: document.getElementById('progressFill'),
+            progressTime: document.getElementById('progressTime'),
+            textContainer: document.getElementById('textContainer'),
+            resultSection: document.getElementById('resultSection'),
+            scoreNumber: document.getElementById('scoreNumber'),
+            scoreDetail: document.getElementById('scoreDetail'),
+            playbackAudio: document.getElementById('playbackAudio'),
+            downloadRecording: document.getElementById('downloadRecording'),
+            recognizedText: document.getElementById('recognizedText'),
+            historyList: document.getElementById('historyList')
+        };
+
+        // ==================== 工具函数 ====================
+        function formatTime(seconds) {
+            const mins = Math.floor(seconds / 60);
+            const secs = Math.floor(seconds % 60);
+            return `${mins}:${secs.toString().padStart(2, '0')}`;
+        }
+
+        function normalizeText(text) {
+            return text.toLowerCase().replace(/[.,!?;:'"()\-]/g, '');
+        }
+
+        function tokenize(text) {
+            return normalizeText(text).split(/\s+/).filter(w => w.length > 0);
+        }
+
+        function lcsLength(arr1, arr2) {
+            const m = arr1.length;
+            const n = arr2.length;
+            const dp = Array.from({ length: m + 1 }, () => new Array(n + 1).fill(0));
+            for (let i = 1; i <= m; i++) {
+                for (let j = 1; j <= n; j++) {
+                    if (arr1[i - 1] === arr2[j - 1]) {
+                        dp[i][j] = dp[i - 1][j - 1] + 1;
+                    } else {
+                        dp[i][j] = Math.max(dp[i - 1][j], dp[i][j - 1]);
+                    }
+                }
+            }
+            return dp[m][n];
+        }
+
+        function autoDownloadRecording(url, filename) {
+            try {
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+            } catch (e) {
+                console.error('自动下载录音失败:', e);
+            }
+        }
+
+        function showError(message) {
+            elements.errorMessage.textContent = message;
+            elements.errorMessage.classList.add('show');
+        }
+
+        function hideError() {
+            elements.errorMessage.classList.remove('show');
+        }
+
+        // ==================== 历史记录 ====================
+        const HISTORY_KEY = 'p4ShadowReadingTestHistory';
+
+        function loadHistory() {
+            try {
+                const saved = localStorage.getItem(HISTORY_KEY);
+                return saved ? JSON.parse(saved) : [];
+            } catch (e) {
+                console.error('加载历史记录失败:', e);
+                return [];
+            }
+        }
+
+        function saveHistory(history) {
+            try {
+                localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+            } catch (e) {
+                console.error('保存历史记录失败:', e);
+            }
+        }
+
+        function addHistoryRecord(score) {
+            const history = loadHistory();
+            history.unshift({
+                score: score,
+                timestamp: new Date().toISOString()
+            });
+            if (history.length > 20) {
+                history.pop();
+            }
+            saveHistory(history);
+            renderHistory();
+        }
+
+        function renderHistory() {
+            const history = loadHistory();
+            if (history.length === 0) {
+                elements.historyList.innerHTML = '<div class="empty-history">暂无测试记录</div>';
+                return;
+            }
+
+            elements.historyList.innerHTML = history.map(item => {
+                const date = new Date(item.timestamp);
+                const timeStr = `${date.getMonth() + 1}月${date.getDate()}日 ${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
+                return `
+                    <div class="history-item">
+                        <span class="history-time">${timeStr}</span>
+                        <span class="history-score">${item.score}%</span>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // ==================== 文本渲染 ====================
+        function renderText() {
+            const words = currentLesson.text.split(/\s+/);
+            elements.textContainer.innerHTML = words.map((word, index) => {
+                return `<span class="word" data-index="${index}">${word} </span>`;
+            }).join('');
+        }
+
+        // ==================== 音频与录音 ====================
+        function createAudioPlayer() {
+            state.audioPlayer = new Audio(currentLesson.audioUrl);
+            state.audioPlayer.addEventListener('timeupdate', handleTimeUpdate);
+            state.audioPlayer.addEventListener('ended', handleAudioEnded);
+            state.audioPlayer.addEventListener('loadedmetadata', () => {
+                state.audioDuration = state.audioPlayer.duration;
+            });
+            state.audioPlayer.addEventListener('error', () => {
+                showError('音频加载失败，请检查 C4T1S4.mp3 是否存在');
+                resetUI();
+            });
+        }
+
+        function handleTimeUpdate() {
+            const current = state.audioPlayer.currentTime;
+            const duration = state.audioDuration || state.audioPlayer.duration || 1;
+            const progress = (current / duration) * 100;
+
+            elements.progressFill.style.width = progress + '%';
+            elements.progressTime.textContent = `${formatTime(current)} / ${formatTime(duration)}`;
+        }
+
+        function handleAudioEnded() {
+            elements.progressFill.style.width = '100%';
+            stopRecordingAndScore();
+        }
+
+        // ==================== 录音 ====================
+        async function startRecording() {
+            try {
+                state.recordingStream = await navigator.mediaDevices.getUserMedia({
+                    audio: {
+                        echoCancellation: true,
+                        noiseSuppression: true,
+                        autoGainControl: true,
+                        sampleRate: 16000
+                    }
+                });
+                state.mediaRecorder = new MediaRecorder(state.recordingStream);
+                state.recordedChunks = [];
+
+                state.mediaRecorder.ondataavailable = (e) => {
+                    if (e.data.size > 0) {
+                        state.recordedChunks.push(e.data);
+                    }
+                };
+
+                state.mediaRecorder.onstop = () => {
+                    state.userRecordingBlob = new Blob(state.recordedChunks, { type: 'audio/webm' });
+                    const url = URL.createObjectURL(state.userRecordingBlob);
+                    const filename = `p4-recording-${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.webm`;
+
+                    elements.playbackAudio.src = url;
+                    elements.downloadRecording.href = url;
+                    elements.downloadRecording.download = filename;
+
+                    autoDownloadRecording(url, filename);
+
+                    if (state.recordingStream) {
+                        state.recordingStream.getTracks().forEach(track => track.stop());
+                        state.recordingStream = null;
+                    }
+
+                    // 录音整理完成后上传后端识别
+                    uploadAndScore();
+                };
+
+                state.mediaRecorder.start(100);
+            } catch (err) {
+                console.error('录音失败:', err);
+                showError('无法访问麦克风，请检查浏览器权限设置');
+                resetUI();
+                throw err;
+            }
+        }
+
+        function stopRecordingAndScore() {
+            if (!state.isTesting) return;
+            state.isTesting = false;
+            state.isScoring = true;
+
+            if (state.mediaRecorder && state.mediaRecorder.state !== 'inactive') {
+                state.mediaRecorder.stop();
+            }
+
+            updateTestButton('scoring');
+            elements.statusText.textContent = '录音已结束，正在上传并识别，请稍候...';
+            elements.statusText.className = 'status-text scoring';
+        }
+
+        // ==================== 上传后端并评分 ====================
+        async function uploadAndScore() {
+            if (!state.userRecordingBlob) {
+                showError('录音数据为空');
+                resetUI();
+                return;
+            }
+
+            try {
+                const form = new FormData();
+                form.append('file', state.userRecordingBlob, 'recording.webm');
+
+                const res = await fetch(`${API_BASE}/transcribe`, {
+                    method: 'POST',
+                    body: form
+                });
+
+                if (!res.ok) {
+                    const errText = await res.text();
+                    throw new Error(`后端返回错误 ${res.status}: ${errText}`);
+                }
+
+                const data = await res.json();
+                displayResult(data);
+            } catch (err) {
+                console.error('上传/识别失败:', err);
+                showError(`识别失败：${err.message}，请检查后端是否已启动（${API_BASE}）`);
+                state.isScoring = false;
+                updateTestButton('ready');
+                elements.statusText.textContent = '识别失败，请重试';
+                elements.statusText.className = 'status-text';
+            }
+        }
+
+        function displayResult(data) {
+            const score = data.score || 0;
+            const matched = data.matched || 0;
+            const total = data.total || 0;
+            const recognizedText = data.recognizedText || '';
+            const elapsedSeconds = data.elapsedSeconds || 0;
+
+            elements.scoreNumber.textContent = score + '%';
+            elements.scoreDetail.textContent = `匹配 ${matched} / ${total} 词（耗时 ${elapsedSeconds} 秒）`;
+            elements.recognizedText.textContent = recognizedText || '（未识别到文字）';
+            elements.resultSection.classList.add('show');
+
+            addHistoryRecord(score);
+            sendTestComplete(score, matched, total, recognizedText, elapsedSeconds);
+
+            state.isScoring = false;
+            updateTestButton('ready');
+            elements.statusText.textContent = '测试完成，可点击重新测试';
+            elements.statusText.className = 'status-text';
+
+            elements.resultSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+
+        // ==================== UI 控制 ====================
+        function updateTestButton(phase) {
+            elements.testBtn.disabled = false;
+            elements.testBtn.classList.remove('testing', 'scoring');
+
+            if (phase === 'testing') {
+                elements.testBtnText.textContent = '测试中...';
+                elements.testBtn.classList.add('testing');
+                elements.testBtn.disabled = true;
+            } else if (phase === 'scoring') {
+                elements.testBtnText.textContent = '正在评分...';
+                elements.testBtn.classList.add('scoring');
+                elements.testBtn.disabled = true;
+            } else {
+                elements.testBtnText.textContent = '重新测试';
+            }
+        }
+
+        function resetUI() {
+            state.isTesting = false;
+            state.isScoring = false;
+
+            if (state.audioPlayer) {
+                state.audioPlayer.pause();
+                state.audioPlayer.currentTime = 0;
+            }
+
+            if (state.mediaRecorder && state.mediaRecorder.state !== 'inactive') {
+                state.mediaRecorder.stop();
+            }
+
+            if (state.recordingStream) {
+                state.recordingStream.getTracks().forEach(track => track.stop());
+                state.recordingStream = null;
+            }
+
+            updateTestButton('ready');
+            elements.statusText.textContent = '准备就绪，点击按钮开始测试';
+            elements.statusText.className = 'status-text';
+            elements.progressFill.style.width = '0%';
+            elements.progressTime.textContent = '0:00 / 0:00';
+        }
+
+        // ==================== 测试入口 ====================
+        async function startTest() {
+            hideError();
+
+            state.userRecordingBlob = null;
+            state.recordedChunks = [];
+            state.testStartTime = Date.now();
+            elements.resultSection.classList.remove('show');
+
+            if (!state.audioPlayer) {
+                createAudioPlayer();
+            }
+
+            state.isTesting = true;
+            updateTestButton('testing');
+            elements.statusText.textContent = '正在录音，请跟读原文...';
+            elements.statusText.className = 'status-text testing';
+
+            try {
+                await startRecording();
+                state.audioPlayer.currentTime = 0;
+                await state.audioPlayer.play();
+            } catch (err) {
+                console.error('测试启动失败:', err);
+                resetUI();
+            }
+        }
+
+        // ==================== 初始化 ====================
+        function init() {
+            renderText();
+            renderHistory();
+
+            elements.testBtn.addEventListener('click', () => {
+                if (state.isTesting || state.isScoring) return;
+                startTest();
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>
