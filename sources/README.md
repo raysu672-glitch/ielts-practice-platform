@@ -16,8 +16,9 @@
 | 答案句听写学习 | `daanjutingxie/` | `listening_synonym` | `/daanjutingxie/` | 主站记录 iframe 学习时长 |
 | 答案句听写测试 | `daanjutingxieceshi/` | `listening_synonym` | `/daanjutingxieceshi/` | `postMessage: genericTestComplete` |
 | 写作句子翻译 | `juzifanyixin/` | `writing_translate` | `/juzifanyixin/` | 主站记录 iframe 学习时长 |
-| 听力 P4 跟读 | `P4gendu/` | `listening_p4_speed` | `/P4gendu/` | 主站记录 iframe 学习时长 |
-
+| 听力 P4 跟读学习 | `P4gendu/` | `listening_p4_speed` | `/P4gendu/` | 主站记录 iframe 学习时长 |
+| 听力 P4 跟读测试 | `P4genduceshi/` | `listening_p4_speed` | `/P4genduceshi/` | `postMessage: genericTestComplete`（跟读匹配率 %） |
+| 作文批改 | `xiezuopigai/` | `writing_correction` | `/xiezuopigai/ielts-student-practice.html` | 练习完成后写入写作后端；教师批改见 `ielts-writing-backend/teacher.html`；主站 `/api/writing/*` 代理 |
 ## 维护规则
 
 | 规则 | 说明 |

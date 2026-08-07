@@ -30,12 +30,23 @@
 | 答案句听写学习 | `sources/daanjutingxie/` | 学习 | `sources/daanjutingxie/README.md` |
 | 答案句听写测试 | `sources/daanjutingxieceshi/` | 测试 | `sources/daanjutingxieceshi/README.md` |
 | 写作句子翻译 | `sources/juzifanyixin/` | 学习 | `sources/juzifanyixin/README.md` |
-| 听力 P4 跟读 | `sources/P4gendu/` | 学习 | `sources/P4gendu/README.md` |
+| 听力 P4 跟读（学习） | `sources/P4gendu/` | 学习 | `sources/P4gendu/README.md` |
+| 听力 P4 跟读（测试） | `sources/P4genduceshi/` | 测试 | `sources/P4genduceshi/README.md` |
+| 作文批改 | `sources/xiezuopigai/` | 学习 + 教师批改 + 学生历史 | `sources/xiezuopigai/README.md` |
 
 ## 本地运行
 
+主站（静态页 + SQLite API）：
+
 ```powershell
 python scripts/local_server.py --host 127.0.0.1 --port 49182 --static-dir sources --db data/ielts_local.db
+```
+
+作文批改依赖独立的写作 FastAPI（默认 `127.0.0.1:8080`）。`local_server.py` 会把 `/api/writing/*` 代理到该服务，并在未运行时尝试自动启动。也可手动启动：
+
+```powershell
+cd sources/xiezuopigai/ielts-writing-backend
+python -m uvicorn main:app --host 127.0.0.1 --port 8080
 ```
 
 | 入口 | 地址 |
@@ -43,7 +54,8 @@ python scripts/local_server.py --host 127.0.0.1 --port 49182 --static-dir source
 | 学生端 | `http://127.0.0.1:49182/tinglidanciceshi/` |
 | 教师端 | `http://127.0.0.1:49182/tinglidanciceshi/?role=teacher` |
 | 健康检查 | `http://127.0.0.1:49182/api/health` |
-
+| 作文批改练习 | `http://127.0.0.1:49182/xiezuopigai/ielts-student-practice.html` |
+| P4 跟读测试 | `http://127.0.0.1:49182/P4genduceshi/` |
 ## 部署维护
 
 部署脚本不会读取仓库中的明文密码。执行部署前先设置环境变量：

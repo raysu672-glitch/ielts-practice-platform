@@ -51,8 +51,8 @@
 | 长难句分析 | `sentence` | `changnanju/index.html` | `changnanjuceshi/index.html` |
 | 听力同义替换 | `listening_synonym` | `daanjutingxie/index.html` | `daanjutingxieceshi/index.html` |
 | 写作句子翻译 | `writing_translate` | `juzifanyixin/index.html` | 暂无 |
-| 听力P4跟读倍速 | `listening_p4_speed` | `P4gendu/index.html` | 暂无 |
-
+| 听力P4跟读倍速 | `listening_p4_speed` | `P4gendu/index.html` | `P4genduceshi/index.html` |
+| 作文批改 | `writing_correction` | `xiezuopigai/ielts-student-practice.html` | 无独立测试页；完成以提交练习 + 教师批改计 |
 ## 已实现文件
 
 | 文件 | 改动 |
