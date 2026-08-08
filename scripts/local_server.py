@@ -27,6 +27,12 @@ from typing import Any, Optional
 
 
 ROOT = Path(__file__).resolve().parents[1]
+_SCRIPTS_DIR = Path(__file__).resolve().parent
+if str(_SCRIPTS_DIR) not in sys.path:
+    sys.path.insert(0, str(_SCRIPTS_DIR))
+
+from ai_config import load_ai_env  # noqa: E402
+
 DEFAULT_STATIC_DIR = ROOT / "sources"
 DEFAULT_DB_PATH = ROOT / "data" / "ielts_local.db"
 DEFAULT_P4_ASR_BASE = "https://p4.oyenglish.com.cn"
@@ -465,6 +471,17 @@ def writing_backend_healthy(base_url: str) -> bool:
         return False
 
 
+def resolve_writing_python() -> str:
+    """Prefer project venv so Debian/PEP 668 hosts can run writing AI deps."""
+    for candidate in (
+        ROOT / ".venv" / "bin" / "python",
+        ROOT / ".venv" / "Scripts" / "python.exe",
+    ):
+        if candidate.exists():
+            return str(candidate)
+    return sys.executable
+
+
 def maybe_start_writing_backend(base_url: str, auto_start: bool) -> Optional[subprocess.Popen]:
     if writing_backend_healthy(base_url):
         return None
@@ -478,10 +495,11 @@ def maybe_start_writing_backend(base_url: str, auto_start: bool) -> Optional[sub
     if not (WRITING_BACKEND_DIR / "main.py").exists():
         print(f"Writing backend missing at {WRITING_BACKEND_DIR}")
         return None
-    print(f"Starting writing backend at {base_url} ...")
+    python_bin = resolve_writing_python()
+    print(f"Starting writing backend at {base_url} with {python_bin} ...")
     proc = subprocess.Popen(
         [
-            sys.executable,
+            python_bin,
             "-m",
             "uvicorn",
             "main:app",
@@ -532,6 +550,12 @@ def main(argv: list[str]) -> int:
     static_dir = resolve_configured_path(args.static_dir)
     db_path = resolve_configured_path(args.db)
     init_db(db_path)
+
+    ai_env = load_ai_env()
+    if ai_env:
+        print(f"AI config loaded: {ai_env}")
+    else:
+        print(f"AI config missing: {ROOT / 'config' / 'ai.env'} (AI features may be disabled)")
 
     writing_api_base = str(args.writing_api_base).rstrip("/")
     writing_proc = maybe_start_writing_backend(

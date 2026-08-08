@@ -51,15 +51,16 @@ pip install -r requirements.txt
 
 ### 2. 配置环境变量
 
-编辑 `.env` 文件（可参考 `.env.example`）：
+平台统一配置在仓库根目录 `config/ai.env`（模板见 `config/ai.env.example`）。  
+当前与后续 AI 功能都走这里的 Key/模型，改配置只改这一处。
 
 ```env
-PORT=8080
 AI_API_KEY=你的DeepSeek_API_Key
 AI_BASE_URL=https://api.deepseek.com
 AI_MODEL=deepseek-v4-flash
 ```
 
+模块目录下的 `.env` 仅作本地兼容回退。  
 > API Key 申请：https://platform.deepseek.com  
 > 也兼容旧变量名 `SILICONFLOW_API_KEY` / `SILICONFLOW_BASE_URL` / `SILICONFLOW_MODEL`。
 

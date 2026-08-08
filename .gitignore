@@ -19,10 +19,11 @@ sources/tinglidanciceshi/audio/
 sources/daanjutingxie/A听力答案句/
 sources/P4gendu/C4T1S4.mp3
 
-# Python cache
+# Python cache / local virtualenv
 __pycache__/
 *.py[cod]
 *$py.class
+.venv/
 
 # Local archives and extraction scratch space
 sources/_zips/
@@ -31,6 +32,7 @@ sources/_extract/
 # Secrets and machine-local credentials
 .env
 .env.*
+config/ai.env
 *.pem
 *.key
 id_rsa*

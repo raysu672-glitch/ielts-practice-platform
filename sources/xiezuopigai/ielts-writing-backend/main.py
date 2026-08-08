@@ -21,8 +21,12 @@ from fastapi.responses import JSONResponse, FileResponse, HTMLResponse
 from pydantic import BaseModel
 
 _BACKEND_DIR = os.path.dirname(os.path.abspath(__file__))
+# 仓库根目录：.../sources/xiezuopigai/ielts-writing-backend -> ../../..
+_PROJECT_ROOT = os.path.abspath(os.path.join(_BACKEND_DIR, "..", "..", ".."))
+# 平台统一 AI 配置优先；模块本地 .env 仅作兼容回退
+load_dotenv(os.path.join(_PROJECT_ROOT, "config", "ai.env"), override=False)
 load_dotenv(os.path.join(_BACKEND_DIR, ".env"), override=False)
-load_dotenv(override=False)  # 兼容从项目根目录传入的环境变量
+load_dotenv(override=False)  # 兼容进程环境 / systemd EnvironmentFile
 
 logger = logging.getLogger("ielts-backend")
 

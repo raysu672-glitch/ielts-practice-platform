@@ -84,6 +84,7 @@ python scripts/deploy.py --repair-tracking-data
 | 数据保护 | 默认不提交或覆盖 `data/*.db`，线上部署前必须备份 |
 | 音频保护 | `*.mp3`、`sources/tinglidanciceshi/audio/`、`sources/daanjutingxie/A听力答案句/` 只在本地或服务器本地维护，不提交 GitHub |
 | 凭据保护 | GitHub Token、服务器密码、SSH 私钥只放环境变量或系统凭据管理 |
+| AI 统一来源 | Key/模型只维护在 `config/ai.env`（服务器同路径）；默认部署不覆盖，首次用 `--sync-ai-env` |
 | 验证优先 | 修改后至少运行 Python 语法检查、本地健康检查和关键页面 HTTP 检查 |
 
 ## 回归测试

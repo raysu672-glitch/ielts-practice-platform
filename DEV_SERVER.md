@@ -3,7 +3,7 @@
 | 服务 | 端口 | 启动命令 | 备注 |
 |---|---:|---|---|
 | 本地静态页 + SQLite API | 49182 | `python scripts/local_server.py --host 127.0.0.1 --port 49182 --static-dir sources --db data/ielts_local.db` | 主站访问 `http://127.0.0.1:49182/tinglidanciceshi/`；教师入口 `http://127.0.0.1:49182/tinglidanciceshi/?role=teacher`；`/api/writing/*` 代理到写作后端 |
-| 作文批改 FastAPI | 8080 | `cd sources/xiezuopigai/ielts-writing-backend && python -m uvicorn main:app --host 127.0.0.1 --port 8080` | DeepSeek 等配置见该目录 `.env.example`；主站可自动拉起 |
+| 作文批改 FastAPI | 8080 | `cd sources/xiezuopigai/ielts-writing-backend && python -m uvicorn main:app --host 127.0.0.1 --port 8080` | AI 统一读仓库根 `config/ai.env`（见 `config/ai.env.example`）；主站可自动拉起 |
 | 回归验证服务 | 49247 | `python scripts/local_server.py --host 127.0.0.1 --port 49247 --static-dir sources --db data/verification_tracking.db` | 使用数据库副本验证统计和历史，不修改正式本地数据；验证结束后停止 |
 
 ## 本地测试账号
