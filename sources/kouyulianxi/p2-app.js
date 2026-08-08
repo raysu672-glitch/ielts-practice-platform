@@ -172,7 +172,15 @@ class P2Practice {
         });
     }
 
-    speakText(text, btn) {
+    getP2AudioUrl(key) {
+        const manifest = (typeof P2_AUDIO_MANIFEST !== 'undefined' && P2_AUDIO_MANIFEST)
+            || (window.P2_AUDIO_MANIFEST || {});
+        const rel = manifest[key];
+        if (!rel) return '';
+        try { return new URL(rel, window.location.href).href; } catch (_) { return rel; }
+    }
+
+    speakText(text, btn, audioKey) {
         const t = (text || '').trim();
         if (!t) return;
         if (btn && btn.classList.contains('playing')) {
@@ -189,30 +197,55 @@ class P2Practice {
                 label.textContent = '停止';
             }
         }
-        if (!window.speechSynthesis) return;
+        const prebuilt = audioKey ? this.getP2AudioUrl(audioKey) : '';
+        if (prebuilt) {
+            this._playPrebuiltP2(prebuilt, t, btn, token);
+            return;
+        }
+        this._speakBrowserP2(t, btn, token);
+    }
+
+    _clearSpeakBtn(btn, token) {
+        if (token !== this._ttsToken) return;
+        if (!btn) return;
+        btn.classList.remove('playing');
+        const label = btn.querySelector('.speak-label');
+        if (label) label.textContent = label.dataset.defaultLabel || '听';
+    }
+
+    _playPrebuiltP2(url, text, btn, token) {
+        const audio = new Audio();
+        audio.preload = 'auto';
+        this._ttsAudio = audio;
+        let settled = false;
+        const fail = () => {
+            if (settled || token !== this._ttsToken) return;
+            settled = true;
+            this._ttsAudio = null;
+            this._speakBrowserP2(text, btn, token);
+        };
+        audio.onended = () => this._clearSpeakBtn(btn, token);
+        audio.onerror = () => fail();
+        audio.src = url;
+        audio.play().catch(() => fail());
+    }
+
+    _speakBrowserP2(t, btn, token) {
+        if (!window.speechSynthesis) {
+            this._clearSpeakBtn(btn, token);
+            return;
+        }
         const utter = new SpeechSynthesisUtterance(t);
         utter.lang = 'en-GB';
         utter.rate = 0.92;
         const voices = speechSynthesis.getVoices() || [];
-        const v = voices.find(x => /en-GB/i.test(x.lang) && x.localService !== false)
+        // Prefer male British when available
+        const v = voices.find(x => /en-GB/i.test(x.lang) && /male|ryan|thomas|daniel/i.test(x.name))
+            || voices.find(x => /en-GB/i.test(x.lang))
             || voices.find(x => /^en/i.test(x.lang));
         if (v) utter.voice = v;
-        utter.onend = () => {
-            if (token !== this._ttsToken) return;
-            if (btn) {
-                btn.classList.remove('playing');
-                const label = btn.querySelector('.speak-label');
-                if (label) label.textContent = label.dataset.defaultLabel || '听';
-            }
-        };
-        utter.onerror = () => {
-            if (token !== this._ttsToken) return;
-            if (btn) {
-                btn.classList.remove('playing');
-                const label = btn.querySelector('.speak-label');
-                if (label) label.textContent = label.dataset.defaultLabel || '听';
-            }
-        };
+        utter.onend = () => this._clearSpeakBtn(btn, token);
+        utter.onerror = () => this._clearSpeakBtn(btn, token);
         this._ttsUtter = utter;
         try { speechSynthesis.resume(); } catch (_) {}
         setTimeout(() => {
@@ -376,7 +409,14 @@ class P2Practice {
             btn.addEventListener('click', () => {
                 const i = Number(btn.dataset.step);
                 const body = this.currentStepBody(m, i);
-                this.speakText(body.en, btn);
+                const mid = this.materialId;
+                let akey = mid != null ? `material:${mid}:${i}` : '';
+                // yumeng step1 may use variant
+                if (mid && i === 1 && this.variantId) {
+                    const vkey = `material:${mid}:1:${this.variantId}`;
+                    if (this.getP2AudioUrl(vkey)) akey = vkey;
+                }
+                this.speakText(body.en, btn, akey);
             });
         });
         stepsBox.querySelectorAll('.p2-toggle-en').forEach(btn => {
@@ -420,7 +460,8 @@ class P2Practice {
         });
         document.getElementById('p2SpeakQBtn')?.addEventListener('click', () => {
             const q = this.data.questions[this.questionIndex];
-            this.speakText(q?.q || q?.title, document.getElementById('p2SpeakQBtn'));
+            const qid = q && q.id;
+            this.speakText(q?.q || q?.title, document.getElementById('p2SpeakQBtn'), qid != null ? `question:${qid}:q` : '');
         });
     }
 
@@ -578,7 +619,15 @@ class P2Practice {
         `;
 
         document.getElementById('p2ListenOpening')?.addEventListener('click', (e) => {
-            this.speakText(openingEn, e.currentTarget);
+            const q = this.data.questions[this.questionIndex];
+            const qid = q && q.id;
+            let okey = qid != null ? `question:${qid}:opening` : '';
+            const choice = qid != null ? this.applyMaterialChoice[qid] : null;
+            if (choice) {
+                const ckey = `question:${qid}:opening:${choice}`;
+                if (this.getP2AudioUrl(ckey)) okey = ckey;
+            }
+            this.speakText(openingEn, e.currentTarget, okey);
         });
         document.getElementById('p2ToggleOpening')?.addEventListener('click', () => {
             this.hideOpening = !this.hideOpening;

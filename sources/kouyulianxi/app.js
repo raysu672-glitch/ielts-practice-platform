@@ -1,65 +1,97 @@
 // P1 练习核心逻辑
 
-// 第2、第3句复合句结构参考（来自口语复合句专练，供填词块）
+// 复合句参考：对齐《口语复合句专练》7 句型 + 4 实战公式，按五大题型步骤挂到每题
+// 句型：1A It is adj for sb to do / 1B I find it adj to do / 2 I find sth adj /
+//       3 for the reason that|since|as / 4 which / 5 to do / 6 Whenever|As long as / 7 be seen as
 const COMPLEX_FRAMES_BY_CAT = {
+    // 事实陈述：正面回答 -> 来源或举例 -> 频次 -> 感受
     shishi: {
         1: {
-            name: 'which 补充说明',
-            pattern: 'I ______ (举例/地点), which ______.',
-            tip: '第2句：非限定定语从句，补充影响或结果'
+            name: '句型4 which / 句型5 to do',
+            pattern: 'I ______ (举例/地点), which ______. / I ______ to ______.',
+            tip: '第2步：举例后用 which 补结果，或用 to do 交代目的'
         },
         2: {
-            name: 'Whenever / As long as',
+            name: '句型6 Whenever / As long as',
             pattern: 'Whenever / As long as I ______, I ______.',
-            tip: '第3句：时间/条件状语从句，交代频次场景'
+            tip: '第3步：时间/条件状语，交代什么时候会做'
+        },
+        3: {
+            name: '句型1B / 句型2 I find',
+            pattern: 'I find it ______ to ______. / I find this ______.',
+            tip: '第4步：形式宾语或宾补，收束感受'
         }
     },
+    // 喜好类 ≈ 实战练习1：Whenever + to do + I find + which
     xihao: {
         1: {
-            name: 'for the reason that / since',
-            pattern: 'I am keen on ______ for the reason that ______.',
-            tip: '第2句：高级原因，少用 because'
+            name: '句型6 Whenever / 句型3 for the reason that',
+            pattern: 'Whenever I ______, I ______. / I am keen on ______ for the reason that ______.',
+            tip: '第2步：有时间用 Whenever；讲原因用 for the reason that / since（少用 because）'
         },
         2: {
-            name: 'Whenever...',
-            pattern: 'Whenever I have spare time, I ______.',
-            tip: '第3句：时间状语，带出频次'
+            name: '句型5 to do 目的状语',
+            pattern: 'I am crazy about ______ to ______.',
+            tip: '第3步：行为举例时用 to do 交代目的（去哪/做什么）'
+        },
+        3: {
+            name: '句型2 + 句型4 I find..., which',
+            pattern: 'I find this activity ______, which ______.',
+            tip: '第4步：宾补写感受，再用 which 补放松/收获'
         }
     },
+    // 行为习惯类 ≈ 实战练习2：原因 + It is...for me to do + can be seen as
     xingwei: {
         1: {
-            name: 'for the reason that / since',
-            pattern: 'I usually ______ for the reason that ______.',
-            tip: '第2句：说明原因'
+            name: '句型3 for the reason that / since / as',
+            pattern: 'For the reason that / Since ______, I ______.',
+            tip: '第2步：高级原因状语，替换普通 because'
         },
         2: {
-            name: 'to do / Whenever',
-            pattern: 'Whenever I ______, I ______ to ______.',
-            tip: '第3句：时间线 + 目的状语'
+            name: '句型1A It is + adj. + for me to do',
+            pattern: 'It is ______ for me to ______.',
+            tip: '第3步：形式主语描述时间线里的行为'
+        },
+        3: {
+            name: '句型7 can be seen / regarded as',
+            pattern: '______ can be seen / regarded as ______.',
+            tip: '第4步：被动语态收束影响，更客观'
         }
     },
+    // 观点类 ≈ 实战练习3：since + to do / which + find it adj to do
     guandian: {
         1: {
-            name: 'I find it + adj. + to do',
-            pattern: 'I find it ______ to ______.',
-            tip: '第2句：形式宾语，表达感受/判断'
+            name: '句型3 since + 句型5 to do',
+            pattern: 'Since ______, people / I ______ to ______.',
+            tip: '第2步：since/for the reason that 给原因，to do 表目的'
         },
         2: {
-            name: 'which 补充说明',
+            name: '句型4 which 补充说明',
             pattern: '..., which ______.',
-            tip: '第3句：用 which 补作用或影响'
+            tip: '第3步：非限定定语从句，补作用或影响'
+        },
+        3: {
+            name: '句型1B I find it + adj. + to do',
+            pattern: 'I / they find it ______ to ______.',
+            tip: '第4步：形式宾语收束感受或普遍看法'
         }
     },
+    // 对比类 ≈ 实战练习4：regarded as + to do / find it adj to do
     duibi: {
         1: {
-            name: 'I find A + adj.',
-            pattern: 'I find ______ more ______, which ______.',
-            tip: '第2句：描述选项1的特点与作用'
+            name: '句型7 regarded as + 句型5 to do',
+            pattern: 'As for A, ______ is regarded as ______ to ______.',
+            tip: '第2步：选项1用被动 + 目的状语写特点与作用'
         },
         2: {
-            name: 'while / whereas',
-            pattern: 'While ______ is ______, ______ tends to be ______.',
-            tip: '第3句：对比选项2'
+            name: '句型1B find it + adj. + to do',
+            pattern: 'By contrast, regarding B, they find it ______ to ______.',
+            tip: '第3步：选项2用形式宾语对比难点/偏好'
+        },
+        3: {
+            name: '句型2 I find + 句型4 which',
+            pattern: 'I find ______ more ______, which ______.',
+            tip: '第4步：个人偏好 + which 补一句理由'
         }
     }
 };
@@ -341,23 +373,29 @@ class P1Practice {
     }
 
     getComplexFrame(cat, stepIndex) {
-        // 仅第2、第3句（index 1、2）给复合句结构
-        if (stepIndex !== 1 && stepIndex !== 2) return null;
-        const byId = COMPLEX_FRAMES_BY_CAT[cat.id];
+        // 第2–4步（index 1–3）挂《口语复合句专练》对应句型；第1步正面回答用简单句
+        if (stepIndex < 1 || stepIndex > 3) return null;
+        const byId = COMPLEX_FRAMES_BY_CAT[cat && cat.id];
         if (byId && byId[stepIndex]) return byId[stepIndex];
-        // 兜底：通用两句
-        if (stepIndex === 1) {
-            return {
-                name: 'which / I find',
-                pattern: 'I ______, which ______. / I find it ______ to ______.',
-                tip: '第2句：延伸举例或感受'
-            };
-        }
-        return {
-            name: 'Whenever / As long as',
-            pattern: 'Whenever / As long as I ______, I ______.',
-            tip: '第3句：时间或条件状语从句'
+        // 兜底：通用三句（句型4 / 6 / 1B）
+        const fallback = {
+            1: {
+                name: '句型4 which / 句型3 since',
+                pattern: 'I ______, which ______. / Since ______, I ______.',
+                tip: '第2步：延伸举例或原因'
+            },
+            2: {
+                name: '句型6 Whenever / As long as',
+                pattern: 'Whenever / As long as I ______, I ______.',
+                tip: '第3步：时间或条件状语从句'
+            },
+            3: {
+                name: '句型1B I find it + adj. + to do',
+                pattern: 'I find it ______ to ______.',
+                tip: '第4步：形式宾语收束感受'
+            }
         };
+        return fallback[stepIndex] || null;
     }
     
     // 更新题目高亮
@@ -1551,81 +1589,114 @@ class P1Practice {
         return this.buildSampleFromTranscript(transcript);
     }
     
-    // 用本题四步提示词块写示范，并至少用一句复合句（which / since / I find）
+    // 用本题四步提示词块写示范；复合句按题型套《口语复合句专练》实战公式
     buildSampleFromTips(cat, q) {
         const steps = (cat && cat.steps) || [];
         const wordsMap = (q && q.words) || {};
         const chunksOf = (i) => (wordsMap[steps[i]] || []).map(w => String(w).trim()).filter(Boolean);
-        
+        const catId = (cat && cat.id) || 'shishi';
+
         const s0 = chunksOf(0);
         const s1 = chunksOf(1);
         const s2 = chunksOf(2);
         const s3 = chunksOf(3);
-        
-        const open = s0.find(w => /^(yes|yeah|sure|absolutely|of course|definitely)/i.test(w)) 
-            || s0[0] 
+
+        const open = s0.find(w => /^(yes|yeah|sure|absolutely|of course|definitely|exactly|recently)/i.test(w))
+            || s0[0]
             || 'Yes, absolutely';
         const usedTo = s0.find(w => /used to/i.test(w));
         const example = s1[0] || 'this';
-        const placeFromS1 = s1.find(w => /home|dorm|school|office|park|city|campus|house/i.test(w) && w !== example) || '';
-        const freq = s2.find(w => /every|once|twice|week|day|often|usually|sometimes|always/i.test(w)) || s2[0] || 'often';
-        const placeFromS2 = s2.find(w => w !== freq) || '';
-        const place = placeFromS1 || placeFromS2 || '';
+        const reasonBit = s1.find(w => w !== example) || s1[1] || 'it helps me relax';
+        const placeFromS1 = s1.find(w => /home|dorm|school|office|park|city|campus|house|mall|cinema/i.test(w) && w !== example) || '';
+        const freq = s2.find(w => /every|once|twice|week|day|often|usually|sometimes|always|spare|free|weekend/i.test(w)) || s2[0] || 'in my spare time';
+        const actionBit = s2.find(w => w !== freq) || s2[0] || 'hang out with my friends';
+        const placeFromS2 = s2.find(w => /park|home|mall|cinema|gym|school|city/i.test(w)) || '';
         const activityPlace = placeFromS2 || placeFromS1 || '';
-        const feelMain = s3.find(w => /mood|happy|enjoy|love|relax|unwind|fun|fascinating|helpful/i.test(w)) || s3[0] || 'makes me feel good';
-        const feelSub = s3.find(w => w !== feelMain) || '';
-        
-        const usedChunks = [...new Set([open, usedTo, example, placeFromS1, freq, placeFromS2, feelMain, feelSub].filter(Boolean))];
-        
-        // 正面回答
-        let line1 = open.replace(/\.$/, '');
-        if (!/yes|sure|absolutely|of course|definitely/i.test(line1)) {
+        const feelMain = s3.find(w => /mood|happy|enjoy|love|relax|unwind|fun|fascinating|helpful|stress|pleasant/i.test(w)) || s3[0] || 'helps me chill out';
+        const feelSub = s3.find(w => w !== feelMain) || 'unwind';
+        const opt2 = s2[0] || 'the other option';
+        const opt2Feel = s2[1] || s3[0] || 'difficult';
+
+        const usedChunks = [...new Set([
+            open, usedTo, example, reasonBit, placeFromS1, freq, actionBit, placeFromS2, feelMain, feelSub, opt2
+        ].filter(Boolean))];
+
+        let line1 = String(open).replace(/\.$/, '');
+        if (!/yes|sure|absolutely|of course|definitely|exactly|recently|usually|i\b/i.test(line1)) {
             line1 = 'Yes. ' + line1;
         }
-        line1 += '.';
-        
-        // 来源/举例（简单句）
-        let line2;
-        if (usedTo) {
-            const obj = example;
-            if (/^(have|keep|raise|own|go|play|watch|visit)\b/i.test(example)) {
-                line2 = `I ${usedTo} ${example}${placeFromS1 ? ' at ' + placeFromS1 : ''}.`;
-            } else {
-                line2 = `I ${usedTo} have ${obj}${placeFromS1 ? ' at ' + placeFromS1 : ''}.`;
-            }
-        } else if (/^a |^an |^the /i.test(example)) {
-            line2 = `For example, I have ${example}${placeFromS1 ? ' at ' + placeFromS1 : ''}.`;
-        } else if (/^(have|keep|go|play|watch|visit|I )\b/i.test(example)) {
-            line2 = `For example, ${example}${placeFromS1 ? ' at ' + placeFromS1 : ''}.`;
-        } else {
-            line2 = `For example, ${example}${placeFromS1 ? ' at ' + placeFromS1 : ''}.`;
-        }
-        line2 = line2.replace(/\s+/g, ' ').replace(/ at at /g, ' at ');
-        if (!/\.$/.test(line2)) line2 += '.';
-        
-        // 频次 + 感受：强制复合句（which）
-        const feelPhrase = /^(really |just )?(lifts?|lifted|makes?|made|helps?|helped)/i.test(feelMain)
-            ? feelMain
-            : (/unwind|relax/i.test(feelMain) ? `helps me ${feelMain}` : feelMain);
-        
-        let line3;
+        if (!/\.$/.test(line1)) line1 += '.';
+
         const where = activityPlace ? ` in ${activityPlace}` : '';
-        if (feelSub && /unwind|relax/i.test(feelSub) && !/unwind|relax/i.test(feelMain)) {
-            line3 = `I usually do this ${freq}${where}, which ${feelPhrase} and helps me ${feelSub}.`;
+        const feelPhrase = /^(really |just )?(lifts?|lifted|makes?|made|helps?|helped|offers?)/i.test(feelMain)
+            ? feelMain
+            : (/unwind|relax|chill/i.test(feelMain) ? `helps me ${feelMain}` : feelMain);
+
+        let line2 = '';
+        let line3 = '';
+        let line4 = '';
+        let complexType = 'which';
+        let complexSentence = '';
+
+        if (catId === 'xihao') {
+            // 实战1：Whenever + to do + I find..., which
+            line2 = `Whenever I have spare time, I am keen on ${example}${where ? ' ' + where.trim() : ''}.`;
+            line3 = `I am crazy about ${actionBit || example} to enjoy myself${where}.`;
+            line4 = `I find this activity fascinating, which ${feelPhrase} and offers me a great time to ${feelSub}.`;
+            complexType = 'Whenever + to do + I find/which';
+            complexSentence = `${line2} ${line4}`;
+        } else if (catId === 'xingwei') {
+            // 实战2：for the reason that + It is...for me to do + can be seen as
+            line2 = `For the reason that ${reasonBit}, I usually choose to ${example}.`;
+            line3 = `It is cheerful and enjoyable for me to ${actionBit}${where}.`;
+            line4 = `Doing this can be seen as the best way to relieve stress and lift my mood.`;
+            complexType = 'for the reason that + It is...for me to do + can be seen as';
+            complexSentence = `${line2} ${line3}`;
+        } else if (catId === 'guandian') {
+            // 实战3：since + to do / which + find it adj to do
+            line2 = `Since ${reasonBit}, many people ${example} to ${actionBit || 'take some exercise'}.`;
+            line3 = `Besides, people often do this with family or friends, which ${feelPhrase}.`;
+            line4 = `They find it relaxing to ${feelSub || 'escape the hustle and bustle of the city'}.`;
+            complexType = 'since + which + find it adj to do';
+            complexSentence = `${line2} ${line3}`;
+        } else if (catId === 'duibi') {
+            // 实战4：regarded as + to do / find it adj to do
+            line2 = `As for the first option, ${example} is regarded as an easy way to save time and effort.`;
+            line3 = `By contrast, regarding the other side, people find it ${opt2Feel} to deal with ${opt2}.`;
+            line4 = `Personally, I find ${example} more practical, which ${feelPhrase}.`;
+            complexType = 'regarded as + find it adj to do';
+            complexSentence = `${line2} ${line3}`;
         } else {
-            line3 = `I usually do this ${freq}${where}, which ${feelPhrase}.`;
+            // 事实陈述：举例 + which / Whenever + I find it
+            if (usedTo) {
+                if (/^(have|keep|raise|own|go|play|watch|visit)\b/i.test(example)) {
+                    line2 = `I ${usedTo} ${example}${placeFromS1 ? ' at ' + placeFromS1 : ''}, which ${feelPhrase}.`;
+                } else {
+                    line2 = `I ${usedTo} have ${example}${placeFromS1 ? ' at ' + placeFromS1 : ''}, which ${feelPhrase}.`;
+                }
+            } else if (/^a |^an |^the /i.test(example)) {
+                line2 = `For example, I have ${example}${placeFromS1 ? ' at ' + placeFromS1 : ''}, which ${feelPhrase}.`;
+            } else {
+                line2 = `For example, ${example}${placeFromS1 ? ' at ' + placeFromS1 : ''}, which ${feelPhrase}.`;
+            }
+            line3 = `Whenever I am free, I usually do this ${freq}${where}.`;
+            line4 = `I find it quite enjoyable to keep this habit, which also makes my daily life more colorful.`;
+            complexType = 'which + Whenever + I find it';
+            complexSentence = line2;
         }
-        
-        // 再补一句 I find 复合句
-        const line4 = `I find it quite enjoyable to keep this habit, which also makes my daily life more colorful.`;
-        
-        const text = [line1, line2, line3, line4].join(' ').replace(/\s+/g, ' ').trim();
-        
+
+        const tidy = (s) => String(s || '').replace(/\s+/g, ' ').replace(/ at at /g, ' at ').replace(/\s+\./g, '.').trim();
+        line2 = tidy(line2); if (line2 && !/\.$/.test(line2)) line2 += '.';
+        line3 = tidy(line3); if (line3 && !/\.$/.test(line3)) line3 += '.';
+        line4 = tidy(line4); if (line4 && !/\.$/.test(line4)) line4 += '.';
+
+        const text = [line1, line2, line3, line4].filter(Boolean).join(' ').replace(/\s+/g, ' ').trim();
+
         return {
             text,
             usedChunks,
-            complexType: 'which',
-            complexSentence: line3
+            complexType,
+            complexSentence: tidy(complexSentence)
         };
     }
     
