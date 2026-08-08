@@ -4,6 +4,10 @@
 
 雅思练习平台：静态前端（`sources/`）+ Python 标准库实现的静态文件服务 + SQLite API（`scripts/local_server.py`）。命令与端口以 `README.md`、`DEV_SERVER.md`、`DEPLOY.md` 为准，这里只记录非显而易见的注意事项。
 
+### 发布流程（强制）
+- 永远：**本地先改 → push 到 GitHub → 再部署阿里云**。
+- 禁止先改线上再回写本地；禁止未 push 就部署。细节见 `DEPLOY.md`。
+
 ### 运行时依赖
 - 本地服务器 `scripts/local_server.py` 只用 Python 标准库，无需任何第三方包即可启动。
 - `requirements.txt` 里的 `paramiko` 仅供 `scripts/deploy.py` 部署使用，本地开发/测试用不到。
