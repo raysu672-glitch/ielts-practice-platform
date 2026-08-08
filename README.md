@@ -32,6 +32,7 @@
 | 写作句子翻译 | `sources/juzifanyixin/` | 学习 | `sources/juzifanyixin/README.md` |
 | 听力 P4 跟读（学习） | `sources/P4gendu/` | 学习 | `sources/P4gendu/README.md` |
 | 听力 P4 跟读（测试） | `sources/P4genduceshi/` | 测试 | `sources/P4genduceshi/README.md` |
+| 口语练习 | `sources/kouyulianxi/` | 学习 + AI 评分 | `sources/kouyulianxi/README.md` |
 | 作文批改 | `sources/xiezuopigai/` | 学习 + 教师批改 + 学生历史 | `sources/xiezuopigai/README.md` |
 
 ## 本地运行
@@ -53,6 +54,7 @@ python -m uvicorn main:app --host 127.0.0.1 --port 8080
 |---|---|
 | 学生端 | `http://127.0.0.1:49182/tinglidanciceshi/` |
 | 教师端 | `http://127.0.0.1:49182/tinglidanciceshi/?role=teacher` |
+| 作文批改教师端 | `http://127.0.0.1:49182/tinglidanciceshi/?role=writing`（密码见 `DEV_SERVER.md`） |
 | 健康检查 | `http://127.0.0.1:49182/api/health` |
 | 作文批改练习 | `http://127.0.0.1:49182/xiezuopigai/ielts-student-practice.html` |
 | P4 跟读测试 | `http://127.0.0.1:49182/P4genduceshi/` |

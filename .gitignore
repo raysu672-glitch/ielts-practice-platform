@@ -57,3 +57,9 @@ Thumbs.db
 *.db
 sources/_restore*/
 sources/xiezuopigai/**/ielts-student-practice-screenshots/
+
+# Local clone / patch scratch for speaking module integration
+_kouyulianxi_src/
+_patch_*.py
+_tmp_kouyu_app.js
+_check_state.py

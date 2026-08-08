@@ -31,7 +31,7 @@ _SCRIPTS_DIR = Path(__file__).resolve().parent
 if str(_SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(_SCRIPTS_DIR))
 
-from ai_config import load_ai_env  # noqa: E402
+from ai_config import ai_settings, load_ai_env  # noqa: E402
 
 DEFAULT_STATIC_DIR = ROOT / "sources"
 DEFAULT_DB_PATH = ROOT / "data" / "ielts_local.db"
@@ -194,6 +194,7 @@ def init_db(db_path: Path) -> None:
             ("writing_translate", "写作句子翻译", 50, 70, 90),
             ("listening_p4_speed", "听力P4跟读倍速", 70, 80, 90),
             ("writing_correction", "作文批改", 1, 1, 1),
+            ("speaking", "口语练习", 5.5, 6, 6.5),
             ("dictation_learn", "听力单词学习", 70, 80, 90),
         ]
         conn.executemany(
@@ -371,7 +372,8 @@ class LocalHandler(SimpleHTTPRequestHandler):
         self.end_headers()
 
     def do_GET(self) -> None:
-        if self.path.startswith("/api/health"):
+        parsed = urllib.parse.urlparse(self.path)
+        if parsed.path.startswith("/api/health"):
             self.send_json(
                 {
                     "ok": True,
@@ -381,9 +383,44 @@ class LocalHandler(SimpleHTTPRequestHandler):
                 }
             )
             return
-        if self.path.startswith("/api/writing"):
+        if parsed.path.startswith("/api/config"):
+            settings = ai_settings()
+            self.send_json(
+                {
+                    "deepseek_key": settings["api_key"],
+                    "ai_base_url": settings["base_url"],
+                    "ai_model": settings["model"],
+                    "p4_asr_base": self.p4_asr_base,
+                    "transcribe_path": "/api/p4/transcribe",
+                }
+            )
+            return
+        if parsed.path.startswith("/api/writing"):
             self.proxy_writing_api("GET")
             return
+        if parsed.path.startswith("/api/p4"):
+            self.proxy_p4_api("GET")
+            return
+
+        # /tinglidanciceshi → /tinglidanciceshi/ ，避免相对脚本解析到站点根目录导致 DB 客户端 404
+        path = parsed.path
+        if path and not path.endswith("/"):
+            candidate = (self.static_dir / Path(urllib.parse.unquote(path.lstrip("/")))).resolve()
+            static_root = self.static_dir.resolve()
+            try:
+                candidate.relative_to(static_root)
+                in_tree = True
+            except ValueError:
+                in_tree = False
+            if in_tree and candidate.is_dir() and (candidate / "index.html").is_file():
+                target = path + "/"
+                if parsed.query:
+                    target += "?" + parsed.query
+                self.send_response(HTTPStatus.MOVED_PERMANENTLY)
+                self.send_header("Location", target)
+                self.end_headers()
+                return
+
         super().do_GET()
 
     def do_POST(self) -> None:
@@ -391,7 +428,10 @@ class LocalHandler(SimpleHTTPRequestHandler):
         if parsed.path.startswith("/api/writing"):
             self.proxy_writing_api("POST")
             return
-        if not self.path.startswith("/api/db"):
+        if parsed.path.startswith("/api/p4"):
+            self.proxy_p4_api("POST")
+            return
+        if not parsed.path.startswith("/api/db"):
             self.send_error(HTTPStatus.NOT_FOUND, "API not found")
             return
         try:
@@ -401,6 +441,44 @@ class LocalHandler(SimpleHTTPRequestHandler):
             self.send_json(result)
         except Exception as exc:
             self.send_json({"data": None, "error": {"message": str(exc)}}, status=500)
+
+    def proxy_p4_api(self, method: str) -> None:
+        """Proxy /api/p4/* to the P4 ASR upstream (e.g. /api/p4/transcribe -> /transcribe)."""
+        parsed = urllib.parse.urlparse(self.path)
+        rest = parsed.path[len("/api/p4") :] or "/"
+        if not rest.startswith("/"):
+            rest = "/" + rest
+        if parsed.query:
+            rest += "?" + parsed.query
+        target = self.p4_asr_base.rstrip("/") + rest
+        body = None
+        headers: dict[str, str] = {"Accept": "application/json"}
+        if method == "POST":
+            length = int(self.headers.get("Content-Length", "0"))
+            body = self.rfile.read(length) if length > 0 else b""
+            content_type = self.headers.get("Content-Type")
+            if content_type:
+                headers["Content-Type"] = content_type
+        try:
+            req = urllib.request.Request(target, data=body, headers=headers, method=method)
+            with urllib.request.urlopen(req, timeout=300) as resp:
+                raw = resp.read()
+                status = getattr(resp, "status", 200)
+                content_type = resp.headers.get("Content-Type", "application/json; charset=utf-8")
+            self.send_response(status)
+            self.send_header("Content-Type", content_type)
+            self.send_header("Content-Length", str(len(raw)))
+            self.end_headers()
+            self.wfile.write(raw)
+        except Exception as exc:
+            self.send_json(
+                {
+                    "error": f"P4 ASR 服务不可用（{exc}）。请确认 {self.p4_asr_base} 可访问。",
+                    "recognizedText": "",
+                    "text": "",
+                },
+                status=502,
+            )
 
     def proxy_writing_api(self, method: str) -> None:
         parsed = urllib.parse.urlparse(self.path)
@@ -543,7 +621,7 @@ def main(argv: list[str]) -> int:
     parser.add_argument(
         "--p4-asr-base",
         default=DEFAULT_P4_ASR_BASE,
-        help="P4 ASR base URL reported by /api/health",
+        help="P4 ASR base URL for /api/p4/* proxy and /api/health",
     )
     args = parser.parse_args(argv)
 
