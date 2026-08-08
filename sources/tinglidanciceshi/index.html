@@ -3887,14 +3887,22 @@
             });
         }
         
+        function findPhraseSelectedIndexByBtn(btn) {
+            for (let i = 0; i < phraseState.selectedWords.length; i++) {
+                if (phraseState.selectedWords[i].btn === btn) return i;
+            }
+            return -1;
+        }
+
         function togglePhraseWord(word, btn) {
-            const idx = phraseState.selectedWords.indexOf(word);
+            // 按按钮实例判断选中，允许答案中出现重复词（如 curb crime / deter crime）
+            const idx = findPhraseSelectedIndexByBtn(btn);
             if (idx >= 0) {
                 phraseState.selectedWords.splice(idx, 1);
                 btn.classList.remove('btn-success');
                 btn.classList.add('btn-secondary');
             } else {
-                phraseState.selectedWords.push(word);
+                phraseState.selectedWords.push({ word: word, btn: btn });
                 btn.classList.remove('btn-secondary');
                 btn.classList.add('btn-success');
             }
@@ -3910,10 +3918,10 @@
                 return;
             }
             
-            phraseState.selectedWords.forEach(function(word) {
+            phraseState.selectedWords.forEach(function(entry) {
                 const slot = document.createElement('span');
                 slot.style.cssText = 'background:#667eea; color:white; padding:8px 16px; border-radius:8px; font-size:1rem;';
-                slot.textContent = word;
+                slot.textContent = entry.word;
                 slotsEl.appendChild(slot);
             });
         }
@@ -3931,11 +3939,9 @@
             if (phraseState.selectedWords.length === 0) return;
             
             const q = phraseState.vocab[phraseState.currentIndex];
-            const userAnswer = phraseState.selectedWords.join(' ').toLowerCase();
-            const correctAnswer = q.en.toLowerCase();
             
             // 比较答案（忽略顺序）
-            const userSorted = phraseState.selectedWords.map(function(w) { return w.toLowerCase(); }).sort().join(' ');
+            const userSorted = phraseState.selectedWords.map(function(e) { return e.word.toLowerCase(); }).sort().join(' ');
             const correctSorted = q.en.toLowerCase().split(' ').sort().join(' ');
             
             phraseState.totalAnswered++;

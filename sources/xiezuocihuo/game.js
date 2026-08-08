@@ -549,9 +549,9 @@ function generateFogWord(word) {
   return arr.map(function(ch, i) { return hideIdx.has(i) ? '_' : ch; }).join('');
 }
 
-function showFogModal(word) {
+function showFogModal(word, btn) {
   if (clearedFogWords.has(word)) {
-    selectWordAfterFog(word);
+    selectWordAfterFog(word, btn);
     return;
   }
   var fogDisplay = generateFogWord(word);
@@ -611,7 +611,7 @@ function showFogModal(word) {
     overlay.remove();
     if (success) {
       clearedFogWords.add(word);
-      selectWordAfterFog(word);
+      selectWordAfterFog(word, btn);
     }
   }
 
@@ -636,19 +636,27 @@ function showFogModal(word) {
   };
 }
 
-function selectWordAfterFog(word) {
-  if (!selectedWords.includes(word)) {
-    selectedWords.push(word);
+function findSelectedIndexByBtn(btn) {
+  for (var i = 0; i < selectedWords.length; i++) {
+    if (selectedWords[i].btn === btn) return i;
   }
-  document.querySelectorAll('.word-btn').forEach(function(btn) {
-    if (btn.dataset.word === word) {
-      btn.classList.remove('fogged');
-      btn.classList.add('fog-cleared');
-      btn.classList.add('selected');
-      btn.textContent = word;
-      btn.onclick = function() { toggleWord(word, btn); };
+  return -1;
+}
+
+function selectWordAfterFog(word, btn) {
+  // 拼写已确认：同文案 chip 一并揭开，但只选中当前点击的那一颗
+  document.querySelectorAll('.word-btn').forEach(function(b) {
+    if (b.dataset.word === word) {
+      b.classList.remove('fogged');
+      b.classList.add('fog-cleared');
+      b.textContent = word;
+      b.onclick = function() { toggleWord(word, b); };
     }
   });
+  if (btn && findSelectedIndexByBtn(btn) < 0) {
+    selectedWords.push({ word: word, btn: btn });
+    btn.classList.add('selected');
+  }
   updateAnswerSlots();
 
   var slotsEl = document.getElementById('answerSlots');
@@ -769,7 +777,7 @@ function buildWordPool(q) {
       btn.appendChild(createTextElement('span', 'fog-text', fogged));
       btn.onclick = function() {
         if (isProcessing) return;
-        showFogModal(word);
+        showFogModal(word, btn);
       };
     } else {
       btn.textContent = word;
@@ -781,12 +789,13 @@ function buildWordPool(q) {
 
 function toggleWord(word, btn) {
   if (isProcessing) return;
-  var idx = selectedWords.indexOf(word);
+  // 按按钮实例判断选中，允许答案中出现重复词（如 curb crime / deter crime）
+  var idx = findSelectedIndexByBtn(btn);
   if (idx >= 0) {
     selectedWords.splice(idx, 1);
     btn.classList.remove('selected');
   } else {
-    selectedWords.push(word);
+    selectedWords.push({ word: word, btn: btn });
     btn.classList.add('selected');
   }
   updateAnswerSlots();
@@ -803,10 +812,10 @@ function updateAnswerSlots() {
     slotsEl.appendChild(hint);
     return;
   }
-  selectedWords.forEach(function(word) {
+  selectedWords.forEach(function(entry) {
     var slot = document.createElement('div');
     slot.className = 'slot filled';
-    slot.textContent = word;
+    slot.textContent = entry.word;
     slotsEl.appendChild(slot);
   });
 }
@@ -820,15 +829,8 @@ function clearSelection() {
 
 function removeLastWord() {
   if (isProcessing || selectedWords.length === 0) return;
-  var word = selectedWords.pop();
-  var btns = [];
-  document.querySelectorAll('.word-btn.selected').forEach(function(b) { btns.push(b); });
-  for (var i = btns.length - 1; i >= 0; i--) {
-    if (btns[i].textContent === word) {
-      btns[i].classList.remove('selected');
-      break;
-    }
-  }
+  var entry = selectedWords.pop();
+  if (entry && entry.btn) entry.btn.classList.remove('selected');
   updateAnswerSlots();
 }
 
@@ -846,7 +848,7 @@ function checkAnswer() {
     }
   } else {
     if (selectedWords.length === 0) { isProcessing = false; return; }
-    var userSorted = selectedWords.map(function(w) { return normalize(w); }).sort().join(' ');
+    var userSorted = selectedWords.map(function(e) { return normalize(e.word); }).sort().join(' ');
     var ansSorted  = q.en.split(' ').map(function(w) { return normalize(w); }).sort().join(' ');
     if (userSorted === ansSorted) {
       handleCorrect();
