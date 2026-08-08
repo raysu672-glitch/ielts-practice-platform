@@ -2486,8 +2486,10 @@
             html += '<th style="padding:12px; text-align:center; border-bottom:2px solid #dee2e6;">学习时长</th>';
             html += '</tr></thead><tbody>';
 
-            for (let i = 0; i < MODULES.length; i++) {
-                const m = MODULES[i];
+            // 教师详情与学生端一致：只展示已开放模块，其余先隐藏
+            const availableModules = MODULES.filter(isModuleAvailable);
+            for (let i = 0; i < availableModules.length; i++) {
+                const m = availableModules[i];
                 const moduleTarget = getModuleTargetForScore(m, studentTargetScore);
                 const moduleRecords = getModuleRecords(records, m.id);
                 const moduleSessions = getModuleStudySessions(allSessions, m.id);
@@ -2561,7 +2563,10 @@
         async function loadStandards() {
             const result = await db.from('pass_standards').select('*').eq('is_active', true);
             const container = document.getElementById('standardsList');
-            const standards = result.data;
+            // 达标标准也只展示学生端已开放模块，其余先隐藏
+            const availableIds = {};
+            MODULES.filter(isModuleAvailable).forEach(function(m) { availableIds[m.id] = true; });
+            const standards = (result.data || []).filter(function(s) { return availableIds[s.module_type]; });
             if (!standards || standards.length === 0) {
                 container.innerHTML = '<p style="text-align:center;color:#666;padding:20px;">暂无模块配置</p>';
                 return;
