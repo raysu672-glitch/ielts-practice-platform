@@ -20,10 +20,11 @@ sources/daanjutingxie/A听力答案句/
 sources/P4gendu/C4T1S4.mp3
 sources/P4genduceshi/C4T1S4.mp3
 
-# Python cache
+# Python cache / local virtualenv
 __pycache__/
 *.py[cod]
 *$py.class
+.venv/
 
 # Local archives and extraction scratch space
 sources/_zips/
@@ -32,6 +33,7 @@ sources/_extract/
 # Secrets and machine-local credentials
 .env
 .env.*
+config/ai.env
 *.pem
 *.key
 id_rsa*
@@ -51,3 +53,14 @@ id_ed25519*
 Thumbs.db
 .idea/
 .vscode/
+
+# Writing backend local DB / restore scratch
+*.db
+sources/_restore*/
+sources/xiezuopigai/**/ielts-student-practice-screenshots/
+
+# Local clone / patch scratch for speaking module integration
+_kouyulianxi_src/
+_patch_*.py
+_tmp_kouyu_app.js
+_check_state.py

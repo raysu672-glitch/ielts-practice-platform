@@ -53,7 +53,7 @@
 | 听力同义替换 | `listening_synonym` | `daanjutingxie/index.html` | `daanjutingxieceshi/index.html` |
 | 写作句子翻译 | `writing_translate` | `juzifanyixin/index.html` | 暂无 |
 | 听力P4跟读倍速 | `listening_p4_speed` | `P4gendu/index.html` | `P4genduceshi/index.html` |
-
+| 作文批改 | `writing_correction` | `xiezuopigai/ielts-student-practice.html` | 无独立测试页；完成以提交练习 + 教师批改计 |
 ## 已实现文件
 
 | 文件 | 改动 |
@@ -68,8 +68,7 @@
 | `sources/xiezuocihuoceshi/index.html` | 写作词伙测试完成上报 |
 | `sources/changnanjuceshi/index.html` | 长难句测试完成上报 |
 | `sources/daanjutingxieceshi/index.html` | 听力同义替换测试完成上报，结果页去除 emoji |
-| `sources/P4gendu/index.html` | 听力 P4 跟读学习 |
-| `sources/P4genduceshi/index.html` | 听力 P4 跟读测试完成上报；依赖 `config.js` 中的 ASR 后端 |
+| `sources/daanjutingxie/index.html` | 音频多路径加载、失败回退 TTS、结果页去除 emoji |
 | `docs/frontend-inventory.md` | 前台页面、版块、组件、作用清单 |
 | `docs/deployment-migration.md` | 服务器迁移、Supabase、域名和验收说明 |
 

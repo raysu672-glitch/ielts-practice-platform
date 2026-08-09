@@ -34,4 +34,5 @@
 | 本地数据库 | 优先请求 `/api/db`，不可用时才回退 Supabase |
 | 音频资源 | `audio/` 目录被 `.gitignore` 排除；服务器需要音频时单独同步 |
 | 教师入口 | 使用 `/tinglidanciceshi/?role=teacher` |
+| 作文批改教师入口 | `/tinglidanciceshi/?role=writing`（仅作文批改，密码见根目录 `DEV_SERVER.md`） |
 | 验证方式 | 修改后访问学生端、教师端、`/api/health`，并完成一次测试记录写入 |

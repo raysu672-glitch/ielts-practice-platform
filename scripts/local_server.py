@@ -13,7 +13,9 @@ import json
 import mimetypes
 import os
 import sqlite3
+import subprocess
 import sys
+import time
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -21,13 +23,21 @@ from contextlib import closing
 from http import HTTPStatus
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
-from typing import Any
+from typing import Any, Optional
 
 
 ROOT = Path(__file__).resolve().parents[1]
+_SCRIPTS_DIR = Path(__file__).resolve().parent
+if str(_SCRIPTS_DIR) not in sys.path:
+    sys.path.insert(0, str(_SCRIPTS_DIR))
+
+from ai_config import ai_settings, load_ai_env  # noqa: E402
+
 DEFAULT_STATIC_DIR = ROOT / "sources"
 DEFAULT_DB_PATH = ROOT / "data" / "ielts_local.db"
 DEFAULT_P4_ASR_BASE = "https://p4.oyenglish.com.cn"
+DEFAULT_WRITING_API_BASE = "http://127.0.0.1:8080"
+WRITING_BACKEND_DIR = ROOT / "sources" / "xiezuopigai" / "ielts-writing-backend"
 
 ALLOWED_TABLES = {
     "teacher_config",
@@ -230,6 +240,8 @@ def init_db(db_path: Path) -> None:
             ("listening_synonym", "听力同义替换", 70, 80, 90),
             ("writing_translate", "写作句子翻译", 50, 70, 90),
             ("listening_p4_speed", "听力P4跟读倍速", 70, 80, 90),
+            ("writing_correction", "作文批改", 1, 1, 1),
+            ("speaking", "口语练习", 5.5, 6, 6.5),
             ("dictation_learn", "听力单词学习", 70, 80, 90),
         ]
         conn.executemany(
@@ -393,6 +405,7 @@ def query_db(db_path: Path, payload: dict[str, Any]) -> dict[str, Any]:
 class LocalHandler(SimpleHTTPRequestHandler):
     static_dir: Path = DEFAULT_STATIC_DIR
     db_path: Path = DEFAULT_DB_PATH
+    writing_api_base: str = DEFAULT_WRITING_API_BASE
     p4_asr_base: str = DEFAULT_P4_ASR_BASE
 
     def end_headers(self) -> None:
@@ -406,24 +419,64 @@ class LocalHandler(SimpleHTTPRequestHandler):
         self.end_headers()
 
     def do_GET(self) -> None:
-        if self.path.startswith("/api/health"):
+        parsed = urllib.parse.urlparse(self.path)
+        if parsed.path.startswith("/api/health"):
             self.send_json(
                 {
                     "ok": True,
                     "db": str(self.db_path),
                     "p4_asr_base": self.p4_asr_base,
+                    "writing_api_base": self.writing_api_base,
                 }
             )
             return
-        if self.path.startswith("/api/p4/health"):
-            self.proxy_p4_health()
+        if parsed.path.startswith("/api/config"):
+            settings = ai_settings()
+            self.send_json(
+                {
+                    "deepseek_key": settings["api_key"],
+                    "ai_base_url": settings["base_url"],
+                    "ai_model": settings["model"],
+                    "p4_asr_base": self.p4_asr_base,
+                    "transcribe_path": "/api/p4/transcribe",
+                }
+            )
             return
+        if parsed.path.startswith("/api/writing"):
+            self.proxy_writing_api("GET")
+            return
+        if parsed.path.startswith("/api/p4"):
+            self.proxy_p4_api("GET")
+            return
+
+        # /tinglidanciceshi → /tinglidanciceshi/ ，避免相对脚本解析到站点根目录导致 DB 客户端 404
+        path = parsed.path
+        if path and not path.endswith("/"):
+            candidate = (self.static_dir / Path(urllib.parse.unquote(path.lstrip("/")))).resolve()
+            static_root = self.static_dir.resolve()
+            try:
+                candidate.relative_to(static_root)
+                in_tree = True
+            except ValueError:
+                in_tree = False
+            if in_tree and candidate.is_dir() and (candidate / "index.html").is_file():
+                target = path + "/"
+                if parsed.query:
+                    target += "?" + parsed.query
+                self.send_response(HTTPStatus.MOVED_PERMANENTLY)
+                self.send_header("Location", target)
+                self.end_headers()
+                return
+
         super().do_GET()
 
     def do_POST(self) -> None:
         parsed = urllib.parse.urlparse(self.path)
-        if parsed.path == "/api/p4/transcribe":
-            self.proxy_p4_transcribe()
+        if parsed.path.startswith("/api/writing"):
+            self.proxy_writing_api("POST")
+            return
+        if parsed.path.startswith("/api/p4"):
+            self.proxy_p4_api("POST")
             return
         if not parsed.path.startswith("/api/db"):
             self.send_error(HTTPStatus.NOT_FOUND, "API not found")
@@ -436,58 +489,79 @@ class LocalHandler(SimpleHTTPRequestHandler):
         except Exception as exc:
             self.send_json({"data": None, "error": {"message": str(exc)}}, status=500)
 
-    def proxy_p4_health(self) -> None:
-        target = self.p4_asr_base.rstrip("/") + "/"
+    def proxy_p4_api(self, method: str) -> None:
+        """Proxy /api/p4/* to the P4 ASR upstream (e.g. /api/p4/transcribe -> /transcribe)."""
+        parsed = urllib.parse.urlparse(self.path)
+        rest = parsed.path[len("/api/p4") :] or "/"
+        if not rest.startswith("/"):
+            rest = "/" + rest
+        if parsed.query:
+            rest += "?" + parsed.query
+        target = self.p4_asr_base.rstrip("/") + rest
+        body = None
+        headers: dict[str, str] = {"Accept": "application/json"}
+        if method == "POST":
+            length = int(self.headers.get("Content-Length", "0"))
+            body = self.rfile.read(length) if length > 0 else b""
+            content_type = self.headers.get("Content-Type")
+            if content_type:
+                headers["Content-Type"] = content_type
         try:
-            req = urllib.request.Request(target, method="GET")
-            with urllib.request.urlopen(req, timeout=20) as resp:
-                body = resp.read()
-                self.send_response(resp.getcode())
+            req = urllib.request.Request(target, data=body, headers=headers, method=method)
+            with urllib.request.urlopen(req, timeout=300) as resp:
+                raw = resp.read()
+                status = getattr(resp, "status", 200)
                 content_type = resp.headers.get("Content-Type", "application/json; charset=utf-8")
-                self.send_header("Content-Type", content_type)
-                self.send_header("Content-Length", str(len(body)))
-                self.end_headers()
-                self.wfile.write(body)
+            self.send_response(status)
+            self.send_header("Content-Type", content_type)
+            self.send_header("Content-Length", str(len(raw)))
+            self.end_headers()
+            self.wfile.write(raw)
         except Exception as exc:
             self.send_json(
-                {"ok": False, "error": {"message": f"P4 ASR health check failed: {exc}"}},
+                {
+                    "error": f"P4 ASR 服务不可用（{exc}）。请确认 {self.p4_asr_base} 可访问。",
+                    "recognizedText": "",
+                    "text": "",
+                },
                 status=502,
             )
 
-    def proxy_p4_transcribe(self) -> None:
-        target = self.p4_asr_base.rstrip("/") + "/transcribe"
-        try:
+    def proxy_writing_api(self, method: str) -> None:
+        parsed = urllib.parse.urlparse(self.path)
+        rest = parsed.path[len("/api/writing") :] or "/"
+        if not rest.startswith("/"):
+            rest = "/" + rest
+        upstream_path = "/api" + rest
+        if parsed.query:
+            upstream_path += "?" + parsed.query
+        target = self.writing_api_base.rstrip("/") + upstream_path
+        body = None
+        headers = {"Accept": "application/json"}
+        if method == "POST":
             length = int(self.headers.get("Content-Length", "0"))
-            body = self.rfile.read(length) if length > 0 else b""
-            content_type = self.headers.get("Content-Type", "application/octet-stream")
-            req = urllib.request.Request(
-                target,
-                data=body,
-                method="POST",
-                headers={"Content-Type": content_type},
+            body = self.rfile.read(length) if length > 0 else b"{}"
+            headers["Content-Type"] = self.headers.get(
+                "Content-Type", "application/json; charset=utf-8"
             )
-            with urllib.request.urlopen(req, timeout=360) as resp:
-                resp_body = resp.read()
-                self.send_response(resp.getcode())
-                resp_type = resp.headers.get("Content-Type", "application/json; charset=utf-8")
-                self.send_header("Content-Type", resp_type)
-                self.send_header("Content-Length", str(len(resp_body)))
-                self.end_headers()
-                self.wfile.write(resp_body)
-        except urllib.error.HTTPError as exc:
-            err_body = exc.read() if hasattr(exc, "read") else b""
-            if not err_body:
-                err_body = json.dumps(
-                    {"error": f"P4 ASR upstream HTTP {exc.code}"},
-                    ensure_ascii=False,
-                ).encode("utf-8")
-            self.send_response(exc.code)
-            self.send_header("Content-Type", "application/json; charset=utf-8")
-            self.send_header("Content-Length", str(len(err_body)))
+        try:
+            req = urllib.request.Request(target, data=body, headers=headers, method=method)
+            with urllib.request.urlopen(req, timeout=300) as resp:
+                raw = resp.read()
+                status = getattr(resp, "status", 200)
+                content_type = resp.headers.get("Content-Type", "application/json; charset=utf-8")
+            self.send_response(status)
+            self.send_header("Content-Type", content_type)
+            self.send_header("Content-Length", str(len(raw)))
             self.end_headers()
-            self.wfile.write(err_body)
+            self.wfile.write(raw)
         except Exception as exc:
-            self.send_json({"error": f"P4 ASR proxy failed: {exc}"}, status=502)
+            message = (
+                f"作文批改服务不可用（{exc}）。"
+                "请先启动：cd sources/xiezuopigai/ielts-writing-backend && "
+                "python -m uvicorn main:app --host 127.0.0.1 --port 8080"
+            )
+            self.send_json({"success": False, "message": message}, status=502)
 
     def translate_path(self, path: str) -> str:
         path = urllib.parse.urlparse(path).path
@@ -514,6 +588,62 @@ class LocalHandler(SimpleHTTPRequestHandler):
         self.wfile.write(body)
 
 
+def writing_backend_healthy(base_url: str) -> bool:
+    try:
+        with urllib.request.urlopen(base_url.rstrip("/") + "/api/health", timeout=2) as resp:
+            return getattr(resp, "status", 200) == 200
+    except Exception:
+        return False
+
+
+def resolve_writing_python() -> str:
+    """Prefer project venv so Debian/PEP 668 hosts can run writing AI deps."""
+    for candidate in (
+        ROOT / ".venv" / "bin" / "python",
+        ROOT / ".venv" / "Scripts" / "python.exe",
+    ):
+        if candidate.exists():
+            return str(candidate)
+    return sys.executable
+
+
+def maybe_start_writing_backend(base_url: str, auto_start: bool) -> Optional[subprocess.Popen]:
+    if writing_backend_healthy(base_url):
+        return None
+    if not auto_start:
+        print(
+            "Writing backend not running. Start manually:\n"
+            f"  cd {WRITING_BACKEND_DIR}\n"
+            "  python -m uvicorn main:app --host 127.0.0.1 --port 8080"
+        )
+        return None
+    if not (WRITING_BACKEND_DIR / "main.py").exists():
+        print(f"Writing backend missing at {WRITING_BACKEND_DIR}")
+        return None
+    python_bin = resolve_writing_python()
+    print(f"Starting writing backend at {base_url} with {python_bin} ...")
+    proc = subprocess.Popen(
+        [
+            python_bin,
+            "-m",
+            "uvicorn",
+            "main:app",
+            "--host",
+            "127.0.0.1",
+            "--port",
+            "8080",
+        ],
+        cwd=str(WRITING_BACKEND_DIR),
+    )
+    for _ in range(30):
+        time.sleep(0.5)
+        if writing_backend_healthy(base_url):
+            print("Writing backend is ready.")
+            return proc
+    print("Writing backend did not become healthy in time.")
+    return proc
+
+
 def resolve_configured_path(raw_path: str) -> Path:
     normalised = os.path.normpath(str(raw_path))
     return Path(normalised).expanduser().absolute()
@@ -526,25 +656,51 @@ def main(argv: list[str]) -> int:
     parser.add_argument("--static-dir", default=str(DEFAULT_STATIC_DIR))
     parser.add_argument("--db", default=str(DEFAULT_DB_PATH))
     parser.add_argument(
+        "--writing-api-base",
+        default=DEFAULT_WRITING_API_BASE,
+        help="Upstream writing FastAPI base URL used by /api/writing/* proxy",
+    )
+    parser.add_argument(
+        "--no-writing-backend",
+        action="store_true",
+        help="Do not auto-start the writing FastAPI backend",
+    )
+    parser.add_argument(
         "--p4-asr-base",
-        default=os.environ.get("IELTS_P4_ASR_BASE", DEFAULT_P4_ASR_BASE),
-        help="Upstream P4 ASR service base URL used by /api/p4/* proxy",
+        default=DEFAULT_P4_ASR_BASE,
+        help="P4 ASR base URL for /api/p4/* proxy and /api/health",
     )
     args = parser.parse_args(argv)
-    options = vars(args)
 
-    static_dir = resolve_configured_path(options["static_dir"])
-    db_path = resolve_configured_path(options["db"])
+    static_dir = resolve_configured_path(args.static_dir)
+    db_path = resolve_configured_path(args.db)
     init_db(db_path)
+
+    ai_env = load_ai_env()
+    if ai_env:
+        print(f"AI config loaded: {ai_env}")
+    else:
+        print(f"AI config missing: {ROOT / 'config' / 'ai.env'} (AI features may be disabled)")
+
+    writing_api_base = str(args.writing_api_base).rstrip("/")
+    writing_proc = maybe_start_writing_backend(
+        writing_api_base,
+        auto_start=not args.no_writing_backend,
+    )
 
     LocalHandler.static_dir = static_dir
     LocalHandler.db_path = db_path
+    LocalHandler.writing_api_base = writing_api_base
     LocalHandler.p4_asr_base = str(args.p4_asr_base).rstrip("/")
     server = ThreadingHTTPServer((args.host, args.port), LocalHandler)
     print(f"Serving {static_dir} on http://{args.host}:{args.port}")
     print(f"SQLite database: {db_path}")
-    print(f"P4 ASR proxy target: {LocalHandler.p4_asr_base}")
-    server.serve_forever()
+    print(f"Writing API proxy target: {LocalHandler.writing_api_base}")
+    try:
+        server.serve_forever()
+    finally:
+        if writing_proc and writing_proc.poll() is None:
+            writing_proc.terminate()
     return 0
 
 

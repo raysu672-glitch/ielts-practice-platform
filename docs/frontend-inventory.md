@@ -39,8 +39,9 @@
 | 写作词伙学习 | `sources/xiezuocihuo/index.html` | 写作词伙分类学习 | 分类、词伙卡片、练习流程 | iframe 打开；未主动上报时由主站按 iframe 打开时长兜底 |
 | 长难句学习 | `sources/changnanju/index.html` | 长难句结构学习 | 句子展示、分析内容、练习区 | iframe 打开；由主站按 iframe 打开时长记录 |
 | 答案句听写学习 | `sources/daanjutingxie/index.html` | 听力答案句原句播放和同义替换练习 | 组选择、音频播放、选项、反馈、结果页 | iframe 打开；音频优先使用本地/部署路径，失败回退 TTS |
-| 写作句子翻译学习 | `sources/juzifanyixin/index.html` | 写作句子翻译练习 | 翻译题、答案区、反馈区 | iframe 打开；由主站按 iframe 打开时长记录 |
+| 句子翻译学习 | `sources/juzifanyixin/index.html` | 写作句子翻译练习 | 翻译题、答案区、反馈区 | iframe 打开；由主站按 iframe 打开时长记录 |
 | P4 跟读学习 | `sources/P4gendu/index.html` | 听力 P4 跟读倍速训练 | 音频、跟读控制、倍速控制 | iframe 打开；由主站按 iframe 打开时长记录 |
+| 作文批改 | `sources/xiezuopigai/ielts-student-practice.html` | 作文自动找错 + 逐句改错训练 | 题目、检查点、四层提示、提交保存 | iframe 打开；数据经 `/api/writing/*` 写入写作后端 |
 
 ## 外部测试模块
 
@@ -50,8 +51,7 @@
 | 写作词伙测试 | `sources/xiezuocihuoceshi/index.html` | 20 题英文拼写测试 | 中文题干、输入框、结果表 | 完成后发送 `genericTestComplete`，模块为 `writing_phrase` |
 | 长难句测试 | `sources/changnanjuceshi/index.html` | 5 句结构填空测试 | 句子卡片、填空、检查、结果详情 | 完成后发送 `genericTestComplete`，模块为 `sentence` |
 | 听力同义替换测试 | `sources/daanjutingxieceshi/index.html` | 10 题答案句同义替换选择测试 | 题干、选项、结果详情 | 完成后发送 `genericTestComplete`，模块为 `listening_synonym` |
-| 听力 P4 跟读测试 | `sources/P4genduceshi/index.html` | 跟读整段音频并上传 ASR 评分 | 开始测试、进度条、分数、录音回放 | 完成后发送 `genericTestComplete`，模块为 `listening_p4_speed` |
-
+| P4 跟读测试 | `sources/P4genduceshi/index.html` | 跟读录音与匹配率打分 | 播放、录音、上传、得分 | 完成后发送 `genericTestComplete`，模块为 `listening_p4_speed` |
 ## 数据表对应关系
 
 | 前台行为 | 数据表 | 关键字段 |

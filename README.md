@@ -31,21 +31,34 @@
 | 答案句听写学习 | `sources/daanjutingxie/` | 学习 | `sources/daanjutingxie/README.md` |
 | 答案句听写测试 | `sources/daanjutingxieceshi/` | 测试 | `sources/daanjutingxieceshi/README.md` |
 | 写作句子翻译 | `sources/juzifanyixin/` | 学习 | `sources/juzifanyixin/README.md` |
-| 听力 P4 跟读 | `sources/P4gendu/` | 学习 | `sources/P4gendu/README.md` |
-| 听力 P4 跟读测试 | `sources/P4genduceshi/` | 测试 | `sources/P4genduceshi/README.md` |
+| 听力 P4 跟读（学习） | `sources/P4gendu/` | 学习 | `sources/P4gendu/README.md` |
+| 听力 P4 跟读（测试） | `sources/P4genduceshi/` | 测试 | `sources/P4genduceshi/README.md` |
+| 口语练习 | `sources/kouyulianxi/` | 学习 + AI 评分 | `sources/kouyulianxi/README.md` |
+| 作文批改 | `sources/xiezuopigai/` | 学习 + 教师批改 + 学生历史 | `sources/xiezuopigai/README.md` |
 
 ## 本地运行
 
+主站（静态页 + SQLite API）：
+
 ```powershell
 python scripts/local_server.py --host 127.0.0.1 --port 49182 --static-dir sources --db data/ielts_local.db
+```
+
+作文批改依赖独立的写作 FastAPI（默认 `127.0.0.1:8080`）。`local_server.py` 会把 `/api/writing/*` 代理到该服务，并在未运行时尝试自动启动。也可手动启动：
+
+```powershell
+cd sources/xiezuopigai/ielts-writing-backend
+python -m uvicorn main:app --host 127.0.0.1 --port 8080
 ```
 
 | 入口 | 地址 |
 |---|---|
 | 学生端 | `http://127.0.0.1:49182/tinglidanciceshi/` |
 | 教师端 | `http://127.0.0.1:49182/tinglidanciceshi/?role=teacher` |
+| 作文批改教师端 | `http://127.0.0.1:49182/tinglidanciceshi/?role=writing`（密码见 `DEV_SERVER.md`） |
 | 健康检查 | `http://127.0.0.1:49182/api/health` |
-
+| 作文批改练习 | `http://127.0.0.1:49182/xiezuopigai/ielts-student-practice.html` |
+| P4 跟读测试 | `http://127.0.0.1:49182/P4genduceshi/` |
 ## 部署维护
 
 部署脚本不会读取仓库中的明文密码。执行部署前先设置环境变量：
@@ -74,6 +87,7 @@ python scripts/deploy.py --repair-tracking-data
 | 数据保护 | 默认不提交或覆盖 `data/*.db`，线上部署前必须备份 |
 | 音频保护 | `*.mp3`、`sources/tinglidanciceshi/audio/`、`sources/daanjutingxie/A听力答案句/` 只在本地或服务器本地维护，不提交 GitHub |
 | 凭据保护 | GitHub Token、服务器密码、SSH 私钥只放环境变量或系统凭据管理 |
+| AI 统一来源 | Key/模型只维护在 `config/ai.env`（服务器同路径）；默认部署不覆盖，首次用 `--sync-ai-env` |
 | 验证优先 | 修改后至少运行 Python 语法检查、本地健康检查和关键页面 HTTP 检查 |
 
 ## 回归测试

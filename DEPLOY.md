@@ -43,7 +43,22 @@ gh secret set IELTS_DEPLOY_KEY < "d:\Download\雅思训练.pem"
 | 仓库名称 | 建议使用 `ielts-practice-platform` |
 | 可见性 | 默认私有仓库 |
 | 认证方式 | 使用 `gh auth login`、系统凭据管理或临时环境变量 |
-| 不提交内容 | `.env`、`*.pem`、`data/*.db`、音频文件、`sources/_zips/`、`sources/_extract/`、本地截图 |
+| 不提交内容 | `.env`、`config/ai.env`、`*.pem`、`data/*.db`、音频文件、`sources/_zips/`、`sources/_extract/`、本地截图 |
+
+## 平台统一 AI 配置
+
+当前与后续凡需 AI 介入的功能，统一走 DeepSeek（`config/ai.env`），不要在各模块各自散落 Key/模型。
+
+| 项目 | 说明 |
+|---|---|
+| 本地文件 | `config/ai.env`（从 `config/ai.env.example` 复制） |
+| 服务器文件 | `/var/www/ielts/config/ai.env` |
+| 变量 | `AI_API_KEY`、`AI_BASE_URL`、`AI_MODEL` |
+| 当前默认 | `https://api.deepseek.com` + `deepseek-v4-flash` |
+| 默认部署 | **不会**覆盖服务器上的 `config/ai.env` |
+| 首次/更换 Key | `python scripts/deploy.py --sync-ai-env` |
+
+systemd 通过 `EnvironmentFile=-/var/www/ielts/config/ai.env` 注入；写作后端也会优先读取该文件。
 
 临时环境变量示例：
 

@@ -398,12 +398,12 @@
         <main>
             <!-- 评分标准 -->
             <section>
-                <h2>评分标准</h2>
+                <h2>📋 评分标准</h2>
                 <div class="standard-box">
-                    <strong>测试流程：</strong>点击「开始测试」后，系统会同时播放原音频并开始录制你的跟读；音频播放结束后自动停止录音，并将录音经主站服务转发到语音识别后端打分。<br>
-                    <strong>评分方式：</strong>后端使用腾讯云英文语音识别将录音转成文字，再与原文进行逐词比对，使用最长公共子序列（LCS）算法计算匹配度。<br>
+                    <strong>测试流程：</strong>点击「开始测试」后，系统会同时播放原音频并开始录制你的跟读；音频播放结束后自动停止录音，并将录音上传到后端进行识别打分。<br>
+                    <strong>评分方式：</strong>后端使用 Whisper 模型将录音转成文字，再与原文进行逐词比对，使用最长公共子序列（LCS）算法计算匹配度。<br>
                     <strong>得分公式：</strong>得分 = 匹配单词数 ÷ 原文总单词数 × 100<br>
-                    <strong>小提示：</strong>建议佩戴耳机测试，避免原音频被麦克风收进去；识别需要一些时间，请耐心等待。
+                    <strong>💡 小提示：</strong>建议佩戴耳机测试，避免原音频被麦克风收进去；后端识别需要一些时间，请耐心等待。
                 </div>
             </section>
 
@@ -411,6 +411,7 @@
             <section>
                 <div class="test-controls">
                     <button id="testBtn" class="test-btn">
+                        <span>▶</span>
                         <span id="testBtnText">开始测试</span>
                     </button>
                 </div>
@@ -428,7 +429,7 @@
 
             <!-- 原文显示 -->
             <section>
-                <h2>原文</h2>
+                <h2>📝 原文</h2>
                 <div class="text-container" id="textContainer">
                     <!-- 动态生成文本 -->
                 </div>
@@ -436,7 +437,7 @@
 
             <!-- 结果区 -->
             <section class="result-section" id="resultSection">
-                <h2>测试结果</h2>
+                <h2>🎯 测试结果</h2>
                 <div class="score-display">
                     <div class="score-number" id="scoreNumber">0%</div>
                     <div class="score-label">跟读得分</div>
@@ -447,14 +448,14 @@
                     <a id="downloadRecording" class="download-link" href="#" download="recording.webm">下载录音</a>
                 </div>
                 <div class="recognized-text-area" id="recognizedTextArea">
-                    <h3>识别到的文字</h3>
+                    <h3>识别到的文字（调试用）</h3>
                     <p id="recognizedText"></p>
                 </div>
             </section>
 
             <!-- 历史记录 -->
             <section>
-                <h2>测试历史</h2>
+                <h2>📊 测试历史</h2>
                 <div class="history-list" id="historyList">
                     <div class="empty-history">暂无测试记录</div>
                 </div>
@@ -465,31 +466,15 @@
     <script src="config.js"></script>
     <script>
         // ==================== 配置 ====================
-        function resolveApiBase() {
-            var configured = window.API_CONFIG && window.API_CONFIG.API_BASE;
-            if (configured == null || configured === '') {
-                return '';
-            }
-            return String(configured).replace(/\/$/, '');
-        }
-
-        function resolveTranscribeUrl() {
-            var path = (window.API_CONFIG && window.API_CONFIG.TRANSCRIBE_PATH) || '/api/p4/transcribe';
-            if (/^https?:\/\//i.test(path)) {
-                return path;
-            }
-            return resolveApiBase() + path;
-        }
-
-        const API_BASE = resolveApiBase();
-        const TRANSCRIBE_URL = resolveTranscribeUrl();
+        const API_BASE = (window.API_CONFIG && window.API_CONFIG.API_BASE) || 'http://localhost:8000';
 
         // ==================== 课程数据 ====================
         const currentLesson = {
             id: 1,
             title: "C4T1S4 - Urban Landscape",
             text: "Good day, ladies and gentlemen. I have been asked today to talk to you about the urban landscape. There are two major areas that I will focus on in my talk: how vegetation can have a significant effect on urban climate, and how we can better plan our cities using trees to provide a more comfortable environment for us to live in. Trees can have a significant impact on our cities. They can make a city, as a whole, a bit less windy or a bit more windy, if that's what you want. They can make it a bit cooler if it's a hot summer day in an Australian city, or they can make it a bit more humid if it's a dry inland city. On the local scale - that is, in particular areas within the city - trees can make the local area more shady, cooler, more humid and much less windy. In fact trees and planting of various kinds can be used to make city streets actually less dangerous in particular areas. How do trees do all that, you ask? Well, the main difference between a tree and a building is a tree has got an internal mechanism to keep the temperature regulated. It evaporates water through its leaves and that means that the temperature of the leaves is never very far from our own body temperature. The temperature of a building surface on a hot sunny day can easily be twenty degrees more than our temperature. Trees, on the other hand, remain cooler than buildings because they sweat. This means that they can humidify the air and cool it - a property which can be exploited to improve the local climate. Trees can also help break the force of winds. The reason that high buildings make it windier at ground level is that, as the wind goes higher and higher, it goes faster and faster. When the wind hits the building, it has to go somewhere. Some of it goes over the top and some goes around the sides of the building, forcing those high level winds down to ground level. That doesn't happen when you have trees. Trees filter the wind and considerably reduce it, preventing those very large strong gusts that you so often find around tall buildings. Another problem in built-up areas is that traffic noise is intensified by tall buildings. By planting a belt of trees at the side of the road, you can make things a little quieter, but much of the vehicle noise still goes through the trees. Trees can also help reduce the amount of noise in the surroundings, although the effect is not as large as people like to think. Low-frequency noise, in particular, just goes through the trees as though they aren't there. Although trees can significantly improve the local climate, they do however take up a lot of space. There are root systems to consider and branches blocking windows and so on. It may therefore be difficult to fit trees into the local landscape. There is not a great deal you can do if you have what we call a street canyon - a whole set of high-rises enclosed in a narrow street. Trees need water to grow. They also need some sunlight to grow and you need room to put them. If you have the chance of knocking buildings down and replacing them, then suddenly you can start looking at different ways to design the streets and to introduce.",
-            audioUrl: "C4T1S4.mp3",
+            // 音频与学习模块共用；部署默认不上传 mp3，服务器上文件在 P4gendu/
+            audioUrl: "../P4gendu/C4T1S4.mp3",
             duration: "4:08"
         };
 
@@ -503,7 +488,9 @@
             recordingStream: null,
             userRecordingBlob: null,
             audioDuration: 0,
-            testStartTime: 0
+            testStartTime: 0,
+            // 只有正常结束跟读时才上传；reset/取消时禁止 onstop 误传空文件
+            uploadOnStop: false
         };
 
         function getQueryParam(name) {
@@ -680,14 +667,47 @@
         // ==================== 音频与录音 ====================
         function createAudioPlayer() {
             state.audioPlayer = new Audio(currentLesson.audioUrl);
+            state.audioPlayer.preload = 'auto';
             state.audioPlayer.addEventListener('timeupdate', handleTimeUpdate);
             state.audioPlayer.addEventListener('ended', handleAudioEnded);
             state.audioPlayer.addEventListener('loadedmetadata', () => {
                 state.audioDuration = state.audioPlayer.duration;
             });
             state.audioPlayer.addEventListener('error', () => {
-                showError('音频加载失败，请检查 C4T1S4.mp3 是否存在');
+                showError('原文音频加载失败。请确认服务器存在 P4gendu/C4T1S4.mp3（测试页已改为引用学习模块音频）');
                 resetUI();
+            });
+        }
+
+        function waitForAudioReady(audio, timeoutMs) {
+            return new Promise(function(resolve, reject) {
+                if (audio.readyState >= 2 && isFinite(audio.duration) && audio.duration > 1) {
+                    resolve();
+                    return;
+                }
+                var done = false;
+                var timer = setTimeout(function() {
+                    if (done) return;
+                    done = true;
+                    reject(new Error('原文音频加载超时'));
+                }, timeoutMs || 15000);
+                function ok() {
+                    if (done) return;
+                    if (!(isFinite(audio.duration) && audio.duration > 1)) return;
+                    done = true;
+                    clearTimeout(timer);
+                    resolve();
+                }
+                function fail() {
+                    if (done) return;
+                    done = true;
+                    clearTimeout(timer);
+                    reject(new Error('原文音频加载失败'));
+                }
+                audio.addEventListener('canplay', ok);
+                audio.addEventListener('loadedmetadata', ok);
+                audio.addEventListener('error', fail);
+                try { audio.load(); } catch (e) {}
             });
         }
 
@@ -702,6 +722,14 @@
 
         function handleAudioEnded() {
             elements.progressFill.style.width = '100%';
+            // 音频未真正播放完就 ended（常见于文件缺失），不要上传空录音
+            var played = state.audioPlayer ? Number(state.audioPlayer.currentTime) || 0 : 0;
+            var duration = state.audioDuration || (state.audioPlayer && state.audioPlayer.duration) || 0;
+            if (!isFinite(duration) || duration < 1 || played < 1) {
+                showError('原文音频未能正常播放（常见原因：测试页缺少 C4T1S4.mp3）。请刷新后重试');
+                resetUI();
+                return;
+            }
             stopRecordingAndScore();
         }
 
@@ -726,6 +754,19 @@
                 };
 
                 state.mediaRecorder.onstop = () => {
+                    const shouldUpload = !!state.uploadOnStop;
+                    state.uploadOnStop = false;
+
+                    if (state.recordingStream) {
+                        state.recordingStream.getTracks().forEach(track => track.stop());
+                        state.recordingStream = null;
+                    }
+
+                    if (!shouldUpload) {
+                        state.recordedChunks = [];
+                        return;
+                    }
+
                     state.userRecordingBlob = new Blob(state.recordedChunks, { type: 'audio/webm' });
                     const url = URL.createObjectURL(state.userRecordingBlob);
                     const filename = `p4-recording-${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.webm`;
@@ -733,15 +774,7 @@
                     elements.playbackAudio.src = url;
                     elements.downloadRecording.href = url;
                     elements.downloadRecording.download = filename;
-
                     autoDownloadRecording(url, filename);
-
-                    if (state.recordingStream) {
-                        state.recordingStream.getTracks().forEach(track => track.stop());
-                        state.recordingStream = null;
-                    }
-
-                    // 录音整理完成后上传后端识别
                     uploadAndScore();
                 };
 
@@ -758,9 +791,16 @@
             if (!state.isTesting) return;
             state.isTesting = false;
             state.isScoring = true;
+            state.uploadOnStop = true;
 
             if (state.mediaRecorder && state.mediaRecorder.state !== 'inactive') {
+                try { state.mediaRecorder.requestData(); } catch (e) {}
                 state.mediaRecorder.stop();
+            } else {
+                state.uploadOnStop = false;
+                showError('录音尚未开始或已中断，请重新测试');
+                resetUI();
+                return;
             }
 
             updateTestButton('scoring');
@@ -770,9 +810,13 @@
 
         // ==================== 上传后端并评分 ====================
         async function uploadAndScore() {
-            if (!state.userRecordingBlob) {
-                showError('录音数据为空');
-                resetUI();
+            const size = state.userRecordingBlob ? state.userRecordingBlob.size : 0;
+            if (!state.userRecordingBlob || size < 1024) {
+                showError(`录音数据为空或过短（${size} 字节）。请确认：1) 原文音频进度条在走动 2) 已允许麦克风。然后重新测试`);
+                state.isScoring = false;
+                updateTestButton('ready');
+                elements.statusText.textContent = '识别失败，请重试';
+                elements.statusText.className = 'status-text';
                 return;
             }
 
@@ -780,7 +824,7 @@
                 const form = new FormData();
                 form.append('file', state.userRecordingBlob, 'recording.webm');
 
-                const res = await fetch(TRANSCRIBE_URL, {
+                const res = await fetch(`${API_BASE}/transcribe`, {
                     method: 'POST',
                     body: form
                 });
@@ -791,13 +835,10 @@
                 }
 
                 const data = await res.json();
-                if (data && data.error) {
-                    throw new Error(data.error);
-                }
                 displayResult(data);
             } catch (err) {
                 console.error('上传/识别失败:', err);
-                showError(`识别失败：${err.message}，请确认主站服务可用（${TRANSCRIBE_URL}）`);
+                showError(`识别失败：${err.message}，请检查后端是否已启动（${API_BASE}）`);
                 state.isScoring = false;
                 updateTestButton('ready');
                 elements.statusText.textContent = '识别失败，请重试';
@@ -849,15 +890,20 @@
         function resetUI() {
             state.isTesting = false;
             state.isScoring = false;
+            state.uploadOnStop = false;
 
             if (state.audioPlayer) {
-                state.audioPlayer.pause();
-                state.audioPlayer.currentTime = 0;
+                try {
+                    state.audioPlayer.pause();
+                    state.audioPlayer.currentTime = 0;
+                } catch (e) {}
             }
 
             if (state.mediaRecorder && state.mediaRecorder.state !== 'inactive') {
-                state.mediaRecorder.stop();
+                try { state.mediaRecorder.stop(); } catch (e) {}
             }
+            state.mediaRecorder = null;
+            state.recordedChunks = [];
 
             if (state.recordingStream) {
                 state.recordingStream.getTracks().forEach(track => track.stop());
@@ -890,11 +936,23 @@
             elements.statusText.className = 'status-text testing';
 
             try {
+                if (!state.audioPlayer) createAudioPlayer();
+                await waitForAudioReady(state.audioPlayer, 15000);
+                state.audioDuration = state.audioPlayer.duration;
+                if (!(state.audioDuration > 1)) {
+                    throw new Error('原文音频时长异常，请确认 P4gendu/C4T1S4.mp3 可访问');
+                }
                 await startRecording();
                 state.audioPlayer.currentTime = 0;
                 await state.audioPlayer.play();
+                // 给进度条一点时间；若 2 秒内仍无推进，判定播放失败
+                await new Promise(function(r) { setTimeout(r, 2000); });
+                if (state.isTesting && (!state.audioPlayer || state.audioPlayer.currentTime < 0.2)) {
+                    throw new Error('原文音频没有开始播放（可能被浏览器拦截自动播放，请再点一次开始）');
+                }
             } catch (err) {
                 console.error('测试启动失败:', err);
+                showError((err && err.message) || '测试启动失败，请检查麦克风权限与原文音频');
                 resetUI();
             }
         }
