@@ -1286,46 +1286,51 @@ class P1Practice {
 - 语音识别系统对文本的识别结果（识别异常可能暗示发音问题）
 - 词时长数据（异常拖长或吞音可能暗示发音问题）
 - 语速数据（过快可能影响清晰度，过慢可能不自信）
-- 如果几乎没有发音问题信号，给 6 或 7 分（整数；默认中等偏上）
+- 套话/背稿感（开场复述题目、模板句堆砌、回答不像临场思考）会显得不自然
+- 如果几乎没有明显发音硬伤，但回答偏模板化：给 6（不要轻易给 7）
+- 只有在表达自然、无明显背稿感时，才考虑 7
 
 评分规则：
 - 9分：全部语音特征精确；听者毫不费力
 - 8分：广泛语音特征；口音影响极小
-- 7分：整体清晰；偶有小错
-- 6分：基本清晰；个别发音错误但不影响理解
+- 7分：整体清晰；偶有小错；听起来自然有思考
+- 6分：基本清晰；个别发音错误不影响理解；或听起来偏“准备过/不自然”
 - 5分及以下：发音问题较多；听者需努力理解
+
+## 真实考官校准（必须遵守）
+参考资深口语考官对 6.0 考生的打分习惯：
+1. **FC**：仅少量犹豫仍可给 6；但“几乎把题目整句复述一遍再答题”极不自然，是 Band 4 习惯，会卡在 6、难上 6.5。
+2. **LR**：用词大体清楚可达 6；中式直译/奇怪搭配（如把中文硬译成英文导致一段话难懂）若出现 2–3 处，应给 5。
+3. **GRA**：只要有足够准确的结构多样性、沟通清楚，可以明确给 6；不要因为偶尔小错就打到 4–5。但残缺句/半截句多、几乎只有简单句时，应 ≤5。
+4. **Pron**：即使“最弱项”也常仍是 6；背稿感/不自然主要阻碍冲 6.5–7，默认不要虚高到 7。
+5. 反馈要像考官：先肯定达到哪一档，再说“若想冲更高必须改什么”。
 
 ## 反馈原则
 1. 用中文反馈，涉及英文表达时保留原文
 2. 每个问题说清"为什么"和"怎么改"
 3. 改写建议要地道自然，像母语者说话
-4. 语气温和但专业，像一个好老师
-5. 最终目标：帮学生提分
+4. 语气温和但专业，像一个好老师/考官
+5. 最终目标：帮学生提分（尤其说清 6→6.5 的卡点）
 6. 反馈要具体，不要泛泛而谈
 7. 每个分数必须有数据支撑，不要拍脑袋
 8. 只输出一个合法 JSON 对象，不要 Markdown 或其它说明文字
 9. FC/LR/GRA/Pron 的 band 必须是 1–9 的整数，禁止 0、禁止 0.5；overall 可以是 x.5
-10. 语法从严：有残缺句、缺冠词、成分不全、时态混乱时，GRA 不得虚高到 6 及以上
+
+## 语用层面检测（重要）
+除四项分数外，必须单独检测语用问题（这些问题往往决定能否从 6 冲到 6.5）：
+1. **重复问题**：回答开头是否复述题目大部分内容（Band 4–5 习惯，极不自然）
+2. **背诵/模板痕迹**：过于工整、书面腔、模板开头、缺少即兴口语特征
+3. **中式英语（Chinglish）**：中文直译、母语者难懂、语法未必错但搭配怪
+这些写入 detailed_analysis.naturalness / chinglish_flags，以及顶层 pragmatic_issues。
 
 ## 语法分析要求（重点）
-语法非常重要，必须单独完整列出错误清单，不能因为“意思能懂”就放过。你必须做到：
-1. **逐句扫描**，找出所有语法错误，不能遗漏；残缺句、半截句也算错误
+语法必须单独完整列出错误清单。你必须做到：
+1. **逐句扫描**，找出所有语法错误；残缺句、半截句也算错误并列入
 2. 每个错误必须标注：错误类型、原文、正确形式、中文解释
-3. 错误类型必须归类到以下之一：
-   - 时态错误（tense）
-   - 主谓一致（subject_verb_agreement）
-   - 冠词（article）
-   - 单复数（plural）
-   - 介词（preposition）
-   - 词性错误（word_form）
-   - 句型结构（sentence_structure）：残缺句、语序错误、缺少成分
-   - 非谓语动词（non_finite）
-   - 虚拟语气（subjunctive）
-   - 比较级/最高级（comparative）
-   - 其他（other）
-4. 除了错误，还要分析句式多样性（简单句/并列句/复合句、复杂结构、均长）
-5. 最后给出语法综合评估：水平、最大短板、最快提分方法
-6. 若存在语法错误，errors 数组不得为空；不要只写 summary 却不列错误`;
+3. 错误类型归类：tense / subject_verb_agreement / article / plural / preposition / word_form / sentence_structure / non_finite / subjunctive / comparative / other
+4. 分析句式多样性（简单句/并列句/复合句、复杂结构、均长）
+5. 综合评估：水平、最大短板、最快提分方法
+6. 有错误时 errors 不得为空；评分时区分“偶发小错仍可 6”与“残缺句多只能 ≤5”`;
     }
 
     // 从腾讯云 ASR（若有词级时间戳）或转录文本提取评分指标
@@ -1479,6 +1484,75 @@ class P1Practice {
         }
     }
 
+    // 考官习惯信号：复述题目 / 模板感 / 中式英语（对齐真实考官反馈）
+    buildExaminerSignals(question, transcript) {
+        const qNorm = this.normalizeChunkText(question).replace(/^(have you|do you|did you|are you|is there|what|where|when|why|how|would you|can you)\s+/i, '');
+        const tNorm = this.normalizeChunkText(transcript);
+        const firstSent = (String(transcript || '').split(/[.!?]+/).map(s => s.trim()).find(Boolean) || '');
+        const firstNorm = this.normalizeChunkText(firstSent);
+
+        let question_echo = false;
+        let echo_excerpt = '';
+        if (qNorm.length >= 12 && firstNorm.length >= 10) {
+            const qTokens = qNorm.split(' ').filter(w => w.length > 2 && !/^(the|and|you|your|have|ever|before|about|with|from|this|that|what|when|where|why|how)$/.test(w));
+            const hit = qTokens.filter(w => firstNorm.includes(w)).length;
+            const ratio = qTokens.length ? hit / qTokens.length : 0;
+            if (ratio >= 0.55 && hit >= 3) {
+                question_echo = true;
+                echo_excerpt = firstSent.slice(0, 120);
+            }
+        }
+
+        const formulaic_hits = [];
+        const formulaPatterns = [
+            [/for the reason that/i, 'for the reason that（模板感强）'],
+            [/i am a big fan of/i, 'I am a big fan of'],
+            [/it is cheerful and enjoyable for me to/i, 'It is cheerful and enjoyable for me to'],
+            [/can be seen as the best way/i, 'can be seen as the best way'],
+            [/whenever i have (some days off|spare time)/i, 'Whenever I have spare time/days off'],
+            [/yes,?\s+absolutely,?\s+absolutely/i, 'Yes, absolutely 重复']
+        ];
+        formulaPatterns.forEach(([re, label]) => {
+            if (re.test(transcript || '')) formulaic_hits.push(label);
+        });
+        const formulaic = formulaic_hits.length >= 2 || (question_echo && formulaic_hits.length >= 1);
+
+        const chinglish = [];
+        const chinglishPatterns = [
+            [/\bhonest food\b/i, 'honest food（疑似中式直译）'],
+            [/\bmake people fun\b/i, 'make people fun'],
+            [/\bfeel loose\b/i, 'feel loose'],
+            [/\bsome happy\b/i, 'some happy'],
+            [/\bgave me some happy\b/i, 'gave me some happy'],
+            [/\bopen the eyes?\b/i, 'open the eye(s)'],
+            [/\blisten a\b/i, 'listen a（缺 to）'],
+            [/\bwith the development of\b/i, 'with the development of（套话）']
+        ];
+        chinglishPatterns.forEach(([re, label]) => {
+            if (re.test(transcript || '')) chinglish.push(label);
+        });
+
+        let scoring_hint = '按实际表现评分';
+        if (question_echo && chinglish.length >= 2) {
+            scoring_hint = '复述题目+多处中式表达：FC 可 6 但点名不自然；LR 倾向 5；Pron 默认 6';
+        } else if (question_echo) {
+            scoring_hint = '开场复述题目：FC 可给 6，但必须指出这是冲 6.5 障碍；Pron 勿虚高到 7';
+        } else if (chinglish.length >= 2) {
+            scoring_hint = '多处疑似中式英语：LR 应给 5';
+        } else if (formulaic) {
+            scoring_hint = '模板感偏强：Pron 倾向 6，反馈要求更自然/即兴';
+        }
+
+        return {
+            question_echo,
+            echo_excerpt,
+            formulaic,
+            formulaic_hits,
+            chinglish,
+            scoring_hint
+        };
+    }
+
     // 构建评分提示词（对齐 ielts-speaking-prompt.md）
     buildEvaluationPrompt(cat, q, transcript, metrics) {
         const m = metrics || this.extractSpeakingMetrics(transcript, this.lastAsrResult, this.lastRecordingDurationS);
@@ -1508,12 +1582,14 @@ class P1Practice {
         const chipNote = usedChips.length
             ? `\n## 学生勾选的提示词块（练习辅助，不是扣分项）\n学生练习时点选了这些词块：${usedChips.join(', ')}\n评分时：若转录中确实用到了这些表达，可在 LR/FC 中认可；不要因为“没用词块”扣分；也不要仅因点选了词块就抬高分数，以实际说出的话为准。\n`
             : '\n## 学生勾选的提示词块\n（未勾选或未记录）评分只看实际口述转录，不要因为没用词块扣分。\n';
+        const examSignals = this.buildExaminerSignals(q.q || q.title || '', m.transcript || transcript);
 
         return `请评估以下学生的雅思口语 PART1 回答。
 重要：
 - FC/LR/GRA/Pron 的 band 必须是 1–9 的整数（禁止 0，禁止 0.5）
 - overall 可以是 0.5 间隔（四项平均后 .25进.5，.75进整）
-- 语法从严：残缺句/缺冠词/成分不全必须写入 grammar.detailed_analysis.errors，并如实压低 GRA
+- 按真实考官校准打分：少犹豫可给 FC6；复述题目会卡住冲高；中式英语多处→LR5；语法有足够准确结构范围可给6；发音偏模板默认6不要轻易7
+- 语法错误必须列入 errors；残缺句多→GRA≤5，偶发小错且结构够用仍可 GRA6
 - 禁止照抄示例数字
 
 ## 考试题目
@@ -1522,6 +1598,12 @@ ${q.q}
 ${chipNote}
 ## 学生回答转录
 ${m.transcript || transcript}
+
+## 考官习惯信号（本地预检，请重点核验）
+- 开场复述题目: ${examSignals.question_echo ? '是（不自然，类似 Band 4 习惯）' : '否'}
+${examSignals.echo_excerpt ? `  · 疑似复述片段: 「${examSignals.echo_excerpt}」\n` : ''}- 模板/背稿感: ${examSignals.formulaic ? '偏强' : '不明显'}
+${examSignals.formulaic_hits.length ? `  · 信号: ${examSignals.formulaic_hits.join('；')}\n` : ''}- 疑似中式英语/怪搭配: ${examSignals.chinglish.length ? examSignals.chinglish.join('；') : '未检出'}
+- 预检建议: ${examSignals.scoring_hint}
 
 ## 语音量化指标
 
@@ -1543,37 +1625,39 @@ ${durationIssues}${suspicious}
 ### 1. 四项评分（每项 1–9 整数；禁止 0.5）
 
 **流利度与连贯性 (FC)**：
-- 流利度：根据语速WPM、长停顿次数、填充词频率、重复词来评估
-- 连贯性：根据连接词使用、逻辑衔接、话题展开来评估
-- 综合两项给出FC整数分
+- 流利度：语速、长停顿、填充词、重复
+- 连贯性：连接词、逻辑、话题展开
+- 若开场复述题目：指出不自然；FC 可给 6，但要说明这是冲 6.5 的障碍
 
 **词汇资源 (LR)**：
-- 词汇多样性（是否重复使用基础词）
-- 搭配准确性
-- 是否有不常见词/习语
-- 同义替换能力
+- 多样性、搭配、习语、释义
+- 严查中式直译/奇怪搭配；2–3 处难懂表达应给 5
 
-**语法范围与准确性 (GRA)（从严）**：
-- 逐句找出所有语法错误，一个不漏；残缺句、半截句必须列入
-- 每个错误标注：错误类型、原文、正确形式、中文解释
-- 分析句式多样性（简单句/并列句/复合句比例、复杂结构使用情况）
-- 给出综合评估；有多处结构残缺时 GRA 通常 ≤5
+**语法范围与准确性 (GRA)**：
+- 逐句找错并列入 errors（含残缺句）
+- 有足够准确结构多样性且沟通清楚 → 可给 6
+- 残缺句/半截句多、几乎只有简单句 → ≤5
 
 **发音 (P)**：
-- 根据词时长异常、ASR识别异常、语速等间接证据推断
-- 如果没有明显发音问题信号，给 6 或 7（整数）
+- 间接证据 + 是否像背稿/不自然
+- 无明显硬伤但模板感强 → 6；自然才考虑 7
 
 ### 2. 总分
 四项整数平均后，.25进.5，.75进整（总分可以是 x.5）
 
 ### 3. 每个单项的详细解析
-每个维度除了分数，还要有完整的 detailed_analysis；语法错误必须单独完整列出。
+每个维度除了分数，还要有完整的 detailed_analysis。
+FC 必须含 naturalness；LR 必须含 chinglish_flags；语法 errors 单独完整列出。
+每个维度 justification 请写清：当前为何是这个整数分，以及若想更高最该改什么。
 
-### 4. 主要问题（最多5个，按影响程度排序）
-每个问题包含：是什么、为什么影响分数、怎么改、给一个更好的示例
+### 4. 语用问题 pragmatic_issues（必须输出）
+单独汇总：repeats_question / sounds_rehearsed / chinglish_expressions。
 
-### 5. 7分改写版本
-把学生回答改写成7分水平的地道英文口语，保持原意
+### 5. 主要问题（最多5个，按影响程度排序）
+优先列入：复述题目、中式英语、残缺句、背稿不自然等考官最常抓的点。
+
+### 6. 7分改写版本
+把学生回答改写成7分水平的地道英文口语，保持原意；开场不要复述题目
 
 ## 输出格式（严格JSON，不要输出其他内容）
 注意：下面 JSON 里的数字只是字段示意；band 填整数；按真实表现评分。
@@ -1586,22 +1670,29 @@ ${durationIssues}${suspicious}
       "detailed_analysis": {
         "fluency": {
           "wpm": 0,
-          "wpm_assessment": "语速偏慢/正常/偏快，具体评价",
+          "wpm_assessment": "语速评价",
           "long_pauses": 0,
-          "pause_assessment": "停顿频率评价",
+          "pause_assessment": "停顿评价",
           "filler_words_per_min": 0,
-          "filler_assessment": "填充词使用评价",
+          "filler_assessment": "填充词评价",
           "repetitions_found": ["重复词1"],
-          "repetition_assessment": "重复情况评价"
+          "repetition_assessment": "重复评价"
         },
         "coherence": {
           "connectives_used": ["连接词1"],
           "connectives_count": 0,
-          "connectives_assessment": "连接词使用评价",
-          "topic_development": "话题展开是否充分，逻辑是否清晰",
-          "coherence_issues": ["连贯性问题1"]
+          "connectives_assessment": "连接词评价",
+          "topic_development": "话题展开",
+          "coherence_issues": ["问题1"]
         },
-        "summary": "流利度与连贯性的综合诊断，最大的短板是什么"
+        "naturalness": {
+          "repeats_question": false,
+          "repetition_evidence": "复述证据或空字符串",
+          "sounds_rehearsed": false,
+          "rehearsal_evidence": "背稿/模板证据或空字符串",
+          "assessment": "自然度评价：是否像即兴"
+        },
+        "summary": "FC综合诊断"
       }
     },
     "lexical_resource": {
@@ -1609,55 +1700,46 @@ ${durationIssues}${suspicious}
       "justification": "中文",
       "detailed_analysis": {
         "vocabulary_diversity": {
-          "assessment": "词汇多样性评价",
-          "overused_words": [
-            {"word": "被滥用的词", "count": 0, "alternatives": ["替换建议1"]}
-          ],
-          "basic_words_overused": ["good", "very"]
+          "assessment": "多样性评价",
+          "overused_words": [{"word": "词", "count": 0, "alternatives": ["替1"]}],
+          "basic_words_overused": ["good"]
         },
         "collocation": {
-          "errors": [
-            {"wrong": "错误搭配", "correct": "正确搭配", "explanation": "中文解释"}
-          ],
-          "assessment": "搭配准确性评价"
+          "errors": [{"wrong": "错搭配", "correct": "正确", "explanation": "中文"}],
+          "assessment": "搭配评价"
         },
         "idiomatic_language": {
-          "idioms_found": ["找到的习语/固定搭配"],
-          "assessment": "习语使用评价"
+          "idioms_found": [],
+          "assessment": "习语评价"
         },
-        "paraphrase_ability": "同义替换/释义能力评价",
-        "summary": "词汇维度的综合诊断，最大的短板是什么"
+        "chinglish_flags": [
+          {
+            "expression": "中式英语原文",
+            "likely_intended": "学生可能想表达的意思",
+            "natural_alternative": "地道英文",
+            "severity": "high|medium|low"
+          }
+        ],
+        "paraphrase_ability": "释义能力",
+        "summary": "LR综合诊断"
       }
     },
     "grammar": {
-      "band": 5,
-      "justification": "中文；有错误时说明为何是这个整数分",
+      "band": 6,
+      "justification": "中文",
       "detailed_analysis": {
         "errors": [
           {
-            "original": "错误原文（完整句子或残缺片段）",
+            "original": "错误原文",
             "correction": "正确形式",
             "type": "tense|subject_verb_agreement|article|plural|preposition|word_form|sentence_structure|non_finite|subjunctive|comparative|other",
-            "explanation": "中文解释，为什么错了，正确用法是什么",
+            "explanation": "中文解释",
             "severity": "high|medium|low"
           }
         ],
         "error_statistics": {
           "total_errors": 0,
-          "by_type": {
-            "tense": 0,
-            "subject_verb_agreement": 0,
-            "article": 0,
-            "plural": 0,
-            "preposition": 0,
-            "word_form": 0,
-            "sentence_structure": 0,
-            "non_finite": 0,
-            "subjunctive": 0,
-            "comparative": 0,
-            "other": 0
-          },
-          "most_frequent_error": "最常见的错误类型",
+          "most_frequent_error": "",
           "error_density_per_100_words": 0.0
         },
         "sentence_variety": {
@@ -1666,29 +1748,52 @@ ${durationIssues}${suspicious}
           "complex_sentences": 0,
           "complex_sentence_ratio": 0.0,
           "avg_sentence_length_words": 0.0,
-          "structures_used": ["使用的复杂结构"],
-          "structures_missing": ["应使用但未使用的结构"],
+          "structures_used": [],
+          "structures_missing": [],
           "assessment": "句式多样性评价"
         },
-        "summary": "语法维度的综合诊断，最大的短板是什么，最快提分的方法"
+        "summary": "GRA综合诊断"
       }
     },
     "pronunciation": {
-      "band": 7,
+      "band": 6,
       "justification": "中文，说明推断依据",
       "detailed_analysis": {
-        "signals_found": ["发现的发音信号"],
-        "word_duration_issues": ["词时长异常"],
-        "asr_anomalies": ["ASR识别异常"],
-        "assessment": "发音综合评估，说明是基于间接证据的推断"
+        "signals_found": [],
+        "word_duration_issues": [],
+        "asr_anomalies": [],
+        "intonation_note": "若无音频语调数据，根据模板感/自然度间接说明",
+        "assessment": "发音综合评估"
       }
     },
     "overall": 6.0
   },
+  "pragmatic_issues": {
+    "repeats_question": {
+      "detected": false,
+      "evidence": "",
+      "impact": "对分数/冲高的影响",
+      "fix": "怎么改"
+    },
+    "sounds_rehearsed": {
+      "detected": false,
+      "evidence": "",
+      "impact": "",
+      "fix": ""
+    },
+    "chinglish_expressions": [
+      {
+        "expression": "",
+        "intended_meaning": "",
+        "natural_alternative": "",
+        "severity": "high|medium|low"
+      }
+    ]
+  },
   "problems": [
     {
       "rank": 1,
-      "category": "fluency|vocabulary|grammar|pronunciation",
+      "category": "fluency|vocabulary|grammar|pronunciation|pragmatic",
       "issue": "问题描述（中文）",
       "why_it_matters": "为什么影响分数（中文）",
       "how_to_fix": "怎么改（中文）",
@@ -1807,6 +1912,7 @@ ${durationIssues}${suspicious}
         let improvedMeta = null;
         let aiOverall = null;
         let detailed = { fluency: null, vocabulary: null, grammar: null, pronunciation: null };
+        let pragmaticIssues = null;
         
         if (data && typeof data === 'object') {
             const scores = data.scores || data;
@@ -1825,6 +1931,7 @@ ${durationIssues}${suspicious}
             detailed.vocabulary = (lr && lr.detailed_analysis) || null;
             detailed.grammar = (gra && gra.detailed_analysis) || null;
             detailed.pronunciation = (pron && pron.detailed_analysis) || null;
+            pragmaticIssues = data.pragmatic_issues || data.pragmaticIssues || null;
 
             if (fc && typeof fc === 'object') {
                 reasons.fluency = this.summarizeFcReason(fc);
@@ -1892,10 +1999,22 @@ ${durationIssues}${suspicious}
         grammar = this.pickBandScore(grammar, lengthFallback);
         pronunciation = this.pickBandScore(pronunciation, pronFallback);
 
-        // 语法错误较多时，防止 GRA 虚高
+        // 对齐真实考官：残缺句很多才压到 ≤5；偶发错误且结构够用仍可 6
         const grammarErrorCount = this.countGrammarErrors(detailed.grammar);
-        if (grammarErrorCount >= 4) grammar = Math.min(grammar, 5);
-        else if (grammarErrorCount >= 2) grammar = Math.min(grammar, 6);
+        const highSeverityGrammar = (detailed.grammar && Array.isArray(detailed.grammar.errors))
+            ? detailed.grammar.errors.filter(e => String(e.severity || '').toLowerCase() === 'high' || e.type === 'sentence_structure').length
+            : 0;
+        if (grammarErrorCount >= 4 || highSeverityGrammar >= 3) grammar = Math.min(grammar, 5);
+        else if (grammarErrorCount >= 3) grammar = Math.min(grammar, 6);
+
+        const qText = (this._evalContext && this._evalContext.q && (this._evalContext.q.q || this._evalContext.q.title)) || '';
+        const examSignals = this.buildExaminerSignals(qText, transcript);
+        // 复述题目：不直接打到 4，但封顶 6（考官：OK for 6，但挡更高）
+        if (examSignals.question_echo) fluency = Math.min(fluency, 6);
+        // 多处中式英语：LR 5（考官明确阈值）
+        if (examSignals.chinglish.length >= 2) vocabulary = Math.min(vocabulary, 5);
+        // 模板/背稿感：发音默认不超过 6
+        if (examSignals.formulaic || examSignals.question_echo) pronunciation = Math.min(pronunciation, 6);
 
         const capped = this.clampScoresForShortAnswer(transcript, {
             fluency, vocabulary, grammar, pronunciation
@@ -1910,6 +2029,15 @@ ${durationIssues}${suspicious}
         reasons.vocabulary = this.resolveDimensionReason('lexical', reasons.vocabulary, transcript, vocabulary);
         reasons.grammar = this.resolveDimensionReason('grammar', reasons.grammar, transcript, grammar);
         reasons.pronunciation = this.resolveDimensionReason('pronunciation', reasons.pronunciation, transcript, pronunciation);
+
+        // 语用层：合并 AI + 本地预检；并写入 problems（若未覆盖）
+        pragmaticIssues = this.mergePragmaticIssues(pragmaticIssues, examSignals, detailed);
+        problems = this.mergeExaminerProblems(problems, examSignals, transcript);
+        // 把 FC naturalness / LR chinglish 补进 detailed（本地检出而 AI 缺失时）
+        detailed.fluency = this.ensureNaturalnessInFc(detailed.fluency, examSignals, pragmaticIssues);
+        detailed.vocabulary = this.ensureChinglishInLr(detailed.vocabulary, examSignals, pragmaticIssues);
+        reasons.fluency = this.appendPragmaticToFcReason(reasons.fluency, pragmaticIssues);
+        reasons.vocabulary = this.appendPragmaticToLrReason(reasons.vocabulary, pragmaticIssues);
         
         strengths = this.filterGroundedList(strengths, transcript);
         weaknesses = this.filterGroundedList(weaknesses, transcript);
@@ -1959,6 +2087,7 @@ ${durationIssues}${suspicious}
             overall,
             reasons,
             detailed,
+            pragmaticIssues,
             strengths,
             weaknesses,
             suggestions,
@@ -1968,6 +2097,147 @@ ${durationIssues}${suspicious}
             tipMeta,
             transcript
         };
+    }
+
+    mergePragmaticIssues(aiPragmatic, examSignals, detailed) {
+        const base = (aiPragmatic && typeof aiPragmatic === 'object') ? { ...aiPragmatic } : {};
+        const nat = detailed && detailed.fluency && detailed.fluency.naturalness;
+        const chFromLr = detailed && detailed.vocabulary && Array.isArray(detailed.vocabulary.chinglish_flags)
+            ? detailed.vocabulary.chinglish_flags : [];
+
+        const repeats = base.repeats_question && typeof base.repeats_question === 'object'
+            ? { ...base.repeats_question } : {};
+        if (examSignals.question_echo || (nat && nat.repeats_question)) {
+            repeats.detected = true;
+            repeats.evidence = repeats.evidence
+                || (nat && nat.repetition_evidence)
+                || examSignals.echo_excerpt
+                || '开场疑似复述题目';
+            repeats.impact = repeats.impact
+                || '考官认为这极不自然；FC 可仍是 6，但会挡住 6.5+';
+            repeats.fix = repeats.fix
+                || '直接作答，不要把题目整句说回去。';
+        } else {
+            repeats.detected = !!repeats.detected;
+            repeats.evidence = repeats.evidence || '';
+            repeats.impact = repeats.impact || '';
+            repeats.fix = repeats.fix || '';
+        }
+
+        const rehearsed = base.sounds_rehearsed && typeof base.sounds_rehearsed === 'object'
+            ? { ...base.sounds_rehearsed } : {};
+        if (examSignals.formulaic || (nat && nat.sounds_rehearsed)) {
+            rehearsed.detected = true;
+            rehearsed.evidence = rehearsed.evidence
+                || (nat && nat.rehearsal_evidence)
+                || (examSignals.formulaic_hits && examSignals.formulaic_hits.join('；'))
+                || '模板/背稿感偏强';
+            rehearsed.impact = rehearsed.impact
+                || '听起来过度准备会拉低自然度，发音项难以上 6.5–7';
+            rehearsed.fix = rehearsed.fix
+                || '减少套句，用真实细节即兴回答；答完后练追问。';
+        } else {
+            rehearsed.detected = !!rehearsed.detected;
+            rehearsed.evidence = rehearsed.evidence || '';
+            rehearsed.impact = rehearsed.impact || '';
+            rehearsed.fix = rehearsed.fix || '';
+        }
+
+        let chinglish = Array.isArray(base.chinglish_expressions) ? base.chinglish_expressions.slice() : [];
+        chFromLr.forEach(f => {
+            if (!f || !f.expression) return;
+            if (!chinglish.some(x => String(x.expression || '').toLowerCase() === String(f.expression).toLowerCase())) {
+                chinglish.push({
+                    expression: f.expression,
+                    intended_meaning: f.likely_intended || f.intended_meaning || '',
+                    natural_alternative: f.natural_alternative || '',
+                    severity: f.severity || 'medium'
+                });
+            }
+        });
+        (examSignals.chinglish || []).forEach(label => {
+            const expr = String(label).split('（')[0].trim();
+            if (!expr) return;
+            if (!chinglish.some(x => String(x.expression || '').toLowerCase().includes(expr.toLowerCase()))) {
+                chinglish.push({
+                    expression: expr,
+                    intended_meaning: '可能来自中文直译',
+                    natural_alternative: '换成地道搭配',
+                    severity: 'medium'
+                });
+            }
+        });
+
+        return {
+            repeats_question: repeats,
+            sounds_rehearsed: rehearsed,
+            chinglish_expressions: chinglish
+        };
+    }
+
+    ensureNaturalnessInFc(fcDetailed, examSignals, pragmatic) {
+        const d = (fcDetailed && typeof fcDetailed === 'object') ? { ...fcDetailed } : {};
+        const nat = (d.naturalness && typeof d.naturalness === 'object') ? { ...d.naturalness } : {};
+        const rq = pragmatic && pragmatic.repeats_question;
+        const sr = pragmatic && pragmatic.sounds_rehearsed;
+        nat.repeats_question = !!(nat.repeats_question || (rq && rq.detected) || examSignals.question_echo);
+        nat.repetition_evidence = nat.repetition_evidence || (rq && rq.evidence) || examSignals.echo_excerpt || '';
+        nat.sounds_rehearsed = !!(nat.sounds_rehearsed || (sr && sr.detected) || examSignals.formulaic);
+        nat.rehearsal_evidence = nat.rehearsal_evidence || (sr && sr.evidence)
+            || ((examSignals.formulaic_hits || []).join('；')) || '';
+        if (!nat.assessment) {
+            if (nat.repeats_question || nat.sounds_rehearsed) {
+                nat.assessment = '流利度或可到 6，但自然度不足：存在复述题目和/或模板感，冲 6.5 需先改掉。';
+            } else {
+                nat.assessment = '未检出明显复述题目或强模板感。';
+            }
+        }
+        d.naturalness = nat;
+        return d;
+    }
+
+    ensureChinglishInLr(lrDetailed, examSignals, pragmatic) {
+        const d = (lrDetailed && typeof lrDetailed === 'object') ? { ...lrDetailed } : {};
+        let flags = Array.isArray(d.chinglish_flags) ? d.chinglish_flags.slice() : [];
+        const fromPrag = (pragmatic && pragmatic.chinglish_expressions) || [];
+        fromPrag.forEach(c => {
+            if (!c || !c.expression) return;
+            if (!flags.some(f => String(f.expression || '').toLowerCase() === String(c.expression).toLowerCase())) {
+                flags.push({
+                    expression: c.expression,
+                    likely_intended: c.intended_meaning || '',
+                    natural_alternative: c.natural_alternative || '',
+                    severity: c.severity || 'medium'
+                });
+            }
+        });
+        d.chinglish_flags = flags;
+        return d;
+    }
+
+    appendPragmaticToFcReason(reason, pragmatic) {
+        let text = String(reason || '').trim();
+        const rq = pragmatic && pragmatic.repeats_question;
+        const sr = pragmatic && pragmatic.sounds_rehearsed;
+        const bits = [];
+        if (rq && rq.detected && !/复述题目|重复问题|echo/i.test(text)) {
+            bits.push('开场有复述题目，自然度不足，FC 可到 6 但难冲更高');
+        }
+        if (sr && sr.detected && !/背稿|模板|rehears/i.test(text)) {
+            bits.push('听起来偏模板/背稿');
+        }
+        if (!bits.length) return text;
+        return text ? (text + ' ' + bits.join('；') + '。') : (bits.join('；') + '。');
+    }
+
+    appendPragmaticToLrReason(reason, pragmatic) {
+        let text = String(reason || '').trim();
+        const ch = (pragmatic && pragmatic.chinglish_expressions) || [];
+        if (!ch.length || /中式英语|chinglish/i.test(text)) return text;
+        const bits = ch.slice(0, 3).map(c => `「${c.expression || ''}」`).filter(x => x !== '「」');
+        if (!bits.length) return text;
+        const note = `中式英语：${bits.join('、')}` + (ch.length >= 2 ? '（多处→LR 倾向 5）' : '');
+        return text ? (text + ' ' + note) : note;
     }
 
     summarizeFcReason(fc) {
@@ -1980,6 +2250,16 @@ ${durationIssues}${suspicious}
             if (fc && fc.coherence_evidence) parts.push(String(fc.coherence_evidence));
             if (da && da.fluency && da.fluency.wpm_assessment) parts.push(String(da.fluency.wpm_assessment));
             if (da && da.coherence && da.coherence.topic_development) parts.push(String(da.coherence.topic_development));
+        }
+        const nat = da && da.naturalness;
+        if (nat) {
+            if (nat.assessment) parts.push(String(nat.assessment));
+            else if (nat.repeats_question || nat.sounds_rehearsed) {
+                const bits = [];
+                if (nat.repeats_question) bits.push('复述题目');
+                if (nat.sounds_rehearsed) bits.push('模板/背稿感');
+                parts.push('自然度：' + bits.join('、'));
+            }
         }
         return parts.filter(Boolean).join(' ');
     }
@@ -1997,6 +2277,14 @@ ${durationIssues}${suspicious}
                 `「${e.wrong || ''}」→「${e.correct || ''}」`
             );
             parts.push('搭配：' + bits.join('；'));
+        }
+        const ch = da && Array.isArray(da.chinglish_flags) ? da.chinglish_flags : [];
+        if (ch.length) {
+            const bits = ch.slice(0, 3).map(f => {
+                const alt = f.natural_alternative ? `→「${f.natural_alternative}」` : '';
+                return `「${f.expression || ''}」${alt}`;
+            });
+            parts.push('中式英语：' + bits.join('；'));
         }
         return parts.filter(Boolean).join(' ');
     }
@@ -2519,7 +2807,7 @@ ${durationIssues}${suspicious}
                 <div class="score-item"><div class="score-label">Pron</div><div class="score-value ${getBandClass(p.pronunciation)}">${p.pronunciation}</div></div>
             </div>
             <div class="band-note" style="margin-top:12px;padding:12px;background:#e7efe9;border-radius:4px;font-size:14px;color:#243029;">
-                <strong>评分说明：</strong>FC/LR/GRA/Pron 为 1–9 整数；总体 = 四项平均后按 .25 进 .5、.75 进整（总分可以是 x.5）。语法从严并单独列出错误清单。发音依据 ASR 间接信号推断，无明显信号默认 6–7。
+                <strong>评分说明：</strong>FC/LR/GRA/Pron 为 1–9 整数；总分可 x.5。已按真实考官习惯校准：少犹豫可 FC6，复述题目会卡住冲高；中式英语多处→LR5；语法结构够用可给6；发音偏模板默认6。语法错误单独列表。
             </div>
             <div class="feedback-section" style="margin-top:14px;">
                 <h4>📌 为什么是这个分数</h4>
@@ -2544,6 +2832,8 @@ ${durationIssues}${suspicious}
             </div>
         `;
         
+        // 语用层（复述题目 / 背稿感 / 中式英语）先于语法与主要问题
+        html += this.renderPragmaticIssuesHTML(p.pragmaticIssues);
         // 语法错误单独置顶展示
         html += this.renderGrammarErrorsHTML(p.detailed && p.detailed.grammar);
         html += this.renderDetailedAnalysisHTML(p.detailed, { skipGrammarErrors: true });
@@ -2588,6 +2878,49 @@ ${durationIssues}${suspicious}
                 </div>
                 ${improvList}
             </div>`;
+        return html;
+    }
+
+    renderPragmaticIssuesHTML(pragmatic) {
+        if (!pragmatic || typeof pragmatic !== 'object') return '';
+        const rq = pragmatic.repeats_question || {};
+        const sr = pragmatic.sounds_rehearsed || {};
+        const ch = Array.isArray(pragmatic.chinglish_expressions) ? pragmatic.chinglish_expressions : [];
+        const hasRq = !!rq.detected;
+        const hasSr = !!sr.detected;
+        const hasCh = ch.length > 0;
+        if (!hasRq && !hasSr && !hasCh) return '';
+
+        let html = `<div class="feedback-section" style="border:1px solid #c5d4c8;background:#f3f7f4;border-radius:6px;padding:12px;">
+            <h4 style="margin:0 0 8px;">🧭 语用问题（冲 6.5 关键卡点）</h4>
+            <p style="margin:0 0 10px;font-size:13px;color:#3a433d;">流利度到 6 仍可能因复述题目、模板感或中式英语卡住更高分。</p>`;
+
+        const card = (title, node) => {
+            if (!node || !node.detected) return '';
+            return `<div style="margin-bottom:10px;padding:8px 10px;background:#fff;border-radius:4px;border-left:3px solid #5a7d6a;">
+                <strong style="font-size:14px;">${title}</strong>
+                ${node.evidence ? `<div style="margin-top:4px;font-size:13px;">证据：${this.escapeHtml(node.evidence)}</div>` : ''}
+                ${node.impact ? `<div style="font-size:13px;">影响：${this.escapeHtml(node.impact)}</div>` : ''}
+                ${node.fix ? `<div style="font-size:13px;">怎么改：${this.escapeHtml(node.fix)}</div>` : ''}
+            </div>`;
+        };
+        html += card('复述题目', rq);
+        html += card('听起来像背稿/模板', sr);
+
+        if (hasCh) {
+            html += `<div style="margin-top:4px;"><strong style="font-size:14px;">中式英语表达</strong>
+                <ul style="margin:6px 0 0;padding-left:18px;font-size:13px;">`;
+            ch.slice(0, 6).forEach(c => {
+                if (!c || typeof c !== 'object') return;
+                const meaning = c.intended_meaning ? `（想说：${this.escapeHtml(c.intended_meaning)}）` : '';
+                const alt = c.natural_alternative
+                    ? ` → 「${this.escapeHtml(c.natural_alternative)}」`
+                    : '';
+                html += `<li>「${this.escapeHtml(c.expression || '')}」${meaning}${alt}</li>`;
+            });
+            html += `</ul></div>`;
+        }
+        html += `</div>`;
         return html;
     }
 
@@ -2655,7 +2988,7 @@ ${durationIssues}${suspicious}
         }
 
         const fc = detailed.fluency;
-        if (fc && typeof fc === 'object' && (fc.summary || fc.fluency || fc.coherence)) {
+        if (fc && typeof fc === 'object' && (fc.summary || fc.fluency || fc.coherence || fc.naturalness)) {
             html += `<div class="feedback-section"><h4>🔎 流利度与连贯详细解析</h4>`;
             if (fc.summary) html += `<p style="margin:0 0 8px;font-size:14px;">${this.escapeHtml(fc.summary)}</p>`;
             const f = fc.fluency || {};
@@ -2667,11 +3000,20 @@ ${durationIssues}${suspicious}
             if (lines.length) {
                 html += `<ul style="margin:0;padding-left:18px;font-size:13px;">${lines.map(x => `<li>${this.escapeHtml(String(x))}</li>`).join('')}</ul>`;
             }
+            const nat = fc.naturalness;
+            if (nat && typeof nat === 'object' && (nat.assessment || nat.repeats_question || nat.sounds_rehearsed)) {
+                html += `<div style="margin-top:10px;padding:8px 10px;background:#eef4f0;border-radius:4px;font-size:13px;">
+                    <strong>自然度</strong>
+                    ${nat.assessment ? `<div style="margin-top:4px;">${this.escapeHtml(String(nat.assessment))}</div>` : ''}
+                    ${nat.repeats_question ? `<div>复述题目：${this.escapeHtml(nat.repetition_evidence || '是')}</div>` : ''}
+                    ${nat.sounds_rehearsed ? `<div>背稿/模板感：${this.escapeHtml(nat.rehearsal_evidence || '是')}</div>` : ''}
+                </div>`;
+            }
             html += `</div>`;
         }
 
         const lr = detailed.vocabulary;
-        if (lr && typeof lr === 'object' && (lr.summary || lr.collocation || lr.vocabulary_diversity)) {
+        if (lr && typeof lr === 'object' && (lr.summary || lr.collocation || lr.vocabulary_diversity || (lr.chinglish_flags && lr.chinglish_flags.length))) {
             html += `<div class="feedback-section"><h4>🔎 词汇详细解析</h4>`;
             if (lr.summary) html += `<p style="margin:0 0 8px;font-size:14px;">${this.escapeHtml(lr.summary)}</p>`;
             const collErr = lr.collocation && Array.isArray(lr.collocation.errors) ? lr.collocation.errors : [];
@@ -2681,6 +3023,13 @@ ${durationIssues}${suspicious}
                 ).join('')}</ul>`;
             } else if (lr.vocabulary_diversity && lr.vocabulary_diversity.assessment) {
                 html += `<p style="margin:0;font-size:13px;">${this.escapeHtml(lr.vocabulary_diversity.assessment)}</p>`;
+            }
+            const chFlags = Array.isArray(lr.chinglish_flags) ? lr.chinglish_flags : [];
+            if (chFlags.length) {
+                html += `<div style="margin-top:10px;font-size:13px;"><strong>中式英语标记</strong>
+                    <ul style="margin:6px 0 0;padding-left:18px;">${chFlags.slice(0, 6).map(f =>
+                        `<li>「${this.escapeHtml(f.expression || '')}」${f.natural_alternative ? '→「' + this.escapeHtml(f.natural_alternative) + '」' : ''}${f.likely_intended ? '（' + this.escapeHtml(f.likely_intended) + '）' : ''}</li>`
+                    ).join('')}</ul></div>`;
             }
             html += `</div>`;
         }
@@ -2887,7 +3236,7 @@ ${durationIssues}${suspicious}
         };
     }
 
-    // 发音兜底：无明显异常信号时默认 7（整数）
+    // 发音兜底：无明显硬伤默认 6（考官校准：弱项也常是 6，勿虚高 7）
     estimatePronunciationScore(transcript) {
         const t = (transcript || '').trim();
         if (!t) return 3;
@@ -2897,8 +3246,50 @@ ${durationIssues}${suspicious}
         const avgSentenceLength = wordCount / sentenceCount;
         if (wordCount < 8) return 4;
         if (avgSentenceLength < 3 || wordCount < 10) return 5;
-        if (avgSentenceLength < 5) return 6;
-        return 7;
+        return 6;
+    }
+
+    mergeExaminerProblems(problems, examSignals, transcript) {
+        const list = Array.isArray(problems) ? problems.slice() : [];
+        const hasTopic = (re) => list.some(p => re.test(String((p && (p.issue || p.how_to_fix)) || '')));
+        const push = (item) => {
+            if (list.length >= 5) return;
+            list.push(item);
+        };
+        if (examSignals.question_echo && !hasTopic(/复述题目|重复.*题目|repeat the question/i)) {
+            push({
+                rank: 1,
+                category: 'fluency',
+                issue: '开场复述题目，听起来极不自然',
+                why_it_matters: '真实考官认为这是 Band 4 学生没话说时的习惯；即使流利度勉强到 6，也会挡住 6.5+',
+                how_to_fix: '直接回答，不要把题目整句说回去。用 Yes/Well/Actually 一带而过即可。',
+                example: examSignals.echo_excerpt
+                    ? `不要说「${examSignals.echo_excerpt}」；直接说自己的观点/经历。`
+                    : 'Q: Have you ever had a pet? → “Yes, I used to have a puppy when I was little.”'
+            });
+        }
+        if (examSignals.chinglish.length >= 1 && !hasTopic(/中式|直译|Chinglish|搭配怪/i)) {
+            push({
+                rank: list.length + 1,
+                category: 'vocabulary',
+                issue: '出现疑似中式英语或怪搭配：' + examSignals.chinglish.slice(0, 3).join('；'),
+                why_it_matters: '考官反馈：此类表达一旦有 2–3 处，词汇分会掉到 5；一段难懂的话也会拉低印象。',
+                how_to_fix: '先想地道英文搭配，不要从中文逐字翻译；说不清就换简单但准确的词。',
+                example: '不要 “honest food”；改说 “homemade / fresh / authentic food”。'
+            });
+        }
+        if ((examSignals.formulaic || examSignals.question_echo) && !hasTopic(/背稿|模板|不自然|over-prepared|套话/i)) {
+            push({
+                rank: list.length + 1,
+                category: 'pronunciation',
+                issue: '回答听起来偏模板/准备过，缺少临场思考感',
+                why_it_matters: '考官把这视为冲 6.5–7 的关键障碍：即使音素尚可，不自然也会让发音项停在 6。',
+                how_to_fix: 'Part 1 也要练即兴：答完后让人追问细节，避免堆模板句。',
+                example: '少用整段套句；用自己真实细节把句子说短、说自然。'
+            });
+        }
+        // 重新编号
+        return list.slice(0, 5).map((p, i) => ({ ...p, rank: i + 1 }));
     }
     
     // 简单 Markdown 解析
