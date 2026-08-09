@@ -116,6 +116,10 @@ class P1Practice {
         this.currentInterim = '';
         this.lastAsrResult = null;
         this.lastRecordingDurationS = 0;
+        // 按题目缓存练习结果（切换题目时保留，再点回来可看）
+        this.questionSessions = Object.create(null);
+        this._loadedQuestionKey = null;
+        this._recordingQuestionKey = null;
         this.apiKey = localStorage.getItem('global_deepseek_key') || localStorage.getItem('deepseek_api_key') || '';
         this.aiBaseUrl = 'https://api.deepseek.com';
         this.aiModel = 'deepseek-v4-flash';
@@ -296,12 +300,137 @@ class P1Practice {
         });
     }
     
+    currentQuestionKey(catIndex = this.currentCategoryIndex, qIndex = this.currentQuestionIndex) {
+        const cat = this.data.categories[catIndex];
+        const q = cat && cat.questions[qIndex];
+        if (!cat || !q) return null;
+        return `${catIndex}-${q.id}`;
+    }
+
+    setPracticeButtonMode(mode) {
+        const btn = document.getElementById('startRecordBtn');
+        if (!btn) return;
+        if (mode === 'recording') {
+            btn.innerHTML = '<span>⏹️</span> 停止';
+            btn.style.background = '#ef4444';
+            return;
+        }
+        btn.style.background = '';
+        if (mode === 'again') {
+            btn.innerHTML = '<span>🎙️</span> 再练一次';
+        } else {
+            btn.innerHTML = '<span>🎙️</span> 开始练习';
+        }
+    }
+
+    // 把当前页上的练习结果写入缓存（切换题目前调用）
+    persistLoadedQuestionSession() {
+        const key = this._loadedQuestionKey;
+        if (!key || this.isRecording) return;
+        const transcript = String(this.transcript || '').trim();
+        const aiHtml = (document.getElementById('resultContent')?.innerHTML || '').trim();
+        const feedbackText = (document.getElementById('feedbackContent')?.textContent || '').trim();
+        if (!transcript && !aiHtml && !feedbackText) return;
+
+        const usedChips = Array.from(document.querySelectorAll('.word-chip.used'))
+            .map(el => (el.getAttribute('data-word') || el.textContent || '').trim())
+            .filter(Boolean);
+        const aiResultEl = document.getElementById('aiResult');
+        const feedbackEl = document.getElementById('feedbackArea');
+        const statusEl = document.getElementById('recordingStatus');
+        this.questionSessions[key] = {
+            transcript,
+            lastAsrResult: this.lastAsrResult,
+            lastRecordingDurationS: this.lastRecordingDurationS || 0,
+            usedChips,
+            feedbackText,
+            feedbackVisible: !!(feedbackEl && feedbackEl.style.display !== 'none' && feedbackText),
+            aiHtml,
+            aiVisible: !!(aiResultEl && aiResultEl.style.display !== 'none' && aiHtml),
+            statusVisible: !!(statusEl && statusEl.style.display !== 'none' && transcript),
+            statusText: document.getElementById('statusIndicator')?.textContent || '✅ 识别完成',
+            aiEvaluateEnabled: transcript.length > 5
+        };
+    }
+
+    applyQuestionSession(session) {
+        if (!session) return;
+        this.transcript = session.transcript || '';
+        this.currentInterim = '';
+        this.lastAsrResult = session.lastAsrResult || null;
+        this.lastRecordingDurationS = session.lastRecordingDurationS || 0;
+
+        const chipSet = new Set((session.usedChips || []).map(x => String(x).toLowerCase()));
+        document.querySelectorAll('.word-chip').forEach(chip => {
+            const word = (chip.getAttribute('data-word') || chip.textContent || '').trim();
+            chip.classList.toggle('used', chipSet.has(word.toLowerCase()));
+        });
+        if (this.transcript) this.syncWordChipsWithTranscript(this.transcript);
+
+        const statusEl = document.getElementById('recordingStatus');
+        const statusInd = document.getElementById('statusIndicator');
+        const preview = document.getElementById('transcriptPreview');
+        if (statusEl) {
+            statusEl.style.display = (session.statusVisible || !!this.transcript) ? 'block' : 'none';
+        }
+        if (statusInd) statusInd.textContent = session.statusText || (this.transcript ? '✅ 识别完成' : '');
+        if (preview) preview.textContent = this.transcript || '';
+
+        const aiBtn = document.getElementById('aiEvaluateBtn');
+        if (aiBtn) aiBtn.disabled = !(session.aiEvaluateEnabled || this.transcript.length > 5);
+
+        if (session.feedbackVisible || this.transcript) {
+            this.showFeedback();
+        } else {
+            const feedbackArea = document.getElementById('feedbackArea');
+            if (feedbackArea) feedbackArea.style.display = 'none';
+        }
+
+        const aiResult = document.getElementById('aiResult');
+        const loadingDiv = document.getElementById('aiLoading');
+        const contentDiv = document.getElementById('resultContent');
+        if (aiResult && contentDiv) {
+            if (session.aiHtml) {
+                contentDiv.innerHTML = session.aiHtml;
+                aiResult.style.display = 'block';
+                if (loadingDiv) loadingDiv.style.display = 'none';
+            } else {
+                contentDiv.innerHTML = '';
+                aiResult.style.display = 'none';
+            }
+        }
+
+        this.setPracticeButtonMode(this.transcript || session.aiHtml ? 'again' : 'start');
+    }
+
+    resetPracticeUiForFreshQuestion() {
+        this.transcript = '';
+        this.currentInterim = '';
+        this.lastAsrResult = null;
+        this.lastRecordingDurationS = 0;
+        this.setPracticeButtonMode('start');
+        const aiBtn = document.getElementById('aiEvaluateBtn');
+        if (aiBtn) aiBtn.disabled = true;
+        const feedbackArea = document.getElementById('feedbackArea');
+        if (feedbackArea) feedbackArea.style.display = 'none';
+        const aiResult = document.getElementById('aiResult');
+        if (aiResult) aiResult.style.display = 'none';
+        const contentDiv = document.getElementById('resultContent');
+        if (contentDiv) contentDiv.innerHTML = '';
+        const statusEl = document.getElementById('recordingStatus');
+        if (statusEl) statusEl.style.display = 'none';
+        const preview = document.getElementById('transcriptPreview');
+        if (preview) preview.textContent = '';
+    }
+
     // 选择题目
     selectQuestion(catIndex, qId) {
         const cat = this.data.categories[catIndex];
         if (!cat) return;
         const qIndex = cat.questions.findIndex(q => Number(q.id) === Number(qId));
         if (qIndex < 0) return;
+
+        if (this.isRecording) this.stopRecording();
         
         this.currentCategoryIndex = catIndex;
         this.currentQuestionIndex = qIndex;
@@ -315,13 +444,13 @@ class P1Practice {
         const cat = this.data.categories[this.currentCategoryIndex];
         const q = cat && cat.questions[this.currentQuestionIndex];
         if (!cat || !q) return;
+
+        // 切换前先保存上一题结果
+        this.persistLoadedQuestionSession();
         
         document.getElementById('emptyState').style.display = 'none';
         document.getElementById('practiceCard').style.display = 'block';
-        document.getElementById('feedbackArea').style.display = 'none';
         document.getElementById('aiSection').style.display = 'block';
-        document.getElementById('aiResult').style.display = 'none';
-        document.getElementById('recordingStatus').style.display = 'none';
         
         document.getElementById('currentCategory').textContent = cat.name;
         // 只保留大字题目（完整题干）
@@ -364,14 +493,17 @@ class P1Practice {
                 e.currentTarget.classList.toggle('used');
             });
         });
-        
-        // 重置录音状态
-        this.transcript = '';
-        this.currentInterim = '';
+
+        const key = this.currentQuestionKey();
+        this._loadedQuestionKey = key;
         this.isRecording = false;
-        document.getElementById('startRecordBtn').innerHTML = '<span>🎙️</span> 开始练习';
-        document.getElementById('startRecordBtn').style.background = '';
-        document.getElementById('aiEvaluateBtn').disabled = true;
+
+        const cached = key ? this.questionSessions[key] : null;
+        if (cached && (cached.transcript || cached.aiHtml)) {
+            this.applyQuestionSession(cached);
+        } else {
+            this.resetPracticeUiForFreshQuestion();
+        }
     }
 
     getComplexFrame(cat, stepIndex) {
@@ -430,6 +562,7 @@ class P1Practice {
     
     // 下一题
     nextQuestion() {
+        if (this.isRecording) this.stopRecording();
         // 若本题已录音则已计入；未录音点下一题不计入已练
         this.saveToStorage();
         this.updateProgress();
@@ -877,7 +1010,6 @@ class P1Practice {
     
     async startRecording() {
         this.stopSpeakQuestion();
-        const btn = document.getElementById('startRecordBtn');
         try {
             this.recordingStream = await navigator.mediaDevices.getUserMedia({
                 audio: {
@@ -886,11 +1018,14 @@ class P1Practice {
                     autoGainControl: true
                 }
             });
-            
+
+            // 再练一次：清空当前题展示，结果会在新识别完成后覆盖缓存
+            this._recordingQuestionKey = this.currentQuestionKey();
             this.recordedChunks = [];
             this.recordingBlob = null;
             this.transcript = '';
             this.currentInterim = '';
+            this.lastAsrResult = null;
             
             const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
                 ? 'audio/webm;codecs=opus'
@@ -918,17 +1053,15 @@ class P1Practice {
             this.recordingStartedAt = Date.now();
             this.mediaRecorder.start(200);
             
-            btn.innerHTML = '<span>⏹️</span> 停止';
-            btn.style.background = '#ef4444';
+            this.setPracticeButtonMode('recording');
             document.getElementById('recordingStatus').style.display = 'block';
             document.getElementById('statusIndicator').textContent = '🎙️ 正在录音... 请说英语';
             document.getElementById('transcriptPreview').textContent = '（录音中，停止后上传 P4 识别）';
             document.getElementById('aiEvaluateBtn').disabled = true;
             document.getElementById('feedbackArea').style.display = 'none';
             document.getElementById('aiResult').style.display = 'none';
-            this.lastAsrResult = null;
-            this.transcript = '';
-            this.currentInterim = '';
+            const contentDiv = document.getElementById('resultContent');
+            if (contentDiv) contentDiv.innerHTML = '';
         } catch (err) {
             console.error('录音失败:', err);
             alert('无法访问麦克风，请检查浏览器权限设置');
@@ -956,9 +1089,8 @@ class P1Practice {
             this.recordingStartedAt = null;
         }
         
-        const btn = document.getElementById('startRecordBtn');
-        btn.innerHTML = '<span>🎙️</span> 开始练习';
-        btn.style.background = '';
+        // 练完后按钮改为「再练一次」（识别中也保持此文案）
+        this.setPracticeButtonMode('again');
         
         document.getElementById('statusIndicator').textContent = '⏳ 录音结束，正在上传识别...';
         document.getElementById('transcriptPreview').textContent = '上传到 P4 ASR，请稍候...';
@@ -1022,20 +1154,46 @@ class P1Practice {
                 const data = await res.json();
                 if (data && data.error) throw new Error(data.error);
                 
+                const transcript = (data.recognizedText || data.text || data.transcript || '').trim();
                 this.lastAsrResult = data;
-                this.transcript = (data.recognizedText || data.text || data.transcript || '').trim();
                 this.currentInterim = '';
                 this.isTranscribing = false;
+
+                const targetKey = this._recordingQuestionKey || this.currentQuestionKey();
+                const viewingSame = targetKey && targetKey === this.currentQuestionKey();
+                if (viewingSame) {
+                    this.transcript = transcript;
+                }
+
+                // 无论是否已切题，都把结果写入对应题目缓存
+                if (targetKey) {
+                    const prev = this.questionSessions[targetKey] || {};
+                    this.questionSessions[targetKey] = {
+                        ...prev,
+                        transcript,
+                        lastAsrResult: data,
+                        lastRecordingDurationS: this.lastRecordingDurationS || prev.lastRecordingDurationS || 0,
+                        feedbackVisible: transcript.length > 5,
+                        statusVisible: true,
+                        statusText: transcript.length > 5 ? '✅ 识别完成' : '⚠️ 未识别到有效内容，请重试',
+                        aiEvaluateEnabled: transcript.length > 5,
+                        // 再练覆盖旧评分
+                        aiHtml: '',
+                        aiVisible: false
+                    };
+                }
                 
                 console.log('P4 ASR 识别结果:', data);
-                document.getElementById('statusIndicator').textContent = '✅ 识别完成';
-                document.getElementById('transcriptPreview').textContent = this.transcript || '（未识别到文字）';
-                
-                if (this.transcript.length > 5) {
-                    document.getElementById('aiEvaluateBtn').disabled = false;
-                    this.showFeedback();
-                } else {
-                    document.getElementById('statusIndicator').textContent = '⚠️ 未识别到有效内容，请重试';
+                if (viewingSame) {
+                    document.getElementById('statusIndicator').textContent =
+                        transcript.length > 5 ? '✅ 识别完成' : '⚠️ 未识别到有效内容，请重试';
+                    document.getElementById('transcriptPreview').textContent = transcript || '（未识别到文字）';
+                    this.setPracticeButtonMode('again');
+                    if (transcript.length > 5) {
+                        document.getElementById('aiEvaluateBtn').disabled = false;
+                        this.showFeedback();
+                        this.persistLoadedQuestionSession();
+                    }
                 }
                 return;
             } catch (err) {
@@ -1045,10 +1203,14 @@ class P1Practice {
         }
         
         this.isTranscribing = false;
-        document.getElementById('statusIndicator').textContent = '❌ 识别失败';
-        document.getElementById('transcriptPreview').textContent = lastError
-            ? String(lastError.message || lastError)
-            : '请确认主站 P4 ASR 服务可用';
+        const viewingSame = !this._recordingQuestionKey || this._recordingQuestionKey === this.currentQuestionKey();
+        if (viewingSame) {
+            document.getElementById('statusIndicator').textContent = '❌ 识别失败';
+            document.getElementById('transcriptPreview').textContent = lastError
+                ? String(lastError.message || lastError)
+                : '请确认主站 P4 ASR 服务可用';
+            this.setPracticeButtonMode('again');
+        }
         alert('语音识别失败：' + (lastError && lastError.message ? lastError.message : '未知错误') +
               '\n请用主站服务打开页面（带 /api/p4/transcribe 代理），或确认 p4.oyenglish.com.cn 可访问。');
     }
@@ -1056,11 +1218,10 @@ class P1Practice {
     resetRecordingUI() {
         this.isRecording = false;
         this.isTranscribing = false;
-        const btn = document.getElementById('startRecordBtn');
-        if (btn) {
-            btn.innerHTML = '<span>🎙️</span> 开始练习';
-            btn.style.background = '';
-        }
+        const hasResult = !!(this.transcript && this.transcript.trim())
+            || !!(this._loadedQuestionKey && this.questionSessions[this._loadedQuestionKey]
+                && this.questionSessions[this._loadedQuestionKey].transcript);
+        this.setPracticeButtonMode(hasResult ? 'again' : 'start');
         if (this.recordingStream) {
             this.recordingStream.getTracks().forEach(t => t.stop());
             this.recordingStream = null;
@@ -1174,7 +1335,8 @@ class P1Practice {
         
         const cat = this.data.categories[this.currentCategoryIndex];
         const q = cat.questions[this.currentQuestionIndex];
-        this._evalContext = { cat, q };
+        const evalKey = this.currentQuestionKey();
+        this._evalContext = { cat, q, key: evalKey };
         
         const metrics = this.extractSpeakingMetrics(
             fullTranscript,
@@ -1232,17 +1394,19 @@ class P1Practice {
             }
             
             loadingDiv.style.display = 'none';
-            this.renderAIResult(aiResponse);
+            this.renderAIResult(aiResponse, evalKey);
             
         } catch (error) {
             loadingDiv.style.display = 'none';
-            contentDiv.innerHTML = `
-                <div class="feedback-section">
-                    <h4>❌ 评分失败</h4>
-                    <p class="feedback-text">${error.message}</p>
-                    <p class="feedback-text">请检查 API Key 是否正确，或稍后重试。</p>
-                </div>
-            `;
+            if (evalKey === this.currentQuestionKey()) {
+                contentDiv.innerHTML = `
+                    <div class="feedback-section">
+                        <h4>❌ 评分失败</h4>
+                        <p class="feedback-text">${error.message}</p>
+                        <p class="feedback-text">请检查 API Key 是否正确，或稍后重试。</p>
+                    </div>
+                `;
+            }
         }
     }
     
@@ -1809,11 +1973,33 @@ FC 必须含 naturalness；LR 必须含 chinglish_flags；语法 errors 单独�
     }
     
     // 渲染 AI 评分结果（优先 JSON）
-    renderAIResult(aiResponse) {
-        const contentDiv = document.getElementById('resultContent');
+    renderAIResult(aiResponse, evalKey = null) {
         const parsed = this.parseAIEvaluation(aiResponse);
-        contentDiv.innerHTML = this.renderScoreHTML(parsed);
+        const html = this.renderScoreHTML(parsed);
+        const key = evalKey || this.currentQuestionKey();
+        if (key) {
+            const prev = this.questionSessions[key] || {};
+            this.questionSessions[key] = {
+                ...prev,
+                transcript: parsed.transcript || prev.transcript || this.transcript || '',
+                aiHtml: html,
+                aiVisible: true,
+                aiEvaluateEnabled: true,
+                feedbackVisible: true
+            };
+        }
+        // 已切到别的题：只写入缓存，不覆盖当前页
+        if (key && key !== this.currentQuestionKey()) {
+            this.reportScoreToParent(parsed);
+            return;
+        }
+        const contentDiv = document.getElementById('resultContent');
+        const resultDiv = document.getElementById('aiResult');
+        if (contentDiv) contentDiv.innerHTML = html;
+        if (resultDiv) resultDiv.style.display = 'block';
         this.reportScoreToParent(parsed);
+        this.setPracticeButtonMode('again');
+        this.persistLoadedQuestionSession();
     }
 
     reportScoreToParent(parsed) {
