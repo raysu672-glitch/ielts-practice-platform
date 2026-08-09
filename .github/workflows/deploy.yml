@@ -1,0 +1,56 @@
+name: Deploy to Aliyun
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-aliyun
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install deploy dependencies
+        run: pip install -r requirements.txt
+
+      - name: Prepare SSH key
+        env:
+          DEPLOY_KEY: ${{ secrets.IELTS_DEPLOY_KEY }}
+        run: |
+          if [ -z "$DEPLOY_KEY" ]; then
+            echo "Missing GitHub secret IELTS_DEPLOY_KEY" >&2
+            exit 1
+          fi
+          install -d -m 700 "$HOME/.ssh"
+          printf '%s\n' "$DEPLOY_KEY" | tr -d '\r' > "$HOME/.ssh/ielts_deploy.pem"
+          chmod 600 "$HOME/.ssh/ielts_deploy.pem"
+
+      - name: Deploy to Aliyun
+        env:
+          IELTS_DEPLOY_HOST: ${{ secrets.IELTS_DEPLOY_HOST }}
+          IELTS_DEPLOY_PORT: ${{ secrets.IELTS_DEPLOY_PORT }}
+          IELTS_DEPLOY_USER: ${{ secrets.IELTS_DEPLOY_USER }}
+          IELTS_DEPLOY_DOMAIN: ${{ secrets.IELTS_DEPLOY_DOMAIN }}
+        run: |
+          if [ -z "$IELTS_DEPLOY_HOST" ]; then
+            echo "Missing GitHub secret IELTS_DEPLOY_HOST" >&2
+            exit 1
+          fi
+          export IELTS_DEPLOY_KEY="$HOME/.ssh/ielts_deploy.pem"
+          export IELTS_DEPLOY_USER="${IELTS_DEPLOY_USER:-root}"
+          export IELTS_DEPLOY_PORT="${IELTS_DEPLOY_PORT:-22}"
+          export IELTS_DEPLOY_DOMAIN="${IELTS_DEPLOY_DOMAIN:-training.oyenglish.com.cn}"
+          python scripts/deploy.py --setup-writing-venv

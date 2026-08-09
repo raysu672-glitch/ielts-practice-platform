@@ -2,6 +2,40 @@
 
 本文档记录新仓库推送、服务器覆盖部署、备份和回滚方式。不要把 GitHub Token、服务器密码、SSH 私钥写入仓库文件。
 
+## 发布流程（强制）
+
+功能改动一律按下面顺序，**禁止跳步，禁止先改阿里云再回写本地**：
+
+1. **本地先改**：在本地仓库完成修改与验证  
+2. **合并到 `main` 并 push**：`git push origin main`（或 PR 合并后由 GitHub 推送）  
+3. **自动部署到阿里云**：push 到 `main` 后，GitHub Actions 会自动运行 `scripts/deploy.py`
+
+也可在仓库 **Actions → Deploy to Aliyun → Run workflow** 手动触发。
+
+本地紧急热修仍可用 `python scripts/deploy.py`，但事后必须立刻补 commit 并 push 到 `main`，保证 GitHub 与线上一致。不要直接在服务器上改业务代码。
+
+### GitHub Actions 自动部署（一次性配置）
+
+在 GitHub 仓库 **Settings → Secrets and variables → Actions** 中新增：
+
+| Secret | 必填 | 说明 |
+|---|---|---|
+| `IELTS_DEPLOY_HOST` | 是 | 服务器公网 IP 或域名 |
+| `IELTS_DEPLOY_KEY` | 是 | SSH 私钥全文（含 `BEGIN`/`END` 行） |
+| `IELTS_DEPLOY_USER` | 否 | 默认 `root` |
+| `IELTS_DEPLOY_PORT` | 否 | 默认 `22` |
+| `IELTS_DEPLOY_DOMAIN` | 否 | 默认 `training.oyenglish.com.cn` |
+
+用 GitHub CLI 一次性写入示例（PowerShell）：
+
+```powershell
+gh secret set IELTS_DEPLOY_HOST --body "你的服务器IP"
+gh secret set IELTS_DEPLOY_USER --body "root"
+gh secret set IELTS_DEPLOY_KEY < "d:\Download\雅思训练.pem"
+```
+
+自动部署**不会**覆盖线上 `data/*.db`、`config/ai.env` 与音频文件。更换 AI Key 仍需本机执行：`python scripts/deploy.py --sync-ai-env`。
+
 ## GitHub 推送
 
 | 项目 | 说明 |
@@ -77,7 +111,7 @@ python scripts/deploy.py --include-data
 
 | 本地路径 | 线上对应路径 | 说明 |
 |---|---|---|
-| `sources/tinglidanciceshi/audio/` | `/var/www/ielts/sources/tinglidanciceshi/audio/` | 听力1000词单词音频 |
+| `sources/tinglidanciceshi/audio/` | `/var/www/ielts/sources/tinglidanciceshi/audio/` | 听力1000词（`words/`）与听力基础词汇（`basic_words/`）音频 |
 | `sources/daanjutingxie/A听力答案句/` | `/var/www/ielts/sources/daanjutingxie/A听力答案句/` | 答案句听写音频 |
 | `sources/P4gendu/C4T1S4.mp3` | `/var/www/ielts/sources/P4gendu/C4T1S4.mp3` | P4 跟读学习音频 |
 | `sources/P4genduceshi/C4T1S4.mp3` | `/var/www/ielts/sources/P4genduceshi/C4T1S4.mp3` | P4 跟读测试音频 |
