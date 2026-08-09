@@ -145,12 +145,13 @@ CREATE TABLE IF NOT EXISTS word_mastery (
 CREATE TABLE IF NOT EXISTS wrong_words (
     id SERIAL PRIMARY KEY,
     student_id TEXT NOT NULL REFERENCES students(student_id),
+    module_type TEXT NOT NULL DEFAULT 'dictation',
     word TEXT NOT NULL,
     wrong_count INTEGER DEFAULT 1,
     correct_streak INTEGER DEFAULT 0,
     last_tested TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     is_mastered BOOLEAN DEFAULT FALSE,
-    UNIQUE(student_id, word)
+    UNIQUE(student_id, module_type, word)
 );
 
 -- 6. 创建索引
@@ -193,6 +194,7 @@ CREATE POLICY "Allow all operations on word_mastery" ON word_mastery FOR ALL USI
 
 -- 9. 全模块默认达标线
 INSERT INTO pass_standards (module_type, module_name, score_6, score_6_5, score_7) VALUES
+('listening_basic', '听力基础词汇', 70, 80, 90),
 ('reading_synonym', '阅读同义替换', 70, 80, 90),
 ('writing_phrase', '写作词伙', 50, 70, 90),
 ('sentence', '长难句分析', 60, 80, 80),

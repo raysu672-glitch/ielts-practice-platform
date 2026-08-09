@@ -58,6 +58,45 @@ def connect(db_path: Path) -> sqlite3.Connection:
     return conn
 
 
+def migrate_wrong_words_module_type(conn: sqlite3.Connection) -> None:
+    """Ensure wrong_words is scoped by module_type for parallel dictation banks."""
+    row = conn.execute(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name='wrong_words'"
+    ).fetchone()
+    if not row:
+        return
+    columns = [r[1] for r in conn.execute("PRAGMA table_info(wrong_words)").fetchall()]
+    if "module_type" in columns:
+        return
+    conn.executescript(
+        f"""
+        ALTER TABLE wrong_words RENAME TO wrong_words_legacy;
+        CREATE TABLE wrong_words (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            student_id TEXT NOT NULL REFERENCES students(student_id),
+            module_type TEXT NOT NULL DEFAULT 'dictation',
+            word TEXT NOT NULL,
+            wrong_count INTEGER DEFAULT 1,
+            correct_streak INTEGER DEFAULT 0,
+            last_tested TEXT DEFAULT ({now_sql()}),
+            is_mastered INTEGER DEFAULT 0,
+            UNIQUE(student_id, module_type, word)
+        );
+        INSERT INTO wrong_words (
+            id, student_id, module_type, word, wrong_count,
+            correct_streak, last_tested, is_mastered
+        )
+        SELECT
+            id, student_id, 'dictation', word, wrong_count,
+            correct_streak, last_tested, is_mastered
+        FROM wrong_words_legacy;
+        DROP TABLE wrong_words_legacy;
+        CREATE INDEX IF NOT EXISTS idx_wrong_words_student_id ON wrong_words(student_id);
+        CREATE INDEX IF NOT EXISTS idx_wrong_words_module_type ON wrong_words(module_type);
+        """
+    )
+
+
 def init_db(db_path: Path) -> None:
     db_path.parent.mkdir(parents=True, exist_ok=True)
     with closing(connect(db_path)) as conn:
@@ -148,12 +187,13 @@ def init_db(db_path: Path) -> None:
             CREATE TABLE IF NOT EXISTS wrong_words (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 student_id TEXT NOT NULL REFERENCES students(student_id),
+                module_type TEXT NOT NULL DEFAULT 'dictation',
                 word TEXT NOT NULL,
                 wrong_count INTEGER DEFAULT 1,
                 correct_streak INTEGER DEFAULT 0,
                 last_tested TEXT DEFAULT ({now_sql()}),
                 is_mastered INTEGER DEFAULT 0,
-                UNIQUE(student_id, word)
+                UNIQUE(student_id, module_type, word)
             );
 
             CREATE INDEX IF NOT EXISTS idx_test_records_student_id ON test_records(student_id);
@@ -167,6 +207,12 @@ def init_db(db_path: Path) -> None:
             """
         )
 
+        # Existing DBs may still lack module_type; migrate before indexing that column.
+        migrate_wrong_words_module_type(conn)
+        conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_wrong_words_module_type ON wrong_words(module_type)"
+        )
+
         conn.execute(
             """
             INSERT INTO teacher_config (id, access_password, school_name)
@@ -177,6 +223,7 @@ def init_db(db_path: Path) -> None:
 
         standards = [
             ("dictation", "听力1000词", 70, 80, 90),
+            ("listening_basic", "听力基础词汇", 70, 80, 90),
             ("reading_synonym", "阅读同义替换", 70, 80, 90),
             ("writing_phrase", "写作词伙", 50, 70, 90),
             ("sentence", "长难句分析", 60, 80, 80),

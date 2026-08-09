@@ -1,8 +1,12 @@
 """
-批量生成雅思听力1000词的 TTS 音频文件
+批量生成听力单词 TTS 音频文件
 使用 edge-tts，声音：en-GB-SoniaNeural（英式英语，适合雅思初级学习）
-输出目录：sources/tinglidanciceshi/audio/words/
+
+默认：听力1000词 → sources/tinglidanciceshi/audio/words/
+可选：python scripts/gen_tts_words.py --basic
+      → 听力基础词汇 → sources/tinglidanciceshi/audio/basic_words/
 """
+import argparse
 import asyncio
 import json
 import re
@@ -48,21 +52,22 @@ async def generate_one(word: str, out_path: Path, semaphore: asyncio.Semaphore) 
             return False
 
 
-async def main():
+async def main(html_file: Path, out_dir: Path) -> None:
+    manifest_file = out_dir / "_manifest.json"
     # 提取词汇
-    print(f"Reading words from: {HTML_FILE}")
-    words = extract_words(HTML_FILE)
+    print(f"Reading words from: {html_file}")
+    words = extract_words(html_file)
     print(f"Total words: {len(words)}")
 
-    OUT_DIR.mkdir(parents=True, exist_ok=True)
+    out_dir.mkdir(parents=True, exist_ok=True)
 
     # 读取已有 manifest，跳过已完成的
-    if MANIFEST_FILE.exists():
-        done = set(json.loads(MANIFEST_FILE.read_text(encoding="utf-8")))
+    if manifest_file.exists():
+        done = set(json.loads(manifest_file.read_text(encoding="utf-8")))
     else:
         done = set()
 
-    pending = [(w, OUT_DIR / f"{w}.mp3") for w in words if w not in done]
+    pending = [(w, out_dir / f"{w}.mp3") for w in words if w not in done]
     print(f"Already done: {len(done)}, Pending: {len(pending)}")
 
     if not pending:
@@ -85,16 +90,29 @@ async def main():
             success += 1
         # 每 50 个保存一次 manifest
         if (i + 1) % 50 == 0:
-            MANIFEST_FILE.write_text(json.dumps(sorted(done)), encoding="utf-8")
+            manifest_file.write_text(json.dumps(sorted(done)), encoding="utf-8")
             print(f"  Progress: {i+1}/{total} ({success} OK)", flush=True)
 
     # 最终保存
-    MANIFEST_FILE.write_text(json.dumps(sorted(done)), encoding="utf-8")
+    manifest_file.write_text(json.dumps(sorted(done)), encoding="utf-8")
     print(f"\nDone: {success}/{total} succeeded")
-    print(f"Output: {OUT_DIR}")
+    print(f"Output: {out_dir}")
     if total - success > 0:
         print(f"Failed: {total - success} words. Re-run script to retry.")
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    parser = argparse.ArgumentParser(description="Generate listening vocabulary TTS audio")
+    parser.add_argument(
+        "--basic",
+        action="store_true",
+        help="Generate 听力基础词汇 audio into audio/basic_words/",
+    )
+    args = parser.parse_args()
+    if args.basic:
+        html_file = BASE_DIR / "sources" / "tinglidanciceshi" / "listening_basic.html"
+        out_dir = BASE_DIR / "sources" / "tinglidanciceshi" / "audio" / "basic_words"
+    else:
+        html_file = HTML_FILE
+        out_dir = OUT_DIR
+    asyncio.run(main(html_file, out_dir))
