@@ -53,4 +53,4 @@ jobs:
           export IELTS_DEPLOY_USER="${IELTS_DEPLOY_USER:-root}"
           export IELTS_DEPLOY_PORT="${IELTS_DEPLOY_PORT:-22}"
           export IELTS_DEPLOY_DOMAIN="${IELTS_DEPLOY_DOMAIN:-training.oyenglish.com.cn}"
-          python scripts/deploy.py --setup-writing-venv
+          python scripts/deploy.py
