@@ -542,8 +542,8 @@
         }
 
         // ==================== 音频播放 ====================
-        // 本地 TTS 音频目录（edge-tts 生成的 MP3）
-        const LOCAL_AUDIO_BASE = 'audio/basic_words/';
+        // 本地 MP3 音频目录（仅使用本地文件，不走在线 TTS）
+        const LOCAL_AUDIO_BASE = '/tinglidanciceshi/audio/basic_words/';
 
         // 当前播放中的 Audio 实例
         let _currentWordAudio = null;
@@ -558,40 +558,16 @@
                 speechSynthesis.cancel();
             }
 
-            // 优先使用本地 MP3（edge-tts 生成）
             const localPath = LOCAL_AUDIO_BASE + encodeURIComponent(word) + '.mp3';
             const audio = new Audio(localPath);
             _currentWordAudio = audio;
-            audio.play().then(() => {
-                // 本地 MP3 播放成功
-            }).catch(() => {
-                // 本地文件不存在或加载失败，降级到浏览器 TTS
+            audio.onerror = function() {
                 _currentWordAudio = null;
-                _playWordFallback(word);
-            });
-        }
-
-        function _playWordFallback(word) {
-            // 降级1：Web Speech API（浏览器内置）
-            if ('speechSynthesis' in window) {
-                const utterance = new SpeechSynthesisUtterance(word);
-                utterance.lang = 'en-GB';
-                utterance.rate = 0.85;
-                utterance.pitch = 1.0;
-                speechSynthesis.speak(utterance);
-                return;
-            }
-            // 降级2：有道 TTS（需要联网）
-            const audio = new Audio('https://dict.youdao.com/dictvoice?audio=' + encodeURIComponent(word) + '&type=2');
-            audio.play().catch(() => {
-                showToast('音频播放失败，请检查网络连接');
-            });
-        }
-
-        function playYoudaoTTS(word) {
-            const audio = new Audio('https://dict.youdao.com/dictvoice?audio=' + encodeURIComponent(word) + '&type=2');
-            audio.play().catch(e => {
-                showToast('音频播放失败，请检查网络连接');
+                showToast('本地音频缺失：' + word);
+            };
+            audio.play().catch(function() {
+                _currentWordAudio = null;
+                showToast('音频播放失败：' + word);
             });
         }
 
