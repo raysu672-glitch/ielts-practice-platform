@@ -46,6 +46,7 @@
 | 模块 | `module_type` | 学习页 | 测试页 |
 |---|---|---|---|
 | 听力1000词 | `dictation` | `tinglidanciceshi/listening.html` | 主站内置测试 |
+| 听力基础词汇 | `listening_basic` | `tinglidanciceshi/listening_basic.html` | 主站内置测试（同听力1000词逻辑） |
 | 阅读同义替换 | `reading_synonym` | `tongyitihuan/index.html` | `tongyitihuanceshi/index.html` |
 | 写作词伙 | `writing_phrase` | `xiezuocihuo/index.html` | `xiezuocihuoceshi/index.html` |
 | 长难句分析 | `sentence` | `changnanju/index.html` | `changnanjuceshi/index.html` |

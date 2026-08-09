@@ -21,6 +21,7 @@
 | 模块 | 目录 | 类型 | 维护文档 |
 |---|---|---|---|
 | 听力1000词 | `sources/tinglidanciceshi/` | 主站、学生端、教师端、学习、测试 | `sources/tinglidanciceshi/README.md` |
+| 听力基础词汇 | `sources/tinglidanciceshi/` | 与听力1000词同逻辑的学习/测试（词库不同） | `sources/tinglidanciceshi/README.md` |
 | 阅读同义替换学习 | `sources/tongyitihuan/` | 学习 | `sources/tongyitihuan/README.md` |
 | 阅读同义替换测试 | `sources/tongyitihuanceshi/` | 测试 | `sources/tongyitihuanceshi/README.md` |
 | 写作词伙学习 | `sources/xiezuocihuo/` | 学习 | `sources/xiezuocihuo/README.md` |

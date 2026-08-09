@@ -7,6 +7,7 @@
 | 模块 | 目录 | `module_type` | 页面入口 | 数据上报 |
 |---|---|---|---|---|
 | 听力1000词 | `tinglidanciceshi/` | `dictation`、`dictation_learn` | `/tinglidanciceshi/` | 主站直接写入 SQLite/Supabase 适配层 |
+| 听力基础词汇 | `tinglidanciceshi/` | `listening_basic`、`listening_basic_learn` | `/tinglidanciceshi/` | 与听力1000词同套学习/测试逻辑，词库 2041 条 |
 | 阅读同义替换学习 | `tongyitihuan/` | `reading_synonym` | `/tongyitihuan/` | 主站记录 iframe 学习时长 |
 | 阅读同义替换测试 | `tongyitihuanceshi/` | `reading_synonym` | `/tongyitihuanceshi/` | `postMessage: genericTestComplete` |
 | 写作词伙学习 | `xiezuocihuo/` | `writing_phrase` | `/xiezuocihuo/` | 主站记录 iframe 学习时长 |
