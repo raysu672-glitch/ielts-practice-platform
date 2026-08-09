@@ -114,6 +114,8 @@ class P1Practice {
         this.recordingBlob = null;
         this.transcript = '';
         this.currentInterim = '';
+        this.lastAsrResult = null;
+        this.lastRecordingDurationS = 0;
         this.apiKey = localStorage.getItem('global_deepseek_key') || localStorage.getItem('deepseek_api_key') || '';
         this.aiBaseUrl = 'https://api.deepseek.com';
         this.aiModel = 'deepseek-v4-flash';
@@ -924,6 +926,9 @@ class P1Practice {
             document.getElementById('aiEvaluateBtn').disabled = true;
             document.getElementById('feedbackArea').style.display = 'none';
             document.getElementById('aiResult').style.display = 'none';
+            this.lastAsrResult = null;
+            this.transcript = '';
+            this.currentInterim = '';
         } catch (err) {
             console.error('录音失败:', err);
             alert('无法访问麦克风，请检查浏览器权限设置');
@@ -936,8 +941,10 @@ class P1Practice {
         this.isRecording = false;
         
         // 累加本次录音时长
+        let elapsed = 0;
         if (this.recordingStartedAt) {
-            const elapsed = Math.max(0, Date.now() - this.recordingStartedAt);
+            elapsed = Math.max(0, Date.now() - this.recordingStartedAt);
+            this.lastRecordingDurationS = elapsed / 1000;
             if (elapsed >= 1000) {
                 this.totalRecordingMs += elapsed;
                 this.markCurrentAsPracticed(elapsed);
@@ -1015,7 +1022,8 @@ class P1Practice {
                 const data = await res.json();
                 if (data && data.error) throw new Error(data.error);
                 
-                this.transcript = (data.recognizedText || data.text || '').trim();
+                this.lastAsrResult = data;
+                this.transcript = (data.recognizedText || data.text || data.transcript || '').trim();
                 this.currentInterim = '';
                 this.isTranscribing = false;
                 
@@ -1066,24 +1074,68 @@ class P1Practice {
         preview.scrollTop = preview.scrollHeight;
     }
     
+    normalizeChunkText(s) {
+        return String(s || '')
+            .toLowerCase()
+            .replace(/[’']/g, "'")
+            .replace(/[^a-z0-9'\s]/g, ' ')
+            .replace(/\s+/g, ' ')
+            .trim();
+    }
+
+    // 词块是否出现在口述转录里（不依赖是否点选芯片）
+    chunkAppearsInTranscript(chunk, transcript) {
+        const t = this.normalizeChunkText(transcript);
+        const c = this.normalizeChunkText(chunk);
+        if (!t || !c) return false;
+        if (t.includes(c)) return true;
+        // “a puppy” 可匹配口述里的 puppy；多词短语要求核心词都出现
+        const withoutArticle = c.replace(/^(a|an|the)\s+/, '');
+        if (withoutArticle && withoutArticle !== c && t.includes(withoutArticle)) return true;
+        const parts = c.split(' ').filter(w => w.length > 1 && !/^(a|an|the|to|of|in|on|at|for|my|your)$/.test(w));
+        if (parts.length >= 2) {
+            return parts.every(w => t.includes(w));
+        }
+        return false;
+    }
+
+    // 按转录匹配词块，并同步点亮芯片；返回 { matched, total, chips }
+    syncWordChipsWithTranscript(transcript) {
+        const chips = Array.from(document.querySelectorAll('.word-chip'));
+        const matched = [];
+        chips.forEach(chip => {
+            const word = (chip.getAttribute('data-word') || chip.textContent || '').trim();
+            const hit = this.chunkAppearsInTranscript(word, transcript);
+            chip.classList.toggle('used', hit);
+            if (hit) matched.push(word);
+        });
+        return { matched, total: chips.length, chips: matched };
+    }
+
     // 显示基础反馈
     showFeedback() {
         const feedbackArea = document.getElementById('feedbackArea');
         const feedbackContent = document.getElementById('feedbackContent');
         
         const fullTranscript = this.transcript + (this.currentInterim || '');
-        const usedWords = document.querySelectorAll('.word-chip.used').length;
-        const totalWords = document.querySelectorAll('.word-chip').length;
-        const coverage = Math.round((usedWords / totalWords) * 100);
+        const { matched, total } = this.syncWordChipsWithTranscript(fullTranscript);
+        const usedWords = matched.length;
+        const totalWords = total || document.querySelectorAll('.word-chip').length;
+        const coverage = totalWords > 0 ? Math.round((usedWords / totalWords) * 100) : 0;
         
         let feedback = `📝 转录文本：${fullTranscript.substring(0, 200)}${fullTranscript.length > 200 ? '...' : ''}\n\n`;
         feedback += `📊 词块使用：${usedWords}/${totalWords} (${coverage}%)\n`;
-        feedback += `⏱️ 文本长度：${fullTranscript.split(' ').length} 词\n\n`;
+        if (matched.length) {
+            feedback += `✅ 已识别词块：${matched.join('、')}\n`;
+        }
+        feedback += `⏱️ 文本长度：${fullTranscript.trim().split(/\s+/).filter(Boolean).length} 词\n\n`;
         
         if (coverage >= 80) {
             feedback += '✅ 很好！词块覆盖率高，继续保持。';
         } else if (coverage >= 50) {
             feedback += '⚠️ 还可以，尝试使用更多提示词块。';
+        } else if (usedWords > 0) {
+            feedback += '💡 已用到部分词块，可再覆盖更多步骤里的提示词。';
         } else {
             feedback += '💡 建议多使用给出的词块，逐步提高覆盖率。';
         }
@@ -1124,8 +1176,12 @@ class P1Practice {
         const q = cat.questions[this.currentQuestionIndex];
         this._evalContext = { cat, q };
         
-        // 构建提示词
-        const prompt = this.buildEvaluationPrompt(cat, q, fullTranscript);
+        const metrics = this.extractSpeakingMetrics(
+            fullTranscript,
+            this.lastAsrResult,
+            this.lastRecordingDurationS
+        );
+        const prompt = this.buildEvaluationPrompt(cat, q, fullTranscript, metrics);
         
         try {
             // 使用 Anthropic 兼容格式
@@ -1139,14 +1195,14 @@ class P1Practice {
                 },
                 body: JSON.stringify({
                     model: this.aiModel || 'deepseek-v4-flash',
-                    max_tokens: 2500,
+                    max_tokens: 4000,
                     messages: [
                         {
                             role: 'user',
                             content: prompt
                         }
                     ],
-                    system: '你是一位专业的雅思口语考官。评分要公平，但内容过短必须低分：不足约 10 个英文词、只有短语/半句、几乎无法展开，总体通常 3.0-4.0，不要给到 5。句子完整、意思清楚、偶有小错的充分回答通常在 Band 5.5-6.5。Pronunciation 依据语音识别完整度判断。每个维度评语必须只谈本维度，并引用学生原话例子与改写。你必须只输出一个合法 JSON 对象，不要输出 Markdown。',
+                    system: this.getSpeakingSystemPrompt(),
                     temperature: 0.3
                 })
             });
@@ -1190,96 +1246,461 @@ class P1Practice {
         }
     }
     
-    // 构建评分提示词
-    buildEvaluationPrompt(cat, q, transcript) {
-        const stepsInfo = cat.steps.map((step, idx) => {
-            const words = q.words[step] || [];
-            return `${idx + 1}. ${step}: 建议词块 [${words.slice(0, 3).join(', ')}]`;
-        }).join('\n');
-        
-        // 计算识别质量指标
-        const words = transcript.trim().split(/\s+/).filter(w => w.length > 0);
-        const wordCount = words.length;
-        
-        // 识别碎片化程度：短句多、断句多 = 可能发音不连贯
-        const sentenceCount = transcript.split(/[.!?]+/).filter(s => s.trim().length > 0).length;
-        const avgSentenceLength = sentenceCount > 0 ? wordCount / sentenceCount : wordCount;
-        
-        // 识别质量评估
-        let recognitionQuality = '高';
-        let pronunciationHint = '识别完整，推测发音清晰';
-        
-        if (avgSentenceLength < 3 || wordCount < 10) {
-            recognitionQuality = '低';
-            pronunciationHint = '识别碎片化严重，推测发音不连贯或停顿过多';
-        } else if (avgSentenceLength < 5) {
-            recognitionQuality = '中';
-            pronunciationHint = '识别基本完整，但句子较短，推测发音可能缺乏连贯性';
+    getSpeakingSystemPrompt() {
+        return `你是一位资深雅思口语考官，拥有15年阅卷经验。你正在评估一位中国学生的雅思口语回答。
+
+你将收到：
+1. 学生的口语转录文本（由语音识别系统生成）
+2. 语音量化指标（语速、停顿、填充词、词时长等）
+
+你需要根据这些数据，对四个维度进行评分（每项必须是 1–9 的整数，禁止 0.5），并给出具体反馈。总分 overall 可以是 0.5 间隔（由四项平均后按规则进位）。
+
+## 评分标准
+
+### 流利度与连贯性 (Fluency & Coherence, FC)
+- 9分：极其流畅，几乎无重复/自我修正；犹豫仅因思考内容；衔接自然；话题展开充分
+- 8分：流畅，偶尔重复；犹豫主要与内容相关；话题展开连贯且恰当
+- 7分：能不费力说长段落；犹豫/重复不影响连贯；灵活使用连接词
+- 6分：愿意说长段落但偶尔失去连贯；连接词使用不总恰当
+- 5分：依赖重复/自我修正/慢速维持；过度使用某些连接词
+- 4分及以下：明显停顿，语速慢，频繁重复；连贯性断裂
+
+### 词汇资源 (Lexical Resource, LR)
+- 9分：词汇量极大，精准使用；习语自然准确
+- 8分：词汇丰富灵活；熟练使用不常见词和习语；有效释义
+- 7分：词汇灵活；使用不常见词和习语；有搭配意识
+- 6分：词汇足够；用词偶尔不当但意思清楚；基本能释义
+- 5分：词汇有限；尝试释义但不总成功
+- 4分及以下：词汇匮乏；频繁用词错误
+
+### 语法范围与准确性 (Grammatical Range & Accuracy, GRA)
+- 9分：结构精确准确，仅偶有口误
+- 8分：广泛使用多种结构；大多数句子无错误
+- 7分：使用多种复杂结构；无错误句子频繁
+- 6分：混合简单和复杂句型；复杂结构常出错但不影响沟通
+- 5分：基本句型准确；尝试复杂结构但总出错
+- 4分及以下：基本句型；从句罕见；结构重复
+
+### 发音 (Pronunciation, P)
+注意：你无法直接听到发音。你需要根据以下间接证据推断发音水平：
+- 语音识别系统对文本的识别结果（识别异常可能暗示发音问题）
+- 词时长数据（异常拖长或吞音可能暗示发音问题）
+- 语速数据（过快可能影响清晰度，过慢可能不自信）
+- 如果几乎没有发音问题信号，给 6 或 7 分（整数；默认中等偏上）
+
+评分规则：
+- 9分：全部语音特征精确；听者毫不费力
+- 8分：广泛语音特征；口音影响极小
+- 7分：整体清晰；偶有小错
+- 6分：基本清晰；个别发音错误但不影响理解
+- 5分及以下：发音问题较多；听者需努力理解
+
+## 反馈原则
+1. 用中文反馈，涉及英文表达时保留原文
+2. 每个问题说清"为什么"和"怎么改"
+3. 改写建议要地道自然，像母语者说话
+4. 语气温和但专业，像一个好老师
+5. 最终目标：帮学生提分
+6. 反馈要具体，不要泛泛而谈
+7. 每个分数必须有数据支撑，不要拍脑袋
+8. 只输出一个合法 JSON 对象，不要 Markdown 或其它说明文字
+9. FC/LR/GRA/Pron 的 band 必须是 1–9 的整数，禁止 0、禁止 0.5；overall 可以是 x.5
+10. 语法从严：有残缺句、缺冠词、成分不全、时态混乱时，GRA 不得虚高到 6 及以上
+
+## 语法分析要求（重点）
+语法非常重要，必须单独完整列出错误清单，不能因为“意思能懂”就放过。你必须做到：
+1. **逐句扫描**，找出所有语法错误，不能遗漏；残缺句、半截句也算错误
+2. 每个错误必须标注：错误类型、原文、正确形式、中文解释
+3. 错误类型必须归类到以下之一：
+   - 时态错误（tense）
+   - 主谓一致（subject_verb_agreement）
+   - 冠词（article）
+   - 单复数（plural）
+   - 介词（preposition）
+   - 词性错误（word_form）
+   - 句型结构（sentence_structure）：残缺句、语序错误、缺少成分
+   - 非谓语动词（non_finite）
+   - 虚拟语气（subjunctive）
+   - 比较级/最高级（comparative）
+   - 其他（other）
+4. 除了错误，还要分析句式多样性（简单句/并列句/复合句、复杂结构、均长）
+5. 最后给出语法综合评估：水平、最大短板、最快提分方法
+6. 若存在语法错误，errors 数组不得为空；不要只写 summary 却不列错误`;
+    }
+
+    // 从腾讯云 ASR（若有词级时间戳）或转录文本提取评分指标
+    extractSpeakingMetrics(transcript, asrResult, durationS) {
+        const detail = (asrResult && (asrResult.ResultDetail || asrResult.resultDetail
+            || (asrResult.data && asrResult.data.ResultDetail))) || null;
+        const allWords = [];
+        const speechSpeeds = [];
+        let textFromDetail = '';
+
+        if (Array.isArray(detail) && detail.length) {
+            for (const sentence of detail) {
+                textFromDetail += (sentence.FinalSentence || sentence.finalSentence || '') + ' ';
+                const spd = Number(sentence.SpeechSpeed ?? sentence.speechSpeed ?? 0);
+                if (spd) speechSpeeds.push(spd);
+                const words = sentence.Words || sentence.words || [];
+                for (const w of words) {
+                    const start = Number(w.OffsetStartMs ?? w.offsetStartMs ?? w.start_ms ?? 0);
+                    const end = Number(w.OffsetEndMs ?? w.offsetEndMs ?? w.end_ms ?? 0);
+                    allWords.push({
+                        word: String(w.Word ?? w.word ?? ''),
+                        start_ms: start,
+                        end_ms: end,
+                        duration_ms: Math.max(0, end - start)
+                    });
+                }
+            }
         }
-        
-        return `请评估以下雅思口语 Part 1 回答：
 
-【题目】${q.q}
-【题目类型】${cat.name}
+        const transcriptText = (transcript || textFromDetail || '').trim();
+        const plainWords = transcriptText
+            .split(/\s+/)
+            .map(w => w.replace(/^[^A-Za-z']+|[^A-Za-z']+$/g, ''))
+            .filter(Boolean);
 
-【学生回答转录】
-"${transcript}"
+        if (!allWords.length && plainWords.length) {
+            for (const w of plainWords) {
+                allWords.push({ word: w, start_ms: 0, end_ms: 0, duration_ms: 0 });
+            }
+        }
 
-【语音识别质量分析】
-- 识别完整度：${recognitionQuality}
-- 总词数：${wordCount}
-- 平均句长：${avgSentenceLength.toFixed(1)} 词/句
-- 发音推测：${pronunciationHint}
+        let totalDurationS = Number(durationS) || 0;
+        if (allWords.length && allWords[0].end_ms) {
+            const fromTs = (allWords[allWords.length - 1].end_ms - allWords[0].start_ms) / 1000;
+            if (fromTs > 0.5) totalDurationS = fromTs;
+        }
+        if ((!totalDurationS || totalDurationS < 0.5) && this.lastRecordingDurationS > 0.5) {
+            totalDurationS = this.lastRecordingDurationS;
+        }
 
-【评分要求】
+        const totalWords = allWords.length || plainWords.length;
+        const wpm = totalDurationS > 0 ? Math.round((totalWords / (totalDurationS / 60)) * 10) / 10 : 0;
 
-【校准标准——务必遵守】
-- Band 3：只有几个词/半句，几乎没有展开
-- Band 4：经常说不完整、难以理解，错误很多；或回答过短（大约少于 12 词）
-- Band 5：意思基本能懂，有一定展开，但错误较明显，句式简单
-- Band 6：意思清楚、句子基本完整，偶有小错也可；简单但清楚有效就能到 6
-- Band 7：表达灵活，错误很少
+        const longPauses = [];
+        for (let i = 1; i < allWords.length; i++) {
+            if (!allWords[i].start_ms && !allWords[i - 1].end_ms) continue;
+            const gap = allWords[i].start_ms - allWords[i - 1].end_ms;
+            if (gap > 1500) {
+                longPauses.push({
+                    after_word: allWords[i - 1].word,
+                    before_word: allWords[i].word,
+                    gap_ms: gap
+                });
+            }
+        }
 
-硬性长度门槛（优先于“简单清楚给 5-6”）：
-- 少于约 8 个英文词：Overall 不得超过 3.5，各单项通常 3
-- 约 8-15 词且只有一句很短：Overall 不得超过 4.5
-- 必须有较完整展开（通常 20+ 词、至少两句）才考虑 5.5 及以上
+        const fillerSet = new Set(['um', 'uh', 'er', 'ah', 'eh', 'hmm', 'like', 'you know', 'i mean']);
+        const wordsLower = allWords.map(w => String(w.word || '').toLowerCase().replace(/[.,!?]/g, ''));
+        let fillerCount = 0;
+        for (let i = 0; i < wordsLower.length; i++) {
+            const w = wordsLower[i];
+            const two = `${w} ${wordsLower[i + 1] || ''}`;
+            if (fillerSet.has(w) || fillerSet.has(two.trim())) fillerCount += 1;
+        }
+        const fillerPerMin = totalDurationS > 0 ? Math.round((fillerCount / (totalDurationS / 60)) * 10) / 10 : 0;
 
-校准例句（充分回答，总体约 6.0）：
-"Yes, absolutely. I used to have a puppy. Every day I walked him to the park, and it really lifted my mood."
-→ Fluency 6 / Vocabulary 6 / Grammar 6 / Pronunciation 6-7 / Overall 6.0
+        const skipRepeat = new Set(['the', 'a', 'an', 'is', 'was', 'and', 'to', 'of']);
+        const repetitions = [];
+        for (let i = 1; i < wordsLower.length; i++) {
+            if (wordsLower[i] && wordsLower[i] === wordsLower[i - 1] && !skipRepeat.has(wordsLower[i])) {
+                repetitions.push(wordsLower[i]);
+            }
+        }
 
-过短例句（不得给 5）：
-"Yes, I had a dog."
-→ 各项约 3-4，Overall 约 3.5-4.0
+        const wordDurationIssues = [];
+        for (const w of allWords) {
+            const charCount = String(w.word || '').length;
+            if (!charCount || !w.duration_ms) continue;
+            const msPerChar = w.duration_ms / charCount;
+            if (msPerChar > 300) wordDurationIssues.push(`'${w.word}' 发音拖长(${w.duration_ms}ms)`);
+            else if (msPerChar < 30 && charCount > 3) wordDurationIssues.push(`'${w.word}' 可能吞音(${w.duration_ms}ms)`);
+        }
 
-不要因为词汇简单就打 4（在回答充分时）；但内容过短绝不能虚高到 5。
+        const connectives = [
+            'however', 'therefore', 'furthermore', 'moreover', 'in addition',
+            'on the other hand', 'for example', 'for instance', 'in contrast',
+            'as a result', 'in conclusion', 'firstly', 'secondly', 'finally',
+            'although', 'despite', 'because', 'since', 'so', 'but', 'and',
+            'well', 'actually', 'basically', 'honestly', 'generally'
+        ];
+        const lower = transcriptText.toLowerCase();
+        const foundConnectives = connectives.filter(c => lower.includes(c));
 
-请只输出一个 JSON 对象（不要 Markdown，不要代码块），字段如下：
+        const commonHomophones = {
+            their: ['there', "they're"], there: ['their', "they're"],
+            think: ['sink', 'thing'], sink: ['think'],
+            beach: ['bitch', 'peach'], sheet: ['shit'],
+            walk: ['work'], work: ['walk'],
+            bad: ['bed', 'bat'], bed: ['bad', 'bat'],
+            very: ['vary', 'berry'], really: ['rarely']
+        };
+        const suspiciousWords = [];
+        for (const w of wordsLower) {
+            if (commonHomophones[w]) {
+                suspiciousWords.push(`'${w}' 可能是 ${commonHomophones[w].join('/')} 的误识别`);
+            }
+        }
+
+        return {
+            transcript: transcriptText,
+            total_words: totalWords,
+            total_duration_s: Math.round(totalDurationS * 10) / 10,
+            wpm,
+            avg_speech_speed: speechSpeeds.length
+                ? Math.round((speechSpeeds.reduce((a, b) => a + b, 0) / speechSpeeds.length) * 10) / 10
+                : 0,
+            long_pauses: longPauses,
+            long_pause_count: longPauses.length,
+            filler_count: fillerCount,
+            filler_per_min: fillerPerMin,
+            repetitions,
+            word_duration_issues: wordDurationIssues,
+            connectives_found: foundConnectives,
+            connectives_count: foundConnectives.length,
+            suspicious_words: suspiciousWords,
+            has_word_timestamps: !!(Array.isArray(detail) && detail.length && allWords.some(w => w.duration_ms > 0))
+        };
+    }
+
+    getUsedWordChips() {
+        try {
+            const transcript = this.transcript + (this.currentInterim || '');
+            if (transcript.trim()) {
+                return this.syncWordChipsWithTranscript(transcript).chips;
+            }
+            return Array.from(document.querySelectorAll('.word-chip.used'))
+                .map(el => (el.getAttribute('data-word') || el.textContent || '').trim())
+                .filter(Boolean);
+        } catch (e) {
+            return [];
+        }
+    }
+
+    // 构建评分提示词（对齐 ielts-speaking-prompt.md）
+    buildEvaluationPrompt(cat, q, transcript, metrics) {
+        const m = metrics || this.extractSpeakingMetrics(transcript, this.lastAsrResult, this.lastRecordingDurationS);
+        let pauseLines = '';
+        if (m.long_pauses && m.long_pauses.length) {
+            pauseLines = m.long_pauses.slice(0, 5).map(p =>
+                `  · '${p.after_word}' → '${p.before_word}' 之间停顿${(p.gap_ms / 1000).toFixed(1)}秒`
+            ).join('\n') + '\n';
+        }
+        let durationIssues = '';
+        if (m.word_duration_issues && m.word_duration_issues.length) {
+            durationIssues = '\n### 发音相关信号（词时长异常）\n'
+                + m.word_duration_issues.slice(0, 5).map(x => `- ${x}`).join('\n') + '\n';
+        }
+        let suspicious = '';
+        if (m.suspicious_words && m.suspicious_words.length) {
+            suspicious = '\n### 发音相关信号（可能的语音识别异常）\n'
+                + m.suspicious_words.slice(0, 5).map(x => `- ${x}`).join('\n') + '\n';
+        }
+        const repLine = m.repetitions && m.repetitions.length
+            ? `- 连续重复词: ${m.repetitions.slice(0, 5).join(', ')}\n`
+            : '';
+        const tsNote = m.has_word_timestamps
+            ? ''
+            : '\n（说明：当前 ASR 未返回词级时间戳，长停顿/词时长信号可能为空；请主要依据转录、语速、填充词与连接词评分。）\n';
+        const usedChips = this.getUsedWordChips();
+        const chipNote = usedChips.length
+            ? `\n## 学生勾选的提示词块（练习辅助，不是扣分项）\n学生练习时点选了这些词块：${usedChips.join(', ')}\n评分时：若转录中确实用到了这些表达，可在 LR/FC 中认可；不要因为“没用词块”扣分；也不要仅因点选了词块就抬高分数，以实际说出的话为准。\n`
+            : '\n## 学生勾选的提示词块\n（未勾选或未记录）评分只看实际口述转录，不要因为没用词块扣分。\n';
+
+        return `请评估以下学生的雅思口语 PART1 回答。
+重要：
+- FC/LR/GRA/Pron 的 band 必须是 1–9 的整数（禁止 0，禁止 0.5）
+- overall 可以是 0.5 间隔（四项平均后 .25进.5，.75进整）
+- 语法从严：残缺句/缺冠词/成分不全必须写入 grammar.detailed_analysis.errors，并如实压低 GRA
+- 禁止照抄示例数字
+
+## 考试题目
+${q.q}
+题目类型：${cat.name}
+${chipNote}
+## 学生回答转录
+${m.transcript || transcript}
+
+## 语音量化指标
+
+### 基础数据
+- 总词数: ${m.total_words}
+- 总时长: ${m.total_duration_s}秒
+- 语速: ${m.wpm} WPM（参考：100-140为正常，<90偏慢，>160偏快）
+${tsNote}
+### 流利度信号
+- 超过1.5秒的长停顿: ${m.long_pause_count}次
+${pauseLines}- 填充词(um/uh/er等): ${m.filler_count}次，每分钟${m.filler_per_min}次
+${repLine}
+### 连贯性信号
+- 检测到的连接词: ${m.connectives_found.length ? m.connectives_found.join(', ') : '无'}
+- 连接词种类数: ${m.connectives_count}
+${durationIssues}${suspicious}
+## 请你完成以下任务
+
+### 1. 四项评分（每项 1–9 整数；禁止 0.5）
+
+**流利度与连贯性 (FC)**：
+- 流利度：根据语速WPM、长停顿次数、填充词频率、重复词来评估
+- 连贯性：根据连接词使用、逻辑衔接、话题展开来评估
+- 综合两项给出FC整数分
+
+**词汇资源 (LR)**：
+- 词汇多样性（是否重复使用基础词）
+- 搭配准确性
+- 是否有不常见词/习语
+- 同义替换能力
+
+**语法范围与准确性 (GRA)（从严）**：
+- 逐句找出所有语法错误，一个不漏；残缺句、半截句必须列入
+- 每个错误标注：错误类型、原文、正确形式、中文解释
+- 分析句式多样性（简单句/并列句/复合句比例、复杂结构使用情况）
+- 给出综合评估；有多处结构残缺时 GRA 通常 ≤5
+
+**发音 (P)**：
+- 根据词时长异常、ASR识别异常、语速等间接证据推断
+- 如果没有明显发音问题信号，给 6 或 7（整数）
+
+### 2. 总分
+四项整数平均后，.25进.5，.75进整（总分可以是 x.5）
+
+### 3. 每个单项的详细解析
+每个维度除了分数，还要有完整的 detailed_analysis；语法错误必须单独完整列出。
+
+### 4. 主要问题（最多5个，按影响程度排序）
+每个问题包含：是什么、为什么影响分数、怎么改、给一个更好的示例
+
+### 5. 7分改写版本
+把学生回答改写成7分水平的地道英文口语，保持原意
+
+## 输出格式（严格JSON，不要输出其他内容）
+注意：下面 JSON 里的数字只是字段示意；band 填整数；按真实表现评分。
+
 {
-  "fluency": 6,
-  "vocabulary": 6,
-  "grammar": 6,
-  "pronunciation": 6,
-  "reasons": {
-    "fluency": "只谈流利度/连贯。问题例子：「原话」→ 更好：「改写」",
-    "vocabulary": "只谈词汇/搭配。问题例子：「原话」→ 更好：「改写」",
-    "grammar": "只谈语法/时态/结构。问题例子：「原话」→ 更好：「改写」",
-    "pronunciation": "只谈识别清晰度/完整度。例子：……"
+  "scores": {
+    "fluency_coherence": {
+      "band": 6,
+      "justification": "中文，引用具体数据",
+      "detailed_analysis": {
+        "fluency": {
+          "wpm": 0,
+          "wpm_assessment": "语速偏慢/正常/偏快，具体评价",
+          "long_pauses": 0,
+          "pause_assessment": "停顿频率评价",
+          "filler_words_per_min": 0,
+          "filler_assessment": "填充词使用评价",
+          "repetitions_found": ["重复词1"],
+          "repetition_assessment": "重复情况评价"
+        },
+        "coherence": {
+          "connectives_used": ["连接词1"],
+          "connectives_count": 0,
+          "connectives_assessment": "连接词使用评价",
+          "topic_development": "话题展开是否充分，逻辑是否清晰",
+          "coherence_issues": ["连贯性问题1"]
+        },
+        "summary": "流利度与连贯性的综合诊断，最大的短板是什么"
+      }
+    },
+    "lexical_resource": {
+      "band": 6,
+      "justification": "中文",
+      "detailed_analysis": {
+        "vocabulary_diversity": {
+          "assessment": "词汇多样性评价",
+          "overused_words": [
+            {"word": "被滥用的词", "count": 0, "alternatives": ["替换建议1"]}
+          ],
+          "basic_words_overused": ["good", "very"]
+        },
+        "collocation": {
+          "errors": [
+            {"wrong": "错误搭配", "correct": "正确搭配", "explanation": "中文解释"}
+          ],
+          "assessment": "搭配准确性评价"
+        },
+        "idiomatic_language": {
+          "idioms_found": ["找到的习语/固定搭配"],
+          "assessment": "习语使用评价"
+        },
+        "paraphrase_ability": "同义替换/释义能力评价",
+        "summary": "词汇维度的综合诊断，最大的短板是什么"
+      }
+    },
+    "grammar": {
+      "band": 5,
+      "justification": "中文；有错误时说明为何是这个整数分",
+      "detailed_analysis": {
+        "errors": [
+          {
+            "original": "错误原文（完整句子或残缺片段）",
+            "correction": "正确形式",
+            "type": "tense|subject_verb_agreement|article|plural|preposition|word_form|sentence_structure|non_finite|subjunctive|comparative|other",
+            "explanation": "中文解释，为什么错了，正确用法是什么",
+            "severity": "high|medium|low"
+          }
+        ],
+        "error_statistics": {
+          "total_errors": 0,
+          "by_type": {
+            "tense": 0,
+            "subject_verb_agreement": 0,
+            "article": 0,
+            "plural": 0,
+            "preposition": 0,
+            "word_form": 0,
+            "sentence_structure": 0,
+            "non_finite": 0,
+            "subjunctive": 0,
+            "comparative": 0,
+            "other": 0
+          },
+          "most_frequent_error": "最常见的错误类型",
+          "error_density_per_100_words": 0.0
+        },
+        "sentence_variety": {
+          "simple_sentences": 0,
+          "compound_sentences": 0,
+          "complex_sentences": 0,
+          "complex_sentence_ratio": 0.0,
+          "avg_sentence_length_words": 0.0,
+          "structures_used": ["使用的复杂结构"],
+          "structures_missing": ["应使用但未使用的结构"],
+          "assessment": "句式多样性评价"
+        },
+        "summary": "语法维度的综合诊断，最大的短板是什么，最快提分的方法"
+      }
+    },
+    "pronunciation": {
+      "band": 7,
+      "justification": "中文，说明推断依据",
+      "detailed_analysis": {
+        "signals_found": ["发现的发音信号"],
+        "word_duration_issues": ["词时长异常"],
+        "asr_anomalies": ["ASR识别异常"],
+        "assessment": "发音综合评估，说明是基于间接证据的推断"
+      }
+    },
+    "overall": 6.0
   },
-  "strengths": ["优点1", "优点2"],
-  "weaknesses": ["问题1（含原话例子）", "问题2（含原话例子）"],
-  "suggestions": ["建议1（含改写例子）", "建议2（含改写例子）"],
-  "sample_answer": "可忽略；前端会用题目提示词块生成示范"
-}
-
-硬性规则：
-1. fluency/vocabulary/grammar/pronunciation 必须是 1-9 的整数，四个都要有，不能缺。
-2. 每个 reason 只谈本维度，禁止串台；必须带「原话 → 改写」例子。
-3. 例子里的「原话」必须逐字来自学生转录，禁止编造学生没说过的词。
-4. 评分公平：清楚有效的简单回答通常 5.5-6.5；不要轻易打到 4.5。
-5. 不要因为没用词块扣分。
-6. 只输出 JSON。`;
+  "problems": [
+    {
+      "rank": 1,
+      "category": "fluency|vocabulary|grammar|pronunciation",
+      "issue": "问题描述（中文）",
+      "why_it_matters": "为什么影响分数（中文）",
+      "how_to_fix": "怎么改（中文）",
+      "example": "更好的英文示例"
+    }
+  ],
+  "improved_answer": {
+    "original_summary": "学生原意的一句话概括（中文）",
+    "rewritten_version": "7分水平的地道英文改写",
+    "improvements_made": ["改进点1", "改进点2", "改进点3"]
+  }
+}`;
     }
     
     // 渲染 AI 评分结果（优先 JSON）
@@ -1323,16 +1744,54 @@ class P1Practice {
         }, '*');
     }
     
-    // 从 AI 返回中提取结构化评分
+    // 单项分：1–9 整数；0/空/0.5 视为无效后取整或回落
+    pickBandScore(v, fallback = 5) {
+        const toInt = (x) => Math.max(1, Math.min(9, Math.round(Number(x))));
+        const n = Number(v);
+        if (!isNaN(n) && n > 0) return toInt(n);
+        const f = Number(fallback);
+        if (!isNaN(f) && f > 0) return toInt(f);
+        return 5;
+    }
+
+    // 雅思 overall：四项平均后 .25 进 .5，.75 进整
+    ieltsOverallRound(avg) {
+        const n = Number(avg);
+        if (isNaN(n)) return 0;
+        const floored = Math.floor(n);
+        const decimal = n - floored;
+        if (decimal < 0.25) return floored;
+        if (decimal < 0.75) return floored + 0.5;
+        return floored + 1;
+    }
+
+    bandScoreFromNode(node) {
+        if (node == null) return null;
+        if (typeof node === 'number' || typeof node === 'string') return Number(node);
+        if (typeof node === 'object') {
+            return Number(node.band ?? node.score ?? node.value ?? NaN);
+        }
+        return null;
+    }
+
+    justificationFromNode(node, extraKeys = []) {
+        if (!node || typeof node !== 'object') return '';
+        const parts = [];
+        if (node.justification) parts.push(String(node.justification));
+        for (const k of extraKeys) {
+            if (node[k]) parts.push(String(node[k]));
+        }
+        return parts.filter(Boolean).join(' ');
+    }
+
+    // 从 AI 返回中提取结构化评分（兼容新旧 JSON）
     parseAIEvaluation(aiResponse) {
         let raw = aiResponse;
         if (typeof raw !== 'string') raw = JSON.stringify(raw);
         raw = String(raw || '').trim();
         
         let data = null;
-        // 直接 JSON
         try { data = JSON.parse(raw); } catch (e) {}
-        // 从代码块/夹杂文本中抠 JSON
         if (!data) {
             const m = raw.match(/\{[\s\S]*\}/);
             if (m) {
@@ -1341,39 +1800,73 @@ class P1Practice {
         }
         
         const transcript = this.transcript || '';
-        const pickInt = (v, fallback) => {
-            const n = Math.round(Number(v));
-            return (!isNaN(n) && n >= 1 && n <= 9) ? n : fallback;
-        };
-        
         let fluency = null, vocabulary = null, grammar = null, pronunciation = null;
         let reasons = { fluency: '', vocabulary: '', grammar: '', pronunciation: '' };
         let strengths = [], weaknesses = [], suggestions = [], sampleAnswer = '';
+        let problems = [];
+        let improvedMeta = null;
+        let aiOverall = null;
+        let detailed = { fluency: null, vocabulary: null, grammar: null, pronunciation: null };
         
         if (data && typeof data === 'object') {
-            fluency = data.fluency ?? data.Fluency ?? (data.scores && data.scores.fluency);
-            vocabulary = data.vocabulary ?? data.Vocabulary ?? data.lexical ?? (data.scores && (data.scores.vocabulary || data.scores.lexical));
-            grammar = data.grammar ?? data.Grammar ?? (data.scores && data.scores.grammar);
-            pronunciation = data.pronunciation ?? data.Pronunciation ?? (data.scores && data.scores.pronunciation);
-            
-            const r = data.reasons || data.reason || {};
-            reasons.fluency = r.fluency || r.Fluency || '';
-            reasons.vocabulary = r.vocabulary || r.Vocabulary || r.lexical || '';
-            reasons.grammar = r.grammar || r.Grammar || '';
-            reasons.pronunciation = r.pronunciation || r.Pronunciation || '';
-            
+            const scores = data.scores || data;
+            const fc = scores.fluency_coherence || scores.fluency || scores.Fluency;
+            const lr = scores.lexical_resource || scores.vocabulary || scores.Vocabulary || scores.lexical;
+            const gra = scores.grammar || scores.Grammar || scores.grammatical_range;
+            const pron = scores.pronunciation || scores.Pronunciation;
+
+            fluency = this.bandScoreFromNode(fc);
+            vocabulary = this.bandScoreFromNode(lr);
+            grammar = this.bandScoreFromNode(gra);
+            pronunciation = this.bandScoreFromNode(pron);
+            aiOverall = scores.overall ?? data.overall ?? null;
+
+            detailed.fluency = (fc && fc.detailed_analysis) || null;
+            detailed.vocabulary = (lr && lr.detailed_analysis) || null;
+            detailed.grammar = (gra && gra.detailed_analysis) || null;
+            detailed.pronunciation = (pron && pron.detailed_analysis) || null;
+
+            if (fc && typeof fc === 'object') {
+                reasons.fluency = this.summarizeFcReason(fc);
+            }
+            if (lr && typeof lr === 'object') {
+                reasons.vocabulary = this.summarizeLrReason(lr);
+            }
+            if (gra && typeof gra === 'object') {
+                reasons.grammar = this.summarizeGrammarReason(gra);
+            }
+            if (pron && typeof pron === 'object') {
+                reasons.pronunciation = this.summarizePronReason(pron);
+            }
+
+            const legacyReasons = data.reasons || data.reason || {};
+            reasons.fluency = reasons.fluency || legacyReasons.fluency || legacyReasons.Fluency || '';
+            reasons.vocabulary = reasons.vocabulary || legacyReasons.vocabulary || legacyReasons.Vocabulary || legacyReasons.lexical || '';
+            reasons.grammar = reasons.grammar || legacyReasons.grammar || legacyReasons.Grammar || '';
+            reasons.pronunciation = reasons.pronunciation || legacyReasons.pronunciation || legacyReasons.Pronunciation || '';
+
             strengths = Array.isArray(data.strengths) ? data.strengths : [];
             weaknesses = Array.isArray(data.weaknesses) ? data.weaknesses : [];
             suggestions = Array.isArray(data.suggestions) ? data.suggestions : [];
-            sampleAnswer = data.sample_answer || data.sampleAnswer || data.improved_answer || '';
+            problems = Array.isArray(data.problems) ? data.problems : [];
+
+            const improved = data.improved_answer || data.improvedAnswer;
+            if (improved && typeof improved === 'object') {
+                improvedMeta = improved;
+                sampleAnswer = improved.rewritten_version || improved.rewrittenVersion || '';
+                if (Array.isArray(improved.improvements_made)) {
+                    suggestions = suggestions.length ? suggestions : improved.improvements_made;
+                }
+            } else {
+                sampleAnswer = data.sample_answer || data.sampleAnswer || '';
+            }
         } else {
-            // Markdown 兜底
             const extractScore = (patterns) => {
                 for (const p of patterns) {
                     const m = raw.match(p);
                     if (m) {
                         const n = parseFloat(m[1]);
-                        if (!isNaN(n) && n >= 1 && n <= 9) return n;
+                        if (!isNaN(n) && n >= 0 && n <= 9) return n;
                     }
                 }
                 return null;
@@ -1383,15 +1876,27 @@ class P1Practice {
             grammar = extractScore([/Grammar[^\d]{0,20}([\d.]+)/i, /Grammatical[^\d]{0,30}([\d.]+)/i, /语法[^\d]{0,10}([\d.]+)/i]);
             pronunciation = extractScore([/Pronunciation[^\d]{0,20}([\d.]+)/i, /发音[^\d]{0,10}([\d.]+)/i]);
         }
+
+        // 无论 AI 是否返回，都补本地可检出语法错误，并单独列出
+        const graNode = (data && data.scores && data.scores.grammar) || (data && data.grammar) || null;
+        detailed.grammar = this.mergeGrammarDetailedAnalysis(detailed.grammar, graNode, transcript);
+        reasons.grammar = this.summarizeGrammarReason({
+            ...(graNode && typeof graNode === 'object' ? graNode : {}),
+            detailed_analysis: detailed.grammar
+        });
         
         const lengthFallback = this.estimateLengthFallbackScore(transcript);
-        const pronFallback = Math.min(this.estimatePronunciationScore(transcript), lengthFallback);
-        fluency = pickInt(fluency, lengthFallback);
-        vocabulary = pickInt(vocabulary, lengthFallback);
-        grammar = pickInt(grammar, lengthFallback);
-        pronunciation = pickInt(pronunciation, pronFallback);
+        const pronFallback = Math.min(this.estimatePronunciationScore(transcript), Math.max(lengthFallback, 6));
+        fluency = this.pickBandScore(fluency, lengthFallback);
+        vocabulary = this.pickBandScore(vocabulary, lengthFallback);
+        grammar = this.pickBandScore(grammar, lengthFallback);
+        pronunciation = this.pickBandScore(pronunciation, pronFallback);
 
-        // 内容过短时强制压分，避免默认 5 分虚高
+        // 语法错误较多时，防止 GRA 虚高
+        const grammarErrorCount = this.countGrammarErrors(detailed.grammar);
+        if (grammarErrorCount >= 4) grammar = Math.min(grammar, 5);
+        else if (grammarErrorCount >= 2) grammar = Math.min(grammar, 6);
+
         const capped = this.clampScoresForShortAnswer(transcript, {
             fluency, vocabulary, grammar, pronunciation
         });
@@ -1400,28 +1905,50 @@ class P1Practice {
         grammar = capped.grammar;
         pronunciation = capped.pronunciation;
         
-        // 四个维度评语：必须基于本次转录；AI 评语若引用了学生没说过的内容则丢弃
-        reasons.fluency = this.pickGroundedReason('fluency', reasons.fluency, transcript, fluency);
-        reasons.vocabulary = this.pickGroundedReason('lexical', reasons.vocabulary, transcript, vocabulary);
-        reasons.grammar = this.pickGroundedReason('grammar', reasons.grammar, transcript, grammar);
-        reasons.pronunciation = this.pickGroundedReason('pronunciation', reasons.pronunciation, transcript, pronunciation);
+        // 优先保留 AI 本维评语；仅在空/过短/明显串台时才用本地兜底
+        reasons.fluency = this.resolveDimensionReason('fluency', reasons.fluency, transcript, fluency);
+        reasons.vocabulary = this.resolveDimensionReason('lexical', reasons.vocabulary, transcript, vocabulary);
+        reasons.grammar = this.resolveDimensionReason('grammar', reasons.grammar, transcript, grammar);
+        reasons.pronunciation = this.resolveDimensionReason('pronunciation', reasons.pronunciation, transcript, pronunciation);
         
         strengths = this.filterGroundedList(strengths, transcript);
         weaknesses = this.filterGroundedList(weaknesses, transcript);
-        suggestions = this.filterGroundedList(suggestions, transcript);
+        suggestions = Array.isArray(suggestions)
+            ? suggestions.map(x => String(x || '').trim()).filter(Boolean).slice(0, 5)
+            : [];
+
+        // 从 problems 补 weaknesses / suggestions
+        if (problems.length) {
+            if (!weaknesses.length) {
+                weaknesses = problems.slice(0, 4).map(p => {
+                    if (!p || typeof p !== 'object') return String(p);
+                    return p.issue || '';
+                }).filter(Boolean);
+            }
+            if (!suggestions.length) {
+                suggestions = problems.slice(0, 4).map(p => {
+                    if (!p || typeof p !== 'object') return '';
+                    return p.how_to_fix || '';
+                }).filter(Boolean);
+            }
+        }
         
         const avg = (fluency + vocabulary + grammar + pronunciation) / 4;
-        let overallNum = Math.round(avg * 2) / 2;
+        let overallNum = this.ieltsOverallRound(avg);
+        if (aiOverall != null && !isNaN(Number(aiOverall))) {
+            // 优先用我们按官方规则重算，避免模型 overall 与单项不一致
+            overallNum = this.ieltsOverallRound(avg);
+        }
         const maxOverall = this.maxOverallForTranscript(transcript);
         if (overallNum > maxOverall) overallNum = maxOverall;
         const overall = overallNum.toFixed(1);
         
-        // 改进示例：固定用本题提示词块 + 至少一句复合句（不依赖 AI，避免照抄）
+        // 示范：优先 AI 7 分改写；没有则用本题词块示范
         const tipSample = this.buildSampleFromTips(
             (this._evalContext && this._evalContext.cat) || this.data.categories[this.currentCategoryIndex],
             (this._evalContext && this._evalContext.q) || this.data.categories[this.currentCategoryIndex].questions[this.currentQuestionIndex]
         );
-        sampleAnswer = tipSample.text;
+        if (!sampleAnswer) sampleAnswer = tipSample.text;
         const tipMeta = tipSample;
         
         return {
@@ -1431,13 +1958,239 @@ class P1Practice {
             pronunciation: String(pronunciation),
             overall,
             reasons,
+            detailed,
             strengths,
             weaknesses,
             suggestions,
+            problems,
+            improvedMeta,
             sampleAnswer,
             tipMeta,
             transcript
         };
+    }
+
+    summarizeFcReason(fc) {
+        const da = fc && fc.detailed_analysis;
+        const parts = [];
+        if (fc && fc.justification) parts.push(String(fc.justification));
+        if (da && da.summary) parts.push(String(da.summary));
+        else {
+            if (fc && fc.fluency_evidence) parts.push(String(fc.fluency_evidence));
+            if (fc && fc.coherence_evidence) parts.push(String(fc.coherence_evidence));
+            if (da && da.fluency && da.fluency.wpm_assessment) parts.push(String(da.fluency.wpm_assessment));
+            if (da && da.coherence && da.coherence.topic_development) parts.push(String(da.coherence.topic_development));
+        }
+        return parts.filter(Boolean).join(' ');
+    }
+
+    summarizeLrReason(lr) {
+        const da = lr && lr.detailed_analysis;
+        const parts = [];
+        if (lr && lr.justification) parts.push(String(lr.justification));
+        if (da && da.summary) parts.push(String(da.summary));
+        if (Array.isArray(lr && lr.issues_found) && lr.issues_found.length) {
+            parts.push('问题：' + lr.issues_found.slice(0, 3).join('；'));
+        }
+        if (da && da.collocation && Array.isArray(da.collocation.errors) && da.collocation.errors.length) {
+            const bits = da.collocation.errors.slice(0, 2).map(e =>
+                `「${e.wrong || ''}」→「${e.correct || ''}」`
+            );
+            parts.push('搭配：' + bits.join('；'));
+        }
+        return parts.filter(Boolean).join(' ');
+    }
+
+    summarizeGrammarReason(gra) {
+        const da = gra && gra.detailed_analysis;
+        const parts = [];
+        if (gra && gra.justification) parts.push(String(gra.justification));
+        if (da && da.summary) parts.push(String(da.summary));
+        const errors = (da && Array.isArray(da.errors) && da.errors)
+            || (Array.isArray(gra && gra.errors) && gra.errors)
+            || [];
+        if (errors.length) {
+            parts.push(`共检出 ${errors.length} 处语法问题（见下方「语法错误」清单）`);
+            const bits = errors.slice(0, 2).map(e => {
+                if (!e || typeof e !== 'object') return String(e);
+                return `「${e.original || ''}」→「${e.correction || ''}」`;
+            });
+            parts.push(bits.join('；'));
+        } else {
+            parts.push('未检出明显语法错误条目（若回答偏短，仍可能句式单一）。');
+        }
+        if (da && da.error_statistics && da.error_statistics.most_frequent_error) {
+            parts.push('最常见错误：' + da.error_statistics.most_frequent_error);
+        }
+        if (da && da.sentence_variety && da.sentence_variety.assessment) {
+            parts.push(String(da.sentence_variety.assessment));
+        }
+        return parts.filter(Boolean).join(' ');
+    }
+
+    countGrammarErrors(grammarDetailed) {
+        if (!grammarDetailed || !Array.isArray(grammarDetailed.errors)) return 0;
+        return grammarDetailed.errors.length;
+    }
+
+    detectLocalGrammarIssues(transcript) {
+        const t = String(transcript || '').trim();
+        if (!t) return [];
+        const errors = [];
+        const push = (original, correction, type, explanation, severity = 'high') => {
+            if (!original) return;
+            const key = original.toLowerCase();
+            if (errors.some(e => String(e.original || '').toLowerCase() === key)) return;
+            errors.push({ original, correction, type, explanation, severity, source: 'local' });
+        };
+
+        // 残缺句：From/And/Been/With 等开头且过短
+        const fragments = t.match(/\b((?:From|And|But|Been|With|To|For|In|At|Where'?s)\b[^.?!]{0,40})[.?!]/gi) || [];
+        fragments.forEach(raw => {
+            const original = raw.replace(/[.?!]+$/, '').trim();
+            const words = original.split(/\s+/).filter(Boolean);
+            if (words.length <= 6) {
+                push(
+                    original,
+                    '补成完整句（含主语和谓语）',
+                    'sentence_structure',
+                    '这是残缺句/半截句，缺少完整主谓结构。',
+                    'high'
+                );
+            }
+        });
+
+        // I've often. / I have often. 单独成句
+        const oftenAlone = t.match(/\bI(?:'ve| have) often\b[.?!]/gi);
+        if (oftenAlone) {
+            push(
+                oftenAlone[0].replace(/[.?!]+$/, ''),
+                "I've often been to the park",
+                'sentence_structure',
+                '频次副词后缺少主要动词和宾语，句子不完整。',
+                'high'
+            );
+        }
+
+        // been to park 缺冠词
+        if (/\bbeen to park\b/i.test(t) || /\bgo to park\b/i.test(t) || /\bto park\b/i.test(t)) {
+            const m = t.match(/\b(?:been|go|went|going)?\s*to park\b/i);
+            push(
+                (m && m[0]) || 'to park',
+                'to the park',
+                'article',
+                'park 前通常需要定冠词 the。',
+                'medium'
+            );
+        }
+
+        // It gave me. 宾语残缺
+        if (/\bit gave me\b[.?!]/i.test(t) || /\bit gave me\s*$/i.test(t)) {
+            push(
+                'It gave me',
+                'It made me feel very happy / It gave me a lot of happiness',
+                'sentence_structure',
+                'gave me 后缺少宾语，句子不完整。',
+                'high'
+            );
+        }
+
+        // some happy / gave me some happy
+        if (/\b(some|a|an)\s+happy\b/i.test(t)) {
+            const m = t.match(/\b(?:gave me )?(?:some|a|an)\s+happy\b/i);
+            push(
+                (m && m[0]) || 'some happy',
+                'made me happy / some happiness',
+                'word_form',
+                'happy 是形容词，不能直接当名词宾语。',
+                'high'
+            );
+        }
+
+        return errors;
+    }
+
+    mergeGrammarDetailedAnalysis(existingDetailed, graNode, transcript) {
+        const base = (existingDetailed && typeof existingDetailed === 'object')
+            ? { ...existingDetailed }
+            : {};
+        let errors = [];
+        if (Array.isArray(base.errors)) errors = errors.concat(base.errors);
+        if (graNode && Array.isArray(graNode.errors)) errors = errors.concat(graNode.errors);
+        const local = this.detectLocalGrammarIssues(transcript);
+        local.forEach(e => {
+            const key = String(e.original || '').toLowerCase();
+            if (!errors.some(x => String(x.original || '').toLowerCase().includes(key) || key.includes(String(x.original || '').toLowerCase()))) {
+                errors.push(e);
+            }
+        });
+        // 去重
+        const seen = new Set();
+        errors = errors.filter(e => {
+            const k = String(e && e.original || '').toLowerCase().replace(/\s+/g, ' ').trim();
+            if (!k || seen.has(k)) return false;
+            seen.add(k);
+            return true;
+        });
+
+        const byType = {};
+        errors.forEach(e => {
+            const typ = String(e.type || 'other').toLowerCase();
+            byType[typ] = (byType[typ] || 0) + 1;
+        });
+        let most = '';
+        let mostN = 0;
+        Object.keys(byType).forEach(k => {
+            if (byType[k] > mostN) { mostN = byType[k]; most = k; }
+        });
+        const wordCount = Math.max(1, this.countTranscriptWords(transcript));
+        const density = Math.round((errors.length / wordCount) * 1000) / 10;
+
+        base.errors = errors;
+        base.error_statistics = {
+            ...(base.error_statistics || {}),
+            total_errors: errors.length,
+            by_type: { ...(base.error_statistics && base.error_statistics.by_type || {}), ...byType },
+            most_frequent_error: most || (base.error_statistics && base.error_statistics.most_frequent_error) || '',
+            error_density_per_100_words: density
+        };
+        if (!base.summary) {
+            base.summary = errors.length
+                ? `检出 ${errors.length} 处语法问题，短板主要在句型完整度/准确性；先把残缺句补全再谈复杂句。`
+                : '未检出明显残缺句或基础语法硬伤；可继续增加复杂句式。';
+        }
+        return base;
+    }
+
+    summarizePronReason(pron) {
+        const da = pron && pron.detailed_analysis;
+        const parts = [];
+        if (pron && pron.justification) parts.push(String(pron.justification));
+        if (da && da.assessment) parts.push(String(da.assessment));
+        const signals = (da && da.signals_found)
+            || (Array.isArray(pron && pron.signals) && pron.signals)
+            || [];
+        if (Array.isArray(signals) && signals.length) {
+            parts.push('信号：' + signals.slice(0, 3).join('；'));
+        }
+        return parts.filter(Boolean).join(' ');
+    }
+
+    grammarTypeLabel(type) {
+        const map = {
+            tense: '时态',
+            subject_verb_agreement: '主谓一致',
+            article: '冠词',
+            plural: '单复数',
+            preposition: '介词',
+            word_form: '词性',
+            sentence_structure: '句型结构',
+            non_finite: '非谓语',
+            subjunctive: '虚拟语气',
+            comparative: '比较级',
+            other: '其他'
+        };
+        return map[String(type || '').toLowerCase()] || (type || '其他');
     }
     
     // 从评语中抽出「引用片段」
@@ -1736,6 +2489,23 @@ class P1Practice {
             if (!arr || !arr.length) return '';
             return `<ul>${arr.map(x => `<li>${this.escapeHtml(x)}</li>`).join('')}</ul>`;
         };
+
+        const problemsHtml = (arr) => {
+            if (!arr || !arr.length) return '';
+            return arr.slice(0, 5).map((item, idx) => {
+                if (!item || typeof item !== 'object') {
+                    return `<li>${this.escapeHtml(String(item))}</li>`;
+                }
+                const rank = item.rank || (idx + 1);
+                const cat = item.category ? `（${this.escapeHtml(item.category)}）` : '';
+                return `<li style="margin-bottom:10px;">
+                    <strong>#${rank}${cat} ${this.escapeHtml(item.issue || '')}</strong>
+                    ${item.why_it_matters ? `<div style="margin-top:4px;">为什么：${this.escapeHtml(item.why_it_matters)}</div>` : ''}
+                    ${item.how_to_fix ? `<div>怎么改：${this.escapeHtml(item.how_to_fix)}</div>` : ''}
+                    ${item.example ? `<div style="margin-top:4px;padding:6px 8px;background:#f6efd2;border-radius:4px;">示例：${this.escapeHtml(item.example)}</div>` : ''}
+                </li>`;
+            }).join('');
+        };
         
         let html = `
             <div class="overall-score">
@@ -1743,13 +2513,13 @@ class P1Practice {
                 <div class="overall-value">${p.overall}</div>
             </div>
             <div class="score-card">
-                <div class="score-item"><div class="score-label">Fluency</div><div class="score-value ${getBandClass(p.fluency)}">${p.fluency}</div></div>
-                <div class="score-item"><div class="score-label">Vocabulary</div><div class="score-value ${getBandClass(p.vocabulary)}">${p.vocabulary}</div></div>
-                <div class="score-item"><div class="score-label">Grammar</div><div class="score-value ${getBandClass(p.grammar)}">${p.grammar}</div></div>
-                <div class="score-item"><div class="score-label">Pronunciation</div><div class="score-value ${getBandClass(p.pronunciation)}">${p.pronunciation}</div></div>
+                <div class="score-item"><div class="score-label">FC</div><div class="score-value ${getBandClass(p.fluency)}">${p.fluency}</div></div>
+                <div class="score-item"><div class="score-label">LR</div><div class="score-value ${getBandClass(p.vocabulary)}">${p.vocabulary}</div></div>
+                <div class="score-item"><div class="score-label">GRA</div><div class="score-value ${getBandClass(p.grammar)}">${p.grammar}</div></div>
+                <div class="score-item"><div class="score-label">Pron</div><div class="score-value ${getBandClass(p.pronunciation)}">${p.pronunciation}</div></div>
             </div>
             <div class="band-note" style="margin-top:12px;padding:12px;background:#e7efe9;border-radius:4px;font-size:14px;color:#243029;">
-                <strong>评分说明：</strong>四个单项为整数；总体 Band = 四项平均后按 0.5 取整。Pronunciation 依据识别完整度估算。
+                <strong>评分说明：</strong>FC/LR/GRA/Pron 为 1–9 整数；总体 = 四项平均后按 .25 进 .5、.75 进整（总分可以是 x.5）。语法从严并单独列出错误清单。发音依据 ASR 间接信号推断，无明显信号默认 6–7。
             </div>
             <div class="feedback-section" style="margin-top:14px;">
                 <h4>📌 为什么是这个分数</h4>
@@ -1758,12 +2528,12 @@ class P1Practice {
                         <tr style="background:#f3eee4;text-align:left;">
                             <th style="padding:8px;border-bottom:1px solid #e0d6c6;width:110px;">维度</th>
                             <th style="padding:8px;border-bottom:1px solid #e0d6c6;width:50px;">分数</th>
-                            <th style="padding:8px;border-bottom:1px solid #e0d6c6;">原因（含例子）</th>
+                            <th style="padding:8px;border-bottom:1px solid #e0d6c6;">依据</th>
                         </tr>
-                        ${row('Fluency', p.fluency, p.reasons.fluency)}
-                        ${row('Vocabulary', p.vocabulary, p.reasons.vocabulary)}
-                        ${row('Grammar', p.grammar, p.reasons.grammar)}
-                        ${row('Pronunciation', p.pronunciation, p.reasons.pronunciation)}
+                        ${row('FC 流利连贯', p.fluency, p.reasons.fluency)}
+                        ${row('LR 词汇', p.vocabulary, p.reasons.vocabulary)}
+                        ${row('GRA 语法', p.grammar, p.reasons.grammar)}
+                        ${row('Pron 发音', p.pronunciation, p.reasons.pronunciation)}
                         <tr>
                             <td style="padding:8px;">总体 Band</td>
                             <td style="padding:8px;"><strong>${p.overall}</strong></td>
@@ -1774,43 +2544,205 @@ class P1Practice {
             </div>
         `;
         
-        if (p.strengths.length) {
-            html += `<div class="feedback-section"><h4>✅ 优点</h4><div class="feedback-text">${listHtml(p.strengths)}</div></div>`;
+        // 语法错误单独置顶展示
+        html += this.renderGrammarErrorsHTML(p.detailed && p.detailed.grammar);
+        html += this.renderDetailedAnalysisHTML(p.detailed, { skipGrammarErrors: true });
+
+        if (p.problems && p.problems.length) {
+            html += `<div class="feedback-section"><h4>⚠️ 主要问题</h4><ul style="padding-left:18px;margin:0;">${problemsHtml(p.problems)}</ul></div>`;
+        } else {
+            if (p.strengths && p.strengths.length) {
+                html += `<div class="feedback-section"><h4>✅ 优点</h4><div class="feedback-text">${listHtml(p.strengths)}</div></div>`;
+            }
+            if (p.weaknesses && p.weaknesses.length) {
+                html += `<div class="feedback-section"><h4>⚠️ 需要改进</h4><div class="feedback-text">${listHtml(p.weaknesses)}</div></div>`;
+            }
+            if (p.suggestions && p.suggestions.length) {
+                html += `<div class="feedback-section"><h4>💡 改进建议</h4><div class="feedback-text">${listHtml(p.suggestions)}</div></div>`;
+            }
         }
-        if (p.weaknesses.length) {
-            html += `<div class="feedback-section"><h4>⚠️ 需要改进</h4><div class="feedback-text">${listHtml(p.weaknesses)}</div></div>`;
-        }
-        if (p.suggestions.length) {
-            html += `<div class="feedback-section"><h4>💡 改进建议</h4><div class="feedback-text">${listHtml(p.suggestions)}</div></div>`;
-        }
-        html += `
-            <div class="sample-answer">
-                <h4>🎯 改进示例（用本题提示词块 + 复合句）</h4>
+
+        const improved = p.improvedMeta;
+        const rewritten = (improved && improved.rewritten_version) || p.sampleAnswer || '';
+        const summary = improved && improved.original_summary
+            ? `<div style="margin-bottom:8px;font-size:13px;color:#6b655c;">原意：${this.escapeHtml(improved.original_summary)}</div>`
+            : '';
+        const improvList = improved && Array.isArray(improved.improvements_made) && improved.improvements_made.length
+            ? `<div style="margin-top:8px;font-size:13px;">改进点：${improved.improvements_made.map(x => this.escapeHtml(x)).join('；')}</div>`
+            : '';
+        const tipChunks = !(improved && improved.rewritten_version) ? `
                 <div style="margin-bottom:8px;font-size:13px;color:#6b655c;">
                     使用词块：${(p.tipMeta && p.tipMeta.usedChunks || []).map(c => `<code style="background:#f6efd2;padding:1px 6px;border-radius:2px;margin-right:4px;">${this.escapeHtml(c)}</code>`).join('') || '—'}
                 </div>
                 <div style="margin-bottom:8px;font-size:13px;color:#1e3f36;">
                     复合句：${this.escapeHtml((p.tipMeta && p.tipMeta.complexSentence) || '')}
-                </div>
+                </div>` : '';
+
+        html += `
+            <div class="sample-answer">
+                <h4>🎯 ${improved && improved.rewritten_version ? '7分改写版本' : '改进示例（本题词块 + 复合句）'}</h4>
+                ${summary}
+                ${tipChunks}
                 <div style="padding:10px;background:#e6f2ea;border-radius:4px;">
-                    <p style="margin:0;">${this.escapeHtml(p.sampleAnswer)}</p>
+                    <p style="margin:0;">${this.escapeHtml(rewritten)}</p>
                 </div>
+                ${improvList}
             </div>`;
         return html;
     }
+
+    renderGrammarErrorsHTML(grammarDetailed) {
+        const g = grammarDetailed;
+        if (!g || typeof g !== 'object') return '';
+        const errors = Array.isArray(g.errors) ? g.errors : [];
+        const stats = g.error_statistics || {};
+        let html = `<div class="feedback-section" style="border:1px solid #e8c4a8;background:#fff8f2;border-radius:6px;padding:12px;">
+            <h4 style="margin:0 0 8px;">📝 语法错误</h4>`;
+        if (g.summary) {
+            html += `<p style="margin:0 0 10px;font-size:14px;">${this.escapeHtml(g.summary)}</p>`;
+        }
+        html += `<div style="font-size:13px;margin-bottom:10px;color:#3a433d;">
+            共 ${this.escapeHtml(String(stats.total_errors ?? errors.length))} 处
+            ${stats.most_frequent_error ? `；最常见：${this.escapeHtml(this.grammarTypeLabel(stats.most_frequent_error))}` : ''}
+            ${stats.error_density_per_100_words != null ? `；密度：${this.escapeHtml(String(stats.error_density_per_100_words))}/100词` : ''}
+        </div>`;
+        if (!errors.length) {
+            html += `<p style="margin:0;font-size:13px;color:#5a635c;">未列出具体错误条目。</p></div>`;
+            return html;
+        }
+        html += `<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;font-size:13px;">
+            <tr style="background:#f8ebe0;text-align:left;">
+                <th style="padding:6px;border-bottom:1px solid #e0d6c6;width:88px;">类型</th>
+                <th style="padding:6px;border-bottom:1px solid #e0d6c6;">原文 → 正确</th>
+                <th style="padding:6px;border-bottom:1px solid #e0d6c6;">解释</th>
+            </tr>`;
+        errors.slice(0, 15).forEach(e => {
+            if (!e || typeof e !== 'object') return;
+            const sev = e.severity ? ` <span style="color:#8a6d3b;">(${this.escapeHtml(e.severity)})</span>` : '';
+            html += `<tr>
+                <td style="padding:6px;border-bottom:1px solid #f0e4d8;white-space:nowrap;">${this.escapeHtml(this.grammarTypeLabel(e.type))}${sev}</td>
+                <td style="padding:6px;border-bottom:1px solid #f0e4d8;">「${this.escapeHtml(e.original || '')}」→「${this.escapeHtml(e.correction || '')}」</td>
+                <td style="padding:6px;border-bottom:1px solid #f0e4d8;">${this.escapeHtml(e.explanation || '')}</td>
+            </tr>`;
+        });
+        html += `</table></div></div>`;
+        return html;
+    }
+
+    renderDetailedAnalysisHTML(detailed, options = {}) {
+        if (!detailed || typeof detailed !== 'object') return '';
+        let html = '';
+        const g = detailed.grammar;
+        if (g && typeof g === 'object') {
+            const variety = g.sentence_variety || {};
+            if (!options.skipGrammarErrors) {
+                html += this.renderGrammarErrorsHTML(g);
+            }
+            if (variety.assessment || variety.complex_sentence_ratio != null) {
+                html += `<div class="feedback-section"><h4>🔎 语法·句式多样性</h4>
+                <div style="font-size:13px;padding:8px 10px;background:#f7f3ea;border-radius:4px;">
+                    ${variety.simple_sentences != null ? `简单句 ${this.escapeHtml(String(variety.simple_sentences))}，` : ''}
+                    ${variety.compound_sentences != null ? `并列句 ${this.escapeHtml(String(variety.compound_sentences))}，` : ''}
+                    ${variety.complex_sentences != null ? `复合句 ${this.escapeHtml(String(variety.complex_sentences))}；` : ''}
+                    ${variety.complex_sentence_ratio != null ? `复合句比例 ${this.escapeHtml(String(variety.complex_sentence_ratio))}；` : ''}
+                    ${variety.avg_sentence_length_words != null ? `均长 ${this.escapeHtml(String(variety.avg_sentence_length_words))} 词。` : ''}
+                    ${variety.assessment ? `<div style="margin-top:4px;">${this.escapeHtml(variety.assessment)}</div>` : ''}
+                    ${Array.isArray(variety.structures_missing) && variety.structures_missing.length
+                        ? `<div style="margin-top:4px;">可补充结构：${variety.structures_missing.map(x => this.escapeHtml(String(x))).join('、')}</div>`
+                        : ''}
+                </div></div>`;
+            }
+        }
+
+        const fc = detailed.fluency;
+        if (fc && typeof fc === 'object' && (fc.summary || fc.fluency || fc.coherence)) {
+            html += `<div class="feedback-section"><h4>🔎 流利度与连贯详细解析</h4>`;
+            if (fc.summary) html += `<p style="margin:0 0 8px;font-size:14px;">${this.escapeHtml(fc.summary)}</p>`;
+            const f = fc.fluency || {};
+            const c = fc.coherence || {};
+            const lines = [
+                f.wpm_assessment, f.pause_assessment, f.filler_assessment, f.repetition_assessment,
+                c.connectives_assessment, c.topic_development
+            ].filter(Boolean);
+            if (lines.length) {
+                html += `<ul style="margin:0;padding-left:18px;font-size:13px;">${lines.map(x => `<li>${this.escapeHtml(String(x))}</li>`).join('')}</ul>`;
+            }
+            html += `</div>`;
+        }
+
+        const lr = detailed.vocabulary;
+        if (lr && typeof lr === 'object' && (lr.summary || lr.collocation || lr.vocabulary_diversity)) {
+            html += `<div class="feedback-section"><h4>🔎 词汇详细解析</h4>`;
+            if (lr.summary) html += `<p style="margin:0 0 8px;font-size:14px;">${this.escapeHtml(lr.summary)}</p>`;
+            const collErr = lr.collocation && Array.isArray(lr.collocation.errors) ? lr.collocation.errors : [];
+            if (collErr.length) {
+                html += `<ul style="margin:0;padding-left:18px;font-size:13px;">${collErr.slice(0, 6).map(e =>
+                    `<li>「${this.escapeHtml(e.wrong || '')}」→「${this.escapeHtml(e.correct || '')}」${e.explanation ? '：' + this.escapeHtml(e.explanation) : ''}</li>`
+                ).join('')}</ul>`;
+            } else if (lr.vocabulary_diversity && lr.vocabulary_diversity.assessment) {
+                html += `<p style="margin:0;font-size:13px;">${this.escapeHtml(lr.vocabulary_diversity.assessment)}</p>`;
+            }
+            html += `</div>`;
+        }
+
+        const pr = detailed.pronunciation;
+        if (pr && typeof pr === 'object' && (pr.assessment || (pr.signals_found && pr.signals_found.length))) {
+            html += `<div class="feedback-section"><h4>🔎 发音详细解析</h4>`;
+            if (pr.assessment) html += `<p style="margin:0 0 8px;font-size:14px;">${this.escapeHtml(pr.assessment)}</p>`;
+            const sig = [].concat(pr.signals_found || [], pr.word_duration_issues || [], pr.asr_anomalies || []).filter(Boolean);
+            if (sig.length) {
+                html += `<ul style="margin:0;padding-left:18px;font-size:13px;">${sig.slice(0, 6).map(x => `<li>${this.escapeHtml(String(x))}</li>`).join('')}</ul>`;
+            }
+            html += `</div>`;
+        }
+
+        return html;
+    }
     
-    // 各维度禁止串台的关键词
+    // 各维度禁止串台（仅强串台才丢弃；语法评语允许提「错误用词形式」）
     dimensionForbidden() {
         return {
-            fluency: [/词汇/, /用词/, /搭配/, /词义/, /时态/, /主谓/, /残缺/, /语法/, /发音/, /识别清晰/, /vocabulary/i, /grammar/i, /pronunciation/i],
-            lexical: [/时态/, /主谓/, /残缺句/, /句子结构/, /流利/, /停顿/, /卡顿/, /连贯/, /发音/, /识别完整/, /fluency/i, /grammar/i, /pronunciation/i],
-            grammar: [/用词/, /搭配/, /词义/, /词汇量/, /流利/, /停顿/, /卡顿/, /连贯/, /发音/, /识别/, /vocabulary/i, /fluency/i, /pronunciation/i],
-            pronunciation: [/时态/, /主谓/, /语法/, /用词/, /搭配/, /词汇/, /逻辑跳跃/, /衔接/, /fluency/i, /vocabulary/i, /grammar/i]
+            fluency: [/词汇资源/, /lexical resource/i, /pronunciation/i, /发音清晰/, /发音问题/],
+            lexical: [/流利度与连贯/, /fluency & coherence/i, /pronunciation/i, /发音清晰/, /长停顿/],
+            grammar: [/流利度与连贯/, /fluency & coherence/i, /pronunciation/i, /发音清晰/, /语速 WPM/i],
+            pronunciation: [/时态不一致/, /主谓一致/, /lexical resource/i, /词汇资源/, /复杂句型/]
         };
+    }
+
+    resolveDimensionReason(dim, aiReason, transcript, score) {
+        const cleaned = this.cleanReasonText(aiReason);
+        if (cleaned && cleaned.length >= 12) {
+            const rules = this.dimensionForbidden()[dim] || [];
+            const heavilyCross = rules.filter(re => re.test(cleaned)).length >= 2;
+            if (!heavilyCross) return cleaned;
+        }
+        // 有实质内容但略串台：仍优先 AI，去掉明显他维标签后返回
+        if (cleaned && cleaned.length >= 20) {
+            return cleaned
+                .replace(/\b(Fluency|Vocabulary|Lexical|Grammar|Pronunciation)\b[:：]?\s*/gi, '')
+                .trim();
+        }
+        return this.localDimensionReason(dim, transcript || '', score);
     }
     
     sanitizeDimensionReason(dim, reason, transcript, score) {
-        return this.pickGroundedReason(dim, reason, transcript, score);
+        return this.resolveDimensionReason(dim, reason, transcript, score);
+    }
+
+    // 跳过 Yes/Absolutely 这类开场，找更适合点评的句子
+    pickContentSentence(transcript) {
+        const sentences = String(transcript || '')
+            .split(/[.!?]+/)
+            .map(x => x.trim())
+            .filter(x => x.length > 2);
+        const opener = /^(yes|yeah|sure|absolutely|of course|definitely|exactly|ok|okay)\b/i;
+        const content = sentences.find(s => {
+            const words = s.split(/\s+/).filter(Boolean);
+            if (words.length < 3) return false;
+            if (opener.test(s) && words.length <= 4) return false;
+            return true;
+        });
+        return content || sentences.find(s => s.split(/\s+/).length >= 3) || sentences[0] || '';
     }
     
     localDimensionReason(dim, transcript, score) {
@@ -1825,10 +2757,11 @@ class P1Practice {
         const sentences = t.split(/[.!?]+/).map(x => x.trim()).filter(x => x.length > 3);
         const firstSent = sentences[0] || '';
         const lastSent = sentences[sentences.length - 1] || '';
+        const contentSent = this.pickContentSentence(t) || firstSent || lastSent;
         
         if (dim === 'fluency') {
             if (sentences.length >= 3 && sentences.every(x => x.split(/\s+/).length <= 8)) {
-                return '句子偏短、推进一般。你说了「' + firstSent + '」和「' + lastSent + '」→ 更好：合成一句，用 and / so 连接。';
+                return '句子偏短、推进一般。你说了「' + (contentSent || firstSent) + '」和「' + lastSent + '」→ 更好：合成一句，用 and / so 连接。';
             }
             const hardAnd = clip(/\bAnd\b[^.!?]{5,60}/);
             if (hardAnd) {
@@ -1838,13 +2771,17 @@ class P1Practice {
                 const snippet = t.length > 90 ? t.slice(0, 90) + '...' : t;
                 return '整体能听懂，但连贯一般。你的原话：「' + snippet + '」。可把短句连起来。';
             }
-            return '根据你的识别文本，表达基本连贯。';
+            return '根据你的识别文本，表达基本连贯。可继续用 and / because / which 把想法连起来。';
         }
         
         if (dim === 'lexical') {
             const likedMood = clip(/\breally liked my mood\b|\bliked my mood\b|\blike my mood\b/i);
             if (likedMood) {
                 return '搭配不够自然。你说了「' + likedMood + '」→ 更好：「it really lifted my mood」。你已用 mood，问题在搭配。';
+            }
+            const someHappy = clip(/\bsome happy\b|\bgave me some happy\b|\bmake me happy is\b/i);
+            if (someHappy) {
+                return '词性/搭配不对。你说了「' + someHappy + '」→ 更好：「made me happy」或「gave me some happiness」。';
             }
             const walkedToHim = clip(/\bwalked to him\b|\bwalk(?:ed)?(?:\s+\w+){0,3}\s+to him\b/i);
             if (walkedToHim) {
@@ -1857,26 +2794,40 @@ class P1Practice {
             if (has(/\bpuppy\b/) && has(/\bmood\b/)) {
                 return '你已经用了 puppy 和 mood，用词方向对。主要检查搭配是否自然（例如 liked my mood → lifted my mood）。';
             }
-            if (has(/\bpuppy\b/)) {
-                return '你用了 puppy，这很好。只改说得别扭的搭配，不要换掉已经用对的词。';
+            if (contentSent) {
+                return '用词基本能表意。针对「' + contentSent + '」，可把其中一处搭配说得更地道（不要只重复 Yes/Absolutely）。';
             }
-            const piece = lastSent || firstSent || t.slice(0, 60);
-            return '用词基本能表意。针对你说的「' + piece + '」，可把其中一处搭配说得更地道。';
+            return '用词基本能表意；可把一处搭配说得更地道。';
         }
         
         if (dim === 'grammar') {
-            const frag = clip(/\bIn my [^.?!]+\./i) || clip(/\bWas [^.?!]+\./);
+            const adjAsNoun = clip(/\b(some|a|an|much|more)\s+(happy|sad|exciting|interesting|relaxing)\b/i);
+            if (adjAsNoun) {
+                return '词性当语法用错了。你说「' + adjAsNoun + '」→ 形容词不能直接当名词：改成 “made me happy” 或 “some happiness”。';
+            }
+            const gaveHappy = clip(/\bgave me (some )?happy\b|\bmade? me some happy\b/i);
+            if (gaveHappy) {
+                return '结构不成立。你说「' + gaveHappy + '」→ 更好：「It made me happy」或「It gave me a lot of happiness」。';
+            }
+            const frag = clip(/\bIn my [^.?!]{0,40}\./i) || clip(/\bWas [^.?!]{0,40}\./);
             if (frag) {
-                return '结构不完整。你说了「' + frag + '」→ 更好：补全主语和动词。';
+                return '结构不完整。你说了「' + frag + '」→ 更好：补全主语和动词，写成完整句。';
             }
             if (has(/\bused to\b/) && has(/\bi (walk|feel|go|run|like)\b/)) {
-                const bit = clip(/\bI (walk|feel|go|run|like)\b[^.?]*/i) || firstSent;
+                const bit = clip(/\bI (walk|feel|go|run|like)\b[^.?]*/i) || contentSent;
                 return '时态可能不一致。你前面用了 used to，后面有「' + bit + '」→ 讲过去时更稳：walked / felt / liked。';
             }
-            if (firstSent) {
-                return '语法大体可读。以你的原句「' + firstSent + '」为例，可尝试合并短句。';
+            const missingPast = clip(/\bI (go|have|feel|walk|play) (?:to |a |the )?[^.!?]{0,40}/i);
+            if (missingPast && has(/\b(yesterday|last|ago|used to|when i was)\b/)) {
+                return '过去时间线里动词可能没变位。你说「' + missingPast + '」→ 检查是否该用过去式（went / had / felt / walked）。';
             }
-            return '语法整体可控；请结合你的原话检查时态和完整句。';
+            if (contentSent && contentSent.split(/\s+/).length >= 4) {
+                if (s >= 6) {
+                    return '语法整体可控。以「' + contentSent + '」为例，可再加一个从句（because / which / when）提升句式范围。';
+                }
+                return '语法大体可读，但句式偏简单。以「' + contentSent + '」为例：保留原意，补全时态/主谓，或改成带 because/which 的复杂句。';
+            }
+            return '语法整体可控；请结合完整叙述句检查时态、主谓和词性，不要只盯着开场的 Yes/Absolutely。';
         }
         
         const words = t.split(/\s+/).filter(Boolean).length;
@@ -1908,10 +2859,10 @@ class P1Practice {
     estimateLengthFallbackScore(transcript) {
         const n = this.countTranscriptWords(transcript);
         if (n < 5) return 3;
-        if (n < 10) return 3;
-        if (n < 16) return 4;
+        if (n < 10) return 4;
+        if (n < 16) return 5;
         if (n < 25) return 5;
-        return 5;
+        return 6;
     }
 
     maxOverallForTranscript(transcript) {
@@ -1927,7 +2878,7 @@ class P1Practice {
     clampScoresForShortAnswer(transcript, scores) {
         const maxOverall = this.maxOverallForTranscript(transcript);
         const maxDim = Math.max(1, Math.min(9, Math.round(maxOverall)));
-        const clamp = (v) => Math.min(maxDim, Math.max(1, Number(v) || 1));
+        const clamp = (v) => Math.min(maxDim, this.pickBandScore(v, 4));
         return {
             fluency: clamp(scores.fluency),
             vocabulary: clamp(scores.vocabulary),
@@ -1936,7 +2887,7 @@ class P1Practice {
         };
     }
 
-    // 按识别文本质量估算发音分（方案 B）
+    // 发音兜底：无明显异常信号时默认 7（整数）
     estimatePronunciationScore(transcript) {
         const t = (transcript || '').trim();
         if (!t) return 3;
@@ -1944,10 +2895,9 @@ class P1Practice {
         const wordCount = words.length;
         const sentenceCount = Math.max(1, t.split(/[.!?]+/).filter(s => s.trim().length > 0).length);
         const avgSentenceLength = wordCount / sentenceCount;
-        if (wordCount < 8) return 3;
-        if (avgSentenceLength < 3 || wordCount < 10) return 4;
-        if (avgSentenceLength < 5) return 5;
-        if (avgSentenceLength < 8) return 6;
+        if (wordCount < 8) return 4;
+        if (avgSentenceLength < 3 || wordCount < 10) return 5;
+        if (avgSentenceLength < 5) return 6;
         return 7;
     }
     
