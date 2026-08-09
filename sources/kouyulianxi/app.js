@@ -1325,7 +1325,7 @@ class P1Practice {
 
 ## 语法分析要求（重点）
 语法必须单独完整列出错误清单。你必须做到：
-1. **逐句扫描**，找出所有语法错误；残缺句、半截句也算错误并列入
+1. **逐句扫描**，找出所有语法错误。注意：ASR 常因停顿误标问号/句号（如 Which? Was a gift. From my parents.）；若语义上可连成 which was a gift from my parents，不要当成多个残缺句，应先回拼再判断
 2. 每个错误必须标注：错误类型、原文、正确形式、中文解释
 3. 错误类型归类：tense / subject_verb_agreement / article / plural / preposition / word_form / sentence_structure / non_finite / subjunctive / comparative / other
 4. 分析句式多样性（简单句/并列句/复合句、复杂结构、均长）
@@ -2321,8 +2321,158 @@ FC 必须含 naturalness；LR 必须含 chinglish_flags；语法 errors 单独�
         return grammarDetailed.errors.length;
     }
 
+    stripSentencePunct(s) {
+        return String(s || '').replace(/[.?!]+$/g, '').trim();
+    }
+
+    splitTranscriptSentences(text) {
+        const raw = String(text || '').trim();
+        if (!raw) return [];
+        const parts = raw.match(/[^.?!]+[.?!]+|[^.?!]+$/g) || [raw];
+        return parts.map(x => x.trim()).filter(Boolean);
+    }
+
+    // ASR 常因停顿把一句拆成 Which? / Was a gift. / From my parents.
+    restitchAsrTranscript(transcript) {
+        const parts = this.splitTranscriptSentences(transcript);
+        if (!parts.length) return { text: '', merges: [], sentences: [] };
+
+        const merges = [];
+        const out = [];
+        const strip = (s) => this.stripSentencePunct(s);
+        const punct = (s) => {
+            const m = String(s || '').match(/[.?!]+$/);
+            return (m && m[0]) || '.';
+        };
+        const isRelAlone = (s) => /^(which|that|who|whom|whose)$/i.test(strip(s));
+        const isCoordAlone = (s) => /^(and|but|or|so)$/i.test(strip(s));
+        const startsPrep = (s) => /^(from|with|to|for|in|at|of|about|by|on)\b/i.test(strip(s));
+        const startsPredicate = (s) => /^(been|being|was|were|is|are|am|have|has|had|gave|made|got|went|go|going|done|given)\b/i.test(strip(s));
+        const endsOpen = (s) => /\b(i(?:'ve| have) often|used to|gave me|it was a gift|it is a gift|was a gift|is a gift)$/i.test(strip(s));
+        const lowerContinue = (b) => {
+            if (/^i\b|^i'/i.test(b)) return b;
+            return b.charAt(0).toLowerCase() + b.slice(1);
+        };
+
+        for (let i = 0; i < parts.length; i++) {
+            let cur = parts[i];
+            while (i + 1 < parts.length) {
+                const next = parts[i + 1];
+                const a = strip(cur);
+                const b = strip(next);
+                let joined = null;
+
+                if (isRelAlone(cur) && startsPredicate(next)) {
+                    joined = `${a} ${lowerContinue(b)}`;
+                } else if (isCoordAlone(cur) && b.split(/\s+/).length >= 2) {
+                    joined = `${a} ${lowerContinue(b)}`;
+                } else if (/\bi(?:'ve| have) often$/i.test(a) && /^(been|gone|going|go|went)\b/i.test(b)) {
+                    joined = `${a} ${lowerContinue(b)}`;
+                } else if (startsPrep(next) && b.split(/\s+/).length <= 6 && a.split(/\s+/).length >= 2) {
+                    // It was a gift. From my parents. → 介词短语续接
+                    joined = `${a} ${lowerContinue(b)}`;
+                } else if (endsOpen(cur) && startsPredicate(next) && b.split(/\s+/).length <= 8) {
+                    joined = `${a} ${lowerContinue(b)}`;
+                }
+
+                if (!joined) break;
+                merges.push({ from: [cur, next], to: joined });
+                cur = joined + punct(next);
+                i++;
+            }
+            out.push(cur);
+        }
+
+        return { text: out.join(' '), merges, sentences: out };
+    }
+
+    looksLikeCompleteClause(sentence) {
+        const s = this.stripSentencePunct(sentence);
+        if (!s) return false;
+        const words = s.split(/\s+/).filter(Boolean);
+        if (words.length >= 3 && /^(i|you|he|she|it|we|they|this|that)\b/i.test(s)
+            && /\b(was|were|is|are|am|have|has|had|went|go|going|used|gave|made|feel|felt|been|like|liked|love|loved|want|wanted|do|did|does)\b/i.test(s)) {
+            return true;
+        }
+        // 回拼后的关系从句：which was a gift from my parents
+        if (words.length >= 4 && /^(which|that|who)\b/i.test(s)
+            && /\b(was|were|is|are|have|has|had|gave|made)\b/i.test(s)) {
+            return true;
+        }
+        return false;
+    }
+
+    isLikelyTrueFragment(sentence) {
+        const s = this.stripSentencePunct(sentence);
+        if (!s || this.looksLikeCompleteClause(s)) return false;
+        const words = s.split(/\s+/).filter(Boolean);
+        if (words.length === 0 || words.length > 8) return false;
+        if (/^(yes|yeah|yep|no|nope|sure|absolutely|exactly|okay|ok|of course|definitely)\b/i.test(s)) return false;
+        // 仅句首介词/分词/光杆谓语才可能是真残缺；不再用全文匹配 To，避免误伤 went to park
+        // Where's... 是完整疑问句，不算残缺
+        if (/^(from|with|for|in|at|of|about|by|on|been|being)\b/i.test(s)) return true;
+        if (/^(and|but|or|so)$/i.test(s)) return true;
+        if (/^(was|were|is|are|am|gave|made)\b/i.test(s) && !/^(it|this|that|he|she|they|i|we|you)\b/i.test(s)) return true;
+        if (/^to\b/i.test(s) && words.length <= 4) return true; // 独立短句 To park. 才算
+        if (/^i(?:'ve| have) often$/i.test(s)) return true;
+        // It gave me / And it gave me：交给专门规则报缺宾语，这里不整句当残缺
+        return false;
+    }
+
+    filterAsrFalseFragmentErrors(errors, stitch) {
+        const list = Array.isArray(errors) ? errors : [];
+        const rest = String(stitch && stitch.text || '').toLowerCase().replace(/\s+/g, ' ');
+        const mergeBlob = (stitch && stitch.merges || [])
+            .map(m => (m.from || []).concat(m.to || '').join(' '))
+            .join(' ')
+            .toLowerCase();
+
+        return list.filter(e => {
+            if (!e || typeof e !== 'object') return true;
+            const typ = String(e.type || '').toLowerCase();
+            if (typ !== 'sentence_structure' && typ !== 'fragment') return true;
+            const orig = this.stripSentencePunct(e.original).toLowerCase();
+            if (!orig) return true;
+
+            // Which? / And? 单独成“句”：几乎肯定是 ASR 停顿
+            if (/^(which|that|who|whom|whose|and|but|or|so)$/.test(orig)) return false;
+
+            // 已被回拼进完整小句的 From my parents / Was a gift 等才丢弃
+            // （And it gave me 虽回拼但仍缺宾语，不能丢）
+            if (mergeBlob.includes(orig) && rest.includes(orig)) {
+                const parent = (stitch.sentences || []).find(sent =>
+                    this.stripSentencePunct(sent).toLowerCase().includes(orig)
+                );
+                if (parent && this.looksLikeCompleteClause(parent)) return false;
+                if (parent && /^(from|with|for|in|at|of|about|by|on|which|that|who)\b/i.test(orig)
+                    && orig.split(/\s+/).length <= 5
+                    && !this.isLikelyTrueFragment(parent)) {
+                    return false;
+                }
+            }
+
+            // 完整句里的 to park 不是残缺句（冠词问题另报）
+            if (/^(to )?park$/.test(orig) || /^to park$/.test(orig)) return false;
+            if (/went to park|been to park|go to park|going to park/.test(orig)
+                && /残缺|半截|完整主谓|sentence fragment/i.test(String(e.explanation || ''))) {
+                return false;
+            }
+
+            // 回拼后已是完整小句，不再保留对该碎片的结构错误
+            if (stitch && Array.isArray(stitch.sentences)) {
+                const covered = stitch.sentences.some(sent => {
+                    const s = this.stripSentencePunct(sent).toLowerCase();
+                    return s.includes(orig) && this.looksLikeCompleteClause(sent);
+                });
+                if (covered && orig.split(/\s+/).length <= 5) return false;
+            }
+            return true;
+        });
+    }
+
     detectLocalGrammarIssues(transcript) {
-        const t = String(transcript || '').trim();
+        const stitch = this.restitchAsrTranscript(transcript);
+        const t = stitch.text || String(transcript || '').trim();
         if (!t) return [];
         const errors = [];
         const push = (original, correction, type, explanation, severity = 'high') => {
@@ -2332,56 +2482,58 @@ FC 必须含 naturalness；LR 必须含 chinglish_flags；语法 errors 单独�
             errors.push({ original, correction, type, explanation, severity, source: 'local' });
         };
 
-        // 残缺句：From/And/Been/With 等开头且过短
-        const fragments = t.match(/\b((?:From|And|But|Been|With|To|For|In|At|Where'?s)\b[^.?!]{0,40})[.?!]/gi) || [];
-        fragments.forEach(raw => {
-            const original = raw.replace(/[.?!]+$/, '').trim();
-            const words = original.split(/\s+/).filter(Boolean);
-            if (words.length <= 6) {
+        // 残缺句：只在回拼后仍不完整的独立短句上判定
+        (stitch.sentences.length ? stitch.sentences : this.splitTranscriptSentences(t)).forEach(raw => {
+            if (!this.isLikelyTrueFragment(raw)) return;
+            const original = this.stripSentencePunct(raw);
+            push(
+                original,
+                '补成完整句（含主语和谓语）',
+                'sentence_structure',
+                '回拼停顿断句后仍缺少完整主谓结构。',
+                'high'
+            );
+        });
+
+        // I've often. 单独成句（回拼后仍孤立才报）
+        (stitch.sentences || []).forEach(raw => {
+            const s = this.stripSentencePunct(raw);
+            if (/^i(?:'ve| have) often$/i.test(s)) {
                 push(
-                    original,
-                    '补成完整句（含主语和谓语）',
+                    s,
+                    "I've often been to the park",
                     'sentence_structure',
-                    '这是残缺句/半截句，缺少完整主谓结构。',
+                    '频次副词后缺少主要动词和宾语，句子不完整。',
                     'high'
                 );
             }
         });
 
-        // I've often. / I have often. 单独成句
-        const oftenAlone = t.match(/\bI(?:'ve| have) often\b[.?!]/gi);
-        if (oftenAlone) {
-            push(
-                oftenAlone[0].replace(/[.?!]+$/, ''),
-                "I've often been to the park",
-                'sentence_structure',
-                '频次副词后缺少主要动词和宾语，句子不完整。',
-                'high'
-            );
-        }
-
-        // been to park 缺冠词
-        if (/\bbeen to park\b/i.test(t) || /\bgo to park\b/i.test(t) || /\bto park\b/i.test(t)) {
-            const m = t.match(/\b(?:been|go|went|going)?\s*to park\b/i);
+        // been/go/went to park 缺冠词（完整句也要报，但类型是 article）
+        if (/\b(?:been|go|went|going)\s+to park\b/i.test(t) || /\bto park\b/i.test(t)) {
+            const m = t.match(/\b(?:been|go|went|going)\s+to park\b/i) || t.match(/\bto park\b/i);
             push(
                 (m && m[0]) || 'to park',
-                'to the park',
+                String(m && m[0] || 'to park').replace(/\bto park\b/i, 'to the park'),
                 'article',
-                'park 前通常需要定冠词 the。',
+                'park 前通常需要定冠词 the；这不是残缺句。',
                 'medium'
             );
         }
 
-        // It gave me. 宾语残缺
-        if (/\bit gave me\b[.?!]/i.test(t) || /\bit gave me\s*$/i.test(t)) {
-            push(
-                'It gave me',
-                'It made me feel very happy / It gave me a lot of happiness',
-                'sentence_structure',
-                'gave me 后缺少宾语，句子不完整。',
-                'high'
-            );
-        }
+        // It gave me. 宾语残缺（回拼后仍无后续宾语）
+        (stitch.sentences || []).forEach(raw => {
+            const s = this.stripSentencePunct(raw);
+            if (/\bit gave me$/i.test(s)) {
+                push(
+                    'It gave me',
+                    'It made me feel very happy / It gave me a lot of happiness',
+                    'sentence_structure',
+                    'gave me 后缺少宾语，句子不完整。',
+                    'high'
+                );
+            }
+        });
 
         // some happy / gave me some happy
         if (/\b(some|a|an)\s+happy\b/i.test(t)) {
@@ -2395,16 +2547,19 @@ FC 必须含 naturalness；LR 必须含 chinglish_flags；语法 errors 单独�
             );
         }
 
-        return errors;
+        return this.filterAsrFalseFragmentErrors(errors, stitch);
     }
 
     mergeGrammarDetailedAnalysis(existingDetailed, graNode, transcript) {
         const base = (existingDetailed && typeof existingDetailed === 'object')
             ? { ...existingDetailed }
             : {};
+        const stitch = this.restitchAsrTranscript(transcript);
         let errors = [];
         if (Array.isArray(base.errors)) errors = errors.concat(base.errors);
         if (graNode && Array.isArray(graNode.errors)) errors = errors.concat(graNode.errors);
+        // 去掉 AI 把 ASR 停顿断句误标成的残缺句
+        errors = this.filterAsrFalseFragmentErrors(errors, stitch);
         const local = this.detectLocalGrammarIssues(transcript);
         local.forEach(e => {
             const key = String(e.original || '').toLowerCase();
@@ -2412,6 +2567,7 @@ FC 必须含 naturalness；LR 必须含 chinglish_flags；语法 errors 单独�
                 errors.push(e);
             }
         });
+        errors = this.filterAsrFalseFragmentErrors(errors, stitch);
         // 去重
         const seen = new Set();
         errors = errors.filter(e => {
