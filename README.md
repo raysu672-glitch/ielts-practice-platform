@@ -7,14 +7,31 @@
 | 路径 | 说明 |
 |---|---|
 | `sources/` | 前端静态站点与各学习/测试模块，每个模块独立维护 |
+| `sources/tinglidanciceshi/` | 主站入口：学生端、教师端、模块 iframe 容器 |
+| `sources/tinglidanciceshi/css/main.css` | 主站样式 |
+| `sources/tinglidanciceshi/js/` | 主站脚本（见下方「主站前端拆分」） |
 | `scripts/local_server.py` | 本地静态文件服务和 SQLite API |
 | `scripts/deploy.py` | Linux 服务器覆盖部署脚本，凭据从环境变量读取 |
 | `scripts/repair_tracking_data.py` | 清理旧版重复学习会话、测试镜像会话和未完成阅读测试记录 |
 | `tests/` | 时长统计、历史类型和数据修复回归测试 |
 | `data/` | 本地运行数据库目录，不提交真实数据库 |
 | `docs/` | 架构、前台清单、部署迁移等项目文档 |
-| `DEV_SERVER.md` | 本地开发服务端口与启动方式 |
+| `DEV_SERVER.md` | 本地开发服务端口、启动方式与测试账号 |
 | `DEPLOY.md` | GitHub 推送与服务器部署流程 |
+
+## 主站前端拆分
+
+主站 `index.html` 只保留页面结构；样式与脚本按职责拆分，避免改教师端误伤学生端：
+
+| 文件 | 职责 |
+|---|---|
+| `css/main.css` | 主站样式 |
+| `js/local_db_client.js` | `/api/db` 前端适配（兼容原 Supabase 调用风格） |
+| `js/tracking.js` | 学习/测试时长工具与保存 |
+| `js/modules.js` | 模块配置、词表/词伙数据与模块工具 |
+| `js/app.js` | 数据库初始化、通用 UI、入口路由 |
+| `js/teacher.js` | 教师登录与后台（含管理员管理教师账号） |
+| `js/student.js` | 学生登录、学习与测试 |
 
 ## 学习模块
 
@@ -59,7 +76,25 @@ python -m uvicorn main:app --host 127.0.0.1 --port 8080
 | 健康检查 | `http://127.0.0.1:49182/api/health` |
 | 作文批改练习 | `http://127.0.0.1:49182/xiezuopigai/ielts-student-practice.html` |
 | P4 跟读测试 | `http://127.0.0.1:49182/P4genduceshi/` |
+
+首次启动会自动创建 `data/ielts_local.db` 并写入种子数据。删除该文件可重置本地库。
+
+## 本地测试账号
+
+凭证存在 SQLite（`students` / `teachers` 表），不写死在前端。完整说明见 `DEV_SERVER.md`。
+
+| 类型 | 账号 | 密码 |
+|---|---|---|
+| 管理员 | `admin`（入口 `?role=teacher`） | `sjdh4405` |
+| 教师示例 | `zhangxiaodong`（教研校长 / 阅读、写作） | 初始 `123456` |
+| 学生 | `2025001` | `123456`（首次登录会要求改密） |
+| 作文批改教师端 | 仅密码入口 `?role=writing` | `xiezuo8805` |
+
+管理员登录后可在「教师账号」页签添加教师（姓名、账号、职位、科目；初始密码 `123456`）。
+
 ## 部署维护
+
+**注意：** push 到 `main` 会触发 GitHub Actions 自动部署阿里云。功能验证阶段可先推功能分支，确认后再合并 `main`。
 
 部署脚本不会读取仓库中的明文密码。执行部署前先设置环境变量：
 
@@ -83,7 +118,8 @@ python scripts/deploy.py --repair-tracking-data
 
 | 原则 | 要求 |
 |---|---|
-| 模块隔离 | 每个训练模块只修改自己的目录，公共接入逻辑集中在主站 |
+| 模块隔离 | 每个训练模块只修改自己的目录；主站公共接入在 `js/modules.js`，教师/学生逻辑分文件维护 |
+| 教师凭证 | 教师账号密码存 `teachers` 表，由管理员后台维护，不写死在前端 |
 | 数据保护 | 默认不提交或覆盖 `data/*.db`，线上部署前必须备份 |
 | 音频保护 | `*.mp3`、`sources/tinglidanciceshi/audio/`、`sources/daanjutingxie/A听力答案句/` 只在本地或服务器本地维护，不提交 GitHub |
 | 凭据保护 | GitHub Token、服务器密码、SSH 私钥只放环境变量或系统凭据管理 |
@@ -93,6 +129,7 @@ python scripts/deploy.py --repair-tracking-data
 ## 回归测试
 
 ```powershell
+python -m compileall scripts tests
 python -m unittest discover -s tests -p "test_*.py" -v
 node tests/test_tracking_utils.js
 ```
