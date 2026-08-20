@@ -10,7 +10,8 @@
 
 | 类型 | 账号/入口 | 密码 |
 |---|---|---|
-| 教师端（全功能） | `http://127.0.0.1:49182/tinglidanciceshi/?role=teacher` | `sjdh4405` |
+| 管理员 | 入口 `http://127.0.0.1:49182/tinglidanciceshi/?role=teacher`；账号 `admin` | `sjdh4405`（存于 DB `teachers` 表） |
+| 教师（张晓东） | 同上入口；账号 `zhangxiaodong`（教研校长 / 阅读、写作） | 初始密码 `123456` |
 | 作文批改教师端（仅批改） | `http://127.0.0.1:49182/tinglidanciceshi/?role=writing` | `xiezuo8805` |
 | 学生端 | `2025001` | `123456` |
 | 新增学生 | 教师端添加后生成学号，如 `2025002` | `123456` |

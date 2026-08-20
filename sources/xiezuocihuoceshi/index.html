@@ -361,7 +361,11 @@ function getQueryParam(name) {
   try { return new URLSearchParams(window.location.search).get(name); } catch (e) { return null; }
 }
 
+var testReportSent = false;
+
 function sendTestComplete() {
+  if (testReportSent) return;
+  testReportSent = true;
   var pct = Math.round((score / TOTAL) * 100);
   try {
     if (window.parent && window.parent.postMessage) {
@@ -509,6 +513,7 @@ function startTest() {
   score = 0;
   results = [];
   testStartTime = Date.now();
+  testReportSent = false;
   renderQuiz();
 }
 

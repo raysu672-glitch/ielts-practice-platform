@@ -41,6 +41,7 @@ WRITING_BACKEND_DIR = ROOT / "sources" / "xiezuopigai" / "ielts-writing-backend"
 
 ALLOWED_TABLES = {
     "teacher_config",
+    "teachers",
     "students",
     "pass_standards",
     "test_records",
@@ -66,6 +67,31 @@ def connect(db_path: Path) -> sqlite3.Connection:
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys = ON")
     return conn
+
+
+def migrate_teachers_profile_columns(conn: sqlite3.Connection) -> None:
+    """Add profile fields to teachers for existing databases."""
+    row = conn.execute(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name='teachers'"
+    ).fetchone()
+    if not row:
+        return
+    columns = {r[1] for r in conn.execute("PRAGMA table_info(teachers)").fetchall()}
+    alterations = []
+    if "position" not in columns:
+        alterations.append("ALTER TABLE teachers ADD COLUMN position TEXT DEFAULT ''")
+    if "subjects" not in columns:
+        alterations.append("ALTER TABLE teachers ADD COLUMN subjects TEXT DEFAULT ''")
+    if "default_password" not in columns:
+        alterations.append(
+            "ALTER TABLE teachers ADD COLUMN default_password TEXT DEFAULT '123456'"
+        )
+    if "is_password_changed" not in columns:
+        alterations.append(
+            "ALTER TABLE teachers ADD COLUMN is_password_changed INTEGER DEFAULT 0"
+        )
+    for sql in alterations:
+        conn.execute(sql)
 
 
 def migrate_wrong_words_module_type(conn: sqlite3.Connection) -> None:
@@ -116,6 +142,19 @@ def init_db(db_path: Path) -> None:
                 id INTEGER PRIMARY KEY DEFAULT 1,
                 access_password TEXT NOT NULL DEFAULT 'sjdh4405',
                 school_name TEXT DEFAULT '藕叶英语',
+                updated_at TEXT DEFAULT ({now_sql()})
+            );
+
+            CREATE TABLE IF NOT EXISTS teachers (
+                teacher_id TEXT PRIMARY KEY,
+                name TEXT NOT NULL,
+                password TEXT NOT NULL,
+                default_password TEXT DEFAULT '123456',
+                is_password_changed INTEGER DEFAULT 0,
+                position TEXT DEFAULT '',
+                subjects TEXT DEFAULT '',
+                status TEXT DEFAULT 'active' CHECK (status IN ('active', 'inactive')),
+                created_at TEXT DEFAULT ({now_sql()}),
                 updated_at TEXT DEFAULT ({now_sql()})
             );
 
@@ -219,6 +258,7 @@ def init_db(db_path: Path) -> None:
 
         # Existing DBs may still lack module_type; migrate before indexing that column.
         migrate_wrong_words_module_type(conn)
+        migrate_teachers_profile_columns(conn)
         conn.execute(
             "CREATE INDEX IF NOT EXISTS idx_wrong_words_module_type ON wrong_words(module_type)"
         )
@@ -228,6 +268,46 @@ def init_db(db_path: Path) -> None:
             INSERT INTO teacher_config (id, access_password, school_name)
             VALUES (1, 'sjdh4405', '藕叶英语')
             ON CONFLICT(id) DO NOTHING
+            """
+        )
+
+        conn.execute(
+            """
+            INSERT INTO teachers (
+                teacher_id, name, password, default_password,
+                is_password_changed, position, subjects, status
+            )
+            VALUES (
+                'admin', '管理员', 'sjdh4405', 'sjdh4405',
+                1, '系统管理员', '', 'active'
+            )
+            ON CONFLICT(teacher_id) DO NOTHING
+            """
+        )
+
+        conn.execute(
+            """
+            INSERT INTO teachers (
+                teacher_id, name, password, default_password,
+                is_password_changed, position, subjects, status
+            )
+            VALUES (
+                'zhangxiaodong', '张晓东', '123456', '123456',
+                0, '教研校长', '阅读、写作', 'active'
+            )
+            ON CONFLICT(teacher_id) DO NOTHING
+            """
+        )
+
+        conn.execute(
+            """
+            UPDATE teachers
+            SET position = '系统管理员',
+                default_password = 'sjdh4405',
+                is_password_changed = 1,
+                updated_at = strftime('%Y-%m-%dT%H:%M:%fZ','now')
+            WHERE teacher_id = 'admin'
+              AND (position IS NULL OR position = '')
             """
         )
 

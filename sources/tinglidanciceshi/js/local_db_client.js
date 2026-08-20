@@ -1,4 +1,3 @@
-// Compat: moved to js/local_db_client.js — kept for old bookmarks; prefer js path.
 (function() {
     function LocalQuery(client, table) {
         this.client = client;

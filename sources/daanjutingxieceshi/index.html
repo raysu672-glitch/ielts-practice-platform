@@ -81,7 +81,11 @@ function getQueryParam(name) {
   try { return new URLSearchParams(window.location.search).get(name); } catch (e) { return null; }
 }
 
+let testReportSent = false;
+
 function sendTestComplete(scorePercent) {
+  if (testReportSent) return;
+  testReportSent = true;
   try {
     if (window.parent && window.parent.postMessage) {
       window.parent.postMessage({
@@ -122,6 +126,7 @@ function startTest() {
   currentQ = 0;
   score = 0;
   testStartTime = Date.now();
+  testReportSent = false;
   
   document.getElementById('home').style.display = 'none';
   document.getElementById('quiz').style.display = 'flex';
@@ -212,6 +217,7 @@ function selectOption(idx, btnEl) {
 }
 
 function nextQuestion() {
+  if (selectedAnswer === null) return;
   const q = testQuestions[currentQ];
   q.userAnswer = selectedAnswer;
   const isCorrect = (selectedAnswer === q.correct_idx);

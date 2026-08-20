@@ -13,6 +13,40 @@ INSERT INTO teacher_config (id, access_password, school_name)
 VALUES (1, 'sjdh4405', '藕叶英语')
 ON CONFLICT (id) DO NOTHING;
 
+-- 1b. 教师账号表
+CREATE TABLE IF NOT EXISTS teachers (
+    teacher_id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    password TEXT NOT NULL,
+    default_password TEXT DEFAULT '123456',
+    is_password_changed BOOLEAN DEFAULT FALSE,
+    position TEXT DEFAULT '',
+    subjects TEXT DEFAULT '',
+    status TEXT DEFAULT 'active' CHECK (status IN ('active', 'inactive')),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+INSERT INTO teachers (
+    teacher_id, name, password, default_password,
+    is_password_changed, position, subjects, status
+)
+VALUES (
+    'admin', '管理员', 'sjdh4405', 'sjdh4405',
+    TRUE, '系统管理员', '', 'active'
+)
+ON CONFLICT (teacher_id) DO NOTHING;
+
+INSERT INTO teachers (
+    teacher_id, name, password, default_password,
+    is_password_changed, position, subjects, status
+)
+VALUES (
+    'zhangxiaodong', '张晓东', '123456', '123456',
+    FALSE, '教研校长', '阅读、写作', 'active'
+)
+ON CONFLICT (teacher_id) DO NOTHING;
+
 -- 2. 学生表
 CREATE TABLE IF NOT EXISTS students (
     student_id TEXT PRIMARY KEY,
@@ -167,6 +201,7 @@ CREATE INDEX IF NOT EXISTS idx_word_mastery_student_id ON word_mastery(student_i
 
 -- 7. 启用 Row Level Security (RLS)
 ALTER TABLE teacher_config ENABLE ROW LEVEL SECURITY;
+ALTER TABLE teachers ENABLE ROW LEVEL SECURITY;
 ALTER TABLE students ENABLE ROW LEVEL SECURITY;
 ALTER TABLE pass_standards ENABLE ROW LEVEL SECURITY;
 ALTER TABLE test_records ENABLE ROW LEVEL SECURITY;
@@ -177,6 +212,7 @@ ALTER TABLE word_mastery ENABLE ROW LEVEL SECURITY;
 -- 8. RLS 策略（允许所有操作，因为前端会用 service_role key）
 -- 注意：生产环境应该更严格
 DROP POLICY IF EXISTS "Allow all operations on teacher_config" ON teacher_config;
+DROP POLICY IF EXISTS "Allow all operations on teachers" ON teachers;
 DROP POLICY IF EXISTS "Allow all operations on students" ON students;
 DROP POLICY IF EXISTS "Allow all operations on pass_standards" ON pass_standards;
 DROP POLICY IF EXISTS "Allow all operations on test_records" ON test_records;
@@ -185,6 +221,7 @@ DROP POLICY IF EXISTS "Allow all operations on study_sessions" ON study_sessions
 DROP POLICY IF EXISTS "Allow all operations on word_mastery" ON word_mastery;
 
 CREATE POLICY "Allow all operations on teacher_config" ON teacher_config FOR ALL USING (true);
+CREATE POLICY "Allow all operations on teachers" ON teachers FOR ALL USING (true);
 CREATE POLICY "Allow all operations on students" ON students FOR ALL USING (true);
 CREATE POLICY "Allow all operations on pass_standards" ON pass_standards FOR ALL USING (true);
 CREATE POLICY "Allow all operations on test_records" ON test_records FOR ALL USING (true);

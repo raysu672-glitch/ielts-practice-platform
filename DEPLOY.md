@@ -4,15 +4,62 @@
 
 ## 发布流程（强制）
 
-功能改动一律按下面顺序，**禁止跳步，禁止先改阿里云再回写本地**：
+功能改动一律按下面 **六步** 顺序，**禁止跳步，禁止先改阿里云再回写本地**：
 
-1. **本地先改**：在本地仓库完成修改与验证  
-2. **合并到 `main` 并 push**：`git push origin main`（或 PR 合并后由 GitHub 推送）  
-3. **自动部署到阿里云**：push 到 `main` 后，GitHub Actions 会自动运行 `scripts/deploy.py`
+### 1. 备份数据库
 
-也可在仓库 **Actions → Deploy to Aliyun → Run workflow** 手动触发。
+部署前先把线上 SQLite 拉到本地，**不要**只依赖 `deploy.py` 的整站 tar 备份。
+
+```powershell
+$stamp = Get-Date -Format "yyyyMMdd_HHmmss"
+$dir = "backups/aliyun_$stamp"
+New-Item -ItemType Directory -Force -Path $dir | Out-Null
+# 用已配置的 SSH 密钥/密码，将服务器 /var/www/ielts/data/*.db 下载到 $dir
+# 示例（密钥路径按本机实际修改）：
+# scp -i "你的.pem" root@服务器IP:/var/www/ielts/data/*.db $dir/
+Get-FileHash "$dir\*.db" -Algorithm SHA256 | Tee-Object -FilePath "$dir\SHA256SUMS"
+```
+
+### 2. 本地跑测试
+
+```powershell
+python -m compileall scripts tests
+python -m unittest discover -s tests -p "test_*.py" -v
+node tests/test_tracking_utils.js
+```
+
+任一项失败则停止，不得继续 push / 部署。
+
+### 3. 推 GitHub
+
+合并到 `main` 并推送：`git push origin main`（或 PR 合并后由 GitHub 推送）。
+
+### 4. 服务器拉取 / 部署
+
+push 到 `main` 后，GitHub Actions 会自动运行 `scripts/deploy.py`。也可在仓库 **Actions → Deploy to Aliyun → Run workflow** 手动触发。
 
 本地紧急热修仍可用 `python scripts/deploy.py`，但事后必须立刻补 commit 并 push 到 `main`，保证 GitHub 与线上一致。不要直接在服务器上改业务代码。
+
+默认部署**不会**覆盖线上 `data/*.db`、`config/ai.env` 与音频文件。
+
+### 5. 检查 `/api/health`
+
+```powershell
+curl https://training.oyenglish.com.cn/api/health
+# 或 SSH 到服务器后：
+# curl http://127.0.0.1:49182/api/health
+```
+
+预期返回含 `ok: true`。
+
+### 6. 学生端和教师端各测一遍
+
+| 端 | 入口 | 最低验收 |
+|---|---|---|
+| 学生端 | `https://training.oyenglish.com.cn/tinglidanciceshi/` | 页面可开、登录/进入模块正常 |
+| 教师端 | `https://training.oyenglish.com.cn/tinglidanciceshi/?role=teacher` | 教师登录页可开、可登录 |
+
+任一步失败：停止发布，修复后从失败步重跑。
 
 ### GitHub Actions 自动部署（一次性配置）
 
