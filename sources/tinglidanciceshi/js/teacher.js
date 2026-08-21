@@ -1,8 +1,36 @@
 // 教师端：登录与后台管理
 var currentTeacher = null;
 var TEACHER_DEFAULT_PASSWORD = '123456';
+
+async function teacherApiGet(url) {
+    return apiFetch(url);
+}
+
+async function teacherApiPost(url, body) {
+    return apiFetch(url, {
+        method: 'POST',
+        body: JSON.stringify(body || {})
+    });
+}
+
 var WRITING_TEACHER_PASSWORD = 'xiezuo8805';
-// 教师登录验证（账号+密码，查 teachers 表）
+
+async function restoreTeacherSession() {
+    try {
+        const me = await authMe();
+        if (!me.data || me.data.role !== 'teacher' || !me.data.teacher) {
+            return;
+        }
+        currentTeacher = me.data.teacher;
+        showScreen('teacherDashboard');
+        updateTeacherMgmtVisibility();
+        loadTeacherData();
+    } catch (e) {
+        console.error('恢复教师登录态失败:', e);
+    }
+}
+
+// 教师登录验证（账号+密码，服务端签发 HttpOnly Cookie）
 async function verifyTeacherPassword() {
     const teacherId = document.getElementById('teacherId').value.trim();
     const password = document.getElementById('teacherPassword').value;
@@ -10,24 +38,23 @@ async function verifyTeacherPassword() {
         showToast('请输入账号和密码', 'error');
         return;
     }
-    const result = await db.from('teachers').select('*').eq('teacher_id', teacherId).eq('password', password).single();
-    if (result.error || !result.data) {
-        var errMsg = (result.error && result.error.message) || '';
-        if (errMsg && errMsg !== 'No rows found') {
-            showToast('登录失败：' + errMsg, 'error');
-        } else {
-            showToast('账号或密码错误', 'error');
+    try {
+        const result = await apiFetch('/api/auth/teacher/login', {
+            method: 'POST',
+            body: JSON.stringify({ teacher_id: teacherId, password: password })
+        });
+        if (result.error || !result.data || !result.data.teacher) {
+            showToast((result.error && result.error.message) || '账号或密码错误', 'error');
+            return;
         }
-        return;
+        currentTeacher = result.data.teacher;
+        showScreen('teacherDashboard');
+        updateTeacherMgmtVisibility();
+        loadTeacherData();
+    } catch (e) {
+        console.error('教师登录失败:', e);
+        showToast('登录失败：' + (e.message || '请稍后再试'), 'error');
     }
-    if (result.data.status !== 'active') {
-        showToast('账号已被禁用', 'error');
-        return;
-    }
-    currentTeacher = result.data;
-    showScreen('teacherDashboard');
-    updateTeacherMgmtVisibility();
-    loadTeacherData();
 }
 
 function verifyWritingTeacherPassword() {
@@ -61,14 +88,16 @@ function teacherLogout() {
     document.body.classList.remove('teacher-writing-wide');
     currentTeacher = null;
     updateTeacherMgmtVisibility();
-    showScreen('teacherLoginScreen');
-    var teacherIdInput = document.getElementById('teacherId');
-    if (teacherIdInput) teacherIdInput.value = '';
-    document.getElementById('teacherPassword').value = '';
+    authLogout().finally(function() {
+        showScreen('teacherLoginScreen');
+        var teacherIdInput = document.getElementById('teacherId');
+        if (teacherIdInput) teacherIdInput.value = '';
+        document.getElementById('teacherPassword').value = '';
+    });
 }
 
 function isAdminTeacher() {
-    return !!(currentTeacher && currentTeacher.teacher_id === 'admin');
+    return !!(currentTeacher && (currentTeacher.teacher_id === 'admin' || currentTeacher.is_admin));
 }
 
 function updateTeacherMgmtVisibility() {
@@ -80,10 +109,6 @@ function updateTeacherMgmtVisibility() {
 
 async function loadTeacherData() {
     try {
-        if (!db) {
-            showToast('数据库连接失败，请检查网络', 'error');
-            return;
-        }
         var tasks = [loadStudents(), loadRecords(), loadStandards()];
         if (isAdminTeacher()) tasks.push(loadTeachers());
         await Promise.all(tasks);
@@ -92,10 +117,8 @@ async function loadTeacherData() {
     }
     // 同时把学生列表加载到搜索缓存（供学习进度页面搜索）
     try {
-        if (db) {
-            const studentsResult = await db.from('students').select('*').order('name');
-            _teacherStudents = studentsResult.data || [];
-        }
+        const studentsResult = await teacherApiGet('/api/teacher/students');
+        _teacherStudents = studentsResult.data || [];
     } catch (e) {
         console.error('加载学生列表失败:', e);
         _teacherStudents = [];
@@ -103,7 +126,7 @@ async function loadTeacherData() {
 }
 
 async function loadStudents() {
-    const result = await db.from('students').select('*').order('created_at', { ascending: false });
+    const result = await teacherApiGet('/api/teacher/students');
     const container = document.getElementById('studentsList');
     const students = result.data;
     if (!students || students.length === 0) {
@@ -364,12 +387,7 @@ function renderRecordsTable(records) {
 
 async function loadRecords() {
     const container = document.getElementById('recordsList');
-    if (!db) {
-        container.innerHTML = '<p style="text-align:center;color:#666;padding:20px;">暂无测试记录</p>';
-        return;
-    }
-    let query = db.from('test_records').select('*, students(name)').order('created_at', { ascending: false }).limit(1000);
-    const result = await query;
+    const result = await teacherApiGet('/api/teacher/test-records?limit=1000');
     if (result.error) console.error('加载测试记录失败:', result.error);
     _cachedRecordRows = result.data || [];
     renderRecordsTable(_cachedRecordRows);
@@ -394,15 +412,14 @@ var _cachedProgressRows = [];
 async function loadTeacherProgressData() {
     const container = document.getElementById('teacherStudentProgress');
     try {
-        if (!db) {
-            container.innerHTML = '<p style="text-align:center;color:#666;padding:20px;">数据库未连接</p>';
-            return;
-        }
-        const studentsResult = await db.from('students').select('*').order('name');
-        const recordsResult = await db.from('test_records').select('*');
-        const studyResult = await db.from('study_sessions').select('*');
-        _teacherStudents = studentsResult.data || [];
-        _cachedProgressRows = buildProgressRows(_teacherStudents, recordsResult.data || [], studyResult.data || []);
+        const overviewResult = await teacherApiGet('/api/teacher/overview');
+        if (overviewResult.error) throw new Error((overviewResult.error && overviewResult.error.message) || '加载失败');
+        _teacherStudents = (overviewResult.data && overviewResult.data.students) || [];
+        _cachedProgressRows = buildProgressRows(
+            _teacherStudents,
+            (overviewResult.data && overviewResult.data.test_records) || [],
+            (overviewResult.data && overviewResult.data.study_sessions) || []
+        );
         renderTeacherProgressSummary();
     } catch (e) {
         console.error('加载进度数据失败:', e);
@@ -627,14 +644,14 @@ async function showStudentDetailProgress(studentId, studentName, filterModuleId)
     const module = getModuleById(filterModuleId);
     const moduleName = module ? module.name : '听力1000词';
 
-    const recordsResult = await db.from('test_records').select('*').eq('student_id', studentId);
-    const records = recordsResult.data || [];
-
-    const wrongResult = await db.from('wrong_words').select('*').eq('student_id', studentId).eq('is_mastered', false);
-    const wrongCount = wrongResult.data ? wrongResult.data.length : 0;
-
-    const sessionsResult = await db.from('study_sessions').select('*').eq('student_id', studentId);
-    const allSessions = getStudySessions(sessionsResult.data || []);
+    const detailResult = await teacherApiGet('/api/teacher/student-detail?student_id=' + encodeURIComponent(studentId));
+    if (detailResult.error) {
+        showToast((detailResult.error && detailResult.error.message) || '加载学生详情失败', 'error');
+        return;
+    }
+    const records = (detailResult.data && detailResult.data.test_records) || [];
+    const wrongCount = ((detailResult.data && detailResult.data.wrong_words) || []).length;
+    const allSessions = getStudySessions((detailResult.data && detailResult.data.study_sessions) || []);
     const selectedRecords = getModuleRecords(records, filterModuleId);
     const selectedSessions = getModuleStudySessions(allSessions, filterModuleId);
     const selectedBestScore = getBestScore(selectedRecords);
@@ -646,8 +663,9 @@ async function showStudentDetailProgress(studentId, studentName, filterModuleId)
     html += '<h3 style="display:inline-block; margin-left:20px;">' + studentName + ' 的' + moduleName + '进度</h3>';
     html += '</div>';
 
-    const studentResult = await db.from('students').select('target_score').eq('student_id', studentId).single();
-    const studentTargetScore = studentResult.data ? studentResult.data.target_score : 6.5;
+    const studentTargetScore = (detailResult.data && detailResult.data.student && detailResult.data.student.target_score != null)
+        ? detailResult.data.student.target_score
+        : 6.5;
 
     html += '<div style="margin-bottom:15px; padding:15px; background:linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius:10px; color:white;">';
     html += '<div style="display:grid; grid-template-columns:repeat(4, 1fr); gap:16px; text-align:center;">';
@@ -748,7 +766,7 @@ async function loadTeacherStudentProgress() {
 }
 
 async function loadStandards() {
-    const result = await db.from('pass_standards').select('*').eq('is_active', true);
+    const result = await teacherApiGet('/api/teacher/standards');
     const container = document.getElementById('standardsList');
     // 达标标准也只展示学生端已开放模块，其余先隐藏
     const availableIds = {};
@@ -770,7 +788,9 @@ async function updateStandard(moduleType, field, value) {
     const update = {};
     update[field] = parseFloat(value);
     update.updated_at = new Date().toISOString();
-    await db.from('pass_standards').update(update).eq('module_type', moduleType);
+    update.module_type = moduleType;
+    const result = await teacherApiPost('/api/teacher/standards/update', update);
+    if (result.error) { showToast((result.error && result.error.message) || '更新失败', 'error'); return; }
     showToast('已更新', 'success');
 }
 
@@ -820,19 +840,15 @@ async function addStudent() {
     const name = document.getElementById('newStudentName').value.trim();
     const targetScore = parseFloat(document.getElementById('newStudentTarget').value);
     if (!name) { showToast('请输入姓名', 'error'); return; }
-    const lastResult = await db.from('students').select('student_id').order('created_at', { ascending: false }).limit(1).single();
-    let newId = '2025001';
-    if (lastResult.data) {
-        newId = String(parseInt(lastResult.data.student_id) + 1);
-    }
-    const insertResult = await db.from('students').insert({
-        student_id: newId,
+    const insertResult = await teacherApiPost('/api/teacher/students', {
         name: name,
-        password: '123456',
-        target_score: targetScore,
-        is_password_changed: false
+        target_score: targetScore
     });
-    if (insertResult.error) { showToast('添加失败：' + insertResult.error.message, 'error'); return; }
+    if (insertResult.error) {
+        showToast('添加失败：' + ((insertResult.error && insertResult.error.message) || '未知错误'), 'error');
+        return;
+    }
+    const newId = insertResult.data && insertResult.data.student_id;
     closeModal('addStudentModal');
     document.getElementById('newStudentName').value = '';
     showToast('添加成功！学号：' + newId + '，初始密码：123456', 'success');
@@ -840,14 +856,9 @@ async function addStudent() {
 }
 
 
-function showAddTeacherModal() {
-    if (!isAdminTeacher()) { showToast('仅管理员可添加教师', 'error'); return; }
-    showModal('addTeacherModal');
-}
-
 async function loadTeachers() {
     if (!isAdminTeacher()) return;
-    const result = await db.from('teachers').select('*').order('created_at', { ascending: false });
+    const result = await teacherApiGet('/api/teacher/teachers');
     const container = document.getElementById('teachersList');
     if (!container) return;
     const teachers = result.data || [];
@@ -891,23 +902,14 @@ async function addTeacher() {
         showToast('不能使用保留账号 admin', 'error');
         return;
     }
-    const existing = await db.from('teachers').select('teacher_id').eq('teacher_id', account).single();
-    if (existing.data) {
-        showToast('账号已存在', 'error');
-        return;
-    }
-    const insertResult = await db.from('teachers').insert({
+    const insertResult = await teacherApiPost('/api/teacher/teachers', {
         teacher_id: account,
         name: name,
-        password: TEACHER_DEFAULT_PASSWORD,
-        default_password: TEACHER_DEFAULT_PASSWORD,
-        is_password_changed: false,
         position: position,
-        subjects: subjects,
-        status: 'active'
+        subjects: subjects
     });
     if (insertResult.error) {
-        showToast('添加失败：' + insertResult.error.message, 'error');
+        showToast('添加失败：' + ((insertResult.error && insertResult.error.message) || '未知错误'), 'error');
         return;
     }
     closeModal('addTeacherModal');
@@ -923,11 +925,11 @@ async function resetTeacherPassword(teacherId) {
     if (!isAdminTeacher()) { showToast('仅管理员可操作', 'error'); return; }
     if (teacherId === 'admin') { showToast('不能重置管理员密码', 'error'); return; }
     if (!confirm('确定将该教师密码重置为 ' + TEACHER_DEFAULT_PASSWORD + '？')) return;
-    await db.from('teachers').update({
-        password: TEACHER_DEFAULT_PASSWORD,
-        is_password_changed: false,
-        updated_at: new Date().toISOString()
-    }).eq('teacher_id', teacherId);
+    const result = await teacherApiPost('/api/teacher/teachers/reset-password', { teacher_id: teacherId });
+    if (result.error) {
+        showToast((result.error && result.error.message) || '重置失败', 'error');
+        return;
+    }
     showToast('密码已重置为 ' + TEACHER_DEFAULT_PASSWORD, 'success');
 }
 
@@ -935,10 +937,11 @@ async function toggleTeacherStatus(teacherId, currentStatus) {
     if (!isAdminTeacher()) { showToast('仅管理员可操作', 'error'); return; }
     if (teacherId === 'admin') { showToast('不能禁用管理员', 'error'); return; }
     const newStatus = currentStatus === 'active' ? 'inactive' : 'active';
-    await db.from('teachers').update({
-        status: newStatus,
-        updated_at: new Date().toISOString()
-    }).eq('teacher_id', teacherId);
+    const result = await teacherApiPost('/api/teacher/teachers/toggle-status', { teacher_id: teacherId });
+    if (result.error) {
+        showToast((result.error && result.error.message) || '操作失败', 'error');
+        return;
+    }
     loadTeachers();
     showToast('教师已' + (newStatus === 'active' ? '启用' : '禁用'), 'success');
 }
@@ -949,8 +952,6 @@ async function batchImportStudents() {
     const text = document.getElementById('batchStudentList').value.trim();
     if (!text) { showToast('请输入学生列表', 'error'); return; }
     const lines = text.split('\n').filter(function(l) { return l.trim(); });
-    const lastResult = await db.from('students').select('student_id').order('created_at', { ascending: false }).limit(1).single();
-    let startId = lastResult.data ? parseInt(lastResult.data.student_id) + 1 : 2025001;
     const students = [];
     for (let i = 0; i < lines.length; i++) {
         const parts = lines[i].split(',');
@@ -958,38 +959,42 @@ async function batchImportStudents() {
         const target = parts[1] ? parseFloat(parts[1].trim()) : 6.5;
         if (name) {
             students.push({
-                student_id: String(startId + i),
                 name: name,
-                password: '123456',
-                target_score: target,
-                is_password_changed: false
+                target_score: target
             });
         }
     }
     if (students.length === 0) { showToast('没有有效的学生数据', 'error'); return; }
-    const insertResult = await db.from('students').insert(students);
-    if (insertResult.error) { showToast('导入失败：' + insertResult.error.message, 'error'); return; }
+    const insertResult = await teacherApiPost('/api/teacher/students/batch', { students: students });
+    if (insertResult.error) {
+        showToast('导入失败：' + ((insertResult.error && insertResult.error.message) || '未知错误'), 'error');
+        return;
+    }
     closeModal('batchImportModal');
     document.getElementById('batchStudentList').value = '';
-    showToast('成功导入 ' + students.length + ' 名学生', 'success');
+    const count = (insertResult.data && insertResult.data.count) || students.length;
+    showToast('成功导入 ' + count + ' 名学生', 'success');
     loadStudents();
 }
 
+
 async function resetPassword(studentId) {
     if (!confirm('确定重置该学生密码为123456？')) return;
-    await db.from('students').update({ password: '123456', is_password_changed: false }).eq('student_id', studentId);
+    const result = await teacherApiPost('/api/teacher/students/reset-password', { student_id: studentId });
+    if (result.error) { showToast((result.error && result.error.message) || '重置失败', 'error'); return; }
     showToast('密码已重置', 'success');
 }
 
 async function toggleStatus(studentId, currentStatus) {
-    const newStatus = currentStatus === 'active' ? 'inactive' : 'active';
-    await db.from('students').update({ status: newStatus }).eq('student_id', studentId);
+    const result = await teacherApiPost('/api/teacher/students/toggle-status', { student_id: studentId });
+    if (result.error) { showToast((result.error && result.error.message) || '操作失败', 'error'); return; }
+    const newStatus = (result.data && result.data.status) || (currentStatus === 'active' ? 'inactive' : 'active');
     loadStudents();
     showToast('学生已' + (newStatus === 'active' ? '启用' : '禁用'), 'success');
 }
 
 async function exportStudentsExcel() {
-    const result = await db.from('students').select('*').order('student_id');
+    const result = await teacherApiGet('/api/teacher/students');
     if (!result.data) return;
     const data = result.data.map(function(s) {
         return {
@@ -1008,7 +1013,7 @@ async function exportStudentsExcel() {
 }
 
 async function exportRecordsExcel() {
-    const result = await db.from('test_records').select('*, students(name)').order('created_at', { ascending: false });
+    const result = await teacherApiGet('/api/teacher/test-records?limit=5000');
     if (!result.data) return;
     const data = result.data.map(function(r) {
         return {

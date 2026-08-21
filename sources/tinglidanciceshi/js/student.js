@@ -24,27 +24,14 @@ function clearStudentSession() {
 }
 
 async function restoreStudentSession() {
-    if (!db) return;
-    let cached = null;
     try {
-        cached = JSON.parse(localStorage.getItem(STUDENT_SESSION_KEY) || 'null');
-    } catch (e) {
-        clearStudentSession();
-        return;
-    }
-    if (!cached || !cached.student_id || !cached.expires_at) return;
-    if (Date.now() > cached.expires_at) {
-        clearStudentSession();
-        return;
-    }
-    try {
-        const result = await db.from('students').select('*').eq('student_id', cached.student_id).single();
-        if (result.error || !result.data || result.data.status !== 'active') {
+        const me = await authMe();
+        if (!me.data || me.data.role !== 'student' || !me.data.student) {
             clearStudentSession();
             return;
         }
-        currentStudent = result.data;
-        rememberStudentSession(result.data);
+        currentStudent = me.data.student;
+        rememberStudentSession(me.data.student);
         showStudentHome();
     } catch (e) {
         console.error('恢复学生登录态失败:', e);
@@ -56,14 +43,18 @@ async function studentLogin() {
     const studentId = document.getElementById('studentId').value.trim();
     const password = document.getElementById('studentPassword').value;
     if (!studentId || !password) { showToast('请输入学号和密码', 'error'); return; }
-    if (!db) { showToast('数据库连接失败，请检查网络', 'error'); return; }
     try {
-        const result = await db.from('students').select('*').eq('student_id', studentId).eq('password', password).single();
-        if (result.error || !result.data) { showToast('学号或密码错误', 'error'); return; }
-        if (result.data.status !== 'active') { showToast('账号已被禁用', 'error'); return; }
-        currentStudent = result.data;
-        rememberStudentSession(result.data);
-        if (!result.data.is_password_changed) {
+        const result = await apiFetch('/api/auth/student/login', {
+            method: 'POST',
+            body: JSON.stringify({ student_id: studentId, password: password })
+        });
+        if (result.error || !result.data || !result.data.student) {
+            showToast((result.error && result.error.message) || '学号或密码错误', 'error');
+            return;
+        }
+        currentStudent = result.data.student;
+        rememberStudentSession(result.data.student);
+        if (!result.data.student.is_password_changed) {
             showChangePasswordModal();
         } else {
             showStudentHome();
@@ -110,12 +101,14 @@ function openWritingCorrectionHistory() {
 }
 
 async function loadProgressTable() {
-    const recordsResult = await db.from('test_records').select('*').eq('student_id', currentStudent.student_id);
-    const records = recordsResult.data || [];
-    const sessionsResult = await db.from('study_sessions').select('*').eq('student_id', currentStudent.student_id);
-    const sessions = getStudySessions(sessionsResult.data || []);
-    const wrongResult = await db.from('wrong_words').select('*').eq('student_id', currentStudent.student_id).eq('is_mastered', false);
-    const wrongCount = wrongResult.data ? wrongResult.data.length : 0;
+    const progressResult = await apiFetch('/api/student/progress');
+    if (progressResult.error) {
+        showToast((progressResult.error && progressResult.error.message) || '加载进度失败', 'error');
+        return;
+    }
+    const records = (progressResult.data && progressResult.data.test_records) || [];
+    const sessions = getStudySessions((progressResult.data && progressResult.data.study_sessions) || []);
+    const wrongCount = ((progressResult.data && progressResult.data.wrong_words) || []).length;
 
     const totalStudySeconds = window.TrackingUtils.sumDuration(sessions);
     const todayKey = getChinaDateKey();
@@ -237,7 +230,7 @@ function switchStudentTab(tab) {
 }
 
 async function loadStudentHistory() {
-    const result = await db.from('test_records').select('*').eq('student_id', currentStudent.student_id).order('created_at', { ascending: false });
+    const result = await apiFetch('/api/student/test-records');
     const container = document.getElementById('studentHistoryList');
     const records = result.data;
     
@@ -357,9 +350,11 @@ async function startWrongWordsTestFromHistory(wordListStr, moduleId) {
 function studentLogout() {
     currentStudent = null;
     clearStudentSession();
-    showScreen('studentLoginScreen');
-    document.getElementById('studentId').value = '';
-    document.getElementById('studentPassword').value = '';
+    authLogout().finally(function() {
+        showScreen('studentLoginScreen');
+        document.getElementById('studentId').value = '';
+        document.getElementById('studentPassword').value = '';
+    });
 }
 
 function showChangePasswordModal() { showModal('changePasswordModal'); }
@@ -369,10 +364,17 @@ async function changePassword() {
     const confirmPwd = document.getElementById('confirmPassword').value;
     if (!newPwd || newPwd.length < 4) { showToast('密码至少4位', 'error'); return; }
     if (newPwd !== confirmPwd) { showToast('两次密码不一致', 'error'); return; }
-    const result = await db.from('students').update({ password: newPwd, is_password_changed: true }).eq('student_id', currentStudent.student_id);
-    if (result.error) { showToast('修改失败', 'error'); return; }
-    currentStudent.password = newPwd;
-    currentStudent.is_password_changed = true;
+    const result = await apiFetch('/api/student/change-password', {
+        method: 'POST',
+        body: JSON.stringify({ password: newPwd })
+    });
+    if (result.error) { showToast((result.error && result.error.message) || '修改失败', 'error'); return; }
+    if (result.data && result.data.student) {
+        currentStudent = result.data.student;
+        rememberStudentSession(result.data.student);
+    } else {
+        currentStudent.is_password_changed = true;
+    }
     closeModal('changePasswordModal');
     showToast('密码修改成功', 'success');
     document.getElementById('newPassword').value = '';
@@ -412,7 +414,11 @@ async function startTest(mode, moduleId) {
     if (mode === 'random') {
         testWords = shuffleArray(bank.slice()).slice(0, 50);
     } else {
-        const result = await db.from('wrong_words').select('*').eq('student_id', currentStudent.student_id).eq('module_type', currentDictationModuleId).eq('is_mastered', false);
+        const result = await apiFetch('/api/student/wrong-words?module_type=' + encodeURIComponent(currentDictationModuleId) + '&unmastered=1');
+        if (result.error) {
+            showToast((result.error && result.error.message) || '加载错题失败', 'error');
+            return;
+        }
         if (!result.data || result.data.length === 0) {
             showToast('暂无错题可练习', 'info');
             return;
@@ -638,38 +644,25 @@ async function finishTest() {
     
     let newWrongCount = 0;
     if (!insertResult.skipped) {
-    for (let i = 0; i < testResults.length; i++) {
-        const result = testResults[i];
-        if (!result.isCorrect && !result.skipped) {
-            const existingResult = await db.from('wrong_words').select('*').eq('student_id', currentStudent.student_id).eq('module_type', dictation.id).eq('word', result.word).single();
-            if (existingResult.data) {
-                if (existingResult.data.correct_streak >= 2) {
-                    await db.from('wrong_words').update({ is_mastered: true }).eq('id', existingResult.data.id);
-                } else {
-                    await db.from('wrong_words').update({ wrong_count: existingResult.data.wrong_count + 1, correct_streak: 0, last_tested: new Date().toISOString() }).eq('id', existingResult.data.id);
-                }
-            } else {
-                await db.from('wrong_words').insert({
-                    student_id: currentStudent.student_id,
-                    module_type: dictation.id,
-                    word: result.word,
-                    wrong_count: 1,
-                    correct_streak: 0
-                });
-                newWrongCount++;
-            }
-        } else if (result.isCorrect) {
-            const existingResult = await db.from('wrong_words').select('*').eq('student_id', currentStudent.student_id).eq('module_type', dictation.id).eq('word', result.word).single();
-            if (existingResult.data && !existingResult.data.is_mastered) {
-                const newStreak = existingResult.data.correct_streak + 1;
-                if (newStreak >= 2) {
-                    await db.from('wrong_words').update({ correct_streak: newStreak, is_mastered: true, last_tested: new Date().toISOString() }).eq('id', existingResult.data.id);
-                } else {
-                    await db.from('wrong_words').update({ correct_streak: newStreak, last_tested: new Date().toISOString() }).eq('id', existingResult.data.id);
-                }
-            }
+        const applyResult = await apiFetch('/api/student/wrong-words/apply', {
+            method: 'POST',
+            body: JSON.stringify({
+                module_type: dictation.id,
+                results: testResults.map(function(r) {
+                    return {
+                        word: r.word,
+                        is_correct: !!r.isCorrect,
+                        skipped: !!r.skipped
+                    };
+                })
+            })
+        });
+        if (applyResult.error) {
+            console.error('同步错题失败:', applyResult.error);
+            showToast('测试已保存，但错题同步失败', 'error');
+        } else {
+            newWrongCount = Number((applyResult.data && applyResult.data.new_wrong_count) || 0);
         }
-    }
     }
     
     showScreen('resultScreen');
@@ -809,7 +802,11 @@ function updateLearnTimer() {
 
 // 加载学习统计
 async function loadLearnStats() {
-    const result = await db.from('word_mastery').select('*').eq('student_id', currentStudent.student_id);
+    const result = await apiFetch('/api/student/word-mastery');
+    if (result.error) {
+        console.error('加载学习统计失败:', result.error);
+        return;
+    }
     const masteryData = result.data || [];
     
     let mastered = 0, learning = 0, notStarted = 0;
@@ -836,7 +833,11 @@ async function startLearnSession() {
     learnSession = initLearnSession();
     
     // 获取学生已掌握的词汇（对过3次的）
-    const masteryResult = await db.from('word_mastery').select('*').eq('student_id', currentStudent.student_id);
+    const masteryResult = await apiFetch('/api/student/word-mastery');
+    if (masteryResult.error) {
+        showToast((masteryResult.error && masteryResult.error.message) || '加载掌握数据失败', 'error');
+        return;
+    }
     const masteredWords = (masteryResult.data || [])
         .filter(m => m.correct_count >= 3 || m.is_initial_correct)
         .map(m => m.word);
@@ -1032,27 +1033,16 @@ function processLearnAnswer(isCorrect, userAnswer) {
 
 // 保存单词掌握状态
 async function saveWordMastery(word, isCorrect, isInitial) {
-    const result = await db.from('word_mastery').select('*').eq('student_id', currentStudent.student_id).eq('word', word).single();
-    
-    if (result.data) {
-        // 更新
-        const update = {
-            correct_count: result.data.correct_count + (isCorrect ? 1 : 0),
-            last_tested: new Date().toISOString()
-        };
-        if (isInitial && isCorrect) {
-            update.is_initial_correct = true;
-        }
-        await db.from('word_mastery').update(update).eq('id', result.data.id);
-    } else {
-        // 新建
-        await db.from('word_mastery').insert({
-            student_id: currentStudent.student_id,
+    const result = await apiFetch('/api/student/word-mastery', {
+        method: 'POST',
+        body: JSON.stringify({
             word: word,
-            correct_count: isCorrect ? 1 : 0,
-            is_initial_correct: isInitial && isCorrect,
-            last_tested: new Date().toISOString()
-        });
+            is_correct: !!isCorrect,
+            is_initial: !!isInitial
+        })
+    });
+    if (result.error) {
+        console.error('保存单词掌握状态失败:', result.error);
     }
 }
 

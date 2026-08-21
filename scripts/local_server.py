@@ -32,8 +32,49 @@ if str(_SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(_SCRIPTS_DIR))
 
 from ai_config import ai_settings, load_ai_env  # noqa: E402
+from session_auth import (  # noqa: E402
+    SESSION_COOKIE_NAME,
+    build_session_cookie,
+    issue_session_token,
+    load_session_secret,
+    parse_session_token,
+    public_student,
+    public_teacher,
+    read_cookie_header,
+)
 
+
+from student_api import (  # noqa: E402
+    apply_wrong_word_results,
+    change_password as student_change_password,
+    insert_study_session,
+    insert_test_record,
+    load_progress,
+    load_standards,
+    load_test_records,
+    load_word_mastery,
+    load_wrong_words,
+    upsert_word_mastery,
+)
 DEFAULT_STATIC_DIR = ROOT / "sources"
+
+from teacher_api import (  # noqa: E402
+    TEACHER_DEFAULT_PASSWORD,
+    create_student,
+    create_students_batch,
+    create_teacher,
+    list_standards as list_teacher_standards,
+    list_students,
+    list_teachers,
+    list_test_records as list_teacher_test_records,
+    load_overview,
+    load_student_detail,
+    reset_student_password,
+    reset_teacher_password,
+    toggle_student_status,
+    toggle_teacher_status,
+    update_standard,
+)
 DEFAULT_DB_PATH = ROOT / "data" / "ielts_local.db"
 DEFAULT_P4_ASR_BASE = "https://p4.oyenglish.com.cn"
 DEFAULT_WRITING_API_BASE = "http://127.0.0.1:8080"
@@ -487,9 +528,15 @@ class LocalHandler(SimpleHTTPRequestHandler):
     db_path: Path = DEFAULT_DB_PATH
     writing_api_base: str = DEFAULT_WRITING_API_BASE
     p4_asr_base: str = DEFAULT_P4_ASR_BASE
+    session_secret: bytes = b""
 
     def end_headers(self) -> None:
-        self.send_header("Access-Control-Allow-Origin", "*")
+        origin = self.headers.get("Origin")
+        if origin:
+            self.send_header("Access-Control-Allow-Origin", origin)
+            self.send_header("Access-Control-Allow-Credentials", "true")
+        else:
+            self.send_header("Access-Control-Allow-Origin", "*")
         self.send_header("Access-Control-Allow-Headers", "Content-Type")
         self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
         super().end_headers()
@@ -497,6 +544,461 @@ class LocalHandler(SimpleHTTPRequestHandler):
     def do_OPTIONS(self) -> None:
         self.send_response(HTTPStatus.NO_CONTENT)
         self.end_headers()
+
+    def current_session(self) -> Optional[dict[str, Any]]:
+        raw = read_cookie_header(self.headers.get("Cookie", ""), SESSION_COOKIE_NAME)
+        if not raw or not self.session_secret:
+            return None
+        return parse_session_token(raw, self.session_secret)
+
+    def read_json_body(self) -> dict[str, Any]:
+        length = int(self.headers.get("Content-Length", "0"))
+        raw = self.rfile.read(length).decode("utf-8") if length > 0 else "{}"
+        data = json.loads(raw or "{}")
+        return data if isinstance(data, dict) else {}
+
+    def send_json(
+        self,
+        data: dict[str, Any],
+        status: int = 200,
+        set_cookies: Optional[list[str]] = None,
+    ) -> None:
+        body = json.dumps(data, ensure_ascii=False).encode("utf-8")
+        self.send_response(status)
+        self.send_header("Content-Type", "application/json; charset=utf-8")
+        self.send_header("Content-Length", str(len(body)))
+        for item in set_cookies or []:
+            self.send_header("Set-Cookie", item)
+        self.end_headers()
+        self.wfile.write(body)
+
+    def handle_auth_me(self) -> None:
+        session = self.current_session()
+        if not session:
+            self.send_json({"data": None, "error": {"message": "未登录"}}, status=401)
+            return
+        with closing(connect(self.db_path)) as conn:
+            if session["role"] == "student":
+                row = conn.execute(
+                    "SELECT * FROM students WHERE student_id = ?",
+                    (session["id"],),
+                ).fetchone()
+                if not row or row["status"] != "active":
+                    self.send_json(
+                        {"data": None, "error": {"message": "会话已失效"}},
+                        status=401,
+                        set_cookies=[build_session_cookie("", clear=True)],
+                    )
+                    return
+                self.send_json(
+                    {
+                        "data": {
+                            "role": "student",
+                            "student": public_student(row_to_dict(row)),
+                        },
+                        "error": None,
+                    }
+                )
+                return
+            row = conn.execute(
+                "SELECT * FROM teachers WHERE teacher_id = ?",
+                (session["id"],),
+            ).fetchone()
+            if not row or row["status"] != "active":
+                self.send_json(
+                    {"data": None, "error": {"message": "会话已失效"}},
+                    status=401,
+                    set_cookies=[build_session_cookie("", clear=True)],
+                )
+                return
+            self.send_json(
+                {
+                    "data": {
+                        "role": "teacher",
+                        "teacher": public_teacher(row_to_dict(row)),
+                    },
+                    "error": None,
+                }
+            )
+
+    def handle_student_login(self) -> None:
+        payload = self.read_json_body()
+        student_id = str(payload.get("student_id") or "").strip()
+        password = str(payload.get("password") or "")
+        if not student_id or not password:
+            self.send_json({"data": None, "error": {"message": "请输入学号和密码"}}, status=400)
+            return
+        with closing(connect(self.db_path)) as conn:
+            row = conn.execute(
+                "SELECT * FROM students WHERE student_id = ? AND password = ?",
+                (student_id, password),
+            ).fetchone()
+            if not row:
+                self.send_json({"data": None, "error": {"message": "学号或密码错误"}}, status=401)
+                return
+            item = row_to_dict(row)
+            if item.get("status") != "active":
+                self.send_json({"data": None, "error": {"message": "账号已被禁用"}}, status=403)
+                return
+            token = issue_session_token(
+                role="student",
+                subject_id=student_id,
+                secret=self.session_secret,
+            )
+            self.send_json(
+                {"data": {"role": "student", "student": public_student(item)}, "error": None},
+                set_cookies=[build_session_cookie(token)],
+            )
+
+    def handle_teacher_login(self) -> None:
+        payload = self.read_json_body()
+        teacher_id = str(payload.get("teacher_id") or "").strip()
+        password = str(payload.get("password") or "")
+        if not teacher_id or not password:
+            self.send_json({"data": None, "error": {"message": "请输入账号和密码"}}, status=400)
+            return
+        with closing(connect(self.db_path)) as conn:
+            row = conn.execute(
+                "SELECT * FROM teachers WHERE teacher_id = ? AND password = ?",
+                (teacher_id, password),
+            ).fetchone()
+            if not row:
+                self.send_json({"data": None, "error": {"message": "账号或密码错误"}}, status=401)
+                return
+            item = row_to_dict(row)
+            if item.get("status") != "active":
+                self.send_json({"data": None, "error": {"message": "账号已被禁用"}}, status=403)
+                return
+            token = issue_session_token(
+                role="teacher",
+                subject_id=teacher_id,
+                secret=self.session_secret,
+            )
+            self.send_json(
+                {"data": {"role": "teacher", "teacher": public_teacher(item)}, "error": None},
+                set_cookies=[build_session_cookie(token)],
+            )
+
+    def handle_logout(self) -> None:
+        self.send_json(
+            {"data": {"ok": True}, "error": None},
+            set_cookies=[build_session_cookie("", clear=True)],
+        )
+
+
+
+    def require_teacher_session(self) -> Optional[dict[str, Any]]:
+        session = self.current_session()
+        if not session or session.get("role") != "teacher":
+            self.send_json({"data": None, "error": {"message": "需要教师登录"}}, status=401)
+            return None
+        return session
+
+    def require_admin_session(self) -> Optional[dict[str, Any]]:
+        session = self.require_teacher_session()
+        if not session:
+            return None
+        if session.get("id") != "admin":
+            self.send_json({"data": None, "error": {"message": "仅管理员可操作"}}, status=403)
+            return None
+        return session
+
+    def handle_teacher_students_get(self) -> None:
+        session = self.require_teacher_session()
+        if not session:
+            return
+        with closing(connect(self.db_path)) as conn:
+            self.send_json({"data": list_students(conn), "error": None})
+
+    def handle_teacher_students_create(self) -> None:
+        session = self.require_teacher_session()
+        if not session:
+            return
+        payload = self.read_json_body()
+        with closing(connect(self.db_path)) as conn:
+            row, err = create_student(
+                conn,
+                name=payload.get("name") or "",
+                target_score=payload.get("target_score", payload.get("targetScore", 6.5)),
+                student_id=payload.get("student_id"),
+            )
+            if err:
+                self.send_json({"data": None, "error": {"message": err}}, status=400)
+                return
+            self.send_json({"data": row, "error": None})
+
+    def handle_teacher_students_batch(self) -> None:
+        session = self.require_teacher_session()
+        if not session:
+            return
+        payload = self.read_json_body()
+        items = payload.get("students") or payload.get("items") or []
+        if not isinstance(items, list):
+            self.send_json({"data": None, "error": {"message": "students 必须是数组"}}, status=400)
+            return
+        with closing(connect(self.db_path)) as conn:
+            result, err = create_students_batch(conn, items)
+            if err:
+                self.send_json({"data": None, "error": {"message": err}}, status=400)
+                return
+            self.send_json({"data": result, "error": None})
+
+    def handle_teacher_students_reset_password(self) -> None:
+        session = self.require_teacher_session()
+        if not session:
+            return
+        payload = self.read_json_body()
+        with closing(connect(self.db_path)) as conn:
+            err = reset_student_password(conn, payload.get("student_id") or "")
+            if err:
+                self.send_json({"data": None, "error": {"message": err}}, status=400)
+                return
+            self.send_json({"data": {"ok": True, "password": "123456"}, "error": None})
+
+    def handle_teacher_students_toggle_status(self) -> None:
+        session = self.require_teacher_session()
+        if not session:
+            return
+        payload = self.read_json_body()
+        with closing(connect(self.db_path)) as conn:
+            row, err = toggle_student_status(conn, payload.get("student_id") or "")
+            if err:
+                self.send_json({"data": None, "error": {"message": err}}, status=400)
+                return
+            self.send_json({"data": row, "error": None})
+
+    def handle_teacher_test_records_get(self) -> None:
+        session = self.require_teacher_session()
+        if not session:
+            return
+        parsed = urllib.parse.urlparse(self.path)
+        qs = urllib.parse.parse_qs(parsed.query or "")
+        try:
+            limit = int((qs.get("limit") or ["1000"])[0])
+        except ValueError:
+            limit = 1000
+        with closing(connect(self.db_path)) as conn:
+            self.send_json({"data": list_teacher_test_records(conn, limit=limit), "error": None})
+
+    def handle_teacher_overview(self) -> None:
+        session = self.require_teacher_session()
+        if not session:
+            return
+        with closing(connect(self.db_path)) as conn:
+            self.send_json({"data": load_overview(conn), "error": None})
+
+    def handle_teacher_student_detail(self) -> None:
+        session = self.require_teacher_session()
+        if not session:
+            return
+        parsed = urllib.parse.urlparse(self.path)
+        qs = urllib.parse.parse_qs(parsed.query or "")
+        student_id = (qs.get("student_id") or [None])[0]
+        with closing(connect(self.db_path)) as conn:
+            data, err = load_student_detail(conn, student_id or "")
+            if err:
+                self.send_json({"data": None, "error": {"message": err}}, status=404)
+                return
+            self.send_json({"data": data, "error": None})
+
+    def handle_teacher_standards_get(self) -> None:
+        session = self.require_teacher_session()
+        if not session:
+            return
+        with closing(connect(self.db_path)) as conn:
+            self.send_json({"data": list_teacher_standards(conn), "error": None})
+
+    def handle_teacher_standards_update(self) -> None:
+        session = self.require_teacher_session()
+        if not session:
+            return
+        payload = self.read_json_body()
+        module_type = payload.get("module_type") or payload.get("moduleType") or ""
+        with closing(connect(self.db_path)) as conn:
+            err = update_standard(conn, module_type, payload)
+            if err:
+                self.send_json({"data": None, "error": {"message": err}}, status=400)
+                return
+            self.send_json({"data": {"ok": True}, "error": None})
+
+    def handle_teacher_teachers_get(self) -> None:
+        session = self.require_admin_session()
+        if not session:
+            return
+        with closing(connect(self.db_path)) as conn:
+            self.send_json({"data": list_teachers(conn), "error": None})
+
+    def handle_teacher_teachers_create(self) -> None:
+        session = self.require_admin_session()
+        if not session:
+            return
+        payload = self.read_json_body()
+        with closing(connect(self.db_path)) as conn:
+            row, err = create_teacher(
+                conn,
+                teacher_id=payload.get("teacher_id") or payload.get("account") or "",
+                name=payload.get("name") or "",
+                position=payload.get("position") or "",
+                subjects=payload.get("subjects") or "",
+            )
+            if err:
+                self.send_json({"data": None, "error": {"message": err}}, status=400)
+                return
+            self.send_json(
+                {
+                    "data": {"teacher": row, "password": TEACHER_DEFAULT_PASSWORD},
+                    "error": None,
+                }
+            )
+
+    def handle_teacher_teachers_reset_password(self) -> None:
+        session = self.require_admin_session()
+        if not session:
+            return
+        payload = self.read_json_body()
+        with closing(connect(self.db_path)) as conn:
+            err = reset_teacher_password(conn, payload.get("teacher_id") or "")
+            if err:
+                self.send_json({"data": None, "error": {"message": err}}, status=400)
+                return
+            self.send_json(
+                {"data": {"ok": True, "password": TEACHER_DEFAULT_PASSWORD}, "error": None}
+            )
+
+    def handle_teacher_teachers_toggle_status(self) -> None:
+        session = self.require_admin_session()
+        if not session:
+            return
+        payload = self.read_json_body()
+        with closing(connect(self.db_path)) as conn:
+            row, err = toggle_teacher_status(conn, payload.get("teacher_id") or "")
+            if err:
+                self.send_json({"data": None, "error": {"message": err}}, status=400)
+                return
+            self.send_json({"data": row, "error": None})
+
+
+    def require_student_session(self) -> Optional[dict[str, Any]]:
+        session = self.current_session()
+        if not session or session.get("role") != "student":
+            self.send_json({"data": None, "error": {"message": "需要学生登录"}}, status=401)
+            return None
+        return session
+
+    def handle_student_progress(self) -> None:
+        session = self.require_student_session()
+        if not session:
+            return
+        with closing(connect(self.db_path)) as conn:
+            self.send_json({"data": load_progress(conn, session["id"]), "error": None})
+
+    def handle_student_test_records_get(self) -> None:
+        session = self.require_student_session()
+        if not session:
+            return
+        with closing(connect(self.db_path)) as conn:
+            self.send_json({"data": load_test_records(conn, session["id"]), "error": None})
+
+    def handle_student_standards(self) -> None:
+        session = self.require_student_session()
+        if not session:
+            return
+        with closing(connect(self.db_path)) as conn:
+            self.send_json({"data": load_standards(conn), "error": None})
+
+    def handle_student_wrong_words_get(self) -> None:
+        session = self.require_student_session()
+        if not session:
+            return
+        parsed = urllib.parse.urlparse(self.path)
+        qs = urllib.parse.parse_qs(parsed.query or "")
+        module_type = (qs.get("module_type") or [None])[0]
+        unmastered = (qs.get("unmastered") or ["0"])[0] in ("1", "true", "yes")
+        with closing(connect(self.db_path)) as conn:
+            rows = load_wrong_words(
+                conn,
+                session["id"],
+                module_type=module_type,
+                unmastered_only=unmastered,
+            )
+            self.send_json({"data": rows, "error": None})
+
+    def handle_student_word_mastery_get(self) -> None:
+        session = self.require_student_session()
+        if not session:
+            return
+        with closing(connect(self.db_path)) as conn:
+            rows = load_word_mastery(conn, session["id"])
+            for item in rows:
+                item["last_tested"] = item.get("last_practiced_at")
+            self.send_json({"data": rows, "error": None})
+
+    def handle_student_change_password(self) -> None:
+        session = self.require_student_session()
+        if not session:
+            return
+        payload = self.read_json_body()
+        password = payload.get("password") or payload.get("new_password") or ""
+        with closing(connect(self.db_path)) as conn:
+            err = student_change_password(conn, session["id"], password)
+            if err:
+                self.send_json({"data": None, "error": {"message": err}}, status=400)
+                return
+            row = conn.execute(
+                "SELECT * FROM students WHERE student_id = ?",
+                (session["id"],),
+            ).fetchone()
+            self.send_json(
+                {
+                    "data": {"student": public_student(row_to_dict(row)) if row else None},
+                    "error": None,
+                }
+            )
+
+    def handle_student_study_sessions_post(self) -> None:
+        session = self.require_student_session()
+        if not session:
+            return
+        payload = self.read_json_body()
+        with closing(connect(self.db_path)) as conn:
+            row = insert_study_session(conn, session["id"], payload)
+            self.send_json({"data": row, "error": None})
+
+    def handle_student_test_records_post(self) -> None:
+        session = self.require_student_session()
+        if not session:
+            return
+        payload = self.read_json_body()
+        with closing(connect(self.db_path)) as conn:
+            row = insert_test_record(conn, session["id"], payload)
+            self.send_json({"data": row, "error": None})
+
+    def handle_student_wrong_words_apply(self) -> None:
+        session = self.require_student_session()
+        if not session:
+            return
+        payload = self.read_json_body()
+        module_type = str(payload.get("module_type") or payload.get("moduleType") or "dictation")
+        results = payload.get("results") or []
+        if not isinstance(results, list):
+            self.send_json({"data": None, "error": {"message": "results 必须是数组"}}, status=400)
+            return
+        with closing(connect(self.db_path)) as conn:
+            summary = apply_wrong_word_results(conn, session["id"], module_type, results)
+            self.send_json({"data": summary, "error": None})
+
+    def handle_student_word_mastery_post(self) -> None:
+        session = self.require_student_session()
+        if not session:
+            return
+        payload = self.read_json_body()
+        try:
+            with closing(connect(self.db_path)) as conn:
+                row = upsert_word_mastery(conn, session["id"], payload)
+            self.send_json({"data": row, "error": None})
+        except ValueError as exc:
+            self.send_json({"data": None, "error": {"message": str(exc)}}, status=400)
+
 
     def do_GET(self) -> None:
         parsed = urllib.parse.urlparse(self.path)
@@ -509,6 +1011,42 @@ class LocalHandler(SimpleHTTPRequestHandler):
                     "writing_api_base": self.writing_api_base,
                 }
             )
+            return
+        if parsed.path.rstrip("/") == "/api/auth/me":
+            self.handle_auth_me()
+            return
+        if parsed.path.rstrip("/") == "/api/student/progress":
+            self.handle_student_progress()
+            return
+        if parsed.path.rstrip("/") == "/api/student/test-records":
+            self.handle_student_test_records_get()
+            return
+        if parsed.path.rstrip("/") == "/api/student/standards":
+            self.handle_student_standards()
+            return
+        if parsed.path.rstrip("/") == "/api/student/wrong-words":
+            self.handle_student_wrong_words_get()
+            return
+        if parsed.path.rstrip("/") == "/api/student/word-mastery":
+            self.handle_student_word_mastery_get()
+            return
+        if parsed.path.rstrip("/") == "/api/teacher/students":
+            self.handle_teacher_students_get()
+            return
+        if parsed.path.rstrip("/") == "/api/teacher/test-records":
+            self.handle_teacher_test_records_get()
+            return
+        if parsed.path.rstrip("/") == "/api/teacher/overview":
+            self.handle_teacher_overview()
+            return
+        if parsed.path.rstrip("/") == "/api/teacher/student-detail":
+            self.handle_teacher_student_detail()
+            return
+        if parsed.path.rstrip("/") == "/api/teacher/standards":
+            self.handle_teacher_standards_get()
+            return
+        if parsed.path.rstrip("/") == "/api/teacher/teachers":
+            self.handle_teacher_teachers_get()
             return
         if parsed.path.startswith("/api/config"):
             settings = ai_settings()
@@ -552,22 +1090,74 @@ class LocalHandler(SimpleHTTPRequestHandler):
 
     def do_POST(self) -> None:
         parsed = urllib.parse.urlparse(self.path)
+        path = parsed.path.rstrip("/")
         if parsed.path.startswith("/api/writing"):
             self.proxy_writing_api("POST")
             return
         if parsed.path.startswith("/api/p4"):
             self.proxy_p4_api("POST")
             return
-        if not parsed.path.startswith("/api/db"):
-            self.send_error(HTTPStatus.NOT_FOUND, "API not found")
+        if path == "/api/auth/student/login":
+            self.handle_student_login()
             return
-        try:
-            length = int(self.headers.get("Content-Length", "0"))
-            payload = json.loads(self.rfile.read(length).decode("utf-8") or "{}")
-            result = query_db(self.db_path, payload)
-            self.send_json(result)
-        except Exception as exc:
-            self.send_json({"data": None, "error": {"message": str(exc)}}, status=500)
+        if path == "/api/auth/teacher/login":
+            self.handle_teacher_login()
+            return
+        if path == "/api/auth/logout":
+            self.handle_logout()
+            return
+        if path == "/api/student/change-password":
+            self.handle_student_change_password()
+            return
+        if path == "/api/student/study-sessions":
+            self.handle_student_study_sessions_post()
+            return
+        if path == "/api/student/test-records":
+            self.handle_student_test_records_post()
+            return
+        if path == "/api/student/wrong-words/apply":
+            self.handle_student_wrong_words_apply()
+            return
+        if path == "/api/student/word-mastery":
+            self.handle_student_word_mastery_post()
+            return
+        if path == "/api/teacher/students":
+            self.handle_teacher_students_create()
+            return
+        if path == "/api/teacher/students/batch":
+            self.handle_teacher_students_batch()
+            return
+        if path == "/api/teacher/students/reset-password":
+            self.handle_teacher_students_reset_password()
+            return
+        if path == "/api/teacher/students/toggle-status":
+            self.handle_teacher_students_toggle_status()
+            return
+        if path == "/api/teacher/standards/update":
+            self.handle_teacher_standards_update()
+            return
+        if path == "/api/teacher/teachers":
+            self.handle_teacher_teachers_create()
+            return
+        if path == "/api/teacher/teachers/reset-password":
+            self.handle_teacher_teachers_reset_password()
+            return
+        if path == "/api/teacher/teachers/toggle-status":
+            self.handle_teacher_teachers_toggle_status()
+            return
+        if parsed.path.startswith("/api/db"):
+            # P2: generic /api/db is closed; use role-scoped APIs.
+            self.send_json(
+                {
+                    "data": None,
+                    "error": {
+                        "message": "通用 /api/db 已关闭，请使用 /api/student/* 或 /api/teacher/*"
+                    },
+                },
+                status=403,
+            )
+            return
+        self.send_error(HTTPStatus.NOT_FOUND, "API not found")
 
     def proxy_p4_api(self, method: str) -> None:
         """Proxy /api/p4/* to the P4 ASR upstream (e.g. /api/p4/transcribe -> /transcribe)."""
@@ -658,14 +1248,6 @@ class LocalHandler(SimpleHTTPRequestHandler):
         if path.endswith(".js"):
             return "application/javascript"
         return mimetypes.guess_type(path)[0] or "application/octet-stream"
-
-    def send_json(self, data: dict[str, Any], status: int = 200) -> None:
-        body = json.dumps(data, ensure_ascii=False).encode("utf-8")
-        self.send_response(status)
-        self.send_header("Content-Type", "application/json; charset=utf-8")
-        self.send_header("Content-Length", str(len(body)))
-        self.end_headers()
-        self.wfile.write(body)
 
 
 def writing_backend_healthy(base_url: str) -> bool:
@@ -770,6 +1352,7 @@ def main(argv: list[str]) -> int:
 
     LocalHandler.static_dir = static_dir
     LocalHandler.db_path = db_path
+    LocalHandler.session_secret = load_session_secret()
     LocalHandler.writing_api_base = writing_api_base
     LocalHandler.p4_asr_base = str(args.p4_asr_base).rstrip("/")
     server = ThreadingHTTPServer((args.host, args.port), LocalHandler)

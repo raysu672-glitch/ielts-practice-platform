@@ -82,7 +82,6 @@ function getTestSaveKey(record) {
 }
 
 async function saveStudySession(payload) {
-    if (!db) return { skipped: true, reason: 'db_missing' };
     const studentId = payload.student_id || (currentStudent && currentStudent.student_id);
     if (!studentId) return { skipped: true, reason: 'student_missing' };
     const moduleType = normalizeModuleType(payload.moduleType || payload.module_type || (window._currentModule && window._currentModule.id));
@@ -121,7 +120,10 @@ async function saveStudySession(payload) {
     }
     studySaveCache[cacheKey] = Date.now();
 
-    const result = await db.from('study_sessions').insert(record);
+    const result = await apiFetch('/api/student/study-sessions', {
+        method: 'POST',
+        body: JSON.stringify(record)
+    });
     if (!result.error && window._currentModule && normalizeModuleType(window._currentModule.id) === moduleType) {
         window._currentModule.reported = true;
     }
@@ -129,7 +131,6 @@ async function saveStudySession(payload) {
 }
 
 async function saveModuleTestRecord(payload) {
-    if (!db) return { skipped: true, reason: 'db_missing' };
     const studentId = payload.student_id || (currentStudent && currentStudent.student_id);
     if (!studentId) return { skipped: true, reason: 'student_missing' };
     const moduleType = normalizeModuleType(payload.moduleType || payload.module_type || (window._currentModule && window._currentModule.id) || 'dictation');
@@ -164,7 +165,10 @@ async function saveModuleTestRecord(payload) {
         return { skipped: true, reason: 'duplicate' };
     }
     testSaveCache[cacheKey] = Date.now();
-    const result = await db.from('test_records').insert(record);
+    const result = await apiFetch('/api/student/test-records', {
+        method: 'POST',
+        body: JSON.stringify(record)
+    });
     if (result.error) delete testSaveCache[cacheKey];
     if (!result.error) {
         if (window._currentModule && normalizeModuleType(window._currentModule.id) === moduleType) {

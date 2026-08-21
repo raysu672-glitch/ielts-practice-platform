@@ -21,6 +21,41 @@ var currentStudent = null;
 var STUDENT_SESSION_KEY = 'ouye_student_session_v1';
 var STUDENT_SESSION_DAYS = 7;
 
+async function apiFetch(url, options) {
+    options = options || {};
+    var headers = Object.assign({}, options.headers || {});
+    if (options.method && options.method.toUpperCase() !== 'GET' && !headers['Content-Type']) {
+        headers['Content-Type'] = 'application/json';
+    }
+    var resp = await fetch(url, Object.assign({}, options, {
+        credentials: 'include',
+        headers: headers
+    }));
+    var result = null;
+    try {
+        result = await resp.json();
+    } catch (e) {
+        result = { data: null, error: { message: '响应解析失败' } };
+    }
+    if (!resp.ok && result && !result.error) {
+        result.error = { message: '请求失败：' + resp.status };
+    }
+    result._httpStatus = resp.status;
+    return result;
+}
+
+async function authLogout() {
+    try {
+        await apiFetch('/api/auth/logout', { method: 'POST', body: '{}' });
+    } catch (e) {
+        console.warn('退出登录请求失败:', e);
+    }
+}
+
+async function authMe() {
+    return apiFetch('/api/auth/me', { method: 'GET' });
+}
+
 // 工具函数
 var AUTH_SCREENS = ['studentLoginScreen', 'teacherLoginScreen', 'writingTeacherLoginScreen'];
 function showScreen(screenId) {
@@ -67,6 +102,9 @@ function initEntryRoute() {
     }
     if (role === 'teacher') {
         showScreen('teacherLoginScreen');
+        if (typeof restoreTeacherSession === 'function') {
+            restoreTeacherSession();
+        }
         return;
     }
     if (role === 'student') {

@@ -561,18 +561,25 @@ function getChinaDateKey(value) {
     return new Date(value || Date.now()).toLocaleDateString('zh-CN', { timeZone: 'Asia/Shanghai' });
 }
 
+var _studentStandardsCache = null;
 async function getPassThreshold(moduleId, student) {
     const normalized = normalizeModuleType(moduleId);
     const module = getModuleById(normalized);
     let threshold = getModuleTargetForScore(module, getStudentTargetScoreValue(student));
-    if (!db) return Number(threshold) || 80;
     try {
-        const standardsResult = await db.from('pass_standards').select('*').eq('module_type', normalized).single();
-        if (standardsResult.data) {
+        if (!_studentStandardsCache) {
+            const standardsResult = await apiFetch('/api/student/standards');
+            if (standardsResult.error) throw new Error(standardsResult.error.message || 'standards error');
+            _studentStandardsCache = standardsResult.data || [];
+        }
+        const row = (_studentStandardsCache || []).find(function(item) {
+            return item.module_type === normalized;
+        });
+        if (row) {
             const targetScore = getStudentTargetScoreValue(student);
-            if (targetScore === 7) threshold = standardsResult.data.score_7;
-            else if (targetScore === 6) threshold = standardsResult.data.score_6;
-            else threshold = standardsResult.data.score_6_5;
+            if (targetScore === 7) threshold = row.score_7;
+            else if (targetScore === 6) threshold = row.score_6;
+            else threshold = row.score_6_5;
         }
     } catch (e) {
         console.warn('读取达标线失败，使用模块默认值:', e);

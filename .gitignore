@@ -8,6 +8,7 @@
 data/*.db
 data/*.sqlite
 data/*.sqlite3
+data/session_secret.txt
 *.log
 
 # Audio assets stay local and are not committed

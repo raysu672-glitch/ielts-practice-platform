@@ -74,6 +74,7 @@
             var response = await fetch(this.client.endpoint, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
                 body: JSON.stringify(body)
             });
             var result = await response.json();

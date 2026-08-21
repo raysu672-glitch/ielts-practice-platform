@@ -23,3 +23,4 @@
 | 端口选择 | `49182` 是本项目固定高位端口，避免使用 `3000`、`5173`、`8000` 等常见默认端口 |
 | 数据库 | 本地数据库为 `data/ielts_local.db`，已被 `.gitignore` 排除 |
 | 部署 | 服务器部署命令和环境变量见 `DEPLOY.md` |
+| Session 鉴权（P0） | 学生/教师登录走 `/api/auth/*/login`，HttpOnly Cookie；未登录访问 `/api/db` 返回 401 |
