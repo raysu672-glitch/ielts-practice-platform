@@ -110,6 +110,95 @@ def connect(db_path: Path) -> sqlite3.Connection:
     return conn
 
 
+def migrate_teachers_username_to_teacher_id(conn: sqlite3.Connection) -> None:
+    """Rebuild legacy teachers(id, username, ...) into teachers(teacher_id PK, ...)."""
+    tables = {
+        r[0]
+        for r in conn.execute(
+            "SELECT name FROM sqlite_master WHERE type='table'"
+        ).fetchall()
+    }
+    # Resume a failed mid-migration if the new table is empty but legacy remains.
+    if "teachers_legacy" in tables and "teachers" in tables:
+        new_cols = {r[1] for r in conn.execute("PRAGMA table_info(teachers)").fetchall()}
+        row_count = conn.execute("SELECT COUNT(*) FROM teachers").fetchone()[0]
+        if "teacher_id" in new_cols and row_count == 0:
+            conn.execute("DROP TABLE teachers")
+            tables.discard("teachers")
+            # fall through to rebuild from teachers_legacy below after rename skip
+        elif "teacher_id" in new_cols and row_count > 0:
+            conn.execute("DROP TABLE IF EXISTS teachers_legacy")
+            return
+
+    source = None
+    if "teachers" in tables:
+        columns = {r[1] for r in conn.execute("PRAGMA table_info(teachers)").fetchall()}
+        if "teacher_id" in columns:
+            return
+        if "username" not in columns:
+            return
+        conn.execute("ALTER TABLE teachers RENAME TO teachers_legacy")
+        source = "teachers_legacy"
+    elif "teachers_legacy" in tables:
+        columns = {
+            r[1] for r in conn.execute("PRAGMA table_info(teachers_legacy)").fetchall()
+        }
+        if "username" not in columns:
+            return
+        source = "teachers_legacy"
+    else:
+        return
+
+    columns = {r[1] for r in conn.execute(f"PRAGMA table_info({source})").fetchall()}
+    default_password_expr = (
+        "COALESCE(NULLIF(default_password, ''), '123456')"
+        if "default_password" in columns
+        else "'123456'"
+    )
+    is_password_changed_expr = (
+        "COALESCE(is_password_changed, 0)"
+        if "is_password_changed" in columns
+        else "0"
+    )
+    position_expr = "COALESCE(position, '')" if "position" in columns else "''"
+    subjects_expr = "COALESCE(subjects, '')" if "subjects" in columns else "''"
+
+    conn.executescript(
+        f"""
+        CREATE TABLE teachers (
+            teacher_id TEXT PRIMARY KEY,
+            name TEXT NOT NULL,
+            password TEXT NOT NULL,
+            default_password TEXT DEFAULT '123456',
+            is_password_changed INTEGER DEFAULT 0,
+            position TEXT DEFAULT '',
+            subjects TEXT DEFAULT '',
+            status TEXT DEFAULT 'active' CHECK (status IN ('active', 'inactive')),
+            created_at TEXT DEFAULT ({now_sql()}),
+            updated_at TEXT DEFAULT ({now_sql()})
+        );
+        INSERT INTO teachers (
+            teacher_id, name, password, default_password,
+            is_password_changed, position, subjects, status,
+            created_at, updated_at
+        )
+        SELECT
+            username,
+            name,
+            password,
+            {default_password_expr},
+            {is_password_changed_expr},
+            {position_expr},
+            {subjects_expr},
+            CASE WHEN status IN ('active', 'inactive') THEN status ELSE 'active' END,
+            created_at,
+            updated_at
+        FROM {source};
+        DROP TABLE {source};
+        """
+    )
+
+
 def migrate_teachers_profile_columns(conn: sqlite3.Connection) -> None:
     """Add profile fields to teachers for existing databases."""
     row = conn.execute(
@@ -299,6 +388,7 @@ def init_db(db_path: Path) -> None:
 
         # Existing DBs may still lack module_type; migrate before indexing that column.
         migrate_wrong_words_module_type(conn)
+        migrate_teachers_username_to_teacher_id(conn)
         migrate_teachers_profile_columns(conn)
         conn.execute(
             "CREATE INDEX IF NOT EXISTS idx_wrong_words_module_type ON wrong_words(module_type)"
