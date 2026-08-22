@@ -211,6 +211,19 @@ class P1Practice {
     renderCategories() {
         const container = document.getElementById('categoryList');
         container.innerHTML = '';
+
+        const study = this.isStudyMode();
+        if (study) {
+            const entry = document.createElement('div');
+            entry.className = 'category-item complex-entry';
+            entry.innerHTML = `
+                <div class="category-header complex-entry-header" id="complexSentenceEntry" role="button" tabindex="0">
+                    <span class="category-name">📗 复合句闯关</span>
+                    <span class="category-count">专练</span>
+                </div>
+            `;
+            container.appendChild(entry);
+        }
         
         this.data.categories.forEach((cat, catIndex) => {
             const catDiv = document.createElement('div');
@@ -242,6 +255,15 @@ class P1Practice {
         const firstList = document.getElementById('questions-0');
         if (firstList) firstList.classList.add('expanded');
     }
+
+    isStudyMode() {
+        try {
+            const params = new URLSearchParams(window.location.search);
+            return (params.get('mode') || 'study') !== 'test';
+        } catch (_) {
+            return true;
+        }
+    }
     
     // 绑定事件（左侧用事件委托，避免 renderCategories 后点击失效）
     bindEvents() {
@@ -249,15 +271,29 @@ class P1Practice {
         if (categoryList && !categoryList.dataset.bound) {
             categoryList.dataset.bound = '1';
             categoryList.addEventListener('click', (e) => {
+                const complexEntry = e.target.closest('#complexSentenceEntry, .complex-entry-header');
+                if (complexEntry) {
+                    if (window.p2Practice && typeof window.p2Practice.setP1Mode === 'function') {
+                        window.p2Practice.setP1Mode('complex');
+                    }
+                    return;
+                }
                 const header = e.target.closest('.category-header');
                 if (header) {
+                    if (window.p2Practice && typeof window.p2Practice.setP1Mode === 'function') {
+                        window.p2Practice.setP1Mode('questions');
+                    }
                     const catIndex = header.dataset.category;
+                    if (catIndex === undefined || catIndex === '') return;
                     const list = document.getElementById(`questions-${catIndex}`);
                     if (list) list.classList.toggle('expanded');
                     return;
                 }
                 const item = e.target.closest('.question-item');
                 if (item) {
+                    if (window.p2Practice && typeof window.p2Practice.setP1Mode === 'function') {
+                        window.p2Practice.setP1Mode('questions');
+                    }
                     const catIndex = parseInt(item.dataset.category, 10);
                     const qId = parseInt(item.dataset.question, 10);
                     this.selectQuestion(catIndex, qId);

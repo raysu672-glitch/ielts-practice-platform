@@ -205,6 +205,29 @@
         .btn-danger { background: var(--danger); }
         .btn-danger:hover { background: #dc2626; }
         .btn-sm { padding: 6px 14px; font-size: .85rem; border-radius: var(--radius-sm); }
+        .btn-study {
+            background: linear-gradient(135deg, var(--brand) 0%, var(--accent) 100%);
+            color: #fff;
+            padding: 10px 22px;
+            font-size: 1rem;
+            font-weight: 700;
+            letter-spacing: .08em;
+            min-width: 96px;
+            justify-content: center;
+            box-shadow: 0 4px 14px rgba(92,107,192,.38);
+        }
+        .btn-study:hover {
+            background: linear-gradient(135deg, var(--brand-deep) 0%, #6a3fb8 100%);
+            box-shadow: 0 8px 22px rgba(92,107,192,.48);
+        }
+        .btn-study::before {
+            content: '';
+            width: 0;
+            height: 0;
+            border-style: solid;
+            border-width: 5px 0 5px 8px;
+            border-color: transparent transparent transparent currentColor;
+        }
         .btn-group {
             display: flex;
             gap: 10px;
@@ -217,6 +240,10 @@
             align-items: center;
             gap: 8px;
             flex-wrap: wrap;
+        }
+        .progress-actions {
+            justify-content: center;
+            align-items: center;
         }
 
         /* === 页面切换 === */
@@ -732,4 +759,11 @@
             table { font-size: .82rem; }
             th, td { padding: 8px 10px; }
             .tab { padding: 8px 12px; font-size: .82rem; }
+            .progress-actions {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            .progress-actions .btn-study {
+                width: 100%;
+            }
         }

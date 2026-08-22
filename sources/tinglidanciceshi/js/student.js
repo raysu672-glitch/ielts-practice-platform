@@ -177,30 +177,31 @@ async function loadProgressTable() {
         html += '</td>';
         html += '<td style="padding:15px 12px; text-align:center; color:#667eea;">' + formatDuration(modSeconds) + '</td>';
         html += '<td style="padding:15px 12px; text-align:center;">';
+        html += '<div class="student-actions progress-actions">';
 
         if (isBuiltinDictationModule(m.id)) {
-            html += '<button class="btn btn-sm" style="margin-right:5px;" onclick="startTest(\'random\', \'' + m.id + '\')">测试</button>';
-            html += '<button class="btn btn-sm btn-secondary" style="margin-right:5px;" onclick="openListeningIframe(\'' + m.id + '\')">学习</button>';
+            html += '<button class="btn btn-study" onclick="openListeningIframe(\'' + m.id + '\')">学习</button>';
+            html += '<button class="btn btn-sm btn-secondary" onclick="startTest(\'random\', \'' + m.id + '\')">测试</button>';
             html += '<button class="btn btn-sm btn-success" onclick="switchStudentTab(\'history\')">历史</button>';
         } else if (m.id === 'writing_correction') {
             const writingUnseen = Number(window._writingUnseenCount || 0);
             const historyLabel = writingUnseen > 0 ? ('历史 · ' + writingUnseen + '新') : '历史';
-            html += '<button class="btn btn-sm" style="margin-right:5px;" onclick="openGenericIframe(\'' + m.id + '\', \'' + m.name + '\', \'' + m.url + '\', \'study\')">作文批改</button>';
+            html += '<button class="btn btn-study" onclick="openGenericIframe(\'' + m.id + '\', \'' + m.name + '\', \'' + m.url + '\', \'study\')">作文批改</button>';
             html += '<button class="btn btn-sm btn-success" onclick="openWritingCorrectionHistory()">' + historyLabel + '</button>';
         } else {
-            if (m.test_url) {
-                html += '<button class="btn btn-sm" style="margin-right:5px;" onclick="openGenericIframe(\'' + m.id + '\', \'' + m.name + '\', \'' + m.test_url + '\', \'test\')">测试</button>';
-            } else {
-                html += '<button class="btn btn-sm" style="margin-right:5px;" disabled title="该模块暂未配置测试页面">测试待接入</button>';
-            }
             if (m.url) {
-                html += '<button class="btn btn-sm btn-secondary" style="margin-right:5px;" onclick="openGenericIframe(\'' + m.id + '\', \'' + m.name + '\', \'' + m.url + '\', \'study\')">学习</button>';
+                html += '<button class="btn btn-study" onclick="openGenericIframe(\'' + m.id + '\', \'' + m.name + '\', \'' + m.url + '\', \'study\')">学习</button>';
             } else {
-                html += '<button class="btn btn-sm btn-secondary" style="margin-right:5px;" disabled title="该模块暂未配置学习页面">学习待接入</button>';
+                html += '<button class="btn btn-study" disabled title="该模块暂未配置学习页面">学习待接入</button>';
+            }
+            if (m.test_url) {
+                html += '<button class="btn btn-sm btn-secondary" onclick="openGenericIframe(\'' + m.id + '\', \'' + m.name + '\', \'' + m.test_url + '\', \'test\')">测试</button>';
+            } else {
+                html += '<button class="btn btn-sm btn-secondary" disabled title="该模块暂未配置测试页面">测试待接入</button>';
             }
             html += '<button class="btn btn-sm btn-success" onclick="switchStudentTab(\'history\')">历史</button>';
         }
-        html += '</td></tr>';
+        html += '</div></td></tr>';
     }
 
     html += '</tbody></table>';
@@ -1663,7 +1664,7 @@ function openGenericIframe(moduleId, moduleName, url, mode) {
         module_name: moduleName,
         mode: finalMode,
         // 避免浏览器强缓存旧测试页（P4 音频路径修复）
-        v: '20260808i'
+        v: '20260822d'
     });
     showScreen('genericScreen');
     document.getElementById('genericScreenTitle').textContent = moduleName + (finalMode === 'test' ? '测试' : '学习');

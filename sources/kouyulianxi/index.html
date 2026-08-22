@@ -7,7 +7,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;600&family=Noto+Serif+SC:wght@600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css?v=20260808i">
+    <link rel="stylesheet" href="style.css?v=20260822d">
 </head>
 <body>
     <!-- 顶部导航 -->
@@ -33,85 +33,100 @@
     </nav>
 
     <!-- ========== P1 ========== -->
-    <main class="main-content" id="part1View">
-        <aside class="sidebar">
-            <div class="category-list" id="categoryList"></div>
-        </aside>
+    <main class="main-content p1-main" id="part1View">
+        <div class="p2-body">
+            <!-- 题目练习 -->
+            <div class="p2-pane" id="p1QuestionsPane">
+                <aside class="sidebar">
+                    <div class="category-list" id="categoryList"></div>
+                </aside>
 
-        <section class="practice-area" id="practiceArea">
-            <div class="empty-state" id="emptyState">
-                <div class="empty-icon">🎤</div>
-                <h2>选择左侧题目开始练习</h2>
-                <p>建议先按顺序练一遍，再切换随机模式</p>
-            </div>
-
-            <div class="practice-card" id="practiceCard" style="display: none;">
-                <div class="question-header">
-                    <span class="question-category" id="currentCategory"></span>
-                    <div class="question-row">
-                        <h2 class="question-title" id="currentTitle"></h2>
-                        <button type="button" class="btn-speak" id="speakQuestionBtn" title="听题目（预生成神经英音）" aria-label="朗读题目">
-                            <span class="speak-icon" aria-hidden="true">🔊</span>
-                            <span class="speak-label">听题目</span>
-                        </button>
+                <section class="practice-area" id="practiceArea">
+                    <div class="empty-state" id="emptyState">
+                        <div class="empty-icon">🎤</div>
+                        <h2>选择左侧题目开始练习</h2>
+                        <p>建议先按顺序练一遍，再切换随机模式</p>
                     </div>
-                </div>
 
-                <div class="steps-container" id="stepsContainer"></div>
-
-                <div class="action-buttons">
-                    <button class="btn btn-primary" id="startRecordBtn">
-                        <span>🎙️</span> 开始练习
-                    </button>
-                    <button class="btn btn-secondary" id="nextQuestionBtn">
-                        <span>➡️</span> 下一题
-                    </button>
-                </div>
-
-                <div class="ai-section" id="aiSection" style="display: none;">
-                    <div class="ai-header">
-                        <h3>🤖 AI 雅思评分</h3>
-                    </div>
-                    <div class="recording-status" id="recordingStatus" style="display: none;">
-                        <div class="status-indicator" id="statusIndicator">🎙️ 正在录音...</div>
-                        <div class="transcript-preview" id="transcriptPreview"></div>
-                    </div>
-                    <button class="btn btn-ai" id="aiEvaluateBtn" disabled>
-                        <span>✨</span> AI 评分
-                    </button>
-                    <div class="ai-result" id="aiResult" style="display: none;">
-                        <div class="loading" id="aiLoading" style="display: none;">
-                            <div class="spinner"></div>
-                            <p>AI 正在分析你的回答...</p>
+                    <div class="practice-card" id="practiceCard" style="display: none;">
+                        <div class="question-header">
+                            <span class="question-category" id="currentCategory"></span>
+                            <div class="question-row">
+                                <h2 class="question-title" id="currentTitle"></h2>
+                                <button type="button" class="btn-speak" id="speakQuestionBtn" title="听题目（预生成神经英音）" aria-label="朗读题目">
+                                    <span class="speak-icon" aria-hidden="true">🔊</span>
+                                    <span class="speak-label">听题目</span>
+                                </button>
+                            </div>
                         </div>
-                        <div class="result-content" id="resultContent"></div>
+
+                        <div class="steps-container" id="stepsContainer"></div>
+
+                        <div class="action-buttons">
+                            <button class="btn btn-primary" id="startRecordBtn">
+                                <span>🎙️</span> 开始练习
+                            </button>
+                            <button class="btn btn-secondary" id="nextQuestionBtn">
+                                <span>➡️</span> 下一题
+                            </button>
+                        </div>
+
+                        <div class="ai-section" id="aiSection" style="display: none;">
+                            <div class="ai-header">
+                                <h3>🤖 AI 雅思评分</h3>
+                            </div>
+                            <div class="recording-status" id="recordingStatus" style="display: none;">
+                                <div class="status-indicator" id="statusIndicator">🎙️ 正在录音...</div>
+                                <div class="transcript-preview" id="transcriptPreview"></div>
+                            </div>
+                            <button class="btn btn-ai" id="aiEvaluateBtn" disabled>
+                                <span>✨</span> AI 评分
+                            </button>
+                            <div class="ai-result" id="aiResult" style="display: none;">
+                                <div class="loading" id="aiLoading" style="display: none;">
+                                    <div class="spinner"></div>
+                                    <p>AI 正在分析你的回答...</p>
+                                </div>
+                                <div class="result-content" id="resultContent"></div>
+                            </div>
+                        </div>
+
+                        <div class="feedback-area" id="feedbackArea" style="display: none;">
+                            <h3>练习反馈</h3>
+                            <div class="feedback-content" id="feedbackContent"></div>
+                        </div>
                     </div>
+                </section>
+
+                <div class="p1-complex-pane" id="p1ComplexPane" style="display: none;">
+                    <iframe
+                        id="p1ComplexFrame"
+                        class="p1-complex-frame"
+                        title="口语复合句闯关"
+                        src="about:blank"
+                        allow="microphone; autoplay"
+                    ></iframe>
                 </div>
 
-                <div class="feedback-area" id="feedbackArea" style="display: none;">
-                    <h3>练习反馈</h3>
-                    <div class="feedback-content" id="feedbackContent"></div>
-                </div>
+                <aside class="data-panel" id="dataPanel">
+                    <div class="panel-header">
+                        <h3>练习数据</h3>
+                        <button class="close-panel" id="closePanel">×</button>
+                    </div>
+                    <div class="panel-content" id="panelContent">
+                        <div class="stat-item">
+                            <span class="stat-label">已练题目</span>
+                            <span class="stat-value" id="statCompleted">0</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">练习时长</span>
+                            <span class="stat-value" id="statTime">0秒</span>
+                        </div>
+                        <div class="history-list" id="historyList"></div>
+                    </div>
+                </aside>
             </div>
-        </section>
-
-        <aside class="data-panel" id="dataPanel">
-            <div class="panel-header">
-                <h3>练习数据</h3>
-                <button class="close-panel" id="closePanel">×</button>
-            </div>
-            <div class="panel-content" id="panelContent">
-                <div class="stat-item">
-                    <span class="stat-label">已练题目</span>
-                    <span class="stat-value" id="statCompleted">0</span>
-                </div>
-                <div class="stat-item">
-                    <span class="stat-label">练习时长</span>
-                    <span class="stat-value" id="statTime">0秒</span>
-                </div>
-                <div class="history-list" id="historyList"></div>
-            </div>
-        </aside>
+        </div>
     </main>
 
     <!-- ========== P2 ========== -->
@@ -190,12 +205,12 @@
         </div>
     </main>
 
-    <script src="config.js?v=20260808i"></script>
-    <script src="p1-data.js?v=20260808i"></script>
-    <script src="p2-data.js?v=20260808i"></script>
-    <script src="audio/p2/manifest.js?v=20260808i"></script>
-    <script src="audio/manifest.js?v=20260808i"></script>
-    <script src="app.js?v=20260808i"></script>
-    <script src="p2-app.js?v=20260808i"></script>
+    <script src="config.js?v=20260822d"></script>
+    <script src="p1-data.js?v=20260822d"></script>
+    <script src="p2-data.js?v=20260822d"></script>
+    <script src="audio/p2/manifest.js?v=20260822d"></script>
+    <script src="audio/manifest.js?v=20260822d"></script>
+    <script src="app.js?v=20260822d"></script>
+    <script src="p2-app.js?v=20260822d"></script>
 </body>
 </html>

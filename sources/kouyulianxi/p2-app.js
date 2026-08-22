@@ -3,6 +3,8 @@ class P2Practice {
     constructor() {
         this.data = typeof P2_DATA !== 'undefined' ? P2_DATA : { materials: [], questions: [] };
         this.mode = 'memorize'; // memorize | apply
+        this.p1Mode = 'questions'; // questions | complex
+        this._complexFrameLoaded = false;
         this.materialId = null;
         this.variantId = 'a';
         this.questionIndex = 0;
@@ -90,6 +92,15 @@ class P2Practice {
         });
     }
 
+    isStudyMode() {
+        try {
+            const params = new URLSearchParams(window.location.search);
+            return (params.get('mode') || 'study') !== 'test';
+        } catch (_) {
+            return true;
+        }
+    }
+
     showPart(part) {
         const p1 = document.getElementById('part1View');
         const p2 = document.getElementById('part2View');
@@ -119,6 +130,37 @@ class P2Practice {
             if (title) title.textContent = '口语 P1 练习';
             if (progress) progress.style.display = '';
             this.stopSpeak();
+            const study = this.isStudyMode();
+            this.setP1Mode(study ? (this.p1Mode || 'questions') : 'questions');
+        }
+    }
+
+    setP1Mode(mode) {
+        const study = this.isStudyMode();
+        this.p1Mode = study && mode === 'complex' ? 'complex' : 'questions';
+        const practiceArea = document.getElementById('practiceArea');
+        const dataPanel = document.getElementById('dataPanel');
+        const complex = document.getElementById('p1ComplexPane');
+        const p1Nav = document.getElementById('p1NavRight');
+        const progress = document.getElementById('progressText');
+        const complexEntry = document.getElementById('complexSentenceEntry');
+
+        if (practiceArea) practiceArea.style.display = this.p1Mode === 'questions' ? '' : 'none';
+        if (dataPanel) dataPanel.style.display = this.p1Mode === 'questions' ? '' : 'none';
+        if (complex) complex.style.display = this.p1Mode === 'complex' ? 'flex' : 'none';
+        if (p1Nav) p1Nav.style.display = this.p1Mode === 'questions' ? 'flex' : 'none';
+        if (progress) progress.style.display = this.p1Mode === 'questions' ? '' : 'none';
+        if (complexEntry) complexEntry.classList.toggle('active', this.p1Mode === 'complex');
+
+        if (this.p1Mode === 'complex') {
+            if (window.p1Practice && typeof window.p1Practice.stopSpeakQuestion === 'function') {
+                try { window.p1Practice.stopSpeakQuestion(); } catch (_) {}
+            }
+            const frame = document.getElementById('p1ComplexFrame');
+            if (frame && !this._complexFrameLoaded) {
+                frame.src = 'complex-sentences.html?v=20260822e';
+                this._complexFrameLoaded = true;
+            }
         }
     }
 
@@ -680,5 +722,10 @@ document.addEventListener('DOMContentLoaded', () => {
     if (params.get('part') === 'p2') {
         window.p2Practice.showPart('p2');
         window.p2Practice.setMode('memorize');
+    } else {
+        window.p2Practice.showPart('p1');
+        if (params.get('p1') === 'complex' && window.p2Practice.isStudyMode()) {
+            window.p2Practice.setP1Mode('complex');
+        }
     }
 });

@@ -1,0 +1,1397 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>口语复合句闯关 · 中文造句</title>
+<style>
+:root{
+--bg:#0b0e1f; --card:#151a33; --card2:#1d2444; --line:#2a3258;
+--txt:#eef1ff; --muted:#9aa3c7; --gold:#ffd166; --green:#36d399;
+--blue:#5b8cff; --pink:#ff6b9d;
+--shell:720px; --pad:18px;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html{height:100%}
+body{
+margin:0;min-height:100%;color:var(--txt);
+font-family:"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+line-height:1.65;
+background:
+radial-gradient(1200px 500px at 50% -80px,rgba(91,140,255,.18),transparent 60%),
+radial-gradient(800px 400px at 90% 20%,rgba(255,209,102,.08),transparent 50%),
+var(--bg);
+padding:20px 16px 48px;
+}
+#app{max-width:var(--shell);margin:0 auto}
+.page-head{margin-bottom:8px}
+h1{font-size:28px;margin:0 0 6px;letter-spacing:.2px;font-weight:750}
+h2{font-size:20px;margin:0 0 10px;font-weight:700}
+.sub{color:var(--muted);font-size:14px;margin:0}
+.topbar{display:flex;gap:10px;align-items:stretch;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px 16px;margin:16px 0}
+.stat{flex:1;text-align:center;padding:4px 0}
+.stat b{display:block;font-size:22px;color:var(--gold);line-height:1.2}
+.stat span{font-size:12px;color:var(--muted)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:18px 20px;margin:14px 0}
+.home-grid{display:grid;grid-template-columns:1fr;gap:14px;margin:16px 0}
+.home-grid .card{margin:0;display:flex;flex-direction:column;min-height:100%}
+.home-grid .card .sub{flex:1}
+.home-grid .btn{margin-top:16px}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:14px 0 8px}
+.pat{background:var(--card2);border:1px solid var(--line);border-radius:16px;padding:16px;cursor:pointer;transition:.18s ease;min-height:118px}
+.pat:hover{border-color:rgba(91,140,255,.55);background:#222a4f;transform:translateY(-2px)}
+.pat:active{transform:scale(.98)}
+.pat .em{font-size:28px;line-height:1}
+.pat .nm{font-size:15px;font-weight:700;margin-top:8px}
+.pat .sk{font-size:12px;color:var(--muted);margin-top:6px;line-height:1.45}
+.btn{display:inline-flex;align-items:center;justify-content:center;width:100%;border:none;border-radius:12px;padding:13px 18px;font-size:15px;font-weight:700;color:#0b0e1f;background:var(--gold);cursor:pointer;margin-top:10px;transition:.15s}
+.btn:hover{filter:brightness(1.06)}
+.btn:active{opacity:.88}
+.btn.blue{background:var(--blue);color:#fff}
+.btn.ghost{background:transparent;color:var(--txt);border:1px solid var(--line);width:auto;min-width:140px}
+.btn.sm{padding:10px 16px;font-size:14px;display:inline-flex;width:auto;margin:8px 8px 0 0}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:20px 22px;margin:12px 0}
+.qbox{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:10px 0 4px}
+.part{display:inline-block;background:rgba(91,140,255,.18);color:var(--blue);border:1px solid rgba(91,140,255,.35);border-radius:999px;padding:3px 10px;font-size:12px;font-weight:700}
+.qtext{color:var(--gold);font-size:14px;font-weight:650;line-height:1.5}
+.quiz{font-size:18px;font-weight:700;background:var(--card2);border-radius:14px;padding:16px 18px;margin:12px 0;line-height:1.7}
+.skeleton{font-size:17px;line-height:1.7;margin:16px 0;display:flex;flex-direction:column;align-items:stretch;gap:10px}
+.slot{display:block;width:100%;min-width:0;margin:0}
+.sk-txt{color:var(--muted);font-weight:650}
+select{width:100%;padding:12px 14px;border-radius:10px;border:1px solid var(--line);background:var(--card2);color:var(--txt);font-size:15px;cursor:pointer}
+select:hover{border-color:rgba(91,140,255,.5)}
+select.ok{border-color:var(--green)}
+select.no{border-color:#ff6b6b}
+.sentence{background:var(--card2);border:1px solid var(--line);border-radius:14px;padding:14px 16px;font-size:17px;line-height:1.8;margin:14px 0;display:none}
+.feedback{font-size:15px;font-weight:700;margin:10px 0;min-height:22px}
+.ok{color:var(--green)} .no{color:#ff6b6b}
+.listen{background:var(--blue);color:#fff;border:none;border-radius:10px;padding:11px 16px;font-size:14px;font-weight:700;cursor:pointer;margin-top:6px;transition:.15s}
+.listen:hover{filter:brightness(1.08)}
+.progress{height:9px;background:var(--card2);border-radius:6px;overflow:hidden;margin:10px 0 14px}
+.progress i{display:block;height:100%;background:linear-gradient(90deg,var(--gold),#ffb347);transition:.3s}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.actions{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:8px}
+.center{text-align:center}
+.big{font-size:34px;text-align:center;margin:10px 0}
+.made{background:var(--card2);border:1px solid var(--line);border-radius:14px;padding:14px 16px;font-size:15px;line-height:1.9;margin-top:12px;text-align:left}
+.made div{padding:4px 0;border-bottom:1px dashed var(--line)}
+.made div:last-child{border-bottom:none}
+.toast{position:fixed;left:50%;top:14%;transform:translateX(-50%);background:#000c;border:1px solid var(--line);padding:10px 16px;border-radius:10px;font-size:14px;z-index:99;opacity:0;transition:.3s;pointer-events:none}
+.toast.show{opacity:1}
+.foot{color:var(--muted);font-size:12px;text-align:center;margin-top:22px}
+.btn.red{background:var(--pink);color:#fff}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.stars{font-size:28px;line-height:1;user-select:none}
+.star{cursor:pointer;margin-right:6px;transition:.1s}
+.star:hover{transform:scale(1.12)}
+.recbox{margin-top:12px}
+.recbox audio{width:100%;max-width:480px;margin-top:6px}
+.toolbar{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:4px}
+.toolbar h2{margin:0}
+.sk-txt{white-space:pre-wrap}
+.practice-side{margin-top:14px;padding-top:4px}
+@media (min-width:900px){
+:root{--shell:1080px; --pad:28px}
+body{padding:36px 28px 64px}
+h1{font-size:34px}
+.home-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}
+.grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+.pat{min-height:132px;padding:18px}
+.pat .nm{font-size:16px}
+.panel{padding:26px 28px}
+.quiz{font-size:20px;padding:18px 20px}
+.skeleton{font-size:18px}
+.sentence{font-size:18px}
+.btn.ghost{margin-top:16px}
+.practice-grid{display:grid;grid-template-columns:1.15fr .85fr;gap:20px;align-items:start}
+.practice-side{margin-top:0;background:var(--card2);border:1px solid var(--line);border-radius:16px;padding:18px}
+.practice-side .sub{margin-bottom:10px}
+}
+@media (min-width:1200px){
+:root{--shell:1180px}
+.grid{grid-template-columns:repeat(4,minmax(0,1fr))}
+}
+
+.sec-title{font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:22px 0 8px;font-weight:700}
+.home-grid.two{grid-template-columns:1fr;gap:12px}
+.mode-tag{display:inline-block;font-size:11px;padding:2px 8px;border-radius:999px;margin-bottom:8px;font-weight:700}
+.mode-tag.assemble{background:rgba(255,209,102,.15);color:var(--gold);border:1px solid rgba(255,209,102,.35)}
+.mode-tag.speak{background:rgba(255,107,157,.15);color:var(--pink);border:1px solid rgba(255,107,157,.35)}
+.timer-wrap{display:flex;align-items:center;gap:14px;margin:14px 0}
+.timer-ring{width:64px;height:64px;border-radius:50%;border:4px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:800;color:var(--gold);background:var(--card2)}
+.timer-ring.warn{border-color:var(--pink);color:var(--pink)}
+.timer-hint{color:var(--muted);font-size:13px;line-height:1.5}
+.speak-prompt{font-size:22px;font-weight:750;line-height:1.7;background:var(--card2);border:1px solid var(--line);border-radius:16px;padding:22px 20px;margin:12px 0;text-align:center}
+.reveal-box{display:none;margin-top:12px}
+.reveal-box.show{display:block}
+.rate-row{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.rate-btn{flex:1;min-width:110px;border:1px solid var(--line);background:var(--card2);color:var(--txt);border-radius:12px;padding:12px;font-size:14px;font-weight:700;cursor:pointer}
+.rate-btn:hover{border-color:var(--blue)}
+.rate-btn.on{border-color:var(--green);background:rgba(54,211,153,.12);color:var(--green)}
+@media (min-width:900px){
+.home-grid.two{grid-template-columns:repeat(2,minmax(0,1fr))}
+.speak-prompt{font-size:26px;padding:28px 24px}
+}
+
+
+.sent-list{display:flex;flex-direction:column;gap:10px;margin:14px 0}
+.sent-item{display:grid;grid-template-columns:28px 36px 1fr auto;gap:10px;align-items:start;background:var(--card2);border:1px solid var(--line);border-radius:14px;padding:12px 14px;cursor:pointer;transition:.15s}
+.sent-item:hover{border-color:rgba(91,140,255,.55);background:#222a4f}
+.sent-item .num{font-weight:800;color:var(--gold);font-size:14px;padding-top:2px}
+.sent-item .cn{font-size:15px;font-weight:650;line-height:1.55}
+.sent-item .meta{font-size:12px;color:var(--muted);margin-top:4px;line-height:1.4}
+.sent-item .st{font-size:12px;font-weight:700;white-space:nowrap;padding-top:2px}
+.sent-item .st.ok{color:var(--green)}
+.sent-item .st.half{color:var(--gold)}
+.sent-item .st.no{color:var(--pink)}
+.sent-item .st.todo{color:var(--muted)}
+.sent-item input[type=checkbox]{width:18px;height:18px;margin-top:3px;accent-color:var(--blue);cursor:pointer}
+.picker-actions{display:flex;flex-wrap:wrap;gap:10px;margin:12px 0 4px}
+.picker-actions .btn{width:auto;margin-top:0;min-width:140px}
+
+
+.stt-box{background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:12px;margin-top:10px;font-size:14px;line-height:1.7;min-height:52px}
+.stt-label{font-size:12px;color:var(--muted);margin-bottom:4px}
+.word-ok{color:var(--green);font-weight:700}
+.word-bad{color:#ff6b6b;font-weight:700;text-decoration:underline}
+.word-miss{color:var(--pink);opacity:.85;font-weight:700}
+.word-extra{color:#ffb347;font-weight:700}
+.compare-pass{color:var(--green);font-weight:800;font-size:16px;margin-top:10px}
+.compare-fail{color:#ff6b6b;font-weight:800;font-size:16px;margin-top:10px}
+
+@media (max-width:640px){
+h1{font-size:24px}
+.card,.panel{padding:16px}
+.btn.ghost{width:100%}
+}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div class="toast" id="toast"></div>
+<audio id="player" style="display:none"></audio>
+<script>
+/* ============ 数据：7 大句型，每型 10 个中文意思 ============ */
+/* skeleton 用 [0][1]... 占位，slots 是每个空对应的英文元素池，items.ans 是正确顺序 */
+const PATTERNS = [
+{
+id:"p1", name:"形式主语", emoji:"\ud83c\udfaf", color:"#ffd166",
+skeleton:"It is [0] for [1] to [2].",
+slots:[
+  ["cheerful and enjoyable","relaxing","important","necessary","practical","meaningful","difficult","useful","a great way","beneficial"],
+  ["me","young people","students","children","old people","us","employees","me","everyone","tourists","families"],
+  ["hang out with my besties in the shopping mall at weekends","go to Starbucks to have a cup of coffee with my besties at weekends","take exercise in the gym with my friends","strive in my studies every day","use digital payments","do some household chores","escape from the city's hustle and bustle","shop online without going out","listen to music while jogging","walk in the park with my family"]
+],
+items:[
+  {part:"P1",q:"What do you usually do on weekends?",cn:"对我来说，周末和死党去商场闲逛很开心愉悦。",ans:["cheerful and enjoyable","me","hang out with my besties in the shopping mall at weekends"]},
+  {part:"P1",q:"Do you like drinking coffee / going to cafes?",cn:"对我来说，周末和好姐妹去星巴克喝咖啡很开心愉悦。",ans:["cheerful and enjoyable","me","go to Starbucks to have a cup of coffee with my besties at weekends"]},
+  {part:"P1",q:"Do you like doing sports / going to the gym?",cn:"对我来说，和朋友去健身房锻炼很放松。",ans:["relaxing","me","take exercise in the gym with my friends"]},
+  {part:"P1",q:"Do you have any plans for the next five years?",cn:"对我来说，每天努力学习很有必要。",ans:["necessary","me","strive in my studies every day"]},
+  {part:"P3",q:"What are the differences between old and young peoples shopping habits?",cn:"对老人来说，使用数字支付很难。",ans:["difficult","old people","use digital payments"]},
+  {part:"P3",q:"Do you think schools should teach children to do household chores?",cn:"对孩子来说，做一些家务很实用。",ans:["practical","children","do some household chores"]},
+  {part:"P3",q:"Why do people like to walk in parks?",cn:"对许多人来说，逃离城市喧嚣很放松。",ans:["relaxing","everyone","escape from the city's hustle and bustle"]},
+  {part:"P3",q:"How does the internet benefit people?",cn:"对年轻人来说，足不出户网购很实用。",ans:["practical","young people","shop online without going out"]},
+  {part:"P1",q:"Why do many people like listening to music while doing sports?",cn:"对我来说，慢跑时听音乐很有益。",ans:["beneficial","me","listen to music while jogging"]},
+  {part:"P3",q:"Why do people like to walk in parks?",cn:"对我来说，和家人一起在公园散步很有意义。",ans:["meaningful","me","walk in the park with my family"]}
+]
+},
+{
+id:"p2", name:"形式宾语", emoji:"\ud83d\udca1", color:"#5b8cff",
+skeleton:"I find it [0] to [1].",
+slots:[
+  ["enjoyable and cheerful","relaxing","difficult","necessary","practical","fascinating","important","useful","boring","a pity"],
+  ["take exercise in the gym with my friends","escape from the city's hustle and bustle","use digital payments","strive in my studies","complete homework independently","chill out and loosen up after work","binge-watch TV shows in my free time","shop online","ask managers for help","pretend to smile in public"]
+],
+items:[
+  {part:"P1",q:"Do you like taking exercise?",cn:"我觉得和朋友去健身房锻炼很开心愉悦。",ans:["enjoyable and cheerful","take exercise in the gym with my friends"]},
+  {part:"P3",q:"Why do people like to walk in parks?",cn:"我觉得逃离城市喧嚣很放松。",ans:["relaxing","escape from the city's hustle and bustle"]},
+  {part:"P3",q:"What are the differences between old and young peoples shopping habits?",cn:"我觉得使用数字支付很难。",ans:["difficult","use digital payments"]},
+  {part:"P1",q:"Do you have any plans for the next five years?",cn:"我觉得努力学习很有必要。",ans:["necessary","strive in my studies"]},
+  {part:"P1",q:"What can children do to help their parents?",cn:"我觉得独立完成作业很实用。",ans:["practical","complete homework independently"]},
+  {part:"P1",q:"What are your favourite activities?",cn:"我觉得下班后放松一下很重要。",ans:["important","chill out and loosen up after work"]},
+  {part:"P1",q:"What are your favourite activities?",cn:"我觉得空闲时追剧很放松。",ans:["relaxing","binge-watch TV shows in my free time"]},
+  {part:"P3",q:"How does the internet benefit people?",cn:"我觉得网购很实用。",ans:["practical","shop online"]},
+  {part:"P3",q:"Why are employees reluctant to ask their managers for help?",cn:"我觉得向经理求助挺困难的。",ans:["difficult","ask managers for help"]},
+  {part:"P3",q:"Are there any occasions when people need to pretend to smile?",cn:"我觉得在公共场合假笑有点遗憾。",ans:["a pity","pretend to smile in public"]}
+]
+},
+{
+id:"p3", name:"主谓宾宾补", emoji:"\ud83d\udd27", color:"#36d399",
+skeleton:"I find [0] [1].",
+slots:[
+  ["this activity","this place","this movie","him","her","watching movies","going jogging","shopping online","living in a tall building","playing video games"],
+  ["fascinating","fascinating and spectacular","responsible and reliable","full of beans","relaxing","practical","convenient","a great stress buster","enjoyable","meaningful"]
+],
+items:[
+  {part:"P1",q:"Do you like watching movies?",cn:"我觉得这项活动非常迷人。",ans:["this activity","fascinating"]},
+  {part:"P2",q:"Describe a place you enjoy visiting",cn:"我觉得这个地方迷人又壮观。",ans:["this place","fascinating and spectacular"]},
+  {part:"P2",q:"Describe a film you watched recently",cn:"我觉得这部电影迷人又壮观。",ans:["this movie","fascinating and spectacular"]},
+  {part:"P2",q:"Describe a person you admire",cn:"我觉得他很靠谱、负责任。",ans:["him","responsible and reliable"]},
+  {part:"P2",q:"Describe a person who is full of energy",cn:"我觉得她精力充沛。",ans:["her","full of beans"]},
+  {part:"P1",q:"Do you like watching movies?",cn:"我觉得看电影很放松。",ans:["watching movies","relaxing"]},
+  {part:"P1",q:"Do you like doing sports?",cn:"我觉得慢跑是很好的解压方式。",ans:["going jogging","a great stress buster"]},
+  {part:"P3",q:"How does the internet benefit people?",cn:"我觉得网购很实用。",ans:["shopping online","practical"]},
+  {part:"P1",q:"Do you want to live in a tall building?",cn:"我觉得住高楼很便利。",ans:["living in a tall building","convenient"]},
+  {part:"P1",q:"What did you often do with your friends in your childhood?",cn:"我觉得打游戏很开心。",ans:["playing video games","enjoyable"]}
+]
+},
+{
+id:"p4", name:"高级原因", emoji:"\ud83d\udd25", color:"#ff6b9d",
+skeleton:"[0] for the reason that [1].",
+slots:[
+  ["I am keen on running","I usually hang out at weekends","I prefer shopping online","I enjoy listening to music while jogging","I want to live in a tall building","I often go to the cinema","I strive in my studies","I like walking in parks","Many young people drive private cars","I am a big fan of binge-watching"],
+  ["I think running can be seen as a good way for me to chill out","I am under great pressure from study on weekdays","it is more time-saving and labor-saving","sports can be a bit boring without music","it is more convenient with shopping malls nearby","it offers me a decent chance to chill out","it is practical for my future","it helps me escape from the city's hustle and bustle","it is faster and more reliable","it helps me relax my mind after a long day","modern people maintain a sedentary lifestyle"]
+],
+items:[
+  {part:"P1",q:"Do you like running / doing sports?",cn:"我热衷跑步，因为我认为跑步是放松的好方式。",ans:["I am keen on running","I think running can be seen as a good way for me to chill out"]},
+  {part:"P1",q:"What do you usually do on weekends?",cn:"我周末常出去玩，因为工作日学习压力大。",ans:["I usually hang out at weekends","I am under great pressure from study on weekdays"]},
+  {part:"P3",q:"What are the differences between old and young peoples shopping habits?",cn:"我更喜欢网购，因为它更省时省力。",ans:["I prefer shopping online","it is more time-saving and labor-saving"]},
+  {part:"P1",q:"Why do many people like listening to music while doing sports?",cn:"我慢跑时爱听音乐，因为没音乐运动会有点枯燥。",ans:["I enjoy listening to music while jogging","sports can be a bit boring without music"]},
+  {part:"P1",q:"Do you want to live in a tall building?",cn:"我想住高楼，因为附近有商超更方便。",ans:["I want to live in a tall building","it is more convenient with shopping malls nearby"]},
+  {part:"P1",q:"Do you like watching movies?",cn:"我常去电影院，因为它给了我很好的放松机会。",ans:["I often go to the cinema","it offers me a decent chance to chill out"]},
+  {part:"P1",q:"Do you have any plans for the next five years?",cn:"我努力学习，因为这对未来很实用。",ans:["I strive in my studies","it is practical for my future"]},
+  {part:"P3",q:"Why do people like to walk in parks?",cn:"我喜欢在公园散步，因为这能帮我逃离城市喧嚣。",ans:["I like walking in parks","it helps me escape from the city's hustle and bustle"]},
+  {part:"P3",q:"Why do more people own and drive private vehicles now?",cn:"很多年轻人开私家车，因为更快更可靠。",ans:["Many young people drive private cars","it is faster and more reliable"]},
+  {part:"P1",q:"What are your favourite activities?",cn:"我超级爱追剧，因为它能帮我放松大脑。",ans:["I am a big fan of binge-watching","it helps me relax my mind after a long day"]}
+]
+},
+{
+id:"p5", name:"非限定从句", emoji:"\ud83c\udf1f", color:"#ffd166",
+skeleton:"[0] , which [1].",
+slots:[
+  ["I often go to the cinema to watch movies","I am crazy about going to the cinema to watch a stunning movie with my besties","I find this activity fascinating","Many people walk in the park with their family","Many people are addicted to the internet","Doing window shopping can be seen as the best way to relieve fatigue","I hang out with my besties in the shopping mall","I listen to music while jogging","Children do some household chores","Smiling is important in daily conversations"],
+  ["gives me a decent chance to chill out and loosen up","offers me a great time to chill out","offers me a great time to chill out and loosen up","gives them a decent chance to boost family ties","affects their normal work and study","also satisfies my vanity","lights up my mood after a stressful week","helps me de-stress and keep going","helps them develop self-care skills","makes people feel more comfortable and friendly"]
+],
+items:[
+  {part:"P1",q:"Do you like watching movies?",cn:"我常去电影院看电影，这给了我很好的放松机会。",ans:["I often go to the cinema to watch movies","gives me a decent chance to chill out and loosen up"]},
+  {part:"P1",q:"Do you like watching movies?",cn:"我超爱和好姐妹看精彩电影，这给我绝佳放松时间。",ans:["I am crazy about going to the cinema to watch a stunning movie with my besties","offers me a great time to chill out"]},
+  {part:"P1",q:"Do you like watching movies?",cn:"我觉得这活动很迷人，它提供了放松时间。",ans:["I find this activity fascinating","offers me a great time to chill out and loosen up"]},
+  {part:"P3",q:"Why do people like to walk in parks?",cn:"许多人与家人公园散步，这增进了家庭感情。",ans:["Many people walk in the park with their family","gives them a decent chance to boost family ties"]},
+  {part:"P3",q:"How does the internet benefit / affect people?",cn:"许多人沉迷网络，这影响了正常工作学习。",ans:["Many people are addicted to the internet","affects their normal work and study"]},
+  {part:"P1",q:"What do you usually do on weekends?",cn:"逛街可以被看作解乏最佳方式，也能满足虚荣心。",ans:["Doing window shopping can be seen as the best way to relieve fatigue","also satisfies my vanity"]},
+  {part:"P1",q:"What do you usually do on weekends?",cn:"我和死党去商场闲逛，这能点亮一周的心情。",ans:["I hang out with my besties in the shopping mall","lights up my mood after a stressful week"]},
+  {part:"P1",q:"Why do many people like listening to music while doing sports?",cn:"我慢跑时听音乐，这帮我解压并坚持下去。",ans:["I listen to music while jogging","helps me de-stress and keep going"]},
+  {part:"P3",q:"Do you think schools should teach children to do household chores?",cn:"孩子做家务，这能培养自我照顾能力。",ans:["Children do some household chores","helps them develop self-care skills"]},
+  {part:"P3",q:"Is smiling important in your culture?",cn:"微笑在日常交谈中很重要，这让人更舒服友好。",ans:["Smiling is important in daily conversations","makes people feel more comfortable and friendly"]}
+]
+},
+{
+id:"p6", name:"目的状语", emoji:"\ud83c\udfaf", color:"#5b8cff",
+skeleton:"[0] to [1].",
+slots:[
+  ["I am crazy about going to the cinema","My father and I went to Hainan","I often go to the park after dinner","They go to the park","Shopping online is regarded as a time-saving way","I hang out with my friends","I strive in my studies","I browse short videos","Young people take short-term jobs in restaurants","I listen to music"],
+  ["watch a stunning movie with my besties","spend our holiday","go running","take some exercise","get what they want without going out","catch up and share experiences","get a sense of achievement","relax my mind when I feel bored","gain some practical experience","de-stress while jogging"]
+],
+items:[
+  {part:"P1",q:"Do you like watching movies?",cn:"我超爱去电影院，是为了和好姐妹看精彩电影。",ans:["I am crazy about going to the cinema","watch a stunning movie with my besties"]},
+  {part:"P2",q:"Describe a holiday you enjoyed",cn:"我和父亲去海南，是为了度假。",ans:["My father and I went to Hainan","spend our holiday"]},
+  {part:"P1",q:"Do you like doing sports?",cn:"我晚饭后常去公园，是为了跑步。",ans:["I often go to the park after dinner","go running"]},
+  {part:"P3",q:"Why do people like to walk in parks?",cn:"他们去公园，是为了锻炼身体。",ans:["They go to the park","take some exercise"]},
+  {part:"P3",q:"What are the differences between old and young peoples shopping habits?",cn:"网购被视为省时方式，是为了足不出户买到想要的东西。",ans:["Shopping online is regarded as a time-saving way","get what they want without going out"]},
+  {part:"P1",q:"What did you often do with your friends?",cn:"我和朋友出去玩，是为了叙旧分享经历。",ans:["I hang out with my friends","catch up and share experiences"]},
+  {part:"P1",q:"Do you have any plans for the next five years?",cn:"我努力学习，是为了获得成就感。",ans:["I strive in my studies","get a sense of achievement"]},
+  {part:"P1",q:"What are your favourite activities?",cn:"我刷短视频，是为了无聊时放松大脑。",ans:["I browse short videos","relax my mind when I feel bored"]},
+  {part:"P1",q:"What short-term jobs do young people do?",cn:"年轻人在餐厅做短工，是为了获得实用经验。",ans:["Young people take short-term jobs in restaurants","gain some practical experience"]},
+  {part:"P1",q:"Why do many people like listening to music while doing sports?",cn:"我听音乐，是为了慢跑时解压。",ans:["I listen to music","de-stress while jogging"]}
+]
+},
+{
+id:"p7", name:"被动语态", emoji:"\ud83d\udd12", color:"#36d399",
+skeleton:"[0] can be seen as [1].",
+slots:[
+  ["Running","Shopping","Doing window shopping","Holidays","Coffee","The internet","Electric cars","Smiling","Playing video games","Listening to music"],
+  ["a kind of stunning aerobic exercise","the best way to relieve fatigue","the best way to relieve fatigue and satisfy my vanity","the best time to relax","a good beverage for young people to refresh themselves","a practical tool to shop online and order takeaways","an eco-friendly choice to reduce emissions","a sign of friendliness in my culture","a nice way to enjoy a good laugh","a great stress buster during workouts"]
+],
+items:[
+  {part:"P1",q:"Do you like running / doing sports?",cn:"跑步可以被看作一种很棒的有氧运动。",ans:["Running","a kind of stunning aerobic exercise"]},
+  {part:"P1",q:"What do you usually do on weekends?",cn:"购物可以被看作缓解疲劳的最佳方式。",ans:["Shopping","the best way to relieve fatigue"]},
+  {part:"P1",q:"What do you usually do on weekends?",cn:"逛街可以被看作解乏并满足虚荣心的最佳方式。",ans:["Doing window shopping","the best way to relieve fatigue and satisfy my vanity"]},
+  {part:"P1",q:"What do you usually do on weekends / holidays?",cn:"假期可以被看作放松的最佳时间。",ans:["Holidays","the best time to relax"]},
+  {part:"P1",q:"Do you like drinking coffee?",cn:"咖啡可以被看作年轻人提神的好饮品。",ans:["Coffee","a good beverage for young people to refresh themselves"]},
+  {part:"P3",q:"How does the internet benefit people?",cn:"互联网可以被看作网购点外卖的实用工具。",ans:["The internet","a practical tool to shop online and order takeaways"]},
+  {part:"P3",q:"What do you think of the future of electric cars?",cn:"电动车可以被看作减排的环保选择。",ans:["Electric cars","an eco-friendly choice to reduce emissions"]},
+  {part:"P3",q:"Is smiling important in your culture?",cn:"微笑可以被看作我们文化中友好的标志。",ans:["Smiling","a sign of friendliness in my culture"]},
+  {part:"P1",q:"What did you often do with your friends in your childhood?",cn:"打游戏可以被看作开怀大笑的好方式。",ans:["Playing video games","a nice way to enjoy a good laugh"]},
+  {part:"P1",q:"Why do many people like listening to music while doing sports?",cn:"听音乐可以被看作运动时很好的解压方式。",ans:["Listening to music","a great stress buster during workouts"]}
+]
+}
+];
+/* ============ 数据：10 个高级词组，每组绑定真实雅思考题 ============ */
+const ADV = [
+{
+id:"a1", name:"I am a big fan of", emoji:"\u2b50", color:"#ffd166",
+skeleton:"I am a big fan of [0].",
+slots:[
+  ["movies","music","sports","binge-watching TV shows","shopping online","playing basketball","traveling","coffee"]
+],
+items:[
+  {part:"P1",q:"Do you like watching movies?",cn:"我是一个超级影迷。",ans:["movies"]},
+  {part:"P1",q:"Do you like music?",cn:"我是一个超级音乐迷。",ans:["music"]},
+  {part:"P1",q:"Do you like doing sports?",cn:"我是一个超级体育迷。",ans:["sports"]},
+  {part:"P1",q:"What are your favourite activities?",cn:"我超级爱追剧。",ans:["binge-watching TV shows"]},
+  {part:"P3",q:"How does the internet benefit people?",cn:"我超级爱网购。",ans:["shopping online"]},
+  {part:"P1",q:"Do you like playing basketball?",cn:"我超级爱打篮球。",ans:["playing basketball"]},
+  {part:"P1",q:"Do you like traveling?",cn:"我超级爱旅行。",ans:["traveling"]},
+  {part:"P1",q:"Do you like drinking coffee?",cn:"我超级爱咖啡。",ans:["coffee"]}
+]
+},
+{
+id:"a2", name:"I am crazy about", emoji:"\ud83d\udd25", color:"#ff6b9d",
+skeleton:"I am crazy about [0].",
+slots:[
+  ["going to the cinema to watch a stunning movie with my besties","listening to various music at home","hanging out in the shopping mall","jogging after dinner","browsing short videos","playing video games","eating out in a restaurant","taking photos"]
+],
+items:[
+  {part:"P1",q:"Do you like watching movies?",cn:"我超爱和好姐妹去电影院看精彩电影。",ans:["going to the cinema to watch a stunning movie with my besties"]},
+  {part:"P1",q:"Whenever you have days off, what do you do?",cn:"我超爱在家听各种音乐。",ans:["listening to various music at home"]},
+  {part:"P1",q:"What do you usually do on weekends?",cn:"我超爱去商场闲逛。",ans:["hanging out in the shopping mall"]},
+  {part:"P1",q:"Do you like doing sports?",cn:"我超爱晚饭后慢跑。",ans:["jogging after dinner"]},
+  {part:"P1",q:"What are your favourite activities?",cn:"我超爱刷短视频。",ans:["browsing short videos"]},
+  {part:"P1",q:"What did you often do with your friends in your childhood?",cn:"我超爱打游戏。",ans:["playing video games"]},
+  {part:"P1",q:"Do you like eating out?",cn:"我超爱去餐厅吃饭。",ans:["eating out in a restaurant"]},
+  {part:"P1",q:"Do you like taking photos?",cn:"我超爱拍照。",ans:["taking photos"]}
+]
+},
+{
+id:"a3", name:"I am fond of", emoji:"\ud83d\udc99", color:"#5b8cff",
+skeleton:"I am fond of [0].",
+slots:[
+  ["hanging out in the park","reading books in my spare time","having a chat with friends","watching movies","listening to music","doing household chores","catching up with classmates","trying street food"]
+],
+items:[
+  {part:"P1",q:"What do you usually do in your spare time?",cn:"我喜欢去公园闲逛。",ans:["hanging out in the park"]},
+  {part:"P1",q:"Do you like reading?",cn:"我空闲时喜欢读书。",ans:["reading books in my spare time"]},
+  {part:"P1",q:"What did you often do with your friends?",cn:"我喜欢和朋友聊天。",ans:["having a chat with friends"]},
+  {part:"P1",q:"Do you like watching movies?",cn:"我喜欢看电影。",ans:["watching movies"]},
+  {part:"P1",q:"Do you like music?",cn:"我喜欢听音乐。",ans:["listening to music"]},
+  {part:"P3",q:"Do you think schools should teach children to do household chores?",cn:"我喜欢做家务（练自理）。",ans:["doing household chores"]},
+  {part:"P1",q:"How do you keep in touch with classmates?",cn:"我喜欢和同学叙旧。",ans:["catching up with classmates"]},
+  {part:"P1",q:"Do you like trying local food?",cn:"我喜欢尝街头小吃。",ans:["trying street food"]}
+]
+},
+{
+id:"a4", name:"I am keen on", emoji:"\ud83d\ude80", color:"#36d399",
+skeleton:"I am keen on [0].",
+slots:[
+  ["running","learning languages","playing basketball","taking photos","striving in my studies","hanging out with my besties","shopping online","going jogging"]
+],
+items:[
+  {part:"P1",q:"Do you like running / doing sports?",cn:"我热衷于跑步。",ans:["running"]},
+  {part:"P1",q:"Do you like learning languages?",cn:"我热衷于学语言。",ans:["learning languages"]},
+  {part:"P1",q:"Do you like playing basketball?",cn:"我热衷于打篮球。",ans:["playing basketball"]},
+  {part:"P1",q:"Do you like taking photos?",cn:"我热衷于拍照。",ans:["taking photos"]},
+  {part:"P1",q:"Do you have any plans for the next five years?",cn:"我热衷于努力学习。",ans:["striving in my studies"]},
+  {part:"P1",q:"What do you usually do on weekends?",cn:"我热衷于和死党出去玩。",ans:["hanging out with my besties"]},
+  {part:"P3",q:"How does the internet benefit people?",cn:"我热衷于网购。",ans:["shopping online"]},
+  {part:"P1",q:"Do you like doing sports?",cn:"我热衷于慢跑。",ans:["going jogging"]}
+]
+},
+{
+id:"a5", name:"for the reason that", emoji:"\ud83d\udca1", color:"#ffd166",
+skeleton:"[0] for the reason that [1].",
+slots:[
+  ["I am keen on running","I usually do lots of things at weekends","I prefer living in a tall building","I enjoy listening to music while doing sports","I often go to the cinema","Young people prefer shopping online","I strive in my studies","I like walking in parks"],
+  ["I think running can be seen as a good way for me to chill out","I am under great pressure from study on weekdays","it is more convenient with shopping malls nearby","sports can be a bit boring without music","it gives me a decent chance to chill out and loosen up","it is a time-saving and labor-saving way to get what they want","it is practical for my future career","it helps me escape from the city's hustle and bustle","modern people maintain a sedentary lifestyle"]
+],
+items:[
+  {part:"P1",q:"Do you like running?",cn:"我热衷跑步，因为跑步是放松的好方式。",ans:["I am keen on running","I think running can be seen as a good way for me to chill out"]},
+  {part:"P1",q:"What do you usually do on weekends?",cn:"周末我常做很多事，因为工作日学习压力大。",ans:["I usually do lots of things at weekends","I am under great pressure from study on weekdays"]},
+  {part:"P1",q:"Do you want to live in a tall building?",cn:"我更想住高楼，因为附近商超更方便。",ans:["I prefer living in a tall building","it is more convenient with shopping malls nearby"]},
+  {part:"P1",q:"Why do many people like listening to music while doing sports?",cn:"运动时我爱听音乐，因为没音乐会枯燥。",ans:["I enjoy listening to music while doing sports","sports can be a bit boring without music"]},
+  {part:"P1",q:"Do you like watching movies?",cn:"我常去电影院，因为它给了我放松机会。",ans:["I often go to the cinema","it gives me a decent chance to chill out and loosen up"]},
+  {part:"P3",q:"What are the differences between old and young peoples shopping habits?",cn:"年轻人更爱网购，因为省时省力。",ans:["Young people prefer shopping online","it is a time-saving and labor-saving way to get what they want"]},
+  {part:"P1",q:"Do you have any plans for the next five years?",cn:"我努力学习，因为对未来职业实用。",ans:["I strive in my studies","it is practical for my future career"]},
+  {part:"P3",q:"Why do people like to walk in parks?",cn:"我喜欢公园散步，因为这能帮我逃离城市喧嚣。",ans:["I like walking in parks","it helps me escape from the city's hustle and bustle"]}
+]
+},
+{
+id:"a6", name:"Since（既然）", emoji:"\ud83c\udf3f", color:"#36d399",
+skeleton:"Since [0] , [1].",
+slots:[
+  ["modern people maintain a sedentary lifestyle","it is more tranquil and peaceful there","I am under great pressure from study on weekdays","old people are not good at using high-tech products","the internet is so convenient","smiling shows friendliness","electric cars can reduce emissions","children need self-care skills"],
+  ["they go to the park to take some exercise","I prefer hanging out in the park","it is cheerful and enjoyable for me to hang out with my besties in the shopping mall at weekends","they find it difficult to use digital payments","many people prefer shopping online and ordering takeaways","it is important in daily conversations","I am optimistic about their future","schools should teach them to do household chores"]
+],
+items:[
+  {part:"P3",q:"Why do people like to walk in parks?",cn:"既然现代人久坐，他们去公园锻炼。",ans:["modern people maintain a sedentary lifestyle","they go to the park to take some exercise"]},
+  {part:"P1",q:"Do you like going to parks?",cn:"既然那里更安静平和，我更爱去公园。",ans:["it is more tranquil and peaceful there","I prefer hanging out in the park"]},
+  {part:"P1",q:"What do you usually do on weekends?",cn:"既然工作日学习压力大，周末和死党去商场闲逛很开心。",ans:["I am under great pressure from study on weekdays","it is cheerful and enjoyable for me to hang out with my besties in the shopping mall at weekends"]},
+  {part:"P3",q:"What are the differences between old and young peoples shopping habits?",cn:"既然老人不擅长高科技，他们觉得数字支付很难。",ans:["old people are not good at using high-tech products","they find it difficult to use digital payments"]},
+  {part:"P3",q:"How does the internet benefit people?",cn:"既然互联网很方便，很多人爱网购点外卖。",ans:["the internet is so convenient","many people prefer shopping online and ordering takeaways"]},
+  {part:"P3",q:"Is smiling important in your culture?",cn:"既然微笑表示友好，日常交谈中它很重要。",ans:["smiling shows friendliness","it is important in daily conversations"]},
+  {part:"P3",q:"What do you think of the future of electric cars?",cn:"既然电动车能减排，我对它们的未来很乐观。",ans:["electric cars can reduce emissions","I am optimistic about their future"]},
+  {part:"P3",q:"Do you think schools should teach children to do household chores?",cn:"既然孩子需要自理能力，学校应教他们做家务。",ans:["children need self-care skills","schools should teach them to do household chores"]}
+]
+},
+{
+id:"a7", name:"Whenever（每当）", emoji:"\ud83d\udd01", color:"#5b8cff",
+skeleton:"Whenever [0] , [1].",
+slots:[
+  ["I have some days off","I have spare time","I feel stressed","I finish my classes","I hang out with my besties","I feel bored","I have time for myself","I go jogging"],
+  ["I am crazy about listening to various music at home","I am crazy about going to the cinema to watch a stunning movie","I listen to music to de-stress","I like to go for a walk in the park","we enjoy a good laugh together","I binge-watch TV shows","I browse short videos on my phone","I am keen on listening to music"]
+],
+items:[
+  {part:"P1",q:"What do you usually do when you have days off?",cn:"每当我有几天假，我就超爱在家听音乐。",ans:["I have some days off","I am crazy about listening to various music at home"]},
+  {part:"P1",q:"Do you like watching movies?",cn:"每当我有空，我就超爱去电影院看一场精彩的电影。",ans:["I have spare time","I am crazy about going to the cinema to watch a stunning movie"]},
+  {part:"P1",q:"How do you relax?",cn:"每当我压力大，我就听音乐解压。",ans:["I feel stressed","I listen to music to de-stress"]},
+  {part:"P1",q:"What do you usually do after class?",cn:"每当我下完课，我就喜欢去公园散步。",ans:["I finish my classes","I like to go for a walk in the park"]},
+  {part:"P1",q:"What did you often do with your friends?",cn:"每当我和死党出去玩，我们都会开怀大笑。",ans:["I hang out with my besties","we enjoy a good laugh together"]},
+  {part:"P1",q:"What are your favourite activities?",cn:"每当我无聊，我就追剧。",ans:["I feel bored","I binge-watch TV shows"]},
+  {part:"P1",q:"What do you do in your free time?",cn:"每当我有属于自己的时间，我就刷短视频。",ans:["I have time for myself","I browse short videos on my phone"]},
+  {part:"P1",q:"Why do many people like listening to music while doing sports?",cn:"每当我慢跑，我就热衷听音乐。",ans:["I go jogging","I am keen on listening to music"]}
+]
+},
+{
+id:"a8", name:"As long as（只要）", emoji:"\ud83e\udd1d", color:"#ff6b9d",
+skeleton:"As long as [0] , [1].",
+slots:[
+  ["I have spare time","I have some days off","the weather is fine","I feel stressed","I am free at weekends","I have time to kill","my friends are available","I finish my homework"],
+  ["I am fond of hanging out in the park","I am crazy about going to the cinema","I like going jogging in the park","I listen to music to chill out","I hang out with my besties in the shopping mall","I binge-watch TV shows","we catch up and share experiences","I play video games to enjoy a good laugh"]
+],
+items:[
+  {part:"P1",q:"What do you usually do in your spare time?",cn:"只要我有空，我就喜欢去公园。",ans:["I have spare time","I am fond of hanging out in the park"]},
+  {part:"P1",q:"Do you like watching movies?",cn:"只要我有几天假，我就超爱去电影院。",ans:["I have some days off","I am crazy about going to the cinema"]},
+  {part:"P1",q:"Do you like doing sports outdoors?",cn:"只要天气好，我就喜欢在公园慢跑。",ans:["the weather is fine","I like going jogging in the park"]},
+  {part:"P1",q:"How do you relax?",cn:"只要我压力大，我就听音乐放松。",ans:["I feel stressed","I listen to music to chill out"]},
+  {part:"P1",q:"What do you usually do on weekends?",cn:"只要周末有空，我就和死党去商场。",ans:["I am free at weekends","I hang out with my besties in the shopping mall"]},
+  {part:"P1",q:"What are your favourite activities?",cn:"只要我有时间打发，我就追剧。",ans:["I have time to kill","I binge-watch TV shows"]},
+  {part:"P1",q:"What do you do with your friends?",cn:"只要朋友有空，我们就叙旧分享经历。",ans:["my friends are available","we catch up and share experiences"]},
+  {part:"P1",q:"What did you often do with your friends in your childhood?",cn:"只要作业做完，我就打游戏开怀大笑。",ans:["I finish my homework","I play video games to enjoy a good laugh"]}
+]
+},
+{
+id:"a9", name:"can be seen as", emoji:"\ud83d\udc41\ufe0f", color:"#36d399",
+skeleton:"[0] can be seen as [1].",
+slots:[
+  ["Running","Shopping","Doing window shopping","Holidays","The internet","Electric cars","Smiling","Listening to music"],
+  ["a kind of stunning aerobic exercise","the best way to relieve fatigue","the best way to relieve fatigue and satisfy my vanity","the best time to relax","a practical tool to make life more convenient","an eco-friendly choice to reduce emissions","a sign of friendliness in my culture","a great stress buster during workouts"]
+],
+items:[
+  {part:"P1",q:"Do you like running?",cn:"跑步可以被看作很棒的有氧运动。",ans:["Running","a kind of stunning aerobic exercise"]},
+  {part:"P1",q:"What do you usually do on weekends?",cn:"购物可以被看作解乏的最佳方式。",ans:["Shopping","the best way to relieve fatigue"]},
+  {part:"P1",q:"What do you usually do on weekends?",cn:"逛街可以被看作解乏并满足虚荣心的方式。",ans:["Doing window shopping","the best way to relieve fatigue and satisfy my vanity"]},
+  {part:"P1",q:"What do you usually do on holidays?",cn:"假期可以被看作放松的最佳时间。",ans:["Holidays","the best time to relax"]},
+  {part:"P3",q:"How does the internet benefit people?",cn:"互联网可以被看作让生活更便利的实用工具。",ans:["The internet","a practical tool to make life more convenient"]},
+  {part:"P3",q:"What do you think of the future of electric cars?",cn:"电动车可以被看作减排的环保选择。",ans:["Electric cars","an eco-friendly choice to reduce emissions"]},
+  {part:"P3",q:"Is smiling important in your culture?",cn:"微笑可以被看作友好的标志。",ans:["Smiling","a sign of friendliness in my culture"]},
+  {part:"P1",q:"Why do many people like listening to music while doing sports?",cn:"听音乐可以被看作运动时的解压利器。",ans:["Listening to music","a great stress buster during workouts"]}
+]
+},
+{
+id:"a10", name:"is regarded as", emoji:"\ud83c\udfc5", color:"#ffd166",
+skeleton:"[0] is regarded as [1].",
+slots:[
+  ["Coffee","Shopping online","Education","Friendship","Honesty","Reading","Exercise","Nature"],
+  ["a good beverage for young people to refresh themselves","a time-saving and labor-saving way to get what they want","the key to future opportunities","a treasure in our daily life","a great virtue in my culture","a window to the world","a key to physical and mental health","a source of peace and relaxation"]
+],
+items:[
+  {part:"P1",q:"Do you like drinking coffee?",cn:"咖啡被认为是年轻人提神的好饮品。",ans:["Coffee","a good beverage for young people to refresh themselves"]},
+  {part:"P3",q:"What are the differences between old and young peoples shopping habits?",cn:"网购被认为是省时省力买到想要东西的方式。",ans:["Shopping online","a time-saving and labor-saving way to get what they want"]},
+  {part:"P3",q:"Is it important for schools to identify and develop each students talents?",cn:"教育被认为是未来机会的关键。",ans:["Education","the key to future opportunities"]},
+  {part:"P1",q:"Is friendship important to you?",cn:"友谊被认为是日常生活中的财富。",ans:["Friendship","a treasure in our daily life"]},
+  {part:"P3",q:"What qualities are important?",cn:"诚实被认为是我们文化中的美德。",ans:["Honesty","a great virtue in my culture"]},
+  {part:"P1",q:"Do you like reading?",cn:"阅读被认为是看世界的窗口。",ans:["Reading","a window to the world"]},
+  {part:"P1",q:"Do you like doing sports?",cn:"锻炼被认为是身心健康的关键。",ans:["Exercise","a key to physical and mental health"]},
+  {part:"P3",q:"Why do people like to walk in parks?",cn:"自然被认为是平静放松的源泉。",ans:["Nature","a source of peace and relaxation"]}
+]
+}
+];
+
+/* ============ 全局状态 ============ */
+let G = { screen:'home', kind:'pattern', listKind:'pattern', mode:'assemble', pid:null, idx:0, selected:[], done:false, results:[], xp:0, combo:0, best:0, speakPhase:'prompt', speakLeft:8, speakRated:null, queue:null, seq:false, checked:{} };
+const SPEAK_SEC=8;
+let speakTimer=null;
+function save(){
+try{ localStorage.setItem('kouyu_v2', JSON.stringify({xp:G.xp, combo:G.best})); }catch(e){}
+}
+function load(){
+try{ const s=JSON.parse(localStorage.getItem('kouyu_v2')||'{}'); if(s.xp) G.xp=s.xp; if(s.combo) G.best=s.combo; }catch(e){}
+}
+/* 当前训练数据源：高级词组 or 句型 */
+function CD(){ return G.kind==='adv' ? ADV : PATTERNS; }
+/* 音频版本号：换音频时改这里即可强制浏览器/CDN 重新拉取（避免按文件名缓存旧音频） */
+const AUDIO_VER='20260821n';
+/* 跟读录音的全局状态（用全局对象，配合全局函数，App 内置浏览器也稳） */
+let SH={rec:null,chunks:[],url:null,stream:null,recording:false,transcribing:false,blob:null,finalText:'',lastPass:null};
+/* P4 跟读同款 ASR：主站优先同源代理，其次直连 */
+const P4_TRANSCRIBE_URLS=['/api/p4/transcribe','https://p4.oyenglish.com.cn/transcribe'];
+function loadShadow(){ try{ return JSON.parse(localStorage.getItem('kouyu_shadow')||'{}'); }catch(e){ return {}; } }
+function saveShadowRate(key,stars){ try{ const m=loadShadow(); m[key]=stars; localStorage.setItem('kouyu_shadow',JSON.stringify(m)); }catch(e){} }
+function toast(m){ const t=document.getElementById('toast'); t.textContent=m; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),1400); }
+/* 播放预生成的音频文件（不依赖设备 TTS） */
+function playItem(pid, idx1){
+const a=document.getElementById('player');
+const pre = ADV.some(x=>x.id===pid) ? 'adv_' : '';
+a.src='complex-audio/'+pre+pid+'_'+idx1+'.mp3?v='+AUDIO_VER;
+const pr=a.play();
+if(pr && pr.catch) pr.catch(()=>{
+const src=ADV.some(x=>x.id===pid)?ADV:PATTERNS;
+const pat=src.find(x=>x.id===pid);
+const item=pat && pat.items[idx1-1];
+if(item) speak(buildSentence(pat, item.ans));
+else toast('音频加载失败，请重试');
+});
+}
+/* 兜底：浏览器自带朗读 */
+function speak(text){
+try{
+if('speechSynthesis' in window){
+const u=new SpeechSynthesisUtterance(text); u.lang='en-US'; u.rate=0.92; u.pitch=1;
+window.speechSynthesis.cancel(); window.speechSynthesis.speak(u);
+} else { toast('音频加载失败，请重试'); }
+}catch(e){ toast('朗读不可用'); }
+}
+/* ============ 渲染 ============ */
+function render(){
+const app=document.getElementById('app');
+if(G.screen==='home') return renderHome(app);
+if(G.screen==='list'||G.screen==='advlist') return renderList(app);
+if(G.screen==='picker') return renderPicker(app);
+if(G.screen==='drill') return renderDrill(app);
+if(G.screen==='speak') return renderSpeak(app);
+if(G.screen==='shadowlist') return renderShadowList(app);
+if(G.screen==='shadow') return renderShadow(app);
+}
+function clearSpeakTimer(){ if(speakTimer){ clearInterval(speakTimer); speakTimer=null; } }
+function loadSpeakMap(){ try{ return JSON.parse(localStorage.getItem('kouyu_speak')||'{}'); }catch(e){ return {}; } }
+function saveSpeakRate(key, rate){ try{ const m=loadSpeakMap(); m[key]=rate; localStorage.setItem('kouyu_speak',JSON.stringify(m)); }catch(e){} }
+function renderHome(app){
+const lv=Math.floor(G.xp/100)+1;
+const sm=loadSpeakMap(); const speakDone=Object.keys(sm).length;
+app.innerHTML=`
+<div class="page-head">
+<h1>口语复合句闯关</h1>
+<p class="sub">双轨训练：拼装练打基础，脱口而出练「看中文说英文 · 录音识别判分」。例句均可直接上场。</p>
+</div>
+<div class="topbar">
+<div class="stat"><b>Lv.${lv}</b><span>等级</span></div>
+<div class="stat"><b>${G.xp}</b><span>经验 XP</span></div>
+<div class="stat"><b>${speakDone}</b><span>脱口而出已练</span></div>
+</div>
+
+<div class="sec-title">轨道 A · 拼装练（认识句型）</div>
+<div class="home-grid two">
+<div class="card">
+<span class="mode-tag assemble">拼装练</span>
+<h2>句型拼装</h2>
+<p class="sub">看中文 → 选英文碎片填进骨架 → 检查。适合刚接触句型、先建立结构感。</p>
+<button class="btn" onclick="openTrack('assemble','pattern')">开始句型拼装</button>
+</div>
+<div class="card">
+<span class="mode-tag assemble">拼装练</span>
+<h2>词组拼装</h2>
+<p class="sub">10 组高级词组，同样用选词拼句熟悉替换表达（I like → a big fan of 等）。</p>
+<button class="btn blue" onclick="openTrack('assemble','adv')">开始词组拼装</button>
+</div>
+</div>
+
+<div class="sec-title">轨道 B · 脱口而出（主练）</div>
+<div class="home-grid two">
+<div class="card">
+<span class="mode-tag speak">脱口而出</span>
+<h2>句型脱口而出</h2>
+<p class="sub">看中文说英文（不显示答案）→ 录音 → P4 识别自动判分。练的是上场反应。</p>
+<button class="btn red" onclick="openTrack('speak','pattern')">开始句型脱口而出</button>
+</div>
+<div class="card">
+<span class="mode-tag speak">脱口而出</span>
+<h2>词组脱口而出</h2>
+<p class="sub">同上流程：只看中文开口说，识别后与标准句逐词比对。</p>
+<button class="btn red" onclick="openTrack('speak','adv')">开始词组脱口而出</button>
+</div>
+</div>
+
+<div class="sec-title">辅助 · 跟读打磨</div>
+<div class="home-grid two">
+<div class="card">
+<span class="mode-tag assemble">跟读</span>
+<h2>句型跟读</h2>
+<p class="sub">录音上传 P4 服务器识别 → 与原文逐词比对（错一词不通过）。需联网。</p>
+<button class="btn" onclick="openTrack('shadow','pattern')">句型跟读</button>
+</div>
+<div class="card">
+<span class="mode-tag assemble">跟读</span>
+<h2>词组跟读</h2>
+<p class="sub">同上：P4 语音识别 + 严格逐词判分。专练高级词组跟读。</p>
+<button class="btn blue" onclick="openTrack('shadow','adv')">词组跟读</button>
+</div>
+</div>
+<p class="foot">拼装练打底 · 脱口而出主练 · 跟读打磨 · 进度存本地</p>`;
+}
+function renderList(app){
+const isAdv = G.listKind==='adv';
+const isSpeak = G.mode==='speak';
+const isShadow = G.mode==='shadow';
+const data = isAdv ? ADV : PATTERNS;
+const starter = isShadow ? 'startShadow' : (isSpeak ? 'startSpeak' : 'startDrill');
+const tip = isShadow
+? '听模型 → 跟读 → 自评。点进一组后先看全部句子，可顺序或选句练习。'
+: (isSpeak
+? '看中文说英文（不显示答案），录音后 P4 识别判分。说不出来可回拼装练同一组。'
+: (isAdv?'每组 8 题，选词拼进骨架，熟悉高级词组。':'每型 10 题，选词拼进骨架；做对后可回看整组例句。'));
+const titlePrefix = isShadow?'跟读 · ':(isSpeak?'脱口而出 · ':'');
+const cards=data.map(p=>`
+<div class="pat" onclick="${starter}('${p.id}','${isAdv?'adv':'pattern'}')">
+<div class="em">${p.emoji}</div>
+<div class="nm">${p.name}</div>
+<div class="sk">${isShadow?'先看句子列表再跟读':(isSpeak?'看中文说英文 · 识别判分':p.skeleton.replace(/\[(\d+)\]/g,'( )'))}</div>
+</div>`).join('');
+app.innerHTML=`
+<div class="page-head">
+<h1>${titlePrefix}${isAdv?'选一个高级词组':'选一个句型'}</h1>
+<p class="sub">${tip}</p>
+</div>
+<div class="grid">${cards}</div>
+<button class="btn ghost" onclick="go('home')">← 返回首页</button>`;
+}
+function startShadow(id, kind){
+clearSpeakTimer();
+G.mode='shadow'; G.kind=kind||'pattern'; G.listKind=kind||'pattern';
+G.pid=id; G.idx=0; G.selected=[]; G.queue=null; G.seq=false; G.checked={};
+SH.recording=false; SH.url=null; SH.rec=null; SH.chunks=[];
+G.screen='picker'; render(); window.scrollTo(0,0);
+}
+function renderShadowList(app){
+/* 兼容旧入口：转到分轨列表 */
+G.mode='shadow';
+if(!G.listKind) G.listKind='pattern';
+G.screen=G.listKind==='adv'?'advlist':'list';
+renderList(app);
+}
+function renderShadow(app){
+const p=CD().find(x=>x.id===G.pid);
+const item=p.items[G.idx];
+const total=p.items.length;
+const target=buildSentence(p,item.ans);
+const qpos=(G.queue&&G.queue.length)?(G.queue.indexOf(G.idx)+1): (G.idx+1);
+const qtotal=(G.queue&&G.queue.length)?G.queue.length: total;
+const pctQ=Math.round((qpos-1)/Math.max(1,qtotal)*100);
+const ky=G.pid+'_'+G.idx;
+const saved=loadShadow()[ky];
+SH.url=null;
+app.innerHTML=`
+<div class="panel">
+<div class="toolbar">
+<h2>🎤 ${p.emoji} ${p.name}</h2>
+<span class="sub">本轮 ${qpos} / ${qtotal} · 全组第 ${G.idx+1} 句</span>
+</div>
+<div class="progress"><i style="width:${pctQ}%"></i></div>
+<div class="practice-grid">
+<div>
+<div class="qbox"><span class="part">${item.part||'IELTS'}</span><span class="qtext">考题：${item.q||'通用表达'}</span></div>
+<div class="quiz">${item.cn}</div>
+<div class="sentence" style="display:block" id="shadowTarget">${target}</div>
+<div class="actions">
+<button class="listen" onclick="playModel()">🎧 先听标准音频</button>
+</div>
+</div>
+<div class="practice-side">
+<p class="sub">跟读判分：录音上传到 P4 服务器识别（腾讯云 ASR），再与原文逐词比对。错一个词即不通过（不计标点）。</p>
+<button class="btn red" id="recBtn" onclick="toggleRec()" style="margin-top:0">${SH.recording?'⏹ 停止并上传识别':(SH.transcribing?'⏳ 识别中…':'🎤 开始跟读录音')}</button>
+<div class="stt-label" style="margin-top:12px">识别文字</div>
+<div class="stt-box" id="sttLive">${SH.finalText||'点击开始后朗读英文，停止后上传 P4 识别'}</div>
+<div class="recbox" id="recWrap" style="display:none;margin-top:10px">
+<p class="sub">录音回放：</p>
+<audio id="recplayer" controls></audio>
+</div>
+<div id="compareBox" style="margin-top:12px"></div>
+${saved==='pass'?'<div class="compare-pass">本句已通过 ✓</div>':(saved==='fail'?'<div class="compare-fail">本句上次未通过</div>':'')}
+</div>
+</div>
+<div class="actions">
+<button class="btn sm" onclick="shadowPrev()">${(G.queue&&G.queue.indexOf(G.idx)>0)?'◀ 上一句':'← 全部句子'}</button>
+<button class="btn sm blue" onclick="shadowNext()">${(G.queue&&G.queue.indexOf(G.idx)<G.queue.length-1)?'下一句 ▶':'回到句子列表'}</button>
+<button class="btn ghost" onclick="backToPicker()" style="margin-top:8px">← 全部句子</button>
+</div>
+</div>`;
+}
+function playModel(){ playItem(G.pid, G.idx+1); }
+function toggleRec(){
+if(SH.transcribing){ toast('正在识别，请稍候'); return; }
+if(SH.recording) stopShadowRec(); else startShadowRec();
+}
+function tokenizeEn(s){
+/* 小写；缩合展开；连字符当空格；去掉标点 —— 只做格式归一，不把听错词当对 */
+let t=String(s||'')
+.toLowerCase()
+.replace(/[’‘]/g,"'");
+t=t.replace(/\b(it)'?s\b/g,'it is')
+.replace(/\b(i)'?m\b/g,'i am')
+.replace(/\b(you)'?re\b/g,'you are')
+.replace(/\b(we)'?re\b/g,'we are')
+.replace(/\b(they)'?re\b/g,'they are')
+.replace(/\b(that)'?s\b/g,'that is')
+.replace(/\b(there)'?s\b/g,'there is')
+.replace(/\b(what)'?s\b/g,'what is')
+.replace(/\b(don)'?t\b/g,'do not')
+.replace(/\b(doesn)'?t\b/g,'does not')
+.replace(/\b(didn)'?t\b/g,'did not')
+.replace(/\b(can)'?t\b/g,'can not')
+.replace(/\b(won)'?t\b/g,'will not')
+.replace(/\b(i)'?ve\b/g,'i have')
+.replace(/\b(we)'?ve\b/g,'we have')
+.replace(/\b(i)'?ll\b/g,'i will')
+.replace(/[\-—–]/g,' ')
+.replace(/[.,!?;:'"()\[\]{}…]/g,'')
+.replace(/[^\w\s]/g,'')
+.replace(/\s+/g,' ')
+.trim();
+return t?t.split(/\s+/).filter(w=>w.length>0):[];
+}
+/* 仅当标准句里出现该词时，把 ASR 已知误听改回标准词（修识别，不放宽发音标准） */
+const ASR_MISHEAR={
+besties:['bies','bees','beasties','bestys','bestis','bessies','bestie','bc','bcs'],
+starbucks:['starbuck','starbuks','star bucks'],
+enjoyable:['injoyable','enjoyble'],
+cheerful:['cheerfull','cheerfal'],
+hustle:['hustel','hassle'],
+bustle:['bustel'],
+takeaways:['takeaway','take aways'],
+jogging:['joging','joggingg'],
+browsing:['browing'],
+};
+function repairAsrByReference(spoken, target){
+const tWords=new Set(tokenizeEn(target));
+let out=String(spoken||'');
+const repairs=[];
+Object.keys(ASR_MISHEAR).forEach(correct=>{
+if(!tWords.has(correct)) return;
+ASR_MISHEAR[correct].forEach(wrong=>{
+const re=new RegExp('\\b'+wrong.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'\\b','gi');
+if(re.test(out)){
+out=out.replace(re, correct);
+repairs.push(wrong+'→'+correct);
+}
+});
+});
+return {text:out, repairs};
+}
+/* 热词宜少而精：过多权重 11 会互相抢，反而压不住 besties */
+function buildHotwordList(sentence){
+const HARD=new Set(['besties','starbucks','binge','watching','hustle','bustle','enjoyable','cheerful','chill','takeaways','jogging','browsing','stunning','fascinating']);
+const raw=String(sentence||'')
+.replace(/[’‘]/g,"'")
+.replace(/[\-—–]/g,' ')
+.replace(/[.,!?;:"()\[\]{}…]/g,' ');
+const words=raw.split(/\s+/).map(w=>w.replace(/^'+|'+$/g,'').toLowerCase()).filter(w=>/^[a-z]{2,30}$/.test(w));
+const seen=new Set();
+const list=[];
+/* 先塞难词超级热词 */
+words.forEach(w=>{
+if(!HARD.has(w) || seen.has(w)) return;
+seen.add(w);
+list.push(w+'|11');
+});
+words.forEach(w=>{
+if(seen.has(w) || list.length>=24) return;
+seen.add(w);
+list.push(w+'|'+(w.length>=7?10:7));
+});
+['shopping mall','hang out','chill out','digital payments','household chores','hustle and bustle','binge watching','window shopping'].forEach(ph=>{
+if(raw.toLowerCase().includes(ph) && list.length<32) list.push(ph+'|11');
+});
+return list.join(',');
+}
+/* 编辑距离对齐：仅用于标色；通过条件仍是 edits===0（逐词严格） */
+function alignWords(t, s){
+const m=t.length, n=s.length;
+const dp=Array.from({length:m+1},()=>new Array(n+1).fill(0));
+for(let i=0;i<=m;i++) dp[i][0]=i;
+for(let j=0;j<=n;j++) dp[0][j]=j;
+for(let i=1;i<=m;i++){
+for(let j=1;j<=n;j++){
+const sub=dp[i-1][j-1]+(t[i-1]===s[j-1]?0:1);
+dp[i][j]=Math.min(sub, dp[i-1][j]+1, dp[i][j-1]+1);
+}
+}
+const ops=[];
+let i=m, j=n;
+while(i>0||j>0){
+if(i>0&&j>0&&dp[i][j]===dp[i-1][j-1]+(t[i-1]===s[j-1]?0:1)){
+if(t[i-1]===s[j-1]) ops.push({type:'ok', tw:t[i-1], sw:s[j-1]});
+else ops.push({type:'bad', tw:t[i-1], sw:s[j-1]});
+i--; j--;
+}else if(i>0&&dp[i][j]===dp[i-1][j]+1){
+ops.push({type:'miss', tw:t[i-1]});
+i--;
+}else{
+ops.push({type:'extra', sw:s[j-1]});
+j--;
+}
+}
+ops.reverse();
+return {ops, edits:dp[m][n]};
+}
+function compareStrict(target, spoken){
+const t=tokenizeEn(target);
+const s=tokenizeEn(spoken);
+const {ops, edits}=alignWords(t, s);
+const ok=t.length>0 && edits===0;
+return {ok, t, s, detail:ops, edits};
+}
+function renderCompare(target, spoken, rawSpoken, repairs){
+const box=document.getElementById('compareBox');
+if(!box) return false;
+const r=compareStrict(target, spoken);
+const targetHtml=r.detail.map(d=>{
+if(d.type==='ok') return `<span class="word-ok">${d.tw}</span>`;
+if(d.type==='bad') return `<span class="word-bad" title="识别为: ${d.sw}">${d.tw}</span>`;
+if(d.type==='miss') return `<span class="word-miss">${d.tw}</span>`;
+return ''; /* extra 只在识别侧显示 */
+}).filter(Boolean).join(' ');
+const spokenHtml=r.detail.map(d=>{
+if(d.type==='ok') return `<span class="word-ok">${d.sw}</span>`;
+if(d.type==='bad') return `<span class="word-bad" title="应为: ${d.tw}">${d.sw}</span>`;
+if(d.type==='miss') return `<span class="word-miss">〔缺:${d.tw}〕</span>`;
+if(d.type==='extra') return `<span class="word-extra">〔多:${d.sw}〕</span>`;
+return '';
+}).join(' ');
+const tip=r.ok
+?'通过 ✓ 分词后每个单词都一致'
+:`未通过 ✗ 有 ${r.edits} 处不一致（绿=对齐正确，红=说错，粉=缺失）`;
+const repairNote=(repairs&&repairs.length)
+?`<div class="stt-label" style="margin-top:8px">ASR 原文纠错（仅本题标准词）：${repairs.join('，')}</div>
+<div class="stt-box" style="opacity:.85">${rawSpoken||''}</div>`
+:`<div class="stt-label">识别原文（P4 返回）</div>
+<div class="stt-box">${rawSpoken||spoken||'（空）'}</div>`;
+box.innerHTML=`
+${repairNote}
+<div class="stt-label" style="margin-top:8px">标准分词（${r.t.length} 词）· 绿对 / 红错 / 粉缺</div>
+<div class="stt-box">${targetHtml||'（空）'}</div>
+<div class="stt-label" style="margin-top:8px">你的分词（${r.s.length} 词）</div>
+<div class="stt-box">${spokenHtml||'（空）'}</div>
+<div class="${r.ok?'compare-pass':'compare-fail'}">${tip}</div>`;
+return r.ok;
+}
+function setSttLive(msg){
+const el=document.getElementById('sttLive');
+if(el) el.textContent=msg;
+}
+function saveJudgeRate(key, passed){
+if(G.mode==='speak') saveSpeakRate(key, passed?'pass':'fail');
+else saveShadowRate(key, passed?'pass':'fail');
+}
+function setRecBtn(label, disabled){
+const rb=document.getElementById('recBtn');
+if(!rb) return;
+rb.textContent=label;
+rb.disabled=!!disabled;
+}
+function recBtnLabel(kind){
+const speak=G.mode==='speak';
+if(kind==='recording') return speak?'⏹ 停止并识别':'⏹ 停止并上传识别';
+if(kind==='busy') return '⏳ 识别中…';
+if(kind==='retry') return speak?'🎤 重录再说一遍':'🎤 重录并重新判分';
+return speak?'🎤 开始说英文（录音）':'🎤 开始跟读录音';
+}
+async function startShadowRec(){
+if(!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia)){ toast('当前浏览器不支持录音，请用 Chrome / Edge'); return; }
+if(typeof MediaRecorder==='undefined'){ toast('当前浏览器不支持录音'); return; }
+if(SH.recording || SH.transcribing) return;
+SH.finalText=''; SH.lastPass=null; SH.blob=null; SH.chunks=[];
+const box=document.getElementById('compareBox');
+if(box) box.innerHTML='';
+setSttLive(G.mode==='speak'?'看着中文，用英文说出整句…':'录音中…请完整朗读英文句子');
+try{
+const stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true}});
+SH.stream=stream;
+const mime=MediaRecorder.isTypeSupported('audio/webm;codecs=opus')?'audio/webm;codecs=opus'
+:(MediaRecorder.isTypeSupported('audio/webm')?'audio/webm':'');
+SH.rec=mime?new MediaRecorder(stream,{mimeType:mime}):new MediaRecorder(stream);
+SH.rec.ondataavailable=e=>{ if(e.data && e.data.size>0) SH.chunks.push(e.data); };
+SH.rec.onstop=()=>{
+const type=(SH.rec && SH.rec.mimeType)||'audio/webm';
+SH.blob=new Blob(SH.chunks,{type});
+if(SH.url) URL.revokeObjectURL(SH.url);
+SH.url=URL.createObjectURL(SH.blob);
+const rp=document.getElementById('recplayer');
+const rw=document.getElementById('recWrap');
+if(rp) rp.src=SH.url;
+if(rw) rw.style.display='block';
+if(SH.stream){ SH.stream.getTracks().forEach(t=>t.stop()); SH.stream=null; }
+uploadToP4AndJudge();
+};
+SH.recording=true;
+SH.rec.start(200);
+setRecBtn(recBtnLabel('recording'), false);
+}catch(e){
+toast('无法访问麦克风，请检查权限');
+SH.recording=false;
+}
+}
+function stopShadowRec(){
+if(!SH.recording) return;
+SH.recording=false;
+setRecBtn(recBtnLabel('busy'), true);
+setSttLive('录音结束，正在上传到 P4 识别…');
+if(SH.rec && SH.rec.state!=='inactive'){
+try{ SH.rec.stop(); }catch(e){ uploadToP4AndJudge(); }
+} else {
+uploadToP4AndJudge();
+}
+}
+async function uploadToP4AndJudge(){
+const judgePid=G.pid;
+const judgeIdx=G.idx;
+if(!SH.blob || SH.blob.size<800){
+setRecBtn(recBtnLabel('start'), false);
+setSttLive('录音太短，请重录');
+toast('录音太短，请重试');
+const box=document.getElementById('compareBox');
+if(box) box.innerHTML='<div class="compare-fail">未通过 ✗ 录音太短</div>';
+saveJudgeRate(judgePid+'_'+judgeIdx, false);
+if(G.mode==='speak' && G.pid===judgePid && G.idx===judgeIdx){
+render();
+const box2=document.getElementById('compareBox');
+if(box2) box2.innerHTML='<div class="compare-fail">未通过 ✗ 录音太短</div>';
+}
+return;
+}
+SH.transcribing=true;
+let lastErr=null;
+let spoken='';
+const p0=CD().find(x=>x.id===judgePid);
+const target0=buildSentence(p0, p0.items[judgeIdx].ans);
+const hotwords=buildHotwordList(target0);
+for(const url of P4_TRANSCRIBE_URLS){
+try{
+const form=new FormData();
+form.append('file', SH.blob, 'recording.webm');
+form.append('text', target0);
+if(hotwords) form.append('hotwords', hotwords);
+const res=await fetch(url,{method:'POST',body:form});
+if(!res.ok){
+const errText=await res.text();
+throw new Error('HTTP '+res.status+': '+errText.substring(0,180));
+}
+const data=await res.json();
+if(data && data.error) throw new Error(data.error);
+spoken=String(data.recognizedText||data.text||'').trim();
+lastErr=null;
+console.log('[P4]', {hotwordCount:data.hotwordCount, hotwordsApplied:data.hotwordsApplied, raw:spoken});
+break;
+}catch(err){
+console.warn('P4 ASR failed', url, err);
+lastErr=err;
+}
+}
+SH.transcribing=false;
+setRecBtn(recBtnLabel('retry'), false);
+if(G.pid!==judgePid || G.idx!==judgeIdx) return;
+if(lastErr && !spoken){
+setSttLive('识别失败：'+(lastErr.message||lastErr));
+toast('P4 识别失败，请检查网络或服务器');
+const box=document.getElementById('compareBox');
+if(box) box.innerHTML='<div class="compare-fail">识别失败：'+(lastErr.message||lastErr)+'</div>';
+return;
+}
+SH.finalText=spoken;
+setSttLive(spoken||'（未识别到文字）');
+const p=CD().find(x=>x.id===judgePid);
+const target=buildSentence(p, p.items[judgeIdx].ans);
+if(!spoken){
+toast('未识别到内容，请重录');
+const box=document.getElementById('compareBox');
+if(box) box.innerHTML='<div class="compare-fail">未通过 ✗ 没有识别到英文</div>';
+saveJudgeRate(judgePid+'_'+judgeIdx, false);
+if(G.mode==='speak' && G.pid===judgePid && G.idx===judgeIdx){
+render();
+const box2=document.getElementById('compareBox');
+if(box2) box2.innerHTML='<div class="compare-fail">未通过 ✗ 没有识别到英文</div>';
+}
+return;
+}
+const repaired=repairAsrByReference(spoken, target);
+const spokenForJudge=repaired.text;
+console.log('[跟读比对]', {target, raw:spoken, repaired:spokenForJudge, repairs:repaired.repairs});
+const passed=renderCompare(target, spokenForJudge, spoken, repaired.repairs);
+SH.lastPass=passed;
+saveJudgeRate(judgePid+'_'+judgeIdx, passed);
+if(passed){ G.xp+=15; G.combo++; if(G.combo>G.best) G.best=G.combo; save(); }
+else { G.combo=0; save(); }
+if(G.mode==='speak' && G.pid===judgePid && G.idx===judgeIdx){
+render();
+renderCompare(target, spokenForJudge, spoken, repaired.repairs);
+setSttLive(spoken||'（未识别到文字）');
+setRecBtn(recBtnLabel('retry'), false);
+const rw=document.getElementById('recWrap');
+const rp=document.getElementById('recplayer');
+if(SH.url && rw && rp){ rp.src=SH.url; rw.style.display='block'; }
+}
+}
+function rateShadow(s){ /* 已改为 P4 自动判分 */ }
+
+function shadowPrev(){
+if(G.queue && G.queue.length){
+const pos=G.queue.indexOf(G.idx);
+if(pos>0){ G.idx=G.queue[pos-1]; SH.recording=false; SH.url=null; render(); window.scrollTo(0,0); }
+else backToPicker();
+} else if(G.idx>0){
+G.idx--; SH.recording=false; SH.url=null; render(); window.scrollTo(0,0);
+} else backToPicker();
+}
+function shadowNext(){
+advanceQueueOrPicker();
+}
+function shuffle(a){ // Fisher-Yates 洗牌，返回新数组
+const r=a.slice();
+for(let i=r.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [r[i],r[j]]=[r[j],r[i]]; }
+return r;
+}
+function renderDrill(app){
+const p=CD().find(x=>x.id===G.pid);
+const item=p.items[G.idx];
+const total=p.items.length;
+const parts=p.skeleton.split(/(\[\d+\])/);
+let html='';
+parts.forEach(seg=>{
+const m=seg.match(/^\[(\d+)\]$/);
+if(m){
+const i=+m[1];
+const opts=shuffle(p.slots[i]).map(o=>`<option value="${o}" ${G.selected[i]===o?'selected':''}>${o}</option>`).join('');
+html+=`<span class="slot"><select class="dsel" onchange="onSelect(${i},this.value)"><option value="">— 选英文元素 —</option>${opts}</select></span>`;
+} else if(seg.trim() || seg){ html+=`<span class="sk-txt">${seg}</span>`; }
+});
+const pct=Math.round(G.idx/total*100);
+const isAdv=G.kind==='adv';
+app.innerHTML=`
+<div class="panel">
+<div class="toolbar">
+<h2>${p.emoji} ${p.name}</h2>
+<span class="sub">第 ${G.idx+1} / ${total} 题</span>
+</div>
+<div class="progress"><i style="width:${pct}%"></i></div>
+<div class="qbox"><span class="part">${item.part||'IELTS'}</span><span class="qtext">考题：${item.q||'通用表达'}</span></div>
+<div class="quiz">${item.cn}</div>
+<div class="skeleton">${html}</div>
+<div class="sentence" id="sentence"></div>
+<div class="feedback" id="fb"></div>
+<div class="actions">
+<button class="listen" onclick="listenNow()">🔊 听我拼的句子</button>
+<button class="btn sm blue" onclick="checkDrill()" style="margin-top:0">✓ 检查</button>
+<button class="btn sm" id="nextBtn" onclick="nextItem()" style="display:none;margin-top:0">下一题 ▶</button>
+<button class="btn ghost" onclick="backToPicker()" style="margin-top:0">← 全部句子</button>
+</div>
+</div>`;
+}
+function listenNow(){
+const p=CD().find(x=>x.id===G.pid);
+const cur=buildSentence(p,G.selected);
+if(!cur){ toast('先把元素选满'); return; }
+let idx=0;
+for(let i=0;i<p.items.length;i++){ if(buildSentence(p,p.items[i].ans)===cur){ idx=i+1; break; } }
+if(idx) playItem(G.pid, idx); else speak(cur);
+}
+function buildSentence(p,sel){
+if(sel.some(v=>!v)) return '';
+return p.skeleton.replace(/\[(\d+)\]/g,(m,i)=>sel[+i]).replace(/\s+([.,!?])/g,'$1').replace(/\s{2,}/g,' ').trim();
+}
+/* ============ 交互（全部用全局函数） ============ */
+function go(s){
+clearSpeakTimer();
+if(SH.recording) stopShadowRec();
+if(SH.stream) SH.stream.getTracks().forEach(t=>t.stop());
+G.screen=s;
+if(s==='advlist') G.listKind='adv';
+if(s==='list') G.listKind='pattern';
+if(s==='drill'&&!G.pid) G.screen=G.listKind==='adv'?'advlist':'list';
+if(s==='speak'&&!G.pid) G.screen=G.listKind==='adv'?'advlist':'list';
+if(s==='picker'&&!G.pid) G.screen=G.listKind==='adv'?'advlist':'list';
+render(); window.scrollTo(0,0);
+}
+
+function openTrack(mode, kind){
+G.mode=mode||'assemble';
+G.listKind=kind==='adv'?'adv':'pattern';
+G.screen=kind==='adv'?'advlist':'list';
+render(); window.scrollTo(0,0);
+}
+/* 进入某组：先看全部句子列表，再选练 */
+function startSpeak(id, kind){
+clearSpeakTimer();
+G.mode='speak'; G.kind=kind||'pattern'; G.listKind=kind||'pattern';
+G.pid=id; G.idx=0; G.queue=null; G.seq=false; G.checked={};
+G.screen='picker'; render(); window.scrollTo(0,0);
+}
+function startDrill(id, kind){
+clearSpeakTimer();
+G.mode='assemble'; G.kind=kind||'pattern'; G.listKind=kind||'pattern';
+G.pid=id; G.idx=0; G.selected=[]; G.done=false; G.results=[];
+G.queue=null; G.seq=false; G.checked={};
+G.screen='picker'; render(); window.scrollTo(0,0);
+}
+function statusLabel(rate){
+if(rate==='ok') return ['ok','已流畅'];
+if(rate==='half') return ['half','有卡壳'];
+if(rate==='no') return ['no','未说出'];
+if(rate===true || rate==='done') return ['ok','已练习'];
+if(rate==='pass' || rate===true) return ['ok','已通过'];
+if(rate==='fail') return ['no','未通过'];
+if(typeof rate==='number' && rate>0) return ['ok', rate+' 星'];
+return ['todo','未练'];
+}
+function toggleCheck(i, ev){
+if(ev) ev.stopPropagation();
+G.checked[i]=!G.checked[i];
+const el=document.getElementById('ck_'+i);
+if(el) el.checked=!!G.checked[i];
+}
+function selectAllChecks(on){
+const p=CD().find(x=>x.id===G.pid);
+G.checked={};
+if(on){ for(let i=0;i<p.items.length;i++) G.checked[i]=true; }
+renderPicker(document.getElementById('app'));
+}
+function getCheckedIdx(){
+const p=CD().find(x=>x.id===G.pid);
+return p.items.map((_,i)=>i).filter(i=>G.checked[i]);
+}
+function beginQueue(indices, seq){
+if(!indices.length){ toast('请先勾选句子，或点「按顺序练全部」'); return; }
+G.queue=indices.slice();
+G.seq=!!seq;
+G.idx=G.queue[0];
+enterPracticeItem();
+}
+function practiceAllInOrder(){
+const p=CD().find(x=>x.id===G.pid);
+beginQueue(p.items.map((_,i)=>i), true);
+}
+function practiceChecked(){
+beginQueue(getCheckedIdx(), true);
+}
+function practiceOne(i){
+G.queue=[i];
+G.seq=false;
+G.idx=i;
+enterPracticeItem();
+}
+function enterPracticeItem(){
+clearSpeakTimer();
+G.selected=[]; G.done=false;
+G.speakPhase='prompt'; G.speakLeft=SPEAK_SEC; G.speakRated=null;
+SH.recording=false; SH.url=null; SH.rec=null; SH.chunks=[];
+SH.finalText=''; SH.lastPass=null; SH.blob=null; SH.transcribing=false;
+if(G.mode==='speak'){
+G.screen='speak'; render(); window.scrollTo(0,0);
+} else if(G.mode==='shadow'){
+G.screen='shadow'; render(); window.scrollTo(0,0);
+} else {
+G.screen='drill'; render(); window.scrollTo(0,0);
+}
+}
+function backToPicker(){
+clearSpeakTimer();
+G.screen='picker'; render(); window.scrollTo(0,0);
+}
+function advanceQueueOrPicker(){
+clearSpeakTimer();
+if(G.queue && G.queue.length){
+const pos=G.queue.indexOf(G.idx);
+if(pos>=0 && pos<G.queue.length-1){
+G.idx=G.queue[pos+1];
+enterPracticeItem();
+return;
+}
+}
+toast(G.mode==='speak'?'本轮练习完成，回到句子列表':(G.mode==='shadow'?'本轮跟读完成，回到句子列表':'本轮拼装完成，回到句子列表'));
+G.screen='picker'; render(); window.scrollTo(0,0);
+}
+function renderPicker(app){
+const p=CD().find(x=>x.id===G.pid);
+const isSpeak=G.mode==='speak';
+const isShadow=G.mode==='shadow';
+const speakMap=isSpeak?loadSpeakMap():{};
+const shadowMap=isShadow?loadShadow():{};
+const drillDone=G.results||[];
+const modeName=isShadow?'跟读特训':(isSpeak?'脱口而出':'拼装练');
+const rows=p.items.map((it,i)=>{
+let rate=null;
+if(isSpeak) rate=speakMap[p.id+'_'+i];
+else if(isShadow) rate=shadowMap[p.id+'_'+i]||0;
+else rate=drillDone.some(r=>r.idx===i)?'done':null;
+const [cls,lab]=statusLabel(rate);
+const ck=G.checked[i]?'checked':'';
+return `<div class="sent-item" onclick="practiceOne(${i})">
+<input type="checkbox" id="ck_${i}" ${ck} onclick="toggleCheck(${i},event)">
+<div class="num">${i+1}</div>
+<div>
+<div class="cn">${it.cn}</div>
+<div class="meta"><span class="part" style="margin-right:6px">${it.part||''}</span>${it.q||''}</div>
+</div>
+<div class="st ${cls}">${lab}</div>
+</div>`;
+}).join('');
+const checkedN=getCheckedIdx().length;
+app.innerHTML=`
+<div class="page-head">
+<h1>${p.emoji} ${p.name}</h1>
+<p class="sub">${modeName} · 共 ${p.items.length} 句。可按顺序练，也可勾选或点某一句练习。</p>
+</div>
+<div class="picker-actions">
+<button class="btn" onclick="practiceAllInOrder()">按顺序练全部</button>
+<button class="btn blue" onclick="practiceChecked()">练选中的（${checkedN}）</button>
+<button class="btn ghost" onclick="selectAllChecks(true)">全选</button>
+<button class="btn ghost" onclick="selectAllChecks(false)">清空</button>
+</div>
+<div class="sent-list">${rows}</div>
+<button class="btn ghost" onclick="go('${G.listKind==='adv'?'advlist':'list'}')">← 返回${G.listKind==='adv'?'词组':'句型'}列表</button>`;
+}
+
+function speakPrev(){
+if(G.queue && G.queue.length){
+const pos=G.queue.indexOf(G.idx);
+if(pos>0){ G.idx=G.queue[pos-1]; SH.recording=false; SH.url=null; render(); window.scrollTo(0,0); }
+else backToPicker();
+} else if(G.idx>0){
+G.idx--; SH.recording=false; SH.url=null; render(); window.scrollTo(0,0);
+} else backToPicker();
+}
+function speakNext(){
+advanceQueueOrPicker();
+}
+function quitSpeak(){
+backToPicker();
+}
+function renderSpeak(app){
+const p=CD().find(x=>x.id===G.pid);
+const item=p.items[G.idx];
+const total=p.items.length;
+const target=buildSentence(p,item.ans);
+const qpos=(G.queue&&G.queue.length)?(G.queue.indexOf(G.idx)+1): (G.idx+1);
+const qtotal=(G.queue&&G.queue.length)?G.queue.length: total;
+const pctQ=Math.round((qpos-1)/Math.max(1,qtotal)*100);
+const ky=G.pid+'_'+G.idx;
+const saved=loadSpeakMap()[ky];
+const judged=SH.lastPass!==null || saved==='pass' || saved==='fail';
+const sttHint=G.mode==='speak'
+?(SH.finalText||(judged?'可重录再试':'点击开始后看着中文说英文'))
+:SH.finalText;
+app.innerHTML=`
+<div class="panel">
+<div class="toolbar">
+<h2>🗣️ ${p.emoji} ${p.name}</h2>
+<span class="sub">本轮 ${qpos} / ${qtotal} · 全组第 ${G.idx+1} 句</span>
+</div>
+<div class="progress"><i style="width:${pctQ}%"></i></div>
+<div class="practice-grid">
+<div>
+<div class="qbox"><span class="part">${item.part||'IELTS'}</span><span class="qtext">考题：${item.q||'通用表达'}</span></div>
+<p class="sub">只看中文，直接说英文（答案先不显示）</p>
+<div class="speak-prompt">${item.cn}</div>
+${judged?`<div class="reveal-box show" id="speakAnswerBox">
+<p class="sub">标准句（判分后揭晓）</p>
+<div class="sentence" style="display:block">${target}</div>
+<button class="listen" onclick="playItem(G.pid, G.idx+1)">🔊 听标准音频</button>
+</div>`:''}
+</div>
+<div class="practice-side">
+<p class="sub">录音上传到 P4 识别，再与标准句逐词比对。错一个词即不通过。</p>
+<button class="btn red" id="recBtn" onclick="toggleRec()" style="margin-top:0">${SH.recording?recBtnLabel('recording'):(SH.transcribing?recBtnLabel('busy'):recBtnLabel(judged?'retry':'start'))}</button>
+<div class="stt-label" style="margin-top:12px">识别文字</div>
+<div class="stt-box" id="sttLive">${sttHint||'点击开始后看着中文说英文'}</div>
+<div class="recbox" id="recWrap" style="display:none;margin-top:10px">
+<p class="sub">录音回放：</p>
+<audio id="recplayer" controls></audio>
+</div>
+<div id="compareBox" style="margin-top:12px"></div>
+${saved==='pass'||saved==='ok'?'<div class="compare-pass">本句已通过 ✓</div>':((saved==='fail'||saved==='no')?'<div class="compare-fail">本句上次未通过</div>':'')}
+</div>
+</div>
+<div class="actions" style="margin-top:16px">
+<button class="btn sm" onclick="speakPrev()">${(G.queue&&G.queue.indexOf(G.idx)>0)?'◀ 上一句':(G.idx>0?'◀ 上一句':'← 全部句子')}</button>
+<button class="btn sm blue" onclick="speakNext()">${(G.queue&&G.queue.indexOf(G.idx)<G.queue.length-1)?'下一句 ▶':'回到句子列表'}</button>
+<button class="btn ghost" onclick="backToPicker()" style="margin-top:0">← 全部句子</button>
+</div>
+</div>`;
+}
+/* startDrill moved above with picker */
+
+function onSelect(i,val){
+G.selected[i]=val;
+const p=CD().find(x=>x.id===G.pid);
+const s=buildSentence(p,G.selected);
+const box=document.getElementById('sentence');
+if(s){ box.style.display='block'; box.textContent=s; }
+else { box.style.display='none'; }
+}
+function checkDrill(){
+const p=CD().find(x=>x.id===G.pid);
+const item=p.items[G.idx];
+const s=buildSentence(p,G.selected);
+const fb=document.getElementById('fb');
+if(!s){ fb.className='feedback no'; fb.textContent='⚠️ 还有空没选满'; return; }
+const correct=item.ans.every((a,i)=>G.selected[i]===a);
+document.querySelectorAll('.dsel').forEach((sel,i)=>{
+sel.classList.remove('ok','no');
+sel.classList.add(G.selected[i]===item.ans[i]?'ok':'no');
+});
+if(correct){
+G.combo++; if(G.combo>G.best) G.best=G.combo; G.xp+=10+Math.min(G.combo,5);
+G.results.push({pid:G.pid, idx:G.idx, s:s});
+fb.className='feedback ok';
+fb.textContent='✅ 正确！连击 ×'+G.combo+'  +'+(10+Math.min(G.combo,5))+' XP';
+save();
+const nb=document.getElementById('nextBtn');
+nb.style.display='inline-block';
+nb.textContent = G.idx>=p.items.length-1 ? '🎉 看结果' : '下一题 ▶';
+playItem(G.pid, G.idx+1);
+} else {
+G.combo=0;
+fb.className='feedback no';
+fb.textContent='❌ 有地方不对，对照中文再选一次';
+}
+}
+function nextItem(){
+const p=CD().find(x=>x.id===G.pid);
+if(G.queue && G.queue.length){
+const pos=G.queue.indexOf(G.idx);
+if(pos>=0 && pos<G.queue.length-1){
+G.idx=G.queue[pos+1]; G.selected=[]; render(); window.scrollTo(0,0); return;
+}
+toast('本轮拼装完成，回到句子列表');
+G.screen='picker'; render(); window.scrollTo(0,0); return;
+}
+if(G.idx>=p.items.length-1){ return finishDrill(); }
+G.idx++; G.selected=[]; render(); window.scrollTo(0,0);
+}
+function quitDrill(){ backToPicker(); }
+function finishDrill(){
+const p=CD().find(x=>x.id===G.pid);
+const made=G.results.map((r,i)=>`<div>${i+1}. ${r.s}</div>`).join('');
+const allRight=G.results.length===p.items.length;
+const isAdv=G.kind==='adv';
+const app=document.getElementById('app');
+const tip = isAdv
+? `你用高级词组 <b>${p.name}</b> 造出了 ${G.results.length} 个句子。考试时，用它替换掉 I like / because / now 这类低级表达，语法多样性立刻上去了。挨个 🔊 听 + 跟读，练到脱口而出。`
+: `你用这个句型造出了 ${G.results.length} 个句子。下方是成品，挨个 🔊 听 + 跟读，练到脱口而出。`;
+app.innerHTML=`
+<div class="panel center" style="max-width:820px;margin:12px auto">
+<div class="big">${allRight?'🎉':'👍'}</div>
+<h2>${p.emoji} ${p.name} · ${allRight?(isAdv?'全部 8 题做对！':'全部 10 题做对！'):'完成'}</h2>
+<p class="sub">${tip}</p>
+<div class="made">${made||'<div>（本题没做对，回去再练）</div>'}</div>
+<div class="actions" style="justify-content:center;margin-top:16px">
+<button class="listen" onclick="speakAll()">🔊 一句句听全部</button>
+<button class="btn sm" onclick="practiceAllInOrder()" style="margin-top:0;background:var(--gold);color:#0b0e1f">🔁 再按顺序练</button>
+<button class="btn ghost" onclick="backToPicker()" style="margin-top:0">← 全部句子</button>
+<button class="btn ghost" onclick="go('${isAdv?'advlist':'list'}')" style="margin-top:0">选其他${isAdv?'词组':'句型'} →</button>
+</div>
+</div>`;
+window.scrollTo(0,0);
+}
+function speakAll(){
+const items=G.results;
+let i=0;
+function next(){
+if(i>=items.length) return;
+playItem(items[i].pid, items[i].idx+1); i++;
+setTimeout(next, 3200);
+}
+next();
+}
+/* ============ 启动 ============ */
+load();
+render();
+</script>
+</body>
+</html>

@@ -38,12 +38,14 @@ window.API_CONFIG = { TRANSCRIBE_PATH: '/api/p4/transcribe' };
 | `p1-data.js` | P1 题库、线索与素材分层提示 |
 | `p2-app.js` / `p2-data.js` | P2 背素材 + 套题 |
 | `audio/` | P1 预生成英音题目（mp3 不提交 GitHub） |
+| `complex-sentences.html` | P1 学习模式「复合句闯关」（拼装 / 脱口而出 / 跟读） |
+| `complex-audio/` | 复合句标准句预生成英音（mp3 不提交；缺文件时回退浏览器 TTS） |
 | `config.js` | ASR 接口路径 |
 
 ## 维护注意
 
 | 项目 | 要求 |
 |---|---|
-| 音频资源 | `*.mp3` 已被 `.gitignore` 排除；本地/服务器需单独放置 `audio/` |
+| 音频资源 | `*.mp3` 已被 `.gitignore` 排除；本地/服务器需单独放置 `audio/` 与可选的 `complex-audio/` |
 | AI 配置 | Key 只维护在 `config/ai.env`，不要写进前端仓库 |
-| 验证方式 | 从主站学习进度进入「口语练习」，确认可切换 P1/P2、听题、录音转写与 AI 评分 |
+| 验证方式 | 从主站**学习**进入「口语练习」→ P1 →「复合句闯关」；测试模式不显示该入口 |
