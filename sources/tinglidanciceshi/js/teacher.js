@@ -124,6 +124,21 @@ async function loadTeacherData() {
     }
 }
 
+function studentNameLinkHtml(studentId, studentName) {
+    const name = studentName || studentId || '-';
+    if (!studentId) return escapeHtml(name);
+    return '<a class="student-name-link" href="javascript:void(0)" onclick="event.stopPropagation();openStudentLearningProgress(\'' +
+        escapeJsString(studentId) + '\', \'' + escapeJsString(name) + '\')">' + escapeHtml(name) + '</a>';
+}
+
+function openStudentLearningProgress(studentId, studentName) {
+    if (!studentId) return;
+    switchTeacherTab('progress', null, { skipLoad: true });
+    const container = document.getElementById('teacherStudentProgress');
+    if (container) container.innerHTML = '<p style="text-align:center;color:#666;padding:40px;">加载中...</p>';
+    showStudentDetailProgress(studentId, studentName || studentId);
+}
+
 async function loadStudents() {
     const result = await teacherApiGet('/api/teacher/students');
     const container = document.getElementById('studentsList');
@@ -137,7 +152,7 @@ async function loadStudents() {
         const s = students[i];
         const statusBadge = s.status === 'active' ? 'badge-success">正常' : 'badge-danger">禁用';
         const toggleBtn = s.status === 'active' ? 'btn-danger">禁用' : 'btn-success">启用';
-        html += '<tr><td>' + s.student_id + '</td><td>' + s.name + '</td><td>' + s.target_score + '分</td><td><span class="badge ' + statusBadge + '</span></td><td><div class="student-actions"><button class="btn btn-sm btn-secondary" onclick="resetPassword(\'' + s.student_id + '\')">重置密码</button><button class="btn btn-sm ' + toggleBtn + '</button></div></td></tr>';
+        html += '<tr><td>' + escapeHtml(s.student_id) + '</td><td>' + studentNameLinkHtml(s.student_id, s.name) + '</td><td>' + s.target_score + '分</td><td><span class="badge ' + statusBadge + '</span></td><td><div class="student-actions"><button class="btn btn-sm btn-secondary" onclick="resetPassword(\'' + escapeJsString(s.student_id) + '\')">重置密码</button><button class="btn btn-sm ' + toggleBtn + '</button></div></td></tr>';
     }
     html += '</tbody></table>';
     container.innerHTML = html;
@@ -375,7 +390,7 @@ function renderRecordsTable(records) {
         const dateStr = getRecordDateText(r);
         const badgeClass = r.is_passed ? 'badge-success' : 'badge-danger';
         const name = getRecordStudentName(r);
-        html += '<tr><td>' + escapeHtml(r.student_id) + '</td><td>' + escapeHtml(name) + '</td><td>' + escapeHtml(moduleName) + '</td><td>' + escapeHtml(typeText) + '</td><td>' + escapeHtml(dateStr) + '</td><td class="records-duration">' + escapeHtml(formatDuration(r.duration_seconds)) + '</td><td class="records-score">' + escapeHtml(r.score) + '%</td><td><span class="badge ' + badgeClass + '">' + getRecordPassText(r) + '</span></td></tr>';
+        html += '<tr><td>' + escapeHtml(r.student_id) + '</td><td>' + studentNameLinkHtml(r.student_id, name) + '</td><td>' + escapeHtml(moduleName) + '</td><td>' + escapeHtml(typeText) + '</td><td>' + escapeHtml(dateStr) + '</td><td class="records-duration">' + escapeHtml(formatDuration(r.duration_seconds)) + '</td><td class="records-score">' + escapeHtml(r.score) + '%</td><td><span class="badge ' + badgeClass + '">' + getRecordPassText(r) + '</span></td></tr>';
     }
     if (filteredRecords.length === 0) {
         html += '<tr><td colspan="8" style="text-align:center;color:#666;padding:20px;">暂无测试记录</td></tr>';
@@ -637,11 +652,13 @@ function renderTeacherProgressSummary() {
 
 async function showStudentDetailProgress(studentId, studentName, filterModuleId) {
     const container = document.getElementById('teacherStudentProgress');
-    if (!filterModuleId) {
+    if (filterModuleId === undefined || filterModuleId === null) {
+        filterModuleId = '';
+    } else if (!filterModuleId) {
         filterModuleId = _progressColumnFilters.module || 'dictation';
     }
-    const module = getModuleById(filterModuleId);
-    const moduleName = module ? module.name : '听力1000词';
+    const module = filterModuleId ? getModuleById(filterModuleId) : null;
+    const moduleName = module ? module.name : '';
 
     const detailResult = await teacherApiGet('/api/teacher/student-detail?student_id=' + encodeURIComponent(studentId));
     if (detailResult.error) {
@@ -651,15 +668,15 @@ async function showStudentDetailProgress(studentId, studentName, filterModuleId)
     const records = (detailResult.data && detailResult.data.test_records) || [];
     const wrongCount = ((detailResult.data && detailResult.data.wrong_words) || []).length;
     const allSessions = getStudySessions((detailResult.data && detailResult.data.study_sessions) || []);
-    const selectedRecords = getModuleRecords(records, filterModuleId);
-    const selectedSessions = getModuleStudySessions(allSessions, filterModuleId);
+    const selectedRecords = filterModuleId ? getModuleRecords(records, filterModuleId) : records;
+    const selectedSessions = filterModuleId ? getModuleStudySessions(allSessions, filterModuleId) : allSessions;
     const selectedBestScore = getBestScore(selectedRecords);
     const selectedPassCount = getPassCount(selectedRecords);
     const selectedSeconds = window.TrackingUtils.sumDuration(selectedSessions);
 
     let html = '<div style="margin-bottom:20px;">';
     html += '<button class="btn btn-sm btn-secondary" onclick="loadTeacherProgressData()"> 返回汇总</button>';
-    html += '<h3 style="display:inline-block; margin-left:20px;">' + studentName + ' 的' + moduleName + '进度</h3>';
+    html += '<h3 style="display:inline-block; margin-left:20px;">' + escapeHtml(studentName) + (moduleName ? (' 的' + moduleName + '进度') : ' 的学习进度') + '</h3>';
     html += '</div>';
 
     const studentTargetScore = (detailResult.data && detailResult.data.student && detailResult.data.student.target_score != null)
@@ -669,13 +686,17 @@ async function showStudentDetailProgress(studentId, studentName, filterModuleId)
     html += '<div style="margin-bottom:15px; padding:15px; background:linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius:10px; color:white;">';
     html += '<div style="display:grid; grid-template-columns:repeat(4, 1fr); gap:16px; text-align:center;">';
     const selectedPracticed = filterModuleId === 'speaking' ? getSpeakingPracticedCount(selectedSessions) : null;
-    html += '<div><div style="font-size:1.3rem; font-weight:bold;">' + formatDuration(selectedSeconds) + '</div><div style="font-size:0.85rem; opacity:0.9;">本模块学习时长</div></div>';
+    html += '<div><div style="font-size:1.3rem; font-weight:bold;">' + formatDuration(selectedSeconds) + '</div><div style="font-size:0.85rem; opacity:0.9;">' + (filterModuleId ? '本模块学习时长' : '全部学习时长') + '</div></div>';
     if (selectedPracticed != null) {
         html += '<div><div style="font-size:1.3rem; font-weight:bold;">' + selectedPracticed + '</div><div style="font-size:0.85rem; opacity:0.9;">已练题目</div></div>';
     } else {
-        html += '<div><div style="font-size:1.3rem; font-weight:bold;">' + selectedRecords.length + '</div><div style="font-size:0.85rem; opacity:0.9;">本模块测试次数</div></div>';
+        html += '<div><div style="font-size:1.3rem; font-weight:bold;">' + selectedRecords.length + '</div><div style="font-size:0.85rem; opacity:0.9;">' + (filterModuleId ? '本模块测试次数' : '全部测试次数') + '</div></div>';
     }
-    html += '<div><div style="font-size:1.3rem; font-weight:bold;">' + (selectedRecords.length > 0 ? formatTargetValue(selectedBestScore, module && module.unit) : '-') + '</div><div style="font-size:0.85rem; opacity:0.9;">本模块最高分</div></div>';
+    if (filterModuleId) {
+        html += '<div><div style="font-size:1.3rem; font-weight:bold;">' + (selectedRecords.length > 0 ? formatTargetValue(selectedBestScore, module && module.unit) : '-') + '</div><div style="font-size:0.85rem; opacity:0.9;">本模块最高分</div></div>';
+    } else {
+        html += '<div><div style="font-size:1.3rem; font-weight:bold;">' + (selectedRecords.length > 0 ? Math.round(selectedPassCount / selectedRecords.length * 100) : 0) + '%</div><div style="font-size:0.85rem; opacity:0.9;">总达标率</div></div>';
+    }
     html += '<div><div style="font-size:1.3rem; font-weight:bold;">' + wrongCount + '</div><div style="font-size:0.85rem; opacity:0.9;">听写未掌握错词</div></div>';
     html += '</div></div>';
 
@@ -739,11 +760,17 @@ async function showStudentDetailProgress(studentId, studentName, filterModuleId)
         html += '<p style="color:#666; padding:12px; background:#f8f9fa; border-radius:8px;">暂无学习时长记录</p>';
     } else {
         html += '<table style="width:100%; border-collapse:collapse;"><thead><tr style="background:#f8f9fa;">';
-        html += '<th style="padding:10px; text-align:left;">日期</th><th style="padding:10px; text-align:center;">' + moduleName + '</th><th style="padding:10px; text-align:center;">当天总时长</th><th style="padding:10px; text-align:center;">当天学习次数</th>';
+        if (filterModuleId) {
+            html += '<th style="padding:10px; text-align:left;">日期</th><th style="padding:10px; text-align:center;">' + moduleName + '</th><th style="padding:10px; text-align:center;">当天总时长</th><th style="padding:10px; text-align:center;">当天学习次数</th>';
+        } else {
+            html += '<th style="padding:10px; text-align:left;">日期</th><th style="padding:10px; text-align:center;">当天总时长</th><th style="padding:10px; text-align:center;">当天学习次数</th>';
+        }
         html += '</tr></thead><tbody>';
         for (let j = 0; j < dailyRows.length; j++) {
             const row = dailyRows[j];
-            html += '<tr style="border-bottom:1px solid #dee2e6;"><td style="padding:10px;">' + row.date + '</td><td style="padding:10px; text-align:center;">' + formatDuration(row.moduleSeconds) + '</td><td style="padding:10px; text-align:center;">' + formatDuration(row.totalSeconds) + '</td><td style="padding:10px; text-align:center;">' + row.totalCount + '</td></tr>';
+            html += '<tr style="border-bottom:1px solid #dee2e6;"><td style="padding:10px;">' + row.date + '</td>';
+            if (filterModuleId) html += '<td style="padding:10px; text-align:center;">' + formatDuration(row.moduleSeconds) + '</td>';
+            html += '<td style="padding:10px; text-align:center;">' + formatDuration(row.totalSeconds) + '</td><td style="padding:10px; text-align:center;">' + row.totalCount + '</td></tr>';
         }
         html += '</tbody></table>';
     }
@@ -752,8 +779,8 @@ async function showStudentDetailProgress(studentId, studentName, filterModuleId)
     html += '<div style="margin-top:30px; padding:20px; background:#f8f9fa; border-radius:10px;">';
     html += '<div style="display:grid; grid-template-columns:repeat(4, 1fr); gap:20px; text-align:center;">';
     html += '<div><div style="font-size:1.5rem; font-weight:bold; color:#667eea;">' + records.length + '</div><div style="color:#666; font-size:0.9rem;">全部测试次数</div></div>';
-    html += '<div><div style="font-size:1.5rem; font-weight:bold; color:#28a745;">' + selectedPassCount + '</div><div style="color:#666; font-size:0.9rem;">本模块达标次数</div></div>';
-    html += '<div><div style="font-size:1.5rem; font-weight:bold; color:#11998e;">' + (selectedRecords.length > 0 ? Math.round(selectedPassCount / selectedRecords.length * 100) : 0) + '%</div><div style="color:#666; font-size:0.9rem;">本模块达标率</div></div>';
+    html += '<div><div style="font-size:1.5rem; font-weight:bold; color:#28a745;">' + selectedPassCount + '</div><div style="color:#666; font-size:0.9rem;">' + (filterModuleId ? '本模块达标次数' : '达标次数') + '</div></div>';
+    html += '<div><div style="font-size:1.5rem; font-weight:bold; color:#11998e;">' + (selectedRecords.length > 0 ? Math.round(selectedPassCount / selectedRecords.length * 100) : 0) + '%</div><div style="color:#666; font-size:0.9rem;">' + (filterModuleId ? '本模块达标率' : '总达标率') + '</div></div>';
     html += '<div><div style="font-size:1.5rem; font-weight:bold; color:#764ba2;">' + formatDuration(window.TrackingUtils.sumDuration(allSessions)) + '</div><div style="color:#666; font-size:0.9rem;">全部学习时长</div></div>';
     html += '</div></div>';
 
@@ -793,7 +820,7 @@ async function updateStandard(moduleType, field, value) {
     showToast('已更新', 'success');
 }
 
-function switchTeacherTab(tab, evt) {
+function switchTeacherTab(tab, evt, options) {
     var tabs = document.querySelectorAll('#teacherDashboard .tab');
     tabs.forEach(function(t, i) {
         t.classList.remove('active');
@@ -813,7 +840,7 @@ function switchTeacherTab(tab, evt) {
     if (tab === 'records') {
         loadRecords();
     }
-    if (tab === 'progress') {
+    if (tab === 'progress' && !(options && options.skipLoad)) {
         loadTeacherProgressData();
     }
     if (tab === 'writing') {

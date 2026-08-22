@@ -283,6 +283,13 @@
         }
         tr:hover td { background: var(--brand-light); }
         tr:last-child td { border-bottom: none; }
+        .student-name-link {
+            color: var(--brand);
+            font-weight: 700;
+            text-decoration: underline;
+            cursor: pointer;
+        }
+        .student-name-link:hover { color: var(--brand-deep); }
 
         .records-table-wrap {
             width: 100%;
