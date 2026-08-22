@@ -560,7 +560,7 @@ const sm=loadSpeakMap(); const speakDone=Object.keys(sm).length;
 app.innerHTML=`
 <div class="page-head">
 <h1>口语复合句闯关</h1>
-<p class="sub">双轨训练：拼装练打基础，脱口而出练「看中文说英文 · 录音识别判分」。例句均可直接上场。</p>
+<p class="sub">三步训练：拼装练打基础 → 跟读熟悉发音 → 脱口而出看中文说英文 · 录音识别判分。</p>
 </div>
 <div class="topbar">
 <div class="stat"><b>Lv.${lv}</b><span>等级</span></div>
@@ -584,7 +584,23 @@ app.innerHTML=`
 </div>
 </div>
 
-<div class="sec-title">轨道 B · 脱口而出（主练）</div>
+<div class="sec-title">轨道 B · 跟读打磨</div>
+<div class="home-grid two">
+<div class="card">
+<span class="mode-tag assemble">跟读</span>
+<h2>句型跟读</h2>
+<p class="sub">先看标准英文 → 录音上传 P4 识别 → 与原文逐词比对（错一词不通过）。需联网。</p>
+<button class="btn" onclick="openTrack('shadow','pattern')">句型跟读</button>
+</div>
+<div class="card">
+<span class="mode-tag assemble">跟读</span>
+<h2>词组跟读</h2>
+<p class="sub">同上：P4 语音识别 + 严格逐词判分。专练高级词组跟读。</p>
+<button class="btn blue" onclick="openTrack('shadow','adv')">词组跟读</button>
+</div>
+</div>
+
+<div class="sec-title">轨道 C · 脱口而出（主练）</div>
 <div class="home-grid two">
 <div class="card">
 <span class="mode-tag speak">脱口而出</span>
@@ -599,23 +615,7 @@ app.innerHTML=`
 <button class="btn red" onclick="openTrack('speak','adv')">开始词组脱口而出</button>
 </div>
 </div>
-
-<div class="sec-title">辅助 · 跟读打磨</div>
-<div class="home-grid two">
-<div class="card">
-<span class="mode-tag assemble">跟读</span>
-<h2>句型跟读</h2>
-<p class="sub">录音上传 P4 服务器识别 → 与原文逐词比对（错一词不通过）。需联网。</p>
-<button class="btn" onclick="openTrack('shadow','pattern')">句型跟读</button>
-</div>
-<div class="card">
-<span class="mode-tag assemble">跟读</span>
-<h2>词组跟读</h2>
-<p class="sub">同上：P4 语音识别 + 严格逐词判分。专练高级词组跟读。</p>
-<button class="btn blue" onclick="openTrack('shadow','adv')">词组跟读</button>
-</div>
-</div>
-<p class="foot">拼装练打底 · 脱口而出主练 · 跟读打磨 · 进度存本地</p>`;
+<p class="foot">拼装练打底 · 跟读打磨 · 脱口而出主练 · 进度存本地</p>`;
 }
 function renderList(app){
 const isAdv = G.listKind==='adv';
