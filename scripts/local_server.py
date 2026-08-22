@@ -219,6 +219,7 @@ def _drop_default_password_column(conn: sqlite3.Connection, table: str) -> None:
     if "default_password" not in columns:
         return
     if table == "students":
+        conn.execute("DROP TABLE IF EXISTS students_new")
         conn.executescript(
             f"""
             CREATE TABLE students_new (
@@ -236,8 +237,20 @@ def _drop_default_password_column(conn: sqlite3.Connection, table: str) -> None:
                 target_score, status, created_at, updated_at
             )
             SELECT
-                student_id, name, password, is_password_changed,
-                target_score, status, created_at, updated_at
+                student_id,
+                name,
+                password,
+                is_password_changed,
+                CASE
+                    WHEN target_score IN (6, 6.5, 7) THEN target_score
+                    ELSE 6.5
+                END,
+                CASE
+                    WHEN status IN ('active', 'inactive') THEN status
+                    ELSE 'active'
+                END,
+                created_at,
+                updated_at
             FROM students;
             DROP TABLE students;
             ALTER TABLE students_new RENAME TO students;
@@ -245,6 +258,7 @@ def _drop_default_password_column(conn: sqlite3.Connection, table: str) -> None:
         )
         return
     if table == "teachers":
+        conn.execute("DROP TABLE IF EXISTS teachers_new")
         conn.executescript(
             f"""
             CREATE TABLE teachers_new (
@@ -263,8 +277,18 @@ def _drop_default_password_column(conn: sqlite3.Connection, table: str) -> None:
                 position, subjects, status, created_at, updated_at
             )
             SELECT
-                teacher_id, name, password, is_password_changed,
-                position, subjects, status, created_at, updated_at
+                teacher_id,
+                name,
+                password,
+                is_password_changed,
+                COALESCE(position, ''),
+                COALESCE(subjects, ''),
+                CASE
+                    WHEN status IN ('active', 'inactive') THEN status
+                    ELSE 'active'
+                END,
+                created_at,
+                updated_at
             FROM teachers;
             DROP TABLE teachers;
             ALTER TABLE teachers_new RENAME TO teachers;
