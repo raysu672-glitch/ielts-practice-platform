@@ -90,7 +90,7 @@ gh secret set IELTS_DEPLOY_KEY < "d:\Download\雅思训练.pem"
 | 仓库名称 | 建议使用 `ielts-practice-platform` |
 | 可见性 | 默认私有仓库 |
 | 认证方式 | 使用 `gh auth login`、系统凭据管理或临时环境变量 |
-| 不提交内容 | `.env`、`config/ai.env`、`*.pem`、`data/*.db`、音频文件、`sources/_zips/`、`sources/_extract/`、本地截图 |
+| 不提交内容 | `.env`、`config/ai.env`、`config/admin.env`、`*.pem`、`data/*.db`、音频文件、`sources/_zips/`、`sources/_extract/`、本地截图 |
 
 ## 平台统一 AI 配置
 
@@ -106,6 +106,30 @@ gh secret set IELTS_DEPLOY_KEY < "d:\Download\雅思训练.pem"
 | 首次/更换 Key | `python scripts/deploy.py --sync-ai-env` |
 
 systemd 通过 `EnvironmentFile=-/var/www/ielts/config/ai.env` 注入；写作后端也会优先读取该文件。
+
+## 管理员初始密码（`IELTS_ADMIN_PASSWORD`）
+
+`admin` 账号**不在代码中写死密码**。仅在新库首次插入 `teachers` 行时使用环境变量中的明文，入库前经 PBKDF2 哈希；`ON CONFLICT DO NOTHING` 不会覆盖已有库。
+
+| 项目 | 说明 |
+|---|---|
+| 本地文件 | `config/admin.env`（从 `config/admin.env.example` 复制） |
+| 服务器文件 | `/var/www/ielts/config/admin.env` |
+| 变量 | `IELTS_ADMIN_PASSWORD` |
+| 默认部署 | **不会**覆盖服务器上的 `config/admin.env` |
+| 首次/更换 | `python scripts/deploy.py --sync-admin-env`（或部署前设置 `$env:IELTS_ADMIN_PASSWORD`） |
+
+systemd 同时加载 `config/admin.env`。未设置时服务仍可启动，但**不会**自动创建 `admin` 账号。
+
+已有库改管理员密码（`password` 列为哈希）：
+
+```powershell
+python -c "import sys; sys.path.insert(0,'scripts'); from password_utils import hash_password; print(hash_password('你的新密码'))"
+```
+
+```sql
+UPDATE teachers SET password='<上一步哈希>' WHERE teacher_id='admin';
+```
 
 临时环境变量示例：
 

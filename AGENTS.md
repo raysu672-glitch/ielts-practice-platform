@@ -22,12 +22,12 @@
 
 ### 启动服务
 - 启动命令见 `DEV_SERVER.md`（本地端口固定 `49182`，请勿改用 3000/5173/8000 等常见端口）。
-- 数据库文件 `data/ielts_local.db` 被 `.gitignore` 排除，首次启动会自动创建并写入种子数据（教师配置、管理员 `admin`、教师 `zhangxiaodong`、达标标准、测试学生 `2025001`）。删除该文件即可重置数据。
+- 数据库文件 `data/ielts_local.db` 被 `.gitignore` 排除，首次启动会自动创建并写入种子数据（达标标准、测试学生 `2025001`；`admin` 需设置 `IELTS_ADMIN_PASSWORD`；`zhangxiaodong` 仅 `--host 127.0.0.1` 时创建）。删除该文件即可重置数据。
 
 ### 测试账号（本地种子数据）
 - 学生：学号 `2025001`，密码 `123456`。首次登录会强制要求修改密码后才能进入模块页，这是预期行为，不是 bug。
-- 管理员：入口 `/tinglidanciceshi/?role=teacher`，账号 `admin`，密码 `sjdh4405`（存于 `teachers` 表）。
-- 教师示例：账号 `zhangxiaodong`，初始密码 `123456`（张晓东 / 教研校长 / 阅读、写作）。
+- 管理员：入口 `/tinglidanciceshi/?role=teacher`，账号 `admin`，密码由 `IELTS_ADMIN_PASSWORD` 或 `config/admin.env` 在首次建库时设定（见 `DEV_SERVER.md`）。
+- 教师示例：账号 `zhangxiaodong`，初始密码 `123456`（仅本地 `--host 127.0.0.1` 启动时自动创建）。
 
 ### Lint / 测试
 - 本仓库没有 ESLint/ruff 等 lint 配置；README 所称“语法检查”即 `python3 -m compileall scripts tests`。

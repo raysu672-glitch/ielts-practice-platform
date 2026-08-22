@@ -2,7 +2,7 @@
 
 ## 环境变量
 
-首次创建本地数据库前设置管理员密码（`admin` 账号仅在库中不存在时插入；未设置则跳过创建并打印警告）：
+首次创建本地数据库前设置管理员密码（`admin` 账号仅在库中不存在时插入；未设置则跳过创建并打印警告）。任选其一：
 
 ```powershell
 $env:IELTS_ADMIN_PASSWORD="你的管理员密码"
@@ -11,6 +11,8 @@ $env:IELTS_ADMIN_PASSWORD="你的管理员密码"
 ```bash
 export IELTS_ADMIN_PASSWORD='你的管理员密码'
 ```
+
+或复制 `config/admin.env.example` → `config/admin.env` 并填写 `IELTS_ADMIN_PASSWORD`。
 
 已有 `data/ielts_local.db` 需改管理员密码时，`teachers.password` 存 PBKDF2 哈希：
 

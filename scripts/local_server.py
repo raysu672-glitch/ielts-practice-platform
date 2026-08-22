@@ -79,7 +79,6 @@ from teacher_api import (  # noqa: E402
 DEFAULT_DB_PATH = ROOT / "data" / "ielts_local.db"
 DEFAULT_P4_ASR_BASE = "https://p4.oyenglish.com.cn"
 DEFAULT_WRITING_API_BASE = "http://127.0.0.1:8080"
-ADMIN_INITIAL_PASSWORD = os.environ.get("IELTS_ADMIN_PASSWORD", "").strip()
 WRITING_BACKEND_DIR = ROOT / "sources" / "xiezuopigai" / "ielts-writing-backend"
 
 ALLOWED_TABLES = {
@@ -375,7 +374,7 @@ def init_db(db_path: Path, *, bind_host: str = "127.0.0.1") -> None:
             f"""
             CREATE TABLE IF NOT EXISTS teacher_config (
                 id INTEGER PRIMARY KEY DEFAULT 1,
-                access_password TEXT NOT NULL DEFAULT 'sjdh4405',
+                access_password TEXT NOT NULL DEFAULT '',
                 school_name TEXT DEFAULT '藕叶英语',
                 updated_at TEXT DEFAULT ({now_sql()})
             );
@@ -506,7 +505,8 @@ def init_db(db_path: Path, *, bind_host: str = "127.0.0.1") -> None:
             """
         )
 
-        if ADMIN_INITIAL_PASSWORD:
+        admin_password = os.environ.get("IELTS_ADMIN_PASSWORD", "").strip()
+        if admin_password:
             conn.execute(
                 """
                 INSERT INTO teachers (
@@ -518,7 +518,7 @@ def init_db(db_path: Path, *, bind_host: str = "127.0.0.1") -> None:
                 )
                 ON CONFLICT(teacher_id) DO NOTHING
                 """,
-                (hash_password(ADMIN_INITIAL_PASSWORD),),
+                (hash_password(admin_password),),
             )
         else:
             print("警告：未设置 IELTS_ADMIN_PASSWORD 环境变量，未创建 admin 账号")
@@ -538,7 +538,7 @@ def init_db(db_path: Path, *, bind_host: str = "127.0.0.1") -> None:
                 (hash_password("123456"),),
             )
 
-        if ADMIN_INITIAL_PASSWORD:
+        if admin_password:
             conn.execute(
                 """
                 UPDATE teachers

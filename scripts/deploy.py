@@ -33,6 +33,8 @@ if str(_SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(_SCRIPTS_DIR))
 from ai_config import AI_ENV_PATH  # noqa: E402
 
+ADMIN_ENV_PATH = CONFIG_DIR / "admin.env"
+
 
 def env(name: str, default: str = "") -> str:
     return os.environ.get(name, default).strip()
@@ -133,8 +135,10 @@ def tar_filter(include_data: bool):
             return None
         if "__pycache__" in name or name.endswith((".pyc", ".pyo", ".log")):
             return None
-        # Never ship secrets; server keeps its own config/ai.env unless --sync-ai-env
-        if base == "ai.env" or base == ".env" or (base.startswith(".env.") and base != ".env.example"):
+        # Never ship secrets; server keeps its own config/*.env unless --sync-*-env
+        if base in ("ai.env", "admin.env") or base == ".env" or (
+            base.startswith(".env.") and base != ".env.example"
+        ):
             return None
         if name.endswith(".pem") or name.endswith(".key"):
             return None
@@ -255,6 +259,37 @@ def sync_ai_env(ssh: paramiko.SSHClient) -> None:
     log("AI config synced (not committed to GitHub)")
 
 
+def _local_admin_env_content() -> str | None:
+    if ADMIN_ENV_PATH.is_file():
+        return ADMIN_ENV_PATH.read_text(encoding="utf-8")
+    password = env("IELTS_ADMIN_PASSWORD")
+    if password:
+        return f"IELTS_ADMIN_PASSWORD={password}\n"
+    return None
+
+
+def sync_admin_env(ssh: paramiko.SSHClient) -> None:
+    """Upload local config/admin.env (or IELTS_ADMIN_PASSWORD env) to the server."""
+    content = _local_admin_env_content()
+    if not content:
+        raise RuntimeError(
+            f"Missing admin credentials. Copy config/admin.env.example to {ADMIN_ENV_PATH} "
+            "or set IELTS_ADMIN_PASSWORD before --sync-admin-env."
+        )
+    remote_path = f"{DEPLOY_DIR}/config/admin.env"
+    log(f"Syncing admin config to {remote_path} ...")
+    run(ssh, f"mkdir -p {shell_quote(DEPLOY_DIR)}/config")
+    sftp = ssh.open_sftp()
+    try:
+        with sftp.open(remote_path, "w") as remote_file:
+            remote_file.write(content)
+    finally:
+        sftp.close()
+    run(ssh, f"chmod 640 {shell_quote(remote_path)}")
+    run(ssh, f"chown root:www-data {shell_quote(remote_path)}")
+    log("Admin config synced (not committed to GitHub)")
+
+
 def setup_systemd(ssh: paramiko.SSHClient) -> None:
     log("Configuring systemd service...")
     service = f"""[Unit]
@@ -266,6 +301,7 @@ Type=simple
 User=www-data
 WorkingDirectory={DEPLOY_DIR}
 EnvironmentFile=-{DEPLOY_DIR}/config/ai.env
+EnvironmentFile=-{DEPLOY_DIR}/config/admin.env
 ExecStart=/usr/bin/python3 {DEPLOY_DIR}/scripts/local_server.py \\
     --host 127.0.0.1 \\
     --port {SERVICE_PORT} \\
@@ -287,6 +323,13 @@ WantedBy=multi-user.target
         f"if [ -f {shell_quote(DEPLOY_DIR)}/config/ai.env ]; then "
         f"chmod 640 {shell_quote(DEPLOY_DIR)}/config/ai.env; "
         f"chown root:www-data {shell_quote(DEPLOY_DIR)}/config/ai.env; fi",
+        check=False,
+    )
+    run(
+        ssh,
+        f"if [ -f {shell_quote(DEPLOY_DIR)}/config/admin.env ]; then "
+        f"chmod 640 {shell_quote(DEPLOY_DIR)}/config/admin.env; "
+        f"chown root:www-data {shell_quote(DEPLOY_DIR)}/config/admin.env; fi",
         check=False,
     )
 
@@ -476,6 +519,11 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
         help="Upload local config/ai.env to the server (AI key/model). Default deploy never overwrites it.",
     )
     parser.add_argument(
+        "--sync-admin-env",
+        action="store_true",
+        help="Upload config/admin.env (or IELTS_ADMIN_PASSWORD) to the server. Default deploy never overwrites it.",
+    )
+    parser.add_argument(
         "--setup-writing-venv",
         action="store_true",
         help="Create/update /var/www/ielts/.venv and install writing AI dependencies",
@@ -496,6 +544,8 @@ def main(argv: list[str]) -> int:
         upload_files(ssh, include_data=args.include_data)
         if args.sync_ai_env:
             sync_ai_env(ssh)
+        if args.sync_admin_env:
+            sync_admin_env(ssh)
         if args.provision or args.setup_writing_venv:
             setup_writing_venv(ssh)
         if args.repair_tracking_data:

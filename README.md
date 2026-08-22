@@ -55,14 +55,20 @@
 
 ## 本地运行
 
-启动主站前请设置管理员初始密码（仅在新库首次创建 `admin` 账号时使用；已有数据库不会被覆盖）：
+启动主站前请设置管理员初始密码（仅在新库首次创建 `admin` 账号时使用；已有数据库不会被覆盖）。任选其一：
 
 ```powershell
+# 方式 1：环境变量
 $env:IELTS_ADMIN_PASSWORD="你的管理员密码"
+
+# 方式 2：配置文件（推荐，与线上一致）
+Copy-Item config/admin.env.example config/admin.env
+# 编辑 config/admin.env 填写 IELTS_ADMIN_PASSWORD
 ```
 
 ```bash
 export IELTS_ADMIN_PASSWORD='你的管理员密码'
+# 或复制 config/admin.env.example → config/admin.env
 ```
 
 主站（静态页 + SQLite API）：

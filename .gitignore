@@ -35,6 +35,7 @@ sources/_extract/
 .env
 .env.*
 config/ai.env
+config/admin.env
 *.pem
 *.key
 id_rsa*
