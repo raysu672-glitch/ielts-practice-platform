@@ -415,8 +415,9 @@ async function changePassword() {
     } else {
         currentStudent.is_password_changed = true;
     }
-    closeModal('changePasswordModal');
+    // 必须先清强制改密标记，否则包装过的 closeModal 会拦截并提示「请先设置新密码」
     forcePasswordChange = false;
+    closeModal('changePasswordModal');
     showToast('密码修改成功', 'success');
     document.getElementById('newPassword').value = '';
     document.getElementById('confirmPassword').value = '';
