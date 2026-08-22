@@ -79,6 +79,7 @@ from teacher_api import (  # noqa: E402
 DEFAULT_DB_PATH = ROOT / "data" / "ielts_local.db"
 DEFAULT_P4_ASR_BASE = "https://p4.oyenglish.com.cn"
 DEFAULT_WRITING_API_BASE = "http://127.0.0.1:8080"
+ADMIN_INITIAL_PASSWORD = os.environ.get("IELTS_ADMIN_PASSWORD", "").strip()
 WRITING_BACKEND_DIR = ROOT / "sources" / "xiezuopigai" / "ielts-writing-backend"
 
 ALLOWED_TABLES = {
@@ -366,9 +367,10 @@ def migrate_wrong_words_module_type(conn: sqlite3.Connection) -> None:
     )
 
 
-def init_db(db_path: Path) -> None:
+def init_db(db_path: Path, *, bind_host: str = "127.0.0.1") -> None:
     db_path.parent.mkdir(parents=True, exist_ok=True)
     with closing(connect(db_path)) as conn:
+        # teacher_config.access_password：历史遗留字段，教师登录已改用 teachers 表
         conn.executescript(
             f"""
             CREATE TABLE IF NOT EXISTS teacher_config (
@@ -499,49 +501,54 @@ def init_db(db_path: Path) -> None:
         conn.execute(
             """
             INSERT INTO teacher_config (id, access_password, school_name)
-            VALUES (1, 'sjdh4405', '藕叶英语')
+            VALUES (1, '', '藕叶英语')
             ON CONFLICT(id) DO NOTHING
             """
         )
 
-        conn.execute(
-            """
-            INSERT INTO teachers (
-                teacher_id, name, password,
-                is_password_changed, position, subjects, status
+        if ADMIN_INITIAL_PASSWORD:
+            conn.execute(
+                """
+                INSERT INTO teachers (
+                    teacher_id, name, password,
+                    is_password_changed, position, subjects, status
+                )
+                VALUES (
+                    'admin', '管理员', ?, 1, '系统管理员', '', 'active'
+                )
+                ON CONFLICT(teacher_id) DO NOTHING
+                """,
+                (hash_password(ADMIN_INITIAL_PASSWORD),),
             )
-            VALUES (
-                'admin', '管理员', ?, 1, '系统管理员', '', 'active'
-            )
-            ON CONFLICT(teacher_id) DO NOTHING
-            """,
-            (hash_password("sjdh4405"),),
-        )
+        else:
+            print("警告：未设置 IELTS_ADMIN_PASSWORD 环境变量，未创建 admin 账号")
 
-        conn.execute(
-            """
-            INSERT INTO teachers (
-                teacher_id, name, password,
-                is_password_changed, position, subjects, status
+        if bind_host == "127.0.0.1":
+            conn.execute(
+                """
+                INSERT INTO teachers (
+                    teacher_id, name, password,
+                    is_password_changed, position, subjects, status
+                )
+                VALUES (
+                    'zhangxiaodong', '张晓东', ?, 0, '教研校长', '阅读、写作', 'active'
+                )
+                ON CONFLICT(teacher_id) DO NOTHING
+                """,
+                (hash_password("123456"),),
             )
-            VALUES (
-                'zhangxiaodong', '张晓东', ?, 0, '教研校长', '阅读、写作', 'active'
-            )
-            ON CONFLICT(teacher_id) DO NOTHING
-            """,
-            (hash_password("123456"),),
-        )
 
-        conn.execute(
-            """
-            UPDATE teachers
-            SET position = '系统管理员',
-                is_password_changed = 1,
-                updated_at = strftime('%Y-%m-%dT%H:%M:%fZ','now')
-            WHERE teacher_id = 'admin'
-              AND (position IS NULL OR position = '')
-            """
-        )
+        if ADMIN_INITIAL_PASSWORD:
+            conn.execute(
+                """
+                UPDATE teachers
+                SET position = '系统管理员',
+                    is_password_changed = 1,
+                    updated_at = strftime('%Y-%m-%dT%H:%M:%fZ','now')
+                WHERE teacher_id = 'admin'
+                  AND (position IS NULL OR position = '')
+                """
+            )
 
         standards = [
             ("dictation", "听力1000词", 70, 80, 90),
@@ -1343,6 +1350,8 @@ class LocalHandler(SimpleHTTPRequestHandler):
             self.handle_public_config()
             return
         if parsed.path.startswith("/api/writing"):
+            if not self.require_logged_in_session():
+                return
             self.proxy_writing_api("GET")
             return
         if parsed.path.startswith("/api/p4"):
@@ -1376,6 +1385,8 @@ class LocalHandler(SimpleHTTPRequestHandler):
         parsed = urllib.parse.urlparse(self.path)
         path = parsed.path.rstrip("/")
         if parsed.path.startswith("/api/writing"):
+            if not self.require_logged_in_session():
+                return
             self.proxy_writing_api("POST")
             return
         if parsed.path.startswith("/api/p4"):
@@ -1488,6 +1499,7 @@ class LocalHandler(SimpleHTTPRequestHandler):
             )
 
     def proxy_writing_api(self, method: str) -> None:
+        # Caller must verify session before invoking.
         parsed = urllib.parse.urlparse(self.path)
         rest = parsed.path[len("/api/writing") :] or "/"
         if not rest.startswith("/"):
@@ -1626,7 +1638,7 @@ def main(argv: list[str]) -> int:
 
     static_dir = resolve_configured_path(args.static_dir)
     db_path = resolve_configured_path(args.db)
-    init_db(db_path)
+    init_db(db_path, bind_host=args.host)
 
     ai_env = load_ai_env()
     if ai_env:

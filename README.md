@@ -55,6 +55,16 @@
 
 ## 本地运行
 
+启动主站前请设置管理员初始密码（仅在新库首次创建 `admin` 账号时使用；已有数据库不会被覆盖）：
+
+```powershell
+$env:IELTS_ADMIN_PASSWORD="你的管理员密码"
+```
+
+```bash
+export IELTS_ADMIN_PASSWORD='你的管理员密码'
+```
+
 主站（静态页 + SQLite API）：
 
 ```powershell
@@ -85,10 +95,20 @@ python -m uvicorn main:app --host 127.0.0.1 --port 8080
 
 | 类型 | 账号 | 密码 |
 |---|---|---|
-| 管理员 | `admin`（入口 `?role=teacher`） | `sjdh4405` |
-| 教师示例 | `zhangxiaodong`（教研校长 / 阅读、写作） | 初始 `123456` |
+| 管理员 | `admin`（入口 `?role=teacher`） | 由 `IELTS_ADMIN_PASSWORD` 在首次建库时设定 |
+| 教师示例 | `zhangxiaodong`（仅 `--host 127.0.0.1` 本地启动时创建） | 初始 `123456` |
 | 学生 | `2025001` | `123456`（首次登录会要求改密） |
 | 作文批改教师端 | 仅密码入口 `?role=writing` | `xiezuo8805` |
+
+已有数据库需修改管理员密码时，`password` 列为 PBKDF2 哈希，请先生成哈希再更新：
+
+```powershell
+python -c "import sys; sys.path.insert(0,'scripts'); from password_utils import hash_password; print(hash_password('你的新密码'))"
+```
+
+```sql
+UPDATE teachers SET password='<上一步输出的哈希>' WHERE teacher_id='admin';
+```
 
 管理员登录后可在「教师账号」页签添加教师（姓名、账号、职位、科目；初始密码 `123456`）。
 
