@@ -96,9 +96,171 @@ const COMPLEX_FRAMES_BY_CAT = {
     }
 };
 
+// 《口语复合句专练》学习页：7 句型 + 4 实战公式
+const COMPLEX_LESSONS = {
+    patterns: [
+        {
+            id: 'p1a',
+            title: '句型1A · It is + adj. + for sb to do',
+            section: '七大句型',
+            pattern: 'It is + adj. + for sb + to do sth.',
+            tip: '形式主语，客观评价某人对某事的难易/感受；适合行为习惯类第3步。',
+            examples: [
+                'It is cheerful and enjoyable for me to hang out with my friends in the park.',
+                'It is quite hard for busy workers to spare enough time for hobbies.'
+            ],
+            targetCatId: 'xingwei'
+        },
+        {
+            id: 'p1b',
+            title: '句型1B · I find it + adj. + to do',
+            section: '七大句型',
+            pattern: 'I / they find it + adj. + to do sth.',
+            tip: '形式宾语，强调主观感受；适合观点类收束、对比类写难点。',
+            examples: [
+                'I find it relaxing to escape the hustle and bustle of the city.',
+                'They find it difficult to balance study and entertainment.'
+            ],
+            targetCatId: 'guandian'
+        },
+        {
+            id: 'p2',
+            title: '句型2 · I find + sth + adj.',
+            section: '七大句型',
+            pattern: 'I find + sth / this activity + adj.',
+            tip: '宾补结构，直接给事物贴评价；常和 which 连用补一句结果。',
+            examples: [
+                'I find this activity fascinating.',
+                'I find online shopping more practical.'
+            ],
+            targetCatId: 'xihao'
+        },
+        {
+            id: 'p3',
+            title: '句型3 · for the reason that / since / as',
+            section: '七大句型',
+            pattern: 'For the reason that / Since / As + 原因, 主句.',
+            tip: '高级原因状语，尽量少用 because；适合喜好/行为/观点讲原因。',
+            examples: [
+                'For the reason that it helps me relax, I usually choose to listen to music.',
+                'Since public transport is cheaper, many people prefer it.'
+            ],
+            targetCatId: 'xingwei'
+        },
+        {
+            id: 'p4',
+            title: '句型4 · which 非限定定语从句',
+            section: '七大句型',
+            pattern: '..., which + 补充结果/影响.',
+            tip: '对整句或名词补信息；适合举例后补结果、观点后补作用。',
+            examples: [
+                'I often go jogging in the park, which lifts my mood.',
+                'People do this with family, which strengthens their relationships.'
+            ],
+            targetCatId: 'shishi'
+        },
+        {
+            id: 'p5',
+            title: '句型5 · to do 目的状语',
+            section: '七大句型',
+            pattern: '主句 + to do sth.',
+            tip: '交代目的（去做什么/为了什么）；喜好类举例、观点类目的都常用。',
+            examples: [
+                'I am crazy about cycling to enjoy the fresh air.',
+                'Many people take exercise to keep fit.'
+            ],
+            targetCatId: 'xihao'
+        },
+        {
+            id: 'p6',
+            title: '句型6 · Whenever / As long as',
+            section: '七大句型',
+            pattern: 'Whenever / As long as + 条件/时间, 主句.',
+            tip: '时间或条件状语；事实/喜好类写频次、场景很管用。',
+            examples: [
+                'Whenever I have spare time, I am keen on reading novels.',
+                'As long as the weather is fine, I go for a walk.'
+            ],
+            targetCatId: 'xihao'
+        },
+        {
+            id: 'p7',
+            title: '句型7 · be seen / regarded as',
+            section: '七大句型',
+            pattern: 'A can be seen / regarded as B.',
+            tip: '被动评价，更客观；适合行为习惯收束影响、对比类写选项特点。',
+            examples: [
+                'Doing this can be seen as the best way to relieve stress.',
+                'Taking a taxi is regarded as an easy way to save time.'
+            ],
+            targetCatId: 'duibi'
+        }
+    ],
+    drills: [
+        {
+            id: 'd1',
+            title: '实战1 · 喜好类公式',
+            section: '四套实战',
+            pattern: 'Whenever + to do + I find..., which',
+            tip: '对应喜好类第2–4步：时间场景 → 目的行为 → 感受+结果。',
+            examples: [
+                'Whenever I have spare time, I am keen on painting.',
+                'I am crazy about painting to express myself.',
+                'I find this activity fascinating, which helps me unwind.'
+            ],
+            steps: ['Whenever 写时间场景', 'to do 写目的/行为', 'I find..., which 收束感受'],
+            targetCatId: 'xihao'
+        },
+        {
+            id: 'd2',
+            title: '实战2 · 行为习惯类公式',
+            section: '四套实战',
+            pattern: 'for the reason that + It is...for me to do + can be seen as',
+            tip: '对应行为习惯类：原因 → 时间线行为 → 客观影响。',
+            examples: [
+                'For the reason that it keeps me healthy, I usually choose to jog.',
+                'It is enjoyable for me to jog in the morning.',
+                'Doing this can be seen as a good way to lift my mood.'
+            ],
+            steps: ['for the reason that / since 给原因', 'It is adj for me to do 写行为', 'can be seen as 收束影响'],
+            targetCatId: 'xingwei'
+        },
+        {
+            id: 'd3',
+            title: '实战3 · 观点类公式',
+            section: '四套实战',
+            pattern: 'since + to do / which + find it adj to do',
+            tip: '对应观点类：原因+目的 → which 补作用 → 形式宾语收感受。',
+            examples: [
+                'Since traffic is heavy, many people cycle to save time.',
+                'Besides, people often do this with friends, which strengthens bonds.',
+                'They find it relaxing to escape the city noise.'
+            ],
+            steps: ['since / for the reason that + to do', 'which 补充作用或影响', 'find it adj to do 收束'],
+            targetCatId: 'guandian'
+        },
+        {
+            id: 'd4',
+            title: '实战4 · 对比类公式',
+            section: '四套实战',
+            pattern: 'regarded as + to do / find it adj to do + which',
+            tip: '对应对比类：选项1特点 → 选项2难点 → 个人偏好。',
+            examples: [
+                'As for the first option, taking a taxi is regarded as an easy way to save time.',
+                'By contrast, regarding the other side, people find it tiring to wait for buses.',
+                'Personally, I find taxis more practical, which lifts my daily efficiency.'
+            ],
+            steps: ['regarded as + to do 写选项1', 'find it adj to do 写选项2', 'I find... which 给个人偏好'],
+            targetCatId: 'duibi'
+        }
+    ]
+};
+
 class P1Practice {
     constructor() {
         this.data = P1_DATA;
+        this.p1Mode = 'bank'; // bank | complex
+        this.complexLessonId = null;
         this.mode = 'sequential';
         this.currentCategoryIndex = 0;
         this.currentQuestionIndex = 0;
@@ -144,6 +306,7 @@ class P1Practice {
     
     init() {
         this.renderCategories();
+        this.renderComplexLessonList();
         this.bindEvents();
         this.loadFromStorage();
         this.resetStudyReportBaseline();
@@ -152,6 +315,18 @@ class P1Practice {
         this.updateApiStatus();
         this.requestApiKeyFromParent();
         this.warmupVoices();
+        // 支持 ?p1mode=complex 直接打开复合句专练
+        try {
+            const params = new URLSearchParams(window.location.search || '');
+            const mode = (params.get('p1mode') || params.get('mode') || '').toLowerCase();
+            if (mode === 'complex' || mode === 'fuheju') {
+                this.setP1Mode('complex');
+            } else {
+                this.setP1Mode('bank');
+            }
+        } catch (e) {
+            this.setP1Mode('bank');
+        }
     }
     
     resolveTranscribeUrl() {
@@ -242,6 +417,120 @@ class P1Practice {
         const firstList = document.getElementById('questions-0');
         if (firstList) firstList.classList.add('expanded');
     }
+
+    setP1Mode(mode) {
+        this.p1Mode = mode === 'complex' ? 'complex' : 'bank';
+        document.querySelectorAll('#p1ModeBar .p2-mode-tab').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.p1Mode === this.p1Mode);
+        });
+        const bank = document.getElementById('p1BankPane');
+        const complex = document.getElementById('p1ComplexPane');
+        const p1Nav = document.getElementById('p1NavRight');
+        const progress = document.getElementById('progressText');
+        if (bank) bank.style.display = this.p1Mode === 'bank' ? 'flex' : 'none';
+        if (complex) complex.style.display = this.p1Mode === 'complex' ? 'flex' : 'none';
+        if (p1Nav) p1Nav.style.display = this.p1Mode === 'bank' ? 'flex' : 'none';
+        if (progress) progress.style.display = this.p1Mode === 'bank' ? '' : 'none';
+
+        if (this.p1Mode === 'complex') {
+            this.renderComplexLessonList();
+            if (!this.complexLessonId) {
+                const first = (COMPLEX_LESSONS.patterns[0] && COMPLEX_LESSONS.patterns[0].id)
+                    || (COMPLEX_LESSONS.drills[0] && COMPLEX_LESSONS.drills[0].id);
+                if (first) this.selectComplexLesson(first);
+            } else {
+                this.selectComplexLesson(this.complexLessonId);
+            }
+        }
+    }
+
+    allComplexLessons() {
+        return []
+            .concat((COMPLEX_LESSONS.patterns || []).map(x => Object.assign({ kind: 'pattern' }, x)))
+            .concat((COMPLEX_LESSONS.drills || []).map(x => Object.assign({ kind: 'drill' }, x)));
+    }
+
+    renderComplexLessonList() {
+        const container = document.getElementById('complexLessonList');
+        if (!container) return;
+        const groups = [
+            { label: '七大句型', items: COMPLEX_LESSONS.patterns || [] },
+            { label: '四套实战公式', items: COMPLEX_LESSONS.drills || [] }
+        ];
+        container.innerHTML = groups.map(group => `
+            <div class="complex-side-group">
+                <div class="complex-side-label">${this.escapeHtml(group.label)}</div>
+                ${group.items.map(item => `
+                    <div class="complex-lesson-item${this.complexLessonId === item.id ? ' active' : ''}" data-lesson-id="${this.escapeHtml(item.id)}">
+                        ${this.escapeHtml(item.title)}
+                        <span class="lesson-sub">${this.escapeHtml(item.pattern)}</span>
+                    </div>
+                `).join('')}
+            </div>
+        `).join('');
+    }
+
+    selectComplexLesson(lessonId) {
+        const lesson = this.allComplexLessons().find(x => x.id === lessonId);
+        if (!lesson) return;
+        this.complexLessonId = lessonId;
+        this.renderComplexLessonList();
+
+        const empty = document.getElementById('complexEmptyState');
+        const card = document.getElementById('complexCard');
+        if (empty) empty.style.display = 'none';
+        if (card) card.style.display = 'block';
+
+        const sectionLabel = document.getElementById('complexSectionLabel');
+        const title = document.getElementById('complexTitle');
+        const body = document.getElementById('complexBody');
+        const actions = document.getElementById('complexActions');
+        if (sectionLabel) sectionLabel.textContent = lesson.section || (lesson.kind === 'drill' ? '四套实战' : '七大句型');
+        if (title) title.textContent = lesson.title || '';
+
+        const examples = (lesson.examples || []).map(ex =>
+            `<div class="complex-example">${this.escapeHtml(ex)}</div>`
+        ).join('');
+        const steps = (lesson.steps || []).length
+            ? `<div class="complex-block"><h4>套用步骤</h4><ul>${lesson.steps.map(s => `<li>${this.escapeHtml(s)}</li>`).join('')}</ul></div>`
+            : '';
+
+        if (body) {
+            body.innerHTML = `
+                <div class="complex-block">
+                    <h4>句型结构</h4>
+                    <div class="complex-pattern-lg">${this.escapeHtml(lesson.pattern || '')}</div>
+                    <p>${this.escapeHtml(lesson.tip || '')}</p>
+                </div>
+                ${steps}
+                <div class="complex-block">
+                    <h4>示例</h4>
+                    <div class="complex-examples">${examples}</div>
+                </div>
+                <div class="complex-block">
+                    <h4>练习建议</h4>
+                    <p>先口头套 2–3 遍示例，再点下方按钮进入对应题型题库，把句型挂到第 2–4 步里说出来。</p>
+                </div>
+            `;
+        }
+        if (actions) actions.style.display = lesson.targetCatId ? 'flex' : 'none';
+    }
+
+    goComplexTargetBank() {
+        const lesson = this.allComplexLessons().find(x => x.id === this.complexLessonId);
+        const catId = lesson && lesson.targetCatId;
+        this.setP1Mode('bank');
+        if (!catId || !this.data || !this.data.categories) return;
+        const catIndex = this.data.categories.findIndex(c => c.id === catId);
+        if (catIndex < 0) return;
+        // 展开目标题型，并打开第一题
+        this.data.categories.forEach((_, idx) => {
+            const list = document.getElementById(`questions-${idx}`);
+            if (list) list.classList.toggle('expanded', idx === catIndex);
+        });
+        const first = this.data.categories[catIndex].questions[0];
+        if (first) this.selectQuestion(catIndex, first.id);
+    }
     
     // 绑定事件（左侧用事件委托，避免 renderCategories 后点击失效）
     bindEvents() {
@@ -269,6 +558,22 @@ class P1Practice {
         document.getElementById('modeToggle')?.addEventListener('click', () => {
             this.toggleMode();
         });
+
+        // P1：题库练习 / 复合句专练
+        document.getElementById('p1ModeBank')?.addEventListener('click', () => this.setP1Mode('bank'));
+        document.getElementById('p1ModeComplex')?.addEventListener('click', () => this.setP1Mode('complex'));
+        document.getElementById('complexGoBankBtn')?.addEventListener('click', () => {
+            this.goComplexTargetBank();
+        });
+        const complexList = document.getElementById('complexLessonList');
+        if (complexList && !complexList.dataset.bound) {
+            complexList.dataset.bound = '1';
+            complexList.addEventListener('click', (e) => {
+                const item = e.target.closest('.complex-lesson-item');
+                if (!item) return;
+                this.selectComplexLesson(item.dataset.lessonId);
+            });
+        }
         
         // 数据面板
         document.getElementById('showDataBtn')?.addEventListener('click', () => {

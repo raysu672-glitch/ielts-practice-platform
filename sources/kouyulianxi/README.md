@@ -1,6 +1,6 @@
 # 口语练习（kouyulianxi）
 
-雅思口语练习模块：Part 1（步骤 + 线索 + 素材 + 录音 AI 评分）与 Part 2（先背素材，再套题）。页面内可切换 P1/P2。
+雅思口语练习模块：Part 1（题库练习 + 复合句专练 + 录音 AI 评分）与 Part 2（先背素材，再套题）。页面内可切换 P1/P2；P1 内可切换「题库练习 / 复合句专练」。
 
 来源仓库：https://github.com/raysu672-glitch/kouyulianxi
 
@@ -46,4 +46,4 @@ window.API_CONFIG = { TRANSCRIBE_PATH: '/api/p4/transcribe' };
 |---|---|
 | 音频资源 | `*.mp3` 已被 `.gitignore` 排除；本地/服务器需单独放置 `audio/` |
 | AI 配置 | Key 只维护在 `config/ai.env`，不要写进前端仓库 |
-| 验证方式 | 从主站学习进度进入「口语练习」，确认可切换 P1/P2、听题、录音转写与 AI 评分 |
+| 验证方式 | 从主站学习进度进入「口语练习」，确认 P1 可切换「题库练习 / 复合句专练」，以及 P1/P2、听题、录音转写与 AI 评分 |

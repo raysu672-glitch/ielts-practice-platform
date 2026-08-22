@@ -114,17 +114,27 @@ class P2Practice {
         } else {
             if (p1) p1.style.display = 'flex';
             if (p2) p2.style.display = 'none';
-            if (p1Nav) p1Nav.style.display = 'flex';
             if (p2Nav) p2Nav.style.display = 'none';
+            if (p1Nav) {
+                // 复合句专练模式下由 P1Practice.setP1Mode 控制是否显示右侧按钮
+                const p1Mode = window.p1Practice && window.p1Practice.p1Mode;
+                p1Nav.style.display = p1Mode === 'complex' ? 'none' : 'flex';
+            }
             if (title) title.textContent = '口语 P1 练习';
-            if (progress) progress.style.display = '';
+            if (progress) {
+                const p1Mode = window.p1Practice && window.p1Practice.p1Mode;
+                progress.style.display = p1Mode === 'complex' ? 'none' : '';
+            }
             this.stopSpeak();
+            if (window.p1Practice && typeof window.p1Practice.setP1Mode === 'function') {
+                window.p1Practice.setP1Mode(window.p1Practice.p1Mode || 'bank');
+            }
         }
     }
 
     setMode(mode) {
         this.mode = mode;
-        document.querySelectorAll('.p2-mode-tab').forEach(btn => {
+        document.querySelectorAll('.p2-mode-tab[data-p2-mode]').forEach(btn => {
             btn.classList.toggle('active', btn.dataset.p2Mode === mode);
         });
         const mem = document.getElementById('p2MemorizePane');

@@ -456,6 +456,110 @@ body {
     line-height: 1.4;
 }
 
+/* —— P1 题库 / 复合句专练 —— */
+.p1-main {
+    flex-direction: column;
+    height: calc(100vh - 57px);
+}
+.p1-body {
+    display: flex;
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+}
+.p1-pane {
+    display: flex;
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+    width: 100%;
+}
+.complex-body {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+.complex-block {
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+}
+.complex-block h4 {
+    font-size: 14px;
+    color: var(--brand-deep);
+    margin-bottom: 8px;
+}
+.complex-block p,
+.complex-block li {
+    font-size: 14px;
+    color: var(--text-primary);
+    line-height: 1.65;
+}
+.complex-block ul {
+    margin: 0;
+    padding-left: 18px;
+}
+.complex-pattern-lg {
+    font-family: var(--font-display);
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--brand-deep);
+    line-height: 1.5;
+    margin-bottom: 6px;
+}
+.complex-example {
+    font-family: var(--font-display);
+    font-size: 15px;
+    color: var(--text-primary);
+    background: var(--note-2);
+    border-left: 3px solid var(--brand);
+    padding: 10px 12px;
+    border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+}
+.complex-examples {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+.complex-side-group {
+    margin-bottom: 18px;
+}
+.complex-side-label {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text-muted);
+    letter-spacing: 0.04em;
+    margin: 0 4px 8px;
+}
+.complex-lesson-item {
+    padding: 10px 12px;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    color: var(--text-primary);
+    font-size: 13px;
+    line-height: 1.4;
+    border: 1px solid transparent;
+    margin-bottom: 6px;
+    background: var(--surface-2);
+}
+.complex-lesson-item:hover {
+    background: var(--brand-light);
+}
+.complex-lesson-item.active {
+    background: var(--brand-light);
+    border-color: var(--brand);
+    color: var(--brand-deep);
+    font-weight: 600;
+}
+.complex-lesson-item .lesson-sub {
+    display: block;
+    margin-top: 2px;
+    font-size: 11px;
+    color: var(--text-secondary);
+    font-weight: 400;
+}
+
 /* 按钮 */
 .action-buttons {
     display: flex;
