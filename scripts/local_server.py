@@ -218,82 +218,90 @@ def _drop_default_password_column(conn: sqlite3.Connection, table: str) -> None:
     columns = {r[1] for r in conn.execute(f"PRAGMA table_info({table})").fetchall()}
     if "default_password" not in columns:
         return
-    if table == "students":
-        conn.execute("DROP TABLE IF EXISTS students_new")
-        conn.executescript(
-            f"""
-            CREATE TABLE students_new (
-                student_id TEXT PRIMARY KEY,
-                name TEXT NOT NULL,
-                password TEXT NOT NULL,
-                is_password_changed INTEGER DEFAULT 0,
-                target_score REAL DEFAULT 6.5 CHECK (target_score IN (6, 6.5, 7)),
-                status TEXT DEFAULT 'active' CHECK (status IN ('active', 'inactive')),
-                created_at TEXT DEFAULT ({now_sql()}),
-                updated_at TEXT DEFAULT ({now_sql()})
-            );
-            INSERT INTO students_new (
-                student_id, name, password, is_password_changed,
-                target_score, status, created_at, updated_at
-            )
-            SELECT
-                student_id,
-                name,
-                password,
-                is_password_changed,
-                CASE
-                    WHEN target_score IN (6, 6.5, 7) THEN target_score
-                    ELSE 6.5
-                END,
-                CASE
-                    WHEN status IN ('active', 'inactive') THEN status
-                    ELSE 'active'
-                END,
-                created_at,
-                updated_at
-            FROM students;
-            DROP TABLE students;
-            ALTER TABLE students_new RENAME TO students;
-            """
-        )
+    try:
+        conn.execute(f"ALTER TABLE {table} DROP COLUMN default_password")
         return
-    if table == "teachers":
-        conn.execute("DROP TABLE IF EXISTS teachers_new")
-        conn.executescript(
-            f"""
-            CREATE TABLE teachers_new (
-                teacher_id TEXT PRIMARY KEY,
-                name TEXT NOT NULL,
-                password TEXT NOT NULL,
-                is_password_changed INTEGER DEFAULT 0,
-                position TEXT DEFAULT '',
-                subjects TEXT DEFAULT '',
-                status TEXT DEFAULT 'active' CHECK (status IN ('active', 'inactive')),
-                created_at TEXT DEFAULT ({now_sql()}),
-                updated_at TEXT DEFAULT ({now_sql()})
-            );
-            INSERT INTO teachers_new (
-                teacher_id, name, password, is_password_changed,
-                position, subjects, status, created_at, updated_at
+    except sqlite3.OperationalError:
+        pass
+    conn.execute("PRAGMA foreign_keys=OFF")
+    try:
+        if table == "students":
+            conn.execute("DROP TABLE IF EXISTS students_new")
+            conn.executescript(
+                f"""
+                CREATE TABLE students_new (
+                    student_id TEXT PRIMARY KEY,
+                    name TEXT NOT NULL,
+                    password TEXT NOT NULL,
+                    is_password_changed INTEGER DEFAULT 0,
+                    target_score REAL DEFAULT 6.5 CHECK (target_score IN (6, 6.5, 7)),
+                    status TEXT DEFAULT 'active' CHECK (status IN ('active', 'inactive')),
+                    created_at TEXT DEFAULT ({now_sql()}),
+                    updated_at TEXT DEFAULT ({now_sql()})
+                );
+                INSERT INTO students_new (
+                    student_id, name, password, is_password_changed,
+                    target_score, status, created_at, updated_at
+                )
+                SELECT
+                    student_id,
+                    name,
+                    password,
+                    is_password_changed,
+                    CASE
+                        WHEN target_score IN (6, 6.5, 7) THEN target_score
+                        ELSE 6.5
+                    END,
+                    CASE
+                        WHEN status IN ('active', 'inactive') THEN status
+                        ELSE 'active'
+                    END,
+                    created_at,
+                    updated_at
+                FROM students;
+                DROP TABLE students;
+                ALTER TABLE students_new RENAME TO students;
+                """
             )
-            SELECT
-                teacher_id,
-                name,
-                password,
-                is_password_changed,
-                COALESCE(position, ''),
-                COALESCE(subjects, ''),
-                CASE
-                    WHEN status IN ('active', 'inactive') THEN status
-                    ELSE 'active'
-                END,
-                created_at,
-                updated_at
-            FROM teachers;
-            DROP TABLE teachers;
-            ALTER TABLE teachers_new RENAME TO teachers;
-            """
-        )
+        elif table == "teachers":
+            conn.execute("DROP TABLE IF EXISTS teachers_new")
+            conn.executescript(
+                f"""
+                CREATE TABLE teachers_new (
+                    teacher_id TEXT PRIMARY KEY,
+                    name TEXT NOT NULL,
+                    password TEXT NOT NULL,
+                    is_password_changed INTEGER DEFAULT 0,
+                    position TEXT DEFAULT '',
+                    subjects TEXT DEFAULT '',
+                    status TEXT DEFAULT 'active' CHECK (status IN ('active', 'inactive')),
+                    created_at TEXT DEFAULT ({now_sql()}),
+                    updated_at TEXT DEFAULT ({now_sql()})
+                );
+                INSERT INTO teachers_new (
+                    teacher_id, name, password, is_password_changed,
+                    position, subjects, status, created_at, updated_at
+                )
+                SELECT
+                    teacher_id,
+                    name,
+                    password,
+                    is_password_changed,
+                    COALESCE(position, ''),
+                    COALESCE(subjects, ''),
+                    CASE
+                        WHEN status IN ('active', 'inactive') THEN status
+                        ELSE 'active'
+                    END,
+                    created_at,
+                    updated_at
+                FROM teachers;
+                DROP TABLE teachers;
+                ALTER TABLE teachers_new RENAME TO teachers;
+                """
+            )
+    finally:
+        conn.execute("PRAGMA foreign_keys=ON")
 
 
 def migrate_password_storage(conn: sqlite3.Connection) -> None:
