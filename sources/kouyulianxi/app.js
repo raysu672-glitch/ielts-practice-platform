@@ -120,8 +120,7 @@ class P1Practice {
         this.questionSessions = Object.create(null);
         this._loadedQuestionKey = null;
         this._recordingQuestionKey = null;
-        this.apiKey = localStorage.getItem('global_deepseek_key') || localStorage.getItem('deepseek_api_key') || '';
-        this.aiBaseUrl = 'https://api.deepseek.com';
+        this.aiConfigured = false;
         this.aiModel = 'deepseek-v4-flash';
         this._sessionStartedAt = Date.now();
         this._reportedCompleted = 0;
@@ -150,7 +149,7 @@ class P1Practice {
         this.bindParentStudySave();
         this.updateProgress();
         this.updateApiStatus();
-        this.requestApiKeyFromParent();
+        this.loadPublicConfig();
         this.warmupVoices();
     }
     
@@ -162,43 +161,17 @@ class P1Practice {
         return configured;
     }
     
-    // 向主站请求 API Key（优先 /api/config，备用 localStorage）
-    async requestApiKeyFromParent() {
-        // 先尝试从主站 /api/config 获取（环境变量配置）
+    // 读取主站公开配置（不含 API Key；AI 调用走 /api/ai/messages 服务端代理）
+    async loadPublicConfig() {
         try {
-            const res = await fetch('/api/config');
-            if (res.ok) {
-                const data = await res.json();
-                if (data.ai_base_url) this.aiBaseUrl = String(data.ai_base_url).replace(/\/$/, '');
-                if (data.ai_model) this.aiModel = data.ai_model;
-                if (data.deepseek_key && !this.apiKey) {
-                    this.apiKey = data.deepseek_key;
-                    this.updateApiStatus();
-                    return;
-                }
-            }
-        } catch (e) {
-            console.log('无法从 /api/config 获取 key，尝试 localStorage');
-        }
-        
-        // 同域名下直接读取主站配置的 key
-        const globalKey = localStorage.getItem('global_deepseek_key');
-        if (globalKey && !this.apiKey) {
-            this.apiKey = globalKey;
+            const res = await fetch('/api/config', { credentials: 'include' });
+            if (!res.ok) return;
+            const data = await res.json();
+            this.aiConfigured = !!data.ai_configured;
+            if (data.ai_model) this.aiModel = data.ai_model;
             this.updateApiStatus();
-            return;
-        }
-        
-        // 跨域 iframe 才用 postMessage
-        if (window.parent !== window) {
-            window.parent.postMessage({ type: 'request_deepseek_key' }, '*');
-            
-            window.addEventListener('message', (event) => {
-                if (event.data.type === 'deepseek_key_response' && event.data.key) {
-                    this.apiKey = event.data.key;
-                    this.updateApiStatus();
-                }
-            });
+        } catch (e) {
+            console.log('无法从 /api/config 获取配置', e);
         }
     }
     
@@ -1181,7 +1154,11 @@ class P1Practice {
                 const form = new FormData();
                 form.append('file', this.recordingBlob, 'recording.webm');
                 
-                const res = await fetch(url, { method: 'POST', body: form });
+                const res = await fetch(url, {
+                    method: 'POST',
+                    body: form,
+                    credentials: url.startsWith('/') ? 'include' : 'omit'
+                });
                 if (!res.ok) {
                     const errText = await res.text();
                     throw new Error('HTTP ' + res.status + ': ' + errText.substring(0, 200));
@@ -1342,15 +1319,13 @@ class P1Practice {
     }
     
     updateApiStatus() {
-        // Key 由主站 /api/config（config/ai.env）统一下发，页面不再展示手动配置
+        // AI Key 仅在服务端；前端通过 /api/ai/messages 代理调用
     }
     
-    // DeepSeek AI 评分
+    // DeepSeek AI 评分（经主站 /api/ai/messages 代理，需登录）
     async evaluateWithAI() {
-        if (!this.apiKey) {
-            await this.requestApiKeyFromParent();
-        }
-        if (!this.apiKey) {
+        await this.loadPublicConfig();
+        if (!this.aiConfigured) {
             alert('AI 未配置：请在服务器 config/ai.env 中设置 AI_API_KEY 后重启服务');
             return;
         }
@@ -1382,17 +1357,13 @@ class P1Practice {
         const prompt = this.buildEvaluationPrompt(cat, q, fullTranscript, metrics);
         
         try {
-            // 使用 Anthropic 兼容格式
-            const base = (this.aiBaseUrl || 'https://api.deepseek.com').replace(/\/$/, '');
-            const response = await fetch(base + '/anthropic/v1/messages', {
+            const response = await fetch('/api/ai/messages', {
                 method: 'POST',
+                credentials: 'include',
                 headers: {
-                    'Content-Type': 'application/json',
-                    'x-api-key': this.apiKey,
-                    'anthropic-version': '2023-06-01'
+                    'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
-                    model: this.aiModel || 'deepseek-v4-flash',
                     max_tokens: 4000,
                     messages: [
                         {
@@ -1405,6 +1376,9 @@ class P1Practice {
                 })
             });
             
+            if (response.status === 401) {
+                throw new Error('请先登录主站后再使用 AI 评分');
+            }
             if (!response.ok) {
                 const errorText = await response.text();
                 throw new Error(`API 错误 ${response.status}: ${errorText.substring(0, 200)}`);

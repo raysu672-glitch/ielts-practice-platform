@@ -21,8 +21,8 @@
 |---|---|
 | 题目英音 | 本地预生成 `audio/<category>/<id>.mp3`（`audio/manifest.js`）；缺失时回退浏览器 TTS |
 | 录音转写 | `POST /api/p4/transcribe`（`local_server.py` 代理到 `https://p4.oyenglish.com.cn/transcribe`） |
-| AI Key / 模型 | `GET /api/config`（读 `config/ai.env` 的 `AI_API_KEY` / `AI_BASE_URL` / `AI_MODEL`） |
-| AI 评分 | 浏览器调用 DeepSeek Anthropic 兼容接口；四维取平均为 Overall Band |
+| AI 评分 | `POST /api/ai/messages`（需登录；服务端代理 DeepSeek；四维取平均为 Overall Band） |
+| 公开配置 | `GET /api/config`（仅 `ai_configured` / `ai_model` / ASR 路径，不含 Key） |
 
 前端配置见 `config.js`：
 

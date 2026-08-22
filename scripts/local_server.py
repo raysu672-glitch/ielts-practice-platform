@@ -662,6 +662,90 @@ class LocalHandler(SimpleHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(body)
 
+    def require_logged_in_session(self) -> Optional[dict[str, Any]]:
+        session = self.current_session()
+        if not session or session.get("role") not in ("student", "teacher"):
+            self.send_json({"data": None, "error": {"message": "需要登录"}}, status=401)
+            return None
+        return session
+
+    def handle_public_config(self) -> None:
+        settings = ai_settings()
+        self.send_json(
+            {
+                "ai_configured": bool(settings["api_key"]),
+                "ai_model": settings["model"],
+                "p4_asr_base": self.p4_asr_base,
+                "transcribe_path": "/api/p4/transcribe",
+            }
+        )
+
+    def handle_ai_messages(self) -> None:
+        session = self.require_logged_in_session()
+        if not session:
+            return
+        settings = ai_settings()
+        if not settings["api_key"]:
+            self.send_json(
+                {"error": {"message": "AI 未配置，请在 config/ai.env 设置 AI_API_KEY"}},
+                status=503,
+            )
+            return
+        payload = self.read_json_body()
+        messages = payload.get("messages")
+        if not isinstance(messages, list) or not messages:
+            self.send_json(
+                {"error": {"message": "messages 必须是非空数组"}},
+                status=400,
+            )
+            return
+        upstream_body: dict[str, Any] = {
+            "model": settings["model"],
+            "max_tokens": int(payload.get("max_tokens") or 4000),
+            "messages": messages,
+            "temperature": float(payload.get("temperature", 0.3)),
+        }
+        if payload.get("system"):
+            upstream_body["system"] = payload["system"]
+        body_bytes = json.dumps(upstream_body, ensure_ascii=False).encode("utf-8")
+        target = settings["base_url"].rstrip("/") + "/anthropic/v1/messages"
+        headers = {
+            "Content-Type": "application/json",
+            "Accept": "application/json",
+            "x-api-key": settings["api_key"],
+            "anthropic-version": "2023-06-01",
+        }
+        try:
+            req = urllib.request.Request(
+                target, data=body_bytes, headers=headers, method="POST"
+            )
+            with urllib.request.urlopen(req, timeout=300) as resp:
+                raw = resp.read()
+                status = getattr(resp, "status", 200)
+                content_type = resp.headers.get(
+                    "Content-Type", "application/json; charset=utf-8"
+                )
+            self.send_response(status)
+            self.send_header("Content-Type", content_type)
+            self.send_header("Content-Length", str(len(raw)))
+            self.end_headers()
+            self.wfile.write(raw)
+        except urllib.error.HTTPError as exc:
+            raw = exc.read()
+            self.send_response(exc.code)
+            self.send_header(
+                "Content-Type",
+                exc.headers.get("Content-Type", "application/json; charset=utf-8"),
+            )
+            self.send_header("Content-Length", str(len(raw)))
+            self.end_headers()
+            self.wfile.write(raw)
+        except Exception as exc:
+            self.send_json(
+                {"error": {"message": f"AI 服务不可用：{exc}"}},
+                status=502,
+            )
+
     def handle_auth_me(self) -> None:
         session = self.current_session()
         if not session:
@@ -1139,21 +1223,14 @@ class LocalHandler(SimpleHTTPRequestHandler):
             self.handle_teacher_teachers_get()
             return
         if parsed.path.startswith("/api/config"):
-            settings = ai_settings()
-            self.send_json(
-                {
-                    "deepseek_key": settings["api_key"],
-                    "ai_base_url": settings["base_url"],
-                    "ai_model": settings["model"],
-                    "p4_asr_base": self.p4_asr_base,
-                    "transcribe_path": "/api/p4/transcribe",
-                }
-            )
+            self.handle_public_config()
             return
         if parsed.path.startswith("/api/writing"):
             self.proxy_writing_api("GET")
             return
         if parsed.path.startswith("/api/p4"):
+            if not self.require_logged_in_session():
+                return
             self.proxy_p4_api("GET")
             return
 
@@ -1185,7 +1262,12 @@ class LocalHandler(SimpleHTTPRequestHandler):
             self.proxy_writing_api("POST")
             return
         if parsed.path.startswith("/api/p4"):
+            if not self.require_logged_in_session():
+                return
             self.proxy_p4_api("POST")
+            return
+        if path == "/api/ai/messages":
+            self.handle_ai_messages()
             return
         if path == "/api/auth/student/login":
             self.handle_student_login()
@@ -1251,6 +1333,7 @@ class LocalHandler(SimpleHTTPRequestHandler):
 
     def proxy_p4_api(self, method: str) -> None:
         """Proxy /api/p4/* to the P4 ASR upstream (e.g. /api/p4/transcribe -> /transcribe)."""
+        # Caller must verify session before invoking.
         parsed = urllib.parse.urlparse(self.path)
         rest = parsed.path[len("/api/p4") :] or "/"
         if not rest.startswith("/"):
