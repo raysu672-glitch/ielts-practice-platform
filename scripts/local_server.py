@@ -32,6 +32,7 @@ if str(_SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(_SCRIPTS_DIR))
 
 from ai_config import ai_settings, load_ai_env  # noqa: E402
+from cors_utils import cors_headers_for_origin  # noqa: E402
 from session_auth import (  # noqa: E402
     SESSION_COOKIE_NAME,
     build_session_cookie,
@@ -621,14 +622,8 @@ class LocalHandler(SimpleHTTPRequestHandler):
     session_secret: bytes = b""
 
     def end_headers(self) -> None:
-        origin = self.headers.get("Origin")
-        if origin:
-            self.send_header("Access-Control-Allow-Origin", origin)
-            self.send_header("Access-Control-Allow-Credentials", "true")
-        else:
-            self.send_header("Access-Control-Allow-Origin", "*")
-        self.send_header("Access-Control-Allow-Headers", "Content-Type")
-        self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+        for name, value in cors_headers_for_origin(self.headers.get("Origin")).items():
+            self.send_header(name, value)
         super().end_headers()
 
     def do_OPTIONS(self) -> None:
