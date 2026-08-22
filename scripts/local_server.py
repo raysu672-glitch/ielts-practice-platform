@@ -33,6 +33,7 @@ if str(_SCRIPTS_DIR) not in sys.path:
 
 from ai_config import ai_settings, load_ai_env  # noqa: E402
 from cors_utils import cors_headers_for_origin  # noqa: E402
+from password_utils import authenticate_row_password, hash_password, is_password_hashed  # noqa: E402
 from session_auth import (  # noqa: E402
     SESSION_COOKIE_NAME,
     build_session_cookie,
@@ -60,7 +61,6 @@ from student_api import (  # noqa: E402
 DEFAULT_STATIC_DIR = ROOT / "sources"
 
 from teacher_api import (  # noqa: E402
-    TEACHER_DEFAULT_PASSWORD,
     create_student,
     create_students_batch,
     create_teacher,
@@ -151,11 +151,6 @@ def migrate_teachers_username_to_teacher_id(conn: sqlite3.Connection) -> None:
         return
 
     columns = {r[1] for r in conn.execute(f"PRAGMA table_info({source})").fetchall()}
-    default_password_expr = (
-        "COALESCE(NULLIF(default_password, ''), '123456')"
-        if "default_password" in columns
-        else "'123456'"
-    )
     is_password_changed_expr = (
         "COALESCE(is_password_changed, 0)"
         if "is_password_changed" in columns
@@ -170,7 +165,6 @@ def migrate_teachers_username_to_teacher_id(conn: sqlite3.Connection) -> None:
             teacher_id TEXT PRIMARY KEY,
             name TEXT NOT NULL,
             password TEXT NOT NULL,
-            default_password TEXT DEFAULT '123456',
             is_password_changed INTEGER DEFAULT 0,
             position TEXT DEFAULT '',
             subjects TEXT DEFAULT '',
@@ -179,7 +173,7 @@ def migrate_teachers_username_to_teacher_id(conn: sqlite3.Connection) -> None:
             updated_at TEXT DEFAULT ({now_sql()})
         );
         INSERT INTO teachers (
-            teacher_id, name, password, default_password,
+            teacher_id, name, password,
             is_password_changed, position, subjects, status,
             created_at, updated_at
         )
@@ -187,7 +181,6 @@ def migrate_teachers_username_to_teacher_id(conn: sqlite3.Connection) -> None:
             username,
             name,
             password,
-            {default_password_expr},
             {is_password_changed_expr},
             {position_expr},
             {subjects_expr},
@@ -213,16 +206,93 @@ def migrate_teachers_profile_columns(conn: sqlite3.Connection) -> None:
         alterations.append("ALTER TABLE teachers ADD COLUMN position TEXT DEFAULT ''")
     if "subjects" not in columns:
         alterations.append("ALTER TABLE teachers ADD COLUMN subjects TEXT DEFAULT ''")
-    if "default_password" not in columns:
-        alterations.append(
-            "ALTER TABLE teachers ADD COLUMN default_password TEXT DEFAULT '123456'"
-        )
     if "is_password_changed" not in columns:
         alterations.append(
             "ALTER TABLE teachers ADD COLUMN is_password_changed INTEGER DEFAULT 0"
         )
     for sql in alterations:
         conn.execute(sql)
+
+
+def _drop_default_password_column(conn: sqlite3.Connection, table: str) -> None:
+    columns = {r[1] for r in conn.execute(f"PRAGMA table_info({table})").fetchall()}
+    if "default_password" not in columns:
+        return
+    if table == "students":
+        conn.executescript(
+            f"""
+            CREATE TABLE students_new (
+                student_id TEXT PRIMARY KEY,
+                name TEXT NOT NULL,
+                password TEXT NOT NULL,
+                is_password_changed INTEGER DEFAULT 0,
+                target_score REAL DEFAULT 6.5 CHECK (target_score IN (6, 6.5, 7)),
+                status TEXT DEFAULT 'active' CHECK (status IN ('active', 'inactive')),
+                created_at TEXT DEFAULT ({now_sql()}),
+                updated_at TEXT DEFAULT ({now_sql()})
+            );
+            INSERT INTO students_new (
+                student_id, name, password, is_password_changed,
+                target_score, status, created_at, updated_at
+            )
+            SELECT
+                student_id, name, password, is_password_changed,
+                target_score, status, created_at, updated_at
+            FROM students;
+            DROP TABLE students;
+            ALTER TABLE students_new RENAME TO students;
+            """
+        )
+        return
+    if table == "teachers":
+        conn.executescript(
+            f"""
+            CREATE TABLE teachers_new (
+                teacher_id TEXT PRIMARY KEY,
+                name TEXT NOT NULL,
+                password TEXT NOT NULL,
+                is_password_changed INTEGER DEFAULT 0,
+                position TEXT DEFAULT '',
+                subjects TEXT DEFAULT '',
+                status TEXT DEFAULT 'active' CHECK (status IN ('active', 'inactive')),
+                created_at TEXT DEFAULT ({now_sql()}),
+                updated_at TEXT DEFAULT ({now_sql()})
+            );
+            INSERT INTO teachers_new (
+                teacher_id, name, password, is_password_changed,
+                position, subjects, status, created_at, updated_at
+            )
+            SELECT
+                teacher_id, name, password, is_password_changed,
+                position, subjects, status, created_at, updated_at
+            FROM teachers;
+            DROP TABLE teachers;
+            ALTER TABLE teachers_new RENAME TO teachers;
+            """
+        )
+
+
+def migrate_password_storage(conn: sqlite3.Connection) -> None:
+    """Hash legacy plaintext passwords and remove default_password columns."""
+    for table, id_column in (("students", "student_id"), ("teachers", "teacher_id")):
+        row = conn.execute(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name=?",
+            (table,),
+        ).fetchone()
+        if not row:
+            continue
+        rows = conn.execute(
+            f"SELECT {id_column}, password FROM {table}"
+        ).fetchall()
+        for item in rows:
+            stored = str(item["password"] or "")
+            if stored and not is_password_hashed(stored):
+                conn.execute(
+                    f"UPDATE {table} SET password = ? WHERE {id_column} = ?",
+                    (hash_password(stored), item[id_column]),
+                )
+        _drop_default_password_column(conn, table)
+    conn.commit()
 
 
 def migrate_wrong_words_module_type(conn: sqlite3.Connection) -> None:
@@ -280,7 +350,6 @@ def init_db(db_path: Path) -> None:
                 teacher_id TEXT PRIMARY KEY,
                 name TEXT NOT NULL,
                 password TEXT NOT NULL,
-                default_password TEXT DEFAULT '123456',
                 is_password_changed INTEGER DEFAULT 0,
                 position TEXT DEFAULT '',
                 subjects TEXT DEFAULT '',
@@ -293,7 +362,6 @@ def init_db(db_path: Path) -> None:
                 student_id TEXT PRIMARY KEY,
                 name TEXT NOT NULL,
                 password TEXT NOT NULL,
-                default_password TEXT DEFAULT '123456',
                 is_password_changed INTEGER DEFAULT 0,
                 target_score REAL DEFAULT 6.5 CHECK (target_score IN (6, 6.5, 7)),
                 status TEXT DEFAULT 'active' CHECK (status IN ('active', 'inactive')),
@@ -391,6 +459,7 @@ def init_db(db_path: Path) -> None:
         migrate_wrong_words_module_type(conn)
         migrate_teachers_username_to_teacher_id(conn)
         migrate_teachers_profile_columns(conn)
+        migrate_password_storage(conn)
         conn.execute(
             "CREATE INDEX IF NOT EXISTS idx_wrong_words_module_type ON wrong_words(module_type)"
         )
@@ -406,36 +475,35 @@ def init_db(db_path: Path) -> None:
         conn.execute(
             """
             INSERT INTO teachers (
-                teacher_id, name, password, default_password,
+                teacher_id, name, password,
                 is_password_changed, position, subjects, status
             )
             VALUES (
-                'admin', '管理员', 'sjdh4405', 'sjdh4405',
-                1, '系统管理员', '', 'active'
+                'admin', '管理员', ?, 1, '系统管理员', '', 'active'
             )
             ON CONFLICT(teacher_id) DO NOTHING
-            """
+            """,
+            (hash_password("sjdh4405"),),
         )
 
         conn.execute(
             """
             INSERT INTO teachers (
-                teacher_id, name, password, default_password,
+                teacher_id, name, password,
                 is_password_changed, position, subjects, status
             )
             VALUES (
-                'zhangxiaodong', '张晓东', '123456', '123456',
-                0, '教研校长', '阅读、写作', 'active'
+                'zhangxiaodong', '张晓东', ?, 0, '教研校长', '阅读、写作', 'active'
             )
             ON CONFLICT(teacher_id) DO NOTHING
-            """
+            """,
+            (hash_password("123456"),),
         )
 
         conn.execute(
             """
             UPDATE teachers
             SET position = '系统管理员',
-                default_password = 'sjdh4405',
                 is_password_changed = 1,
                 updated_at = strftime('%Y-%m-%dT%H:%M:%fZ','now')
             WHERE teacher_id = 'admin'
@@ -473,12 +541,13 @@ def init_db(db_path: Path) -> None:
         conn.execute(
             """
             INSERT INTO students (
-                student_id, name, password, default_password,
+                student_id, name, password,
                 is_password_changed, target_score, status
             )
-            VALUES ('2025001', '测试学生', '123456', '123456', 0, 6.5, 'active')
+            VALUES ('2025001', '测试学生', ?, 0, 6.5, 'active')
             ON CONFLICT(student_id) DO NOTHING
-            """
+            """,
+            (hash_password("123456"),),
         )
         conn.commit()
 
@@ -636,6 +705,17 @@ class LocalHandler(SimpleHTTPRequestHandler):
             return None
         return parse_session_token(raw, self.session_secret)
 
+    def use_secure_cookies(self) -> bool:
+        proto = (
+            self.headers.get("X-Forwarded-Proto")
+            or self.headers.get("x-forwarded-proto")
+            or ""
+        ).split(",")[0].strip().lower()
+        return proto == "https"
+
+    def session_cookie(self, token: str = "", *, clear: bool = False) -> str:
+        return build_session_cookie(token, clear=clear, secure=self.use_secure_cookies())
+
     def read_json_body(self) -> dict[str, Any]:
         length = int(self.headers.get("Content-Length", "0"))
         raw = self.rfile.read(length).decode("utf-8") if length > 0 else "{}"
@@ -756,7 +836,7 @@ class LocalHandler(SimpleHTTPRequestHandler):
                     self.send_json(
                         {"data": None, "error": {"message": "会话已失效"}},
                         status=401,
-                        set_cookies=[build_session_cookie("", clear=True)],
+                        set_cookies=[self.session_cookie(clear=True)],
                     )
                     return
                 self.send_json(
@@ -777,7 +857,7 @@ class LocalHandler(SimpleHTTPRequestHandler):
                 self.send_json(
                     {"data": None, "error": {"message": "会话已失效"}},
                     status=401,
-                    set_cookies=[build_session_cookie("", clear=True)],
+                    set_cookies=[self.session_cookie(clear=True)],
                 )
                 return
             self.send_json(
@@ -798,10 +878,13 @@ class LocalHandler(SimpleHTTPRequestHandler):
             self.send_json({"data": None, "error": {"message": "请输入学号和密码"}}, status=400)
             return
         with closing(connect(self.db_path)) as conn:
-            row = conn.execute(
-                "SELECT * FROM students WHERE student_id = ? AND password = ?",
-                (student_id, password),
-            ).fetchone()
+            row = authenticate_row_password(
+                conn,
+                table="students",
+                id_column="student_id",
+                row_id=student_id,
+                password=password,
+            )
             if not row:
                 self.send_json({"data": None, "error": {"message": "学号或密码错误"}}, status=401)
                 return
@@ -816,7 +899,7 @@ class LocalHandler(SimpleHTTPRequestHandler):
             )
             self.send_json(
                 {"data": {"role": "student", "student": public_student(item)}, "error": None},
-                set_cookies=[build_session_cookie(token)],
+                set_cookies=[self.session_cookie(token)],
             )
 
     def handle_teacher_login(self) -> None:
@@ -827,10 +910,13 @@ class LocalHandler(SimpleHTTPRequestHandler):
             self.send_json({"data": None, "error": {"message": "请输入账号和密码"}}, status=400)
             return
         with closing(connect(self.db_path)) as conn:
-            row = conn.execute(
-                "SELECT * FROM teachers WHERE teacher_id = ? AND password = ?",
-                (teacher_id, password),
-            ).fetchone()
+            row = authenticate_row_password(
+                conn,
+                table="teachers",
+                id_column="teacher_id",
+                row_id=teacher_id,
+                password=password,
+            )
             if not row:
                 self.send_json({"data": None, "error": {"message": "账号或密码错误"}}, status=401)
                 return
@@ -845,13 +931,13 @@ class LocalHandler(SimpleHTTPRequestHandler):
             )
             self.send_json(
                 {"data": {"role": "teacher", "teacher": public_teacher(item)}, "error": None},
-                set_cookies=[build_session_cookie(token)],
+                set_cookies=[self.session_cookie(token)],
             )
 
     def handle_logout(self) -> None:
         self.send_json(
             {"data": {"ok": True}, "error": None},
-            set_cookies=[build_session_cookie("", clear=True)],
+            set_cookies=[self.session_cookie(clear=True)],
         )
 
 
@@ -885,7 +971,7 @@ class LocalHandler(SimpleHTTPRequestHandler):
             return
         payload = self.read_json_body()
         with closing(connect(self.db_path)) as conn:
-            row, err = create_student(
+            row, err, initial_password = create_student(
                 conn,
                 name=payload.get("name") or "",
                 target_score=payload.get("target_score", payload.get("targetScore", 6.5)),
@@ -894,7 +980,9 @@ class LocalHandler(SimpleHTTPRequestHandler):
             if err:
                 self.send_json({"data": None, "error": {"message": err}}, status=400)
                 return
-            self.send_json({"data": row, "error": None})
+            self.send_json(
+                {"data": {**(row or {}), "password": initial_password}, "error": None}
+            )
 
     def handle_teacher_students_batch(self) -> None:
         session = self.require_teacher_session()
@@ -918,11 +1006,13 @@ class LocalHandler(SimpleHTTPRequestHandler):
             return
         payload = self.read_json_body()
         with closing(connect(self.db_path)) as conn:
-            err = reset_student_password(conn, payload.get("student_id") or "")
+            initial_password, err = reset_student_password(conn, payload.get("student_id") or "")
             if err:
                 self.send_json({"data": None, "error": {"message": err}}, status=400)
                 return
-            self.send_json({"data": {"ok": True, "password": "123456"}, "error": None})
+            self.send_json(
+                {"data": {"ok": True, "password": initial_password}, "error": None}
+            )
 
     def handle_teacher_students_toggle_status(self) -> None:
         session = self.require_teacher_session()
@@ -1003,7 +1093,7 @@ class LocalHandler(SimpleHTTPRequestHandler):
             return
         payload = self.read_json_body()
         with closing(connect(self.db_path)) as conn:
-            row, err = create_teacher(
+            row, err, initial_password = create_teacher(
                 conn,
                 teacher_id=payload.get("teacher_id") or payload.get("account") or "",
                 name=payload.get("name") or "",
@@ -1015,7 +1105,7 @@ class LocalHandler(SimpleHTTPRequestHandler):
                 return
             self.send_json(
                 {
-                    "data": {"teacher": row, "password": TEACHER_DEFAULT_PASSWORD},
+                    "data": {"teacher": row, "password": initial_password},
                     "error": None,
                 }
             )
@@ -1026,12 +1116,12 @@ class LocalHandler(SimpleHTTPRequestHandler):
             return
         payload = self.read_json_body()
         with closing(connect(self.db_path)) as conn:
-            err = reset_teacher_password(conn, payload.get("teacher_id") or "")
+            initial_password, err = reset_teacher_password(conn, payload.get("teacher_id") or "")
             if err:
                 self.send_json({"data": None, "error": {"message": err}}, status=400)
                 return
             self.send_json(
-                {"data": {"ok": True, "password": TEACHER_DEFAULT_PASSWORD}, "error": None}
+                {"data": {"ok": True, "password": initial_password}, "error": None}
             )
 
     def handle_teacher_teachers_toggle_status(self) -> None:

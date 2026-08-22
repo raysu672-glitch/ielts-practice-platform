@@ -6,6 +6,7 @@ import json
 from datetime import datetime, timezone
 from typing import Any, Optional  # noqa: F401 — Optional used below
 
+from password_utils import hash_password
 
 def utc_now() -> str:
     return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z"
@@ -114,7 +115,7 @@ def change_password(conn: Any, student_id: str, new_password: str) -> Optional[s
             updated_at = ?
         WHERE student_id = ?
         """,
-        (password, utc_now(), student_id),
+        (hash_password(password), utc_now(), student_id),
     )
     conn.commit()
     return None

@@ -6,6 +6,7 @@ var currentTestIndex = 0;
 var timerInterval = null;
 var timeLeft = 6;
 var isPlaying = false;
+var forcePasswordChange = false;
 
 
 function rememberStudentSession(student) {
@@ -32,6 +33,11 @@ async function restoreStudentSession() {
         }
         currentStudent = me.data.student;
         rememberStudentSession(me.data.student);
+        if (!me.data.student.is_password_changed) {
+            showScreen('studentLoginScreen');
+            showChangePasswordModal(true);
+            return;
+        }
         showStudentHome();
     } catch (e) {
         console.error('恢复学生登录态失败:', e);
@@ -55,7 +61,7 @@ async function studentLogin() {
         currentStudent = result.data.student;
         rememberStudentSession(result.data.student);
         if (!result.data.student.is_password_changed) {
-            showChangePasswordModal();
+            showChangePasswordModal(true);
         } else {
             showStudentHome();
         }
@@ -358,7 +364,40 @@ function studentLogout() {
     });
 }
 
-function showChangePasswordModal() { showModal('changePasswordModal'); }
+function showChangePasswordModal(force) {
+    forcePasswordChange = !!force;
+    var modal = document.getElementById('changePasswordModal');
+    if (modal) {
+        var hint = modal.querySelector('#changePasswordHint');
+        if (!hint) {
+            hint = document.createElement('p');
+            hint.id = 'changePasswordHint';
+            hint.style.cssText = 'color:#666;font-size:0.9rem;margin-bottom:12px;line-height:1.5;';
+            var header = modal.querySelector('.modal-header');
+            if (header && header.parentNode) {
+                header.parentNode.insertBefore(hint, header.nextSibling);
+            }
+        }
+        hint.textContent = forcePasswordChange
+            ? '教师已重置密码或首次登录，请设置新密码（至少4位）后才能进入学习。'
+            : '';
+        hint.style.display = forcePasswordChange ? 'block' : 'none';
+        var closeBtn = modal.querySelector('.modal-close');
+        var cancelBtn = modal.querySelector('#changePasswordCancelBtn');
+        if (closeBtn) closeBtn.style.display = forcePasswordChange ? 'none' : '';
+        if (cancelBtn) cancelBtn.style.display = forcePasswordChange ? 'none' : '';
+    }
+    showModal('changePasswordModal');
+}
+
+var _closeModalForStudent = closeModal;
+closeModal = function(modalId) {
+    if (modalId === 'changePasswordModal' && forcePasswordChange) {
+        showToast('请先设置新密码', 'error');
+        return;
+    }
+    _closeModalForStudent(modalId);
+};
 
 async function changePassword() {
     const newPwd = document.getElementById('newPassword').value;
@@ -377,6 +416,7 @@ async function changePassword() {
         currentStudent.is_password_changed = true;
     }
     closeModal('changePasswordModal');
+    forcePasswordChange = false;
     showToast('密码修改成功', 'success');
     document.getElementById('newPassword').value = '';
     document.getElementById('confirmPassword').value = '';

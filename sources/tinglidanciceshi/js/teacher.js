@@ -1,6 +1,5 @@
 // 教师端：登录与后台管理
 var currentTeacher = null;
-var TEACHER_DEFAULT_PASSWORD = '123456';
 
 async function teacherApiGet(url) {
     return apiFetch(url);
@@ -849,9 +848,10 @@ async function addStudent() {
         return;
     }
     const newId = insertResult.data && insertResult.data.student_id;
+    const initialPassword = insertResult.data && insertResult.data.password;
     closeModal('addStudentModal');
     document.getElementById('newStudentName').value = '';
-    showToast('添加成功！学号：' + newId + '，初始密码：123456', 'success');
+    showToast('添加成功！学号：' + newId + '，初始密码：' + initialPassword, 'success');
     loadStudents();
 }
 
@@ -912,25 +912,27 @@ async function addTeacher() {
         showToast('添加失败：' + ((insertResult.error && insertResult.error.message) || '未知错误'), 'error');
         return;
     }
+    const initialPassword = (insertResult.data && insertResult.data.password) || '';
     closeModal('addTeacherModal');
     document.getElementById('newTeacherName').value = '';
     document.getElementById('newTeacherAccount').value = '';
     document.getElementById('newTeacherPosition').value = '';
     document.getElementById('newTeacherSubjects').value = '';
-    showToast('添加成功！账号：' + account + '，初始密码：' + TEACHER_DEFAULT_PASSWORD, 'success');
+    showToast('添加成功！账号：' + account + '，初始密码：' + initialPassword, 'success');
     loadTeachers();
 }
 
 async function resetTeacherPassword(teacherId) {
     if (!isAdminTeacher()) { showToast('仅管理员可操作', 'error'); return; }
     if (teacherId === 'admin') { showToast('不能重置管理员密码', 'error'); return; }
-    if (!confirm('确定将该教师密码重置为 ' + TEACHER_DEFAULT_PASSWORD + '？')) return;
+    if (!confirm('确定将该教师密码重置为默认初始密码？')) return;
     const result = await teacherApiPost('/api/teacher/teachers/reset-password', { teacher_id: teacherId });
     if (result.error) {
         showToast((result.error && result.error.message) || '重置失败', 'error');
         return;
     }
-    showToast('密码已重置为 ' + TEACHER_DEFAULT_PASSWORD, 'success');
+    const resetPassword = (result.data && result.data.password) || '';
+    showToast('密码已重置为 ' + resetPassword, 'success');
 }
 
 async function toggleTeacherStatus(teacherId, currentStatus) {
@@ -979,10 +981,11 @@ async function batchImportStudents() {
 
 
 async function resetPassword(studentId) {
-    if (!confirm('确定重置该学生密码为123456？')) return;
+    if (!confirm('确定重置该学生密码为默认初始密码？')) return;
     const result = await teacherApiPost('/api/teacher/students/reset-password', { student_id: studentId });
     if (result.error) { showToast((result.error && result.error.message) || '重置失败', 'error'); return; }
-    showToast('密码已重置', 'success');
+    var pwd = (result.data && result.data.password) || '';
+    showToast('密码已重置为 ' + pwd + '，请告知学生用此密码登录并修改密码', 'success');
 }
 
 async function toggleStatus(studentId, currentStatus) {

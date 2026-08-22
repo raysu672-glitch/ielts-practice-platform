@@ -7,9 +7,11 @@ from datetime import datetime, timezone
 from typing import Any, Optional
 
 
-TEACHER_DEFAULT_PASSWORD = "123456"
-STUDENT_DEFAULT_PASSWORD = "123456"
-
+from password_utils import (
+    STUDENT_INITIAL_PASSWORD,
+    TEACHER_INITIAL_PASSWORD,
+    hash_password,
+)
 
 def utc_now() -> str:
     return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z"
@@ -78,39 +80,40 @@ def create_student(
     name: str,
     target_score: float = 6.5,
     student_id: Optional[str] = None,
-) -> tuple[Optional[dict[str, Any]], Optional[str]]:
+) -> tuple[Optional[dict[str, Any]], Optional[str], Optional[str]]:
     name = str(name or "").strip()
     if not name:
-        return None, "请输入姓名"
+        return None, "请输入姓名", None
     try:
         target = float(target_score)
     except (TypeError, ValueError):
-        return None, "目标分无效"
+        return None, "目标分无效", None
     if target not in (6, 6.5, 7):
-        return None, "目标分仅支持 6 / 6.5 / 7"
+        return None, "目标分仅支持 6 / 6.5 / 7", None
     sid = str(student_id or "").strip() or next_student_id(conn)
     exists = conn.execute(
         "SELECT 1 FROM students WHERE student_id = ?",
         (sid,),
     ).fetchone()
     if exists:
-        return None, "学号已存在"
+        return None, "学号已存在", None
+    initial_password = STUDENT_INITIAL_PASSWORD
     now = utc_now()
     conn.execute(
         """
         INSERT INTO students (
-            student_id, name, password, default_password,
+            student_id, name, password,
             is_password_changed, target_score, status, created_at, updated_at
-        ) VALUES (?, ?, ?, ?, 0, ?, 'active', ?, ?)
+        ) VALUES (?, ?, ?, 0, ?, 'active', ?, ?)
         """,
-        (sid, name, STUDENT_DEFAULT_PASSWORD, STUDENT_DEFAULT_PASSWORD, target, now, now),
+        (sid, name, hash_password(initial_password), target, now, now),
     )
     conn.commit()
     row = conn.execute(
         "SELECT * FROM students WHERE student_id = ?",
         (sid,),
     ).fetchone()
-    return public_student_row(dict(row)), None
+    return public_student_row(dict(row)), None, initial_password
 
 
 def create_students_batch(
@@ -127,7 +130,7 @@ def create_students_batch(
         if not name:
             continue
         target = (item or {}).get("target_score", (item or {}).get("targetScore", 6.5))
-        student, err = create_student(
+        student, err, _initial_password = create_student(
             conn,
             name=name,
             target_score=target,
@@ -142,26 +145,27 @@ def create_students_batch(
     return {"count": len(created), "students": created}, None
 
 
-def reset_student_password(conn: Any, student_id: str) -> Optional[str]:
+def reset_student_password(conn: Any, student_id: str) -> tuple[Optional[str], Optional[str]]:
     sid = str(student_id or "").strip()
     if not sid:
-        return "缺少学号"
+        return None, "缺少学号"
     row = conn.execute(
         "SELECT student_id FROM students WHERE student_id = ?",
         (sid,),
     ).fetchone()
     if not row:
-        return "学生不存在"
+        return None, "学生不存在"
+    initial_password = STUDENT_INITIAL_PASSWORD
     conn.execute(
         """
         UPDATE students
         SET password = ?, is_password_changed = 0, updated_at = ?
         WHERE student_id = ?
         """,
-        (STUDENT_DEFAULT_PASSWORD, utc_now(), sid),
+        (hash_password(initial_password), utc_now(), sid),
     )
     conn.commit()
-    return None
+    return initial_password, None
 
 
 def toggle_student_status(
@@ -337,36 +341,36 @@ def create_teacher(
     name: str,
     position: str = "",
     subjects: str = "",
-) -> tuple[Optional[dict[str, Any]], Optional[str]]:
+) -> tuple[Optional[dict[str, Any]], Optional[str], Optional[str]]:
     tid = str(teacher_id or "").strip().lower()
     name = str(name or "").strip()
     if not name:
-        return None, "请输入姓名"
+        return None, "请输入姓名", None
     if not tid:
-        return None, "请输入登录账号"
+        return None, "请输入登录账号", None
     if tid == "admin":
-        return None, "不能使用保留账号 admin"
+        return None, "不能使用保留账号 admin", None
     if not all(ch.isalnum() or ch == "_" for ch in tid) or tid != tid.lower():
-        return None, "账号仅支持小写字母、数字、下划线"
+        return None, "账号仅支持小写字母、数字、下划线", None
     exists = conn.execute(
         "SELECT 1 FROM teachers WHERE teacher_id = ?",
         (tid,),
     ).fetchone()
     if exists:
-        return None, "账号已存在"
+        return None, "账号已存在", None
     now = utc_now()
+    initial_password = TEACHER_INITIAL_PASSWORD
     conn.execute(
         """
         INSERT INTO teachers (
-            teacher_id, name, password, default_password,
+            teacher_id, name, password,
             is_password_changed, position, subjects, status, created_at, updated_at
-        ) VALUES (?, ?, ?, ?, 0, ?, ?, 'active', ?, ?)
+        ) VALUES (?, ?, ?, 0, ?, ?, 'active', ?, ?)
         """,
         (
             tid,
             name,
-            TEACHER_DEFAULT_PASSWORD,
-            TEACHER_DEFAULT_PASSWORD,
+            hash_password(initial_password),
             position or "",
             subjects or "",
             now,
@@ -378,31 +382,32 @@ def create_teacher(
         "SELECT * FROM teachers WHERE teacher_id = ?",
         (tid,),
     ).fetchone()
-    return public_teacher_row(dict(row)), None
+    return public_teacher_row(dict(row)), None, initial_password
 
 
-def reset_teacher_password(conn: Any, teacher_id: str) -> Optional[str]:
+def reset_teacher_password(conn: Any, teacher_id: str) -> tuple[Optional[str], Optional[str]]:
     tid = str(teacher_id or "").strip()
     if not tid:
-        return "缺少教师账号"
+        return None, "缺少教师账号"
     if tid == "admin":
-        return "不能重置管理员密码"
+        return None, "不能重置管理员密码"
     row = conn.execute(
         "SELECT teacher_id FROM teachers WHERE teacher_id = ?",
         (tid,),
     ).fetchone()
     if not row:
-        return "教师不存在"
+        return None, "教师不存在"
+    initial_password = TEACHER_INITIAL_PASSWORD
     conn.execute(
         """
         UPDATE teachers
         SET password = ?, is_password_changed = 0, updated_at = ?
         WHERE teacher_id = ?
         """,
-        (TEACHER_DEFAULT_PASSWORD, utc_now(), tid),
+        (hash_password(initial_password), utc_now(), tid),
     )
     conn.commit()
-    return None
+    return initial_password, None
 
 
 def toggle_teacher_status(

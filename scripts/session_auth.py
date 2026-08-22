@@ -104,6 +104,7 @@ def build_session_cookie(
     *,
     max_age: int = SESSION_MAX_AGE,
     clear: bool = False,
+    secure: bool = False,
 ) -> str:
     jar = cookies.SimpleCookie()
     jar[SESSION_COOKIE_NAME] = "" if clear else token
@@ -111,12 +112,13 @@ def build_session_cookie(
     morsel["path"] = "/"
     morsel["httponly"] = True
     morsel["samesite"] = "Lax"
+    if secure and not clear:
+        morsel["secure"] = True
     if clear:
         morsel["max-age"] = "0"
         morsel["expires"] = "Thu, 01 Jan 1970 00:00:00 GMT"
     else:
         morsel["max-age"] = str(int(max_age))
-    # Do not set Secure so local HTTP (127.0.0.1) keeps working.
     return morsel.OutputString()
 
 
