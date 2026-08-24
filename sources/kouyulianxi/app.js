@@ -1461,30 +1461,43 @@ class P1Practice {
 - 词时长数据（异常拖长或吞音可能暗示发音问题）
 - 语速数据（过快可能影响清晰度，过慢可能不自信）
 - 套话/背稿感（开场复述题目、模板句堆砌、回答不像临场思考）会显得不自然
-- 如果几乎没有明显发音硬伤，但回答偏模板化：给 6（不要轻易给 7）
-- 只有在表达自然、无明显背稿感时，才考虑 7
+- 发音可以是四项里的强项：无明显硬伤、表达较自然时，应敢于给 7（真实考官对 6.0 档考生常把 Pron 打到 7）
+- 只有在明显模板堆砌、开场复述题目、或听起来过度准备时，才把 Pron 压在 6
+- 下一阶段（冲更高）：对问题自然反应；把较长信息用轻微语调起伏串起来，体现对不同部分的态度（靠多练即兴作答即可）
 
 评分规则：
 - 9分：全部语音特征精确；听者毫不费力
 - 8分：广泛语音特征；口音影响极小
-- 7分：整体清晰；偶有小错；听起来自然有思考
-- 6分：基本清晰；个别发音错误不影响理解；或听起来偏“准备过/不自然”
+- 7分：整体清晰；偶有小错；听起来自然、可作强项
+- 6分：基本清晰；个别发音错误不影响理解；或明显背稿/不自然
 - 5分及以下：发音问题较多；听者需努力理解
 
 ## 真实考官校准（必须遵守）
-参考资深口语考官对 6.0 考生的打分习惯：
-1. **FC**：仅少量犹豫仍可给 6；但“几乎把题目整句复述一遍再答题”极不自然，是 Band 4 习惯，会卡在 6、难上 6.5。
-2. **LR**：用词大体清楚可达 6；中式直译/奇怪搭配（如把中文硬译成英文导致一段话难懂）若出现 2–3 处，应给 5。
-3. **GRA**：只要有足够准确的结构多样性、沟通清楚，可以明确给 6；不要因为偶尔小错就打到 4–5。但残缺句/半截句多、几乎只有简单句时，应 ≤5。
-4. **Pron**：即使“最弱项”也常仍是 6；背稿感/不自然主要阻碍冲 6.5–7，默认不要虚高到 7。
-5. 反馈要像考官：先肯定达到哪一档，再说“若想冲更高必须改什么”。
+综合多份模考书面反馈（含无音频报告），按档位锚定：
+
+**6.0 档 · Jiang Yu Pei**：FC6 LR6 GRA6 **Pron7** — 发音可为强项；时态/情态/条件句小错仍 GRA6；跑题段比切题段更流利会被注意。
+
+**6.0 档 · Yi Ru**：FC6 **LR7** GRA6 Pron6 — LR7 来自话题精准词 + 地道/native 表达（P2/P3），但整体仍以 Band6 词汇为主；GRA 有嵌入从句、偶发主谓一致错误，Part1 也说长复杂句才可冲 GRA7。
+
+**6.0 档 · Yang Taoyi**：四项均 6 — 大量 um/uh 开场、Part2 偏短、重组/停顿正常；词形小错（complicate→complicated）不减 LR6；关系从句/嵌入从句是 GRA 强项，反身代词等基础错要清理。
+
+**5.5 档 · Ji Peng Hao**：FC6 LR6 **GRA5** Pron6 — 「假关系从句」套话（He told me that / I remember clearly that / I wish that）会被识破；Part2 本可用定语从句却拆成两句简单句 → 典型 Band5 语法；偶发跑题一次不大幅扣 LR。
+
+**5.5 档 · Zhang Xin Yu**：FC6 LR6 **GRA5** Pron6 — Part1/2 几乎全是 SVO + 反复 and 连接，错误少是因为句子太简单 → GRA5；LR 因搭配自然、少 Chinglish 最接近 7（不是靠高级词）。
+
+### 分项规则（跨档位）
+1. **FC**：慢但可 FC6；um/uh 每轮开头多、Part2 明显偏短 → 维持 6 难上 7。跑题/答非所问若流利度反而更好，必须点名并压住冲高。
+2. **LR**：用词顺眼/很好仍常 LR6。冲 LR7：精准话题词 + 自然搭配/习语贯穿全篇，少中式英语。2–3 处难懂中式表达 → LR5。词形小错若不影响理解，通常仍 LR6。
+3. **GRA**：**GRA5 强信号** — 假关系从句套话；大量 SVO+and 堆砌、几乎无 that/which/who/从句；该用定语从句却只用并列简单句。偶发时态/情态/条件句错误、结构多样且沟通清楚 → 仍可 GRA6。冲更高：第二条件句、情态动词、真关系从句/嵌入从句。
+4. **Pron**：清晰自然可 Pron7；缺乏语调层次/重音提示通常仍 Pron6（非硬伤）。仅复述题目或明显背稿时封顶 6。
+5. **总分**：5.5 常见 GRA 拖后腿；6.0 常见四项均衡或 Pron/LR 单项突出。反馈：肯定档位 + 点明冲高必改项。
 
 ## 反馈原则
 1. 用中文反馈，涉及英文表达时保留原文
 2. 每个问题说清"为什么"和"怎么改"
 3. 改写建议要地道自然，像母语者说话
 4. 语气温和但专业，像一个好老师/考官
-5. 最终目标：帮学生提分（尤其说清 6→6.5 的卡点）
+5. 最终目标：帮学生提分（尤其说清 6→6.5 的卡点：切题作答 + 时态/动词清理 + 自然语调）
 6. 反馈要具体，不要泛泛而谈
 7. 每个分数必须有数据支撑，不要拍脑袋
 8. 只输出一个合法 JSON 对象，不要 Markdown 或其它说明文字
@@ -1495,6 +1508,7 @@ class P1Practice {
 1. **重复问题**：回答开头是否复述题目大部分内容（Band 4–5 习惯，极不自然）
 2. **背诵/模板痕迹**：过于工整、书面腔、模板开头、缺少即兴口语特征
 3. **中式英语（Chinglish）**：中文直译、母语者难懂、语法未必错但搭配怪
+4. **切题与真实作答**：是否真正回答了题目（而非跑题闲聊）；是否听起来像在“说准备好的内容”而不是根据问题即时反应。跑题时若流利度反而更好，必须点名。
 这些写入 detailed_analysis.naturalness / chinglish_flags，以及顶层 pragmatic_issues。
 
 ## 语法分析要求（重点）
@@ -1502,9 +1516,68 @@ class P1Practice {
 1. **逐句扫描**，找出所有语法错误。注意：ASR 常因停顿误标问号/句号（如 Which? Was a gift. From my parents.）；若语义上可连成 which was a gift from my parents，不要当成多个残缺句，应先回拼再判断
 2. 每个错误必须标注：错误类型、原文、正确形式、中文解释
 3. 错误类型归类：tense / subject_verb_agreement / article / plural / preposition / word_form / sentence_structure / non_finite / subjunctive / comparative / other
-4. 分析句式多样性（简单句/并列句/复合句、复杂结构、均长）
-5. 综合评估：水平、最大短板、最快提分方法
-6. 有错误时 errors 不得为空；评分时区分“偶发小错仍可 6”与“残缺句多只能 ≤5”`;
+4. **优先盯**：时态与问题时间是否一致；情态动词是否犹豫/误用；条件句等复杂结构是否说完整
+5. **GRA5 必查**：假关系从句（He told me that / I remember clearly that / I wish that）；SVO+and 反复连接、缺少 that/which/who/从句；该合并为定语从句却用两句简单句
+6. 分析句式多样性（简单句/并列句/复合句、复杂结构、均长）
+7. 综合评估：水平、最大短板、最快提分方法（5.5→6 优先：真从句+第二条件句+情态动词；6→更高：时态+动词+自然语调）
+8. 有错误时 errors 不得为空；**错误少但结构过于简单仍可能是 GRA5**，不要因“错得少”就给 6`;
+    }
+
+    // 语法结构预检（对齐 Ji Peng Hao / Zhang Xin Yu 等 GRA5 案例）
+    analyzeGrammarStructureSignals(transcript) {
+        const t = String(transcript || '');
+        const sents = t.split(/[.!?]+/).map(s => s.trim()).filter(s => s.length > 4);
+        const fakeRelativePatterns = [
+            [/\b(he|she) told me that\b/i, 'He/She told me that（假关系从句）'],
+            [/\bi remember clearly that\b/i, 'I remember clearly that（假关系从句）'],
+            [/\bi wish that\b/i, 'I wish that（假关系从句）'],
+            [/\bi (think|feel|guess) that\b/i, 'I think/feel that（套话式 that）']
+        ];
+        const fake_relative = [];
+        fakeRelativePatterns.forEach(([re, label]) => {
+            if (re.test(t)) fake_relative.push(label);
+        });
+        const realRelative = (t.match(/\b(which|who|whom|whose)\b/gi) || []).length;
+        const realThatClause = (t.match(/\b(cake|thing|place|person|food|book|movie|city|country|friend|teacher)\s+that\b/gi) || []).length;
+        const subordinators = (t.match(/\b(because|although|while|when|if|unless|since|whereas|even though)\b/gi) || []).length;
+        const secondConditional = /\bif\s+i\s+were\b/i.test(t) || /\bwould\s+\w+/i.test(t);
+        const modals = (t.match(/\b(can|could|would|should|might|must|may)\b/gi) || []).length;
+        const andCount = (t.match(/\band\b/gi) || []).length;
+        const sentCount = Math.max(1, sents.length);
+        const andPerSent = andCount / sentCount;
+        const svo_and_dominant = andCount >= 4 && andPerSent >= 1.0
+            && subordinators + realRelative + realThatClause <= 1
+            && sentCount >= 3;
+        let simple_split = false;
+        let simple_split_example = '';
+        for (let i = 0; i < sents.length - 1; i++) {
+            const a = sents[i];
+            const b = sents[i + 1];
+            const aw = a.split(/\s+/).length;
+            const bw = b.split(/\s+/).length;
+            if (aw <= 9 && bw <= 9 && !/\b(which|who|that)\b/i.test(a)) {
+                if (/\b(it'?s|they|he|she|made|prepared|built|located)\b/i.test(b)
+                    || /\bmade of\b/i.test(b)) {
+                    simple_split = true;
+                    simple_split_example = `${a}. ${b}`;
+                    break;
+                }
+            }
+        }
+        return {
+            fake_relative,
+            fake_relative_count: fake_relative.length,
+            realRelative,
+            realThatClause,
+            subordinators,
+            secondConditional,
+            modals,
+            andCount,
+            sentCount,
+            svo_and_dominant,
+            simple_split,
+            simple_split_example
+        };
     }
 
     // 从腾讯云 ASR（若有词级时间戳）或转录文本提取评分指标
@@ -1706,15 +1779,30 @@ class P1Practice {
             if (re.test(transcript || '')) chinglish.push(label);
         });
 
-        let scoring_hint = '按实际表现评分';
-        if (question_echo && chinglish.length >= 2) {
-            scoring_hint = '复述题目+多处中式表达：FC 可 6 但点名不自然；LR 倾向 5；Pron 默认 6';
+        const grammar_structure = this.analyzeGrammarStructureSignals(transcript);
+        const heavyUmStart = /^(um+|uh+|er+)\b/i.test(String(transcript || '').trim())
+            || (String(transcript || '').match(/\b(um|uh|er)\b/gi) || []).length >= 5;
+
+        let scoring_hint = '按实际表现评分；锚定：6.0 常见 FC/LR/GRA 6（Pron 或 LR 可单项到 7）；5.5 常见 GRA5';
+        if (grammar_structure.svo_and_dominant || grammar_structure.fake_relative_count >= 2) {
+            scoring_hint = 'SVO+and 堆砌或假关系从句：GRA 倾向 5（Zhang/Ji 模考案例）；FC/LR 仍可 6';
+        } else if (grammar_structure.fake_relative_count >= 1 || grammar_structure.simple_split) {
+            scoring_hint = '假关系从句或回避真定语从句：GRA 倾向 5；建议第二条件句+情态动词+that/which/who';
+        } else if (question_echo && chinglish.length >= 2) {
+            scoring_hint = '复述题目+多处中式表达：FC 可 6 但点名不自然；LR 倾向 5；Pron 因复述题目封顶 6';
         } else if (question_echo) {
-            scoring_hint = '开场复述题目：FC 可给 6，但必须指出这是冲 6.5 障碍；Pron 勿虚高到 7';
+            scoring_hint = '开场复述题目：FC 可给 6，但必须指出这是冲 6.5 障碍；Pron 因不自然封顶 6';
         } else if (chinglish.length >= 2) {
-            scoring_hint = '多处疑似中式英语：LR 应给 5';
+            scoring_hint = '多处疑似中式英语：LR 应给 5；Pron 仍可按清晰度给 6–7';
+        } else if (chinglish.length === 0 && !formulaic && (transcript || '').split(/\s+/).length >= 35) {
+            scoring_hint = '搭配较自然、少中式英语：LR 可冲 7（Yi Ru 模考路径），但勿因词多就抬分';
+        } else if (formulaic && formulaic_hits.length >= 3) {
+            scoring_hint = '模板感很强：Pron 倾向 6；反馈要求更自然/即兴、对问题即时反应';
         } else if (formulaic) {
-            scoring_hint = '模板感偏强：Pron 倾向 6，反馈要求更自然/即兴';
+            scoring_hint = '略有模板痕迹：Pron 仍可给 7（若整体清晰自然）；提醒用真实细节与自然语调';
+        }
+        if (heavyUmStart) {
+            scoring_hint += '；大量 um/uh 开场（Yang 模考）：FC 维持 6，难上 7';
         }
 
         return {
@@ -1723,6 +1811,8 @@ class P1Practice {
             formulaic,
             formulaic_hits,
             chinglish,
+            grammar_structure,
+            heavy_um_start: heavyUmStart,
             scoring_hint
         };
     }
@@ -1762,8 +1852,8 @@ class P1Practice {
 重要：
 - FC/LR/GRA/Pron 的 band 必须是 1–9 的整数（禁止 0，禁止 0.5）
 - overall 可以是 0.5 间隔（四项平均后 .25进.5，.75进整）
-- 按真实考官校准打分：少犹豫可给 FC6；复述题目会卡住冲高；中式英语多处→LR5；语法有足够准确结构范围可给6；发音偏模板默认6不要轻易7
-- 语法错误必须列入 errors；残缺句多→GRA≤5，偶发小错且结构够用仍可 GRA6
+- 按真实考官多份模考校准（6.0：Jiang/Yi Ru/Yang；5.5：Ji Peng Hao/Zhang Xin Yu）：GRA5 强信号=假关系从句、SVO+and 堆砌、回避定语从句；LR7=自然搭配+话题精准词；Pron 可 7；um/uh 多 FC 难上 7
+- 语法错误必须列入 errors；错误少但结构过简仍可能是 GRA5；冲 5.5→6 优先：that/which/who、第二条件句、情态动词
 - 禁止照抄示例数字
 
 ## 考试题目
@@ -1777,6 +1867,8 @@ ${m.transcript || transcript}
 - 开场复述题目: ${examSignals.question_echo ? '是（不自然，类似 Band 4 习惯）' : '否'}
 ${examSignals.echo_excerpt ? `  · 疑似复述片段: 「${examSignals.echo_excerpt}」\n` : ''}- 模板/背稿感: ${examSignals.formulaic ? '偏强' : '不明显'}
 ${examSignals.formulaic_hits.length ? `  · 信号: ${examSignals.formulaic_hits.join('；')}\n` : ''}- 疑似中式英语/怪搭配: ${examSignals.chinglish.length ? examSignals.chinglish.join('；') : '未检出'}
+- 语法结构预检: 假关系从句=${examSignals.grammar_structure && examSignals.grammar_structure.fake_relative_count ? examSignals.grammar_structure.fake_relative.join('；') : '无'}；SVO+and 堆砌=${examSignals.grammar_structure && examSignals.grammar_structure.svo_and_dominant ? '是（GRA 倾向 5）' : '否'}；真关系从句(which/who)=${examSignals.grammar_structure ? examSignals.grammar_structure.realRelative : 0}；第二条件句=${examSignals.grammar_structure && examSignals.grammar_structure.secondConditional ? '有' : '无'}
+${examSignals.grammar_structure && examSignals.grammar_structure.simple_split ? `  · 简单句拆分（可合并为定语从句）: 「${examSignals.grammar_structure.simple_split_example}」\n` : ''}- um/uh 偏多: ${examSignals.heavy_um_start ? '是（FC 难上 7）' : '否'}
 - 预检建议: ${examSignals.scoring_hint}
 
 ## 语音量化指标
@@ -1799,22 +1891,28 @@ ${durationIssues}${suspicious}
 ### 1. 四项评分（每项 1–9 整数；禁止 0.5）
 
 **流利度与连贯性 (FC)**：
-- 流利度：语速、长停顿、填充词、重复
-- 连贯性：连接词、逻辑、话题展开
+- 流利度：语速、长停顿、填充词、重复；慢但可 FC6
+- 大量 um/uh 每轮开头、Part2 明显偏短 → FC6 难上 7（Yang Taoyi）
+- 连贯性：连接词、逻辑、话题展开、是否真正答到题目
 - 若开场复述题目：指出不自然；FC 可给 6，但要说明这是冲 6.5 的障碍
+- 若跑题段落比切题段落更流利：点名并保持 FC≤6
 
 **词汇资源 (LR)**：
 - 多样性、搭配、习语、释义
-- 严查中式直译/奇怪搭配；2–3 处难懂表达应给 5
+- 冲 LR7：自然搭配/习语 + 话题精准词贯穿全篇（Yi Ru），不是靠堆高级词
+- 搭配自然、少 Chinglish 可最接近 7（Zhang Xin Yu）；用词顺眼仍常 LR6
+- 严查中式直译/奇怪搭配；2–3 处难懂表达应给 5；词形小错通常仍 LR6
 
 **语法范围与准确性 (GRA)**：
 - 逐句找错并列入 errors（含残缺句）
-- 有足够准确结构多样性且沟通清楚 → 可给 6
-- 残缺句/半截句多、几乎只有简单句 → ≤5
+- **GRA5 强信号**：假关系从句（He told me that / I remember clearly that / I wish that）；大量 SVO+and、几乎无 that/which/who；该用定语从句却两句简单句（Ji Peng Hao）
+- 时态/情态/条件句小错、结构多样且沟通清楚 → 仍可 GRA6
+- 冲 5.5→6：第二条件句、情态动词、真关系从句/嵌入从句
 
 **发音 (P)**：
 - 间接证据 + 是否像背稿/不自然
-- 无明显硬伤但模板感强 → 6；自然才考虑 7
+- 清晰自然可作为强项给 7（对齐真实模考 Pron7）
+- 开场复述题目或明显模板堆砌 → 封顶 6；仅轻微模板痕迹不自动压分
 
 ### 2. 总分
 四项整数平均后，.25进.5，.75进整（总分可以是 x.5）
@@ -1825,13 +1923,13 @@ FC 必须含 naturalness；LR 必须含 chinglish_flags；语法 errors 单独�
 每个维度 justification 请写清：当前为何是这个整数分，以及若想更高最该改什么。
 
 ### 4. 语用问题 pragmatic_issues（必须输出）
-单独汇总：repeats_question / sounds_rehearsed / chinglish_expressions。
+单独汇总：repeats_question / sounds_rehearsed / chinglish_expressions；并检查是否切题、是否像真实作答。
 
 ### 5. 主要问题（最多5个，按影响程度排序）
-优先列入：复述题目、中式英语、残缺句、背稿不自然等考官最常抓的点。
+优先列入：假关系从句、SVO+and 堆砌、答非所问/跑题、复述题目、时态与题干不符、中式英语、背稿不自然等考官最常抓的点。
 
 ### 6. 7分改写版本
-把学生回答改写成7分水平的地道英文口语，保持原意；开场不要复述题目
+把学生回答改写成7分水平的地道英文口语，保持原意；开场不要复述题目；时态与问题时间对齐
 
 ## 输出格式（严格JSON，不要输出其他内容）
 注意：下面 JSON 里的数字只是字段示意；band 填整数；按真实表现评分。
@@ -2205,12 +2303,24 @@ FC 必须含 naturalness；LR 必须含 chinglish_flags；语法 errors 单独�
 
         const qText = (this._evalContext && this._evalContext.q && (this._evalContext.q.q || this._evalContext.q.title)) || '';
         const examSignals = this.buildExaminerSignals(qText, transcript);
+        const gs = examSignals.grammar_structure || {};
+        // GRA5：假关系从句 / SVO+and 堆砌 / 回避定语从句（Ji Peng Hao、Zhang Xin Yu 模考）
+        if (gs.svo_and_dominant || gs.fake_relative_count >= 2) {
+            grammar = Math.min(grammar, 5);
+        } else if (gs.fake_relative_count >= 1 || gs.simple_split) {
+            grammar = Math.min(grammar, 5);
+        } else if (gs.andCount >= 3 && gs.realRelative + gs.realThatClause + gs.subordinators === 0 && gs.sentCount >= 2) {
+            grammar = Math.min(grammar, 5);
+        }
         // 复述题目：不直接打到 4，但封顶 6（考官：OK for 6，但挡更高）
         if (examSignals.question_echo) fluency = Math.min(fluency, 6);
+        // um/uh 偏多：FC 难上 7
+        if (examSignals.heavy_um_start) fluency = Math.min(fluency, 6);
         // 多处中式英语：LR 5（考官明确阈值）
         if (examSignals.chinglish.length >= 2) vocabulary = Math.min(vocabulary, 5);
-        // 模板/背稿感：发音默认不超过 6
-        if (examSignals.formulaic || examSignals.question_echo) pronunciation = Math.min(pronunciation, 6);
+        // 模板/背稿感：仅复述题目或模板信号很强时压 Pron；轻微模板不阻止 Pron7
+        const heavyFormulaic = examSignals.formulaic && (examSignals.formulaic_hits || []).length >= 3;
+        if (examSignals.question_echo || heavyFormulaic) pronunciation = Math.min(pronunciation, 6);
 
         const capped = this.clampScoresForShortAnswer(transcript, {
             fluency, vocabulary, grammar, pronunciation
@@ -3159,7 +3269,7 @@ FC 必须含 naturalness；LR 必须含 chinglish_flags；语法 errors 单独�
                 <div class="score-item"><div class="score-label">Pron</div><div class="score-value ${getBandClass(p.pronunciation)}">${p.pronunciation}</div></div>
             </div>
             <div class="band-note" style="margin-top:12px;padding:12px;background:#e7efe9;border-radius:4px;font-size:14px;color:#243029;">
-                <strong>评分说明：</strong>FC/LR/GRA/Pron 为 1–9 整数；总分可 x.5。已按真实考官习惯校准：少犹豫可 FC6，复述题目会卡住冲高；中式英语多处→LR5；语法结构够用可给6；发音偏模板默认6。语法错误单独列表。
+                <strong>评分说明：</strong>FC/LR/GRA/Pron 为 1–9 整数；总分可 x.5。已按多份考官模考校准：5.5 常见 GRA5（假关系从句、SVO+and 堆砌）；6.0 常见四项 6，Pron 或 LR 可单项到 7。语法错误单独列表。
             </div>
             <div class="feedback-section" style="margin-top:14px;">
                 <h4>📌 为什么是这个分数</h4>
@@ -3588,7 +3698,7 @@ FC 必须含 naturalness；LR 必须含 chinglish_flags；语法 errors 单独�
         };
     }
 
-    // 发音兜底：无明显硬伤默认 6（考官校准：弱项也常是 6，勿虚高 7）
+    // 发音兜底：无明显硬伤默认 6；清晰自然时 AI 可给 7（模考锚定 Pron7）
     estimatePronunciationScore(transcript) {
         const t = (transcript || '').trim();
         if (!t) return 3;
@@ -3625,20 +3735,55 @@ FC 必须含 naturalness；LR 必须含 chinglish_flags；语法 errors 单独�
                 rank: list.length + 1,
                 category: 'vocabulary',
                 issue: '出现疑似中式英语或怪搭配：' + examSignals.chinglish.slice(0, 3).join('；'),
-                why_it_matters: '考官反馈：此类表达一旦有 2–3 处，词汇分会掉到 5；一段难懂的话也会拉低印象。',
+                why_it_matters: '考官反馈：2–3 处难懂表达词汇会掉到 5；搭配自然、少 Chinglish 才最接近 LR7（Zhang Xin Yu）。',
                 how_to_fix: '先想地道英文搭配，不要从中文逐字翻译；说不清就换简单但准确的词。',
                 example: '不要 “honest food”；改说 “homemade / fresh / authentic food”。'
             });
         }
-        if ((examSignals.formulaic || examSignals.question_echo) && !hasTopic(/背稿|模板|不自然|over-prepared|套话/i)) {
+        const gs = examSignals.grammar_structure || {};
+        if (gs.fake_relative_count >= 1 && !hasTopic(/假关系|fake relative|told me that|remember clearly/i)) {
             push({
                 rank: list.length + 1,
-                category: 'pronunciation',
-                issue: '回答听起来偏模板/准备过，缺少临场思考感',
-                why_it_matters: '考官把这视为冲 6.5–7 的关键障碍：即使音素尚可，不自然也会让发音项停在 6。',
-                how_to_fix: 'Part 1 也要练即兴：答完后让人追问细节，避免堆模板句。',
-                example: '少用整段套句；用自己真实细节把句子说短、说自然。'
+                category: 'grammar',
+                issue: '使用假关系从句套话：' + gs.fake_relative.slice(0, 2).join('；'),
+                why_it_matters: '考官会识破 He told me that / I remember clearly that 等“装复杂”的写法，仍按 Band5 语法处理（Ji Peng Hao 模考 GRA5）。',
+                how_to_fix: '改用真关系从句（which/who/that 修饰名词）或第二条件句、情态动词展示语法范围。',
+                example: '不说 “I remember clearly that it was nice”；改说 “The cake, which was made of ice cream, was amazing.”'
             });
+        }
+        if (gs.svo_and_dominant && !hasTopic(/SVO|and 连接|简单句堆砌/i)) {
+            push({
+                rank: list.length + 1,
+                category: 'grammar',
+                issue: '大量 SVO 句用 and 连接，缺少 that/which/who 等从句',
+                why_it_matters: '错误少不代表语法好：几乎全是 and 连接简单句会被判 GRA5（Zhang Xin Yu 模考）。',
+                how_to_fix: '每 2–3 句至少加入一个 that/which/who 从句，或第二条件句（If I were…, I would…）。',
+                example: '“I like it and it is fun and I go there and…” → “I like it because it’s relaxing, which is why I go there often.”'
+            });
+        }
+        if (gs.simple_split && gs.simple_split_example && !hasTopic(/定语从句|两句简单句/i)) {
+            push({
+                rank: list.length + 1,
+                category: 'grammar',
+                issue: '本可合并为定语从句，却拆成两句简单句',
+                why_it_matters: 'Part2 有机会展示复杂结构时只用简单句，会被视为典型 Band5 语法（Ji Peng Hao）。',
+                how_to_fix: '把后句改成 which/that 定语从句接在前句名词后。',
+                example: gs.simple_split_example + ' → 合并为 “…a cake which was made of ice cream.”'
+            });
+        }
+        if ((examSignals.formulaic && (examSignals.formulaic_hits || []).length >= 3) || examSignals.question_echo) {
+            if (!hasTopic(/背稿|模板|不自然|over-prepared|套话|复述题目/i)) {
+                push({
+                    rank: list.length + 1,
+                    category: 'pronunciation',
+                    issue: examSignals.question_echo
+                        ? '开场复述题目，听起来不自然'
+                        : '回答听起来偏模板/准备过，缺少临场思考感',
+                    why_it_matters: '考官：发音可以是强项到 7；但复述题目或明显背稿会把自然度压回 6，并挡住冲高。',
+                    how_to_fix: '不准备稿子也能答：仔细听/读题，用真实细节即兴说；用轻微语调起伏把较长信息串起来。',
+                    example: '少用整段套句；答完让人追问细节，练自然反应。'
+                });
+            }
         }
         // 重新编号
         return list.slice(0, 5).map((p, i) => ({ ...p, rank: i + 1 }));

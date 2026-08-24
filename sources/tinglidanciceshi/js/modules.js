@@ -438,7 +438,7 @@ var MODULES = [
     { id: 'listening_p4', name: '听力P4', target_type: 'dynamic', targets: { 6: 4, 6.5: 6, 7: 7 }, unit: '个', url: '', icon: 'headphones' },
     
     // 四、雅思单项目标分数
-    { id: 'speaking', name: '口语练习', target_type: 'dynamic', targets: { 6: 5.5, 6.5: 6, 7: 6.5 }, unit: '分', url: '/kouyulianxi/index.html?build=20260822d', test_url: '/kouyulianxi/index.html', icon: 'message' },
+    { id: 'speaking', name: '口语练习', target_type: 'dynamic', targets: { 6: 5.5, 6.5: 6, 7: 6.5 }, unit: '分', url: '/kouyulianxi/index.html?build=20260824b', test_url: '/kouyulianxi/index.html', icon: 'message' },
     { id: 'writing_essay', name: '写作大作文', target_type: 'dynamic', targets: { 6: 5.5, 6.5: 6, 7: 6.5 }, unit: '分', url: '', icon: 'edit' },
     { id: 'writing_small', name: '写作小作文', target_type: 'dynamic', targets: { 6: 5.5, 6.5: 6, 7: 6.5 }, unit: '分', url: '', icon: 'edit' }
 ];

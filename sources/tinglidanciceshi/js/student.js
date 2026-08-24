@@ -1765,7 +1765,7 @@ function openGenericIframe(moduleId, moduleName, url, mode) {
         module_name: moduleName,
         mode: finalMode,
         // 避免浏览器强缓存旧测试页（P4 音频路径修复）
-        v: '20260822d'
+        v: '20260824b'
     });
     showScreen('genericScreen');
     document.getElementById('genericScreenTitle').textContent = moduleName + (finalMode === 'test' ? '测试' : '学习');
