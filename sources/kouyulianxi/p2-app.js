@@ -158,7 +158,7 @@ class P2Practice {
             }
             const frame = document.getElementById('p1ComplexFrame');
             if (frame && !this._complexFrameLoaded) {
-                frame.src = 'complex-sentences.html?v=20260822f';
+                frame.src = 'complex-sentences.html?v=20260824c';
                 this._complexFrameLoaded = true;
             }
         }
