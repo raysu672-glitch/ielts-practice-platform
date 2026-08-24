@@ -290,6 +290,140 @@
             cursor: pointer;
         }
         .student-name-link:hover { color: var(--brand-deep); }
+        .active-range-bar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+        .active-range-btn {
+            border: 1px solid var(--border);
+            background: #fff;
+            color: var(--text-secondary);
+            border-radius: 999px;
+            padding: 6px 14px;
+            cursor: pointer;
+            font-size: .88rem;
+        }
+        .active-range-btn.is-on {
+            background: var(--brand);
+            border-color: var(--brand);
+            color: #fff;
+            font-weight: 700;
+        }
+        .active-calendar-wrap {
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+        }
+        .active-calendar-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .active-calendar-icon {
+            width: 14px;
+            height: 14px;
+            fill: none;
+            stroke: currentColor;
+            stroke-width: 2;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+            pointer-events: none;
+        }
+        .active-calendar-panel {
+            display: none;
+            position: absolute;
+            top: calc(100% + 8px);
+            left: 0;
+            z-index: 40;
+            min-width: 268px;
+            padding: 14px;
+            background: #fff;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            box-shadow: 0 10px 28px rgba(20, 24, 50, .14);
+        }
+        .active-calendar-wrap.is-open .active-calendar-panel { display: block; }
+        .active-calendar-presets {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+        .active-cal-nav {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 8px;
+        }
+        .active-cal-nav-btn {
+            width: 28px;
+            height: 28px;
+            border: 1px solid var(--border);
+            background: #fff;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1rem;
+            line-height: 1;
+        }
+        .active-cal-nav-btn:disabled {
+            opacity: .35;
+            cursor: default;
+        }
+        .active-cal-weekdays,
+        .active-cal-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 2px;
+            text-align: center;
+        }
+        .active-cal-weekdays {
+            margin-bottom: 4px;
+            color: #888;
+            font-size: .75rem;
+        }
+        .active-cal-day {
+            height: 32px;
+            border: 0;
+            background: transparent;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: .85rem;
+        }
+        .active-cal-day.is-empty {
+            visibility: hidden;
+        }
+        .active-cal-day.is-today { font-weight: 700; }
+        .active-cal-day.is-in { background: var(--brand-light); }
+        .active-cal-day.is-bound,
+        .active-cal-day.is-pending {
+            background: var(--brand);
+            color: #fff;
+            font-weight: 700;
+        }
+        .active-cal-day.is-future {
+            opacity: .35;
+            cursor: not-allowed;
+        }
+        .active-cal-hint {
+            margin: 8px 0 10px;
+            color: #888;
+            font-size: .8rem;
+            text-align: center;
+        }
+        .active-calendar-apply { width: 100%; }
+        .active-range-summary {
+            margin-bottom: 14px;
+            color: #555;
+            font-size: .92rem;
+        }
+        .active-sort-th {
+            cursor: pointer;
+            user-select: none;
+            white-space: nowrap;
+        }
+        .active-zero-row td { color: #999; }
 
         .records-table-wrap {
             width: 100%;

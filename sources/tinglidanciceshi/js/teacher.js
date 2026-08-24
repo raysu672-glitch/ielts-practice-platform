@@ -422,6 +422,307 @@ var _progressColumnFilters = {
     status: ''
 };
 var _cachedProgressRows = [];
+var _teacherOverviewCache = null;
+var _activeStudentState = {
+    preset: 'today',
+    day: '',
+    start: '',
+    end: '',
+    sortDir: 'desc'
+};
+var _activeCalendarOpen = false;
+var _activeCalendarPick = { viewYm: '', start: '', end: '' };
+
+function padCal(n) {
+    return n < 10 ? '0' + n : String(n);
+}
+
+function shiftCalendarYm(ym, delta) {
+    var parts = String(ym || '').split('-');
+    var y = Number(parts[0]);
+    var m = Number(parts[1]) + Number(delta || 0);
+    if (!y || !m && m !== 0) return ym;
+    while (m < 1) { m += 12; y -= 1; }
+    while (m > 12) { m -= 12; y += 1; }
+    return y + '-' + padCal(m);
+}
+
+function formatChinaDateTime(iso) {
+    if (!iso) return '-';
+    var d = new Date(iso);
+    if (isNaN(d.getTime())) return '-';
+    return d.toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai', hour12: false });
+}
+
+function activeRangeLabel(range) {
+    if (!range || !range.startYmd) return '';
+    if (range.startYmd === range.endYmd) return range.startYmd;
+    return range.startYmd + ' ～ ' + range.endYmd;
+}
+
+function setActiveStudentRange(preset) {
+    _activeStudentState.preset = preset || 'today';
+    _activeStudentState.day = '';
+    _activeStudentState.start = '';
+    _activeStudentState.end = '';
+    _activeCalendarOpen = false;
+    renderActiveStudents();
+}
+
+function formatPickedDayLabel(ymd) {
+    var parts = String(ymd || '').split('-');
+    if (parts.length !== 3) return '';
+    var y = Number(parts[0]);
+    var m = Number(parts[1]);
+    var d = Number(parts[2]);
+    if (!y || !m || !d) return '';
+    var thisYear = Number(String((window.TrackingUtils && window.TrackingUtils.getChinaYmd()) || '').slice(0, 4));
+    if (thisYear && y === thisYear) return m + '月' + d + '日';
+    return y + '年' + m + '月' + d + '日';
+}
+
+function formatCalendarButtonLabel(preset, range) {
+    if (preset === 'week') return '本周';
+    if (preset === 'month') return '本月';
+    if (!range || !range.startYmd) return '日历';
+    if (preset === 'range' || preset === 'day') {
+        if (range.startYmd === range.endYmd) return formatPickedDayLabel(range.startYmd) || '日历';
+        return (formatPickedDayLabel(range.startYmd) || range.startYmd) + ' ～ ' + (formatPickedDayLabel(range.endYmd) || range.endYmd);
+    }
+    return '日历';
+}
+
+function toggleActiveCalendar(ev) {
+    if (ev) {
+        ev.preventDefault();
+        ev.stopPropagation();
+    }
+    _activeCalendarOpen = !_activeCalendarOpen;
+    if (_activeCalendarOpen) {
+        var today = window.TrackingUtils.getChinaYmd();
+        var range = window.TrackingUtils.resolveActiveRange(
+            _activeStudentState.preset,
+            _activeStudentState.day,
+            today,
+            _activeStudentState.start,
+            _activeStudentState.end
+        );
+        var anchor = range.endYmd && range.endYmd <= today ? range.endYmd : today;
+        _activeCalendarPick.viewYm = String(anchor).slice(0, 7);
+        _activeCalendarPick.start = range.startYmd || '';
+        _activeCalendarPick.end = range.endYmd || '';
+    }
+    renderActiveStudents();
+}
+
+function shiftActiveCalendarMonth(delta) {
+    var todayYm = window.TrackingUtils.getChinaYmd().slice(0, 7);
+    var next = shiftCalendarYm(_activeCalendarPick.viewYm || todayYm, delta);
+    if (next > todayYm) return;
+    _activeCalendarPick.viewYm = next;
+    _activeCalendarOpen = true;
+    renderActiveStudents();
+}
+
+function pickActiveCalendarDay(ymd) {
+    var today = window.TrackingUtils.getChinaYmd();
+    if (!ymd || ymd > today) return;
+    if (!_activeCalendarPick.start || _activeCalendarPick.end) {
+        _activeCalendarPick.start = ymd;
+        _activeCalendarPick.end = '';
+        _activeCalendarOpen = true;
+        renderActiveStudents();
+        return;
+    }
+    var start = _activeCalendarPick.start;
+    var end = ymd;
+    if (start > end) {
+        var swap = start;
+        start = end;
+        end = swap;
+    }
+    applyPickedActiveRange(start, end);
+}
+
+function applyPickedActiveRange(start, end) {
+    if (!start && !end) {
+        showToast('请先在日历上点开始和结束日期', 'error');
+        return;
+    }
+    if (!start) start = end;
+    if (!end) end = start;
+    if (start > end) {
+        var swap = start;
+        start = end;
+        end = swap;
+    }
+    _activeStudentState.preset = start === end ? 'day' : 'range';
+    _activeStudentState.day = start === end ? start : '';
+    _activeStudentState.start = start;
+    _activeStudentState.end = end;
+    _activeCalendarPick.start = start;
+    _activeCalendarPick.end = end;
+    _activeCalendarOpen = false;
+    renderActiveStudents();
+}
+
+function applyActiveCalendarRange() {
+    applyPickedActiveRange(_activeCalendarPick.start, _activeCalendarPick.end || _activeCalendarPick.start);
+}
+
+function buildActiveCalendarGridHtml(viewYm, start, end, today) {
+    var parts = String(viewYm || today).split('-');
+    var y = Number(parts[0]);
+    var m = Number(parts[1]);
+    if (!y || !m) return '';
+    var todayYm = String(today).slice(0, 7);
+    var firstWeekday = new Date(Date.UTC(y, m - 1, 1)).getUTCDay();
+    var mondayPad = (firstWeekday + 6) % 7;
+    var lastDate = new Date(Date.UTC(y, m, 0)).getUTCDate();
+    var pending = start && !end;
+    var html = '<div class="active-cal-nav">';
+    html += '<button type="button" class="active-cal-nav-btn" onclick="shiftActiveCalendarMonth(-1)">‹</button>';
+    html += '<strong>' + y + '年' + m + '月</strong>';
+    html += '<button type="button" class="active-cal-nav-btn"' + (viewYm >= todayYm ? ' disabled' : '') + ' onclick="shiftActiveCalendarMonth(1)">›</button>';
+    html += '</div>';
+    html += '<div class="active-cal-weekdays"><span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span><span>日</span></div>';
+    html += '<div class="active-cal-grid">';
+    var i;
+    for (i = 0; i < mondayPad; i++) html += '<span class="active-cal-day is-empty"></span>';
+    for (var d = 1; d <= lastDate; d++) {
+        var ymd = y + '-' + padCal(m) + '-' + padCal(d);
+        var cls = 'active-cal-day';
+        var future = ymd > today;
+        if (future) cls += ' is-future';
+        if (ymd === today) cls += ' is-today';
+        if (start && ymd === start) cls += ' is-bound';
+        if (end && ymd === end) cls += ' is-bound';
+        if (start && end && ymd > start && ymd < end) cls += ' is-in';
+        if (pending && ymd === start) cls += ' is-pending';
+        html += '<button type="button" class="' + cls + '"' + (future ? ' disabled' : '') + ' onclick="pickActiveCalendarDay(\'' + ymd + '\')">' + d + '</button>';
+    }
+    html += '</div>';
+    html += '<div class="active-cal-hint">' + (pending ? '再点一个日期作为结束' : '先点开始日期，再点结束日期') + '</div>';
+    return html;
+}
+
+function applyActiveCalendarPreset(preset) {
+    var today = window.TrackingUtils.getChinaYmd();
+    var range = window.TrackingUtils.resolveActiveRange(preset, '', today);
+    _activeStudentState.preset = preset;
+    _activeStudentState.day = '';
+    _activeStudentState.start = range.startYmd;
+    _activeStudentState.end = range.endYmd;
+    _activeCalendarOpen = false;
+    renderActiveStudents();
+}
+
+function toggleActiveStudentSort() {
+    _activeStudentState.sortDir = _activeStudentState.sortDir === 'desc' ? 'asc' : 'desc';
+    renderActiveStudents();
+}
+
+async function loadActiveStudents() {
+    const container = document.getElementById('activeStudentsList');
+    if (!container) return;
+    container.innerHTML = '<p style="text-align:center;color:#666;padding:40px;">加载中...</p>';
+    try {
+        const overviewResult = await teacherApiGet('/api/teacher/overview');
+        if (overviewResult.error) throw new Error((overviewResult.error && overviewResult.error.message) || '加载失败');
+        _teacherOverviewCache = {
+            students: (overviewResult.data && overviewResult.data.students) || [],
+            test_records: (overviewResult.data && overviewResult.data.test_records) || [],
+            study_sessions: (overviewResult.data && overviewResult.data.study_sessions) || []
+        };
+        _teacherStudents = _teacherOverviewCache.students;
+        renderActiveStudents();
+    } catch (e) {
+        console.error('加载活跃学生失败:', e);
+        container.innerHTML = '<p style="text-align:center;color:#c0392b;padding:40px;">加载失败，请稍后重试</p>';
+        showToast('加载活跃学生失败', 'error');
+    }
+}
+
+function renderActiveStudents() {
+    const container = document.getElementById('activeStudentsList');
+    if (!container) return;
+    const cache = _teacherOverviewCache || { students: [], test_records: [], study_sessions: [] };
+    const utils = window.TrackingUtils;
+    const today = utils.getChinaYmd();
+    const range = utils.resolveActiveRange(
+        _activeStudentState.preset,
+        _activeStudentState.day,
+        today,
+        _activeStudentState.start,
+        _activeStudentState.end
+    );
+    const rows = utils.buildActiveStudentRows(cache.students, cache.study_sessions, cache.test_records, {
+        startYmd: range.startYmd,
+        endYmd: range.endYmd,
+        sortDir: _activeStudentState.sortDir
+    });
+    const totalSeconds = rows.reduce(function(sum, row) { return sum + row.seconds; }, 0);
+    const practicedCount = rows.filter(function(row) { return row.seconds > 0; }).length;
+    const preset = _activeStudentState.preset;
+
+    function chip(id, label) {
+        const on = preset === id ? ' is-on' : '';
+        return '<button type="button" class="active-range-btn' + on + '" onclick="setActiveStudentRange(\'' + id + '\')">' + label + '</button>';
+    }
+
+    let html = '<div class="active-range-bar">';
+    html += chip('today', '今天');
+    html += chip('yesterday', '昨天');
+    var calOn = (preset === 'week' || preset === 'month' || preset === 'range' || preset === 'day') ? ' is-on' : '';
+    var calOpen = _activeCalendarOpen ? ' is-open' : '';
+    html += '<span class="active-calendar-wrap' + calOpen + '" id="activeCalendarWrap">';
+    html += '<button type="button" class="active-range-btn active-calendar-btn' + calOn + '" onclick="toggleActiveCalendar(event)">';
+    html += '<svg class="active-calendar-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"></rect><path d="M8 3v4M16 3v4M3 10h18"></path></svg>';
+    html += escapeHtml(formatCalendarButtonLabel(preset, range)) + '</button>';
+    html += '<div class="active-calendar-panel" onclick="event.stopPropagation()">';
+    html += '<div class="active-calendar-presets">';
+    html += '<button type="button" class="active-range-btn' + (preset === 'week' ? ' is-on' : '') + '" onclick="applyActiveCalendarPreset(\'week\')">本周</button>';
+    html += '<button type="button" class="active-range-btn' + (preset === 'month' ? ' is-on' : '') + '" onclick="applyActiveCalendarPreset(\'month\')">本月</button>';
+    html += '</div>';
+    html += buildActiveCalendarGridHtml(
+        _activeCalendarPick.viewYm || String(range.endYmd || today).slice(0, 7),
+        _activeCalendarPick.start || range.startYmd,
+        _activeCalendarPick.end,
+        today
+    );
+    html += '<button type="button" class="btn btn-sm active-calendar-apply" onclick="applyActiveCalendarRange()">查看这段时间</button>';
+    html += '</div></span>';
+    html += '<button type="button" class="btn btn-sm btn-secondary" onclick="loadActiveStudents()">刷新</button>';
+    html += '</div>';
+    html += '<div class="active-range-summary">所选时段 <strong>' + escapeHtml(activeRangeLabel(range)) + '</strong>：共 <strong>' + rows.length + '</strong> 名学生，其中 <strong>' + practicedCount + '</strong> 人有练习，合计 <strong>' + escapeHtml(formatDuration(totalSeconds)) + '</strong></div>';
+
+    if (rows.length === 0) {
+        html += '<p style="text-align:center;color:#666;padding:28px;background:#f8f9fa;border-radius:10px;">暂无学生</p>';
+        container.innerHTML = html;
+        return;
+    }
+
+    const sortMark = _activeStudentState.sortDir === 'desc' ? '▼' : '▲';
+    html += '<div class="records-table-wrap"><table class="records-table"><thead>';
+    html += '<tr class="records-header-row">';
+    html += '<th>学号</th><th>姓名</th>';
+    html += '<th class="active-sort-th" onclick="toggleActiveStudentSort()">练习时长 ' + sortMark + '</th>';
+    html += '<th>练习次数</th><th>最后练习</th>';
+    html += '</tr></thead><tbody>';
+    for (let i = 0; i < rows.length; i++) {
+        const row = rows[i];
+        html += '<tr' + (row.seconds > 0 ? '' : ' class="active-zero-row"') + '>';
+        html += '<td>' + escapeHtml(row.student_id) + '</td>';
+        html += '<td>' + studentNameLinkHtml(row.student_id, row.student_name) + '</td>';
+        html += '<td class="numeric-cell">' + escapeHtml(row.seconds > 0 ? formatDuration(row.seconds) : '0秒') + '</td>';
+        html += '<td class="numeric-cell">' + row.count + '</td>';
+        html += '<td>' + escapeHtml(formatChinaDateTime(row.latest)) + '</td>';
+        html += '</tr>';
+    }
+    html += '</tbody></table></div>';
+    html += '<p style="margin-top:10px;color:#888;font-size:0.85rem;">点击「练习时长」可切换从长到短 / 从短到长。时长口径与学习进度一致（含学习与测试）。</p>';
+    container.innerHTML = html;
+}
 
 async function loadTeacherProgressData() {
     const container = document.getElementById('teacherStudentProgress');
@@ -448,7 +749,8 @@ function buildProgressRows(students, allRecords, allStudySessions) {
     for (let i = 0; i < students.length; i++) {
         const s = students[i];
         const studentRecordsAll = (allRecords || []).filter(function(r) { return r.student_id === s.student_id; });
-        const studentSessionsAll = getStudySessions(allStudySessions).filter(function(r) { return r.student_id === s.student_id; });
+        const studentSessionsRaw = (allStudySessions || []).filter(function(r) { return r.student_id === s.student_id; });
+        const studentSessionsAll = getStudySessions(studentSessionsRaw);
         for (let j = 0; j < modules.length; j++) {
             const module = modules[j];
             const studentRecords = getModuleRecords(studentRecordsAll, module.id);
@@ -457,8 +759,11 @@ function buildProgressRows(students, allRecords, allStudySessions) {
             const bestScore = getBestScore(studentRecords);
             const passCount = getPassCount(studentRecords);
             const passRate = studentRecords.length > 0 ? Math.round(passCount / studentRecords.length * 100) : 0;
-            const totalSeconds = window.TrackingUtils.sumDuration(studentSessions);
-            const todaySeconds = studentSessions.filter(function(r) { return getChinaDateKey(r.created_at) === todayKey; }).reduce(function(sum, r) { return sum + (Number(r.duration_seconds) || 0); }, 0);
+            const totalSeconds = window.TrackingUtils.sumPracticeSeconds(studentSessionsRaw, studentRecordsAll, { moduleId: module.id });
+            const todaySeconds = window.TrackingUtils.sumPracticeSeconds(studentSessionsRaw, studentRecordsAll, {
+                moduleId: module.id,
+                createdAt: function(iso) { return getChinaDateKey(iso) === todayKey; }
+            });
             const practicedCount = module.id === 'speaking' ? getSpeakingPracticedCount(studentSessions) : 0;
             const speakingTotalQ = module.id === 'speaking' ? getSpeakingTotalQuestions(studentSessions) : 0;
             let status = 'not_started';
@@ -621,7 +926,7 @@ function renderTeacherProgressSummary() {
     html += '<th><select class="records-filter-control" onchange="setProgressColumnFilter(\'todayDurationRange\',this.value)">' + todayDurationOptions + '</select></th>';
     html += '<th><select class="records-filter-control" onchange="setProgressColumnFilter(\'status\',this.value)"><option value="">全部</option><option value="passed"' + (_progressColumnFilters.status === 'passed' ? ' selected' : '') + '>已达标</option><option value="in_progress"' + (_progressColumnFilters.status === 'in_progress' ? ' selected' : '') + '>进行中</option><option value="not_started"' + (_progressColumnFilters.status === 'not_started' ? ' selected' : '') + '>未开始</option></select></th>';
     html += '</tr>';
-    html += '<tr class="records-header-row"><th>学号</th><th>姓名</th><th>模块</th><th>达标线</th><th>最高分</th><th>测试次数</th><th>达标次数</th><th>达标率</th><th>模块学习时长</th><th>今日学习时长</th><th>状态</th></tr></thead><tbody>';
+    html += '<tr class="records-header-row"><th>学号</th><th>姓名</th><th>模块</th><th>达标线</th><th>最高分</th><th>测试次数</th><th>达标次数</th><th>达标率</th><th>模块练习时长</th><th>今日练习时长</th><th>状态</th></tr></thead><tbody>';
 
     for (let i = 0; i < filteredRows.length; i++) {
         const row = filteredRows[i];
@@ -667,12 +972,13 @@ async function showStudentDetailProgress(studentId, studentName, filterModuleId)
     }
     const records = (detailResult.data && detailResult.data.test_records) || [];
     const wrongCount = ((detailResult.data && detailResult.data.wrong_words) || []).length;
-    const allSessions = getStudySessions((detailResult.data && detailResult.data.study_sessions) || []);
+    const rawSessions = (detailResult.data && detailResult.data.study_sessions) || [];
+    const allSessions = getStudySessions(rawSessions);
     const selectedRecords = filterModuleId ? getModuleRecords(records, filterModuleId) : records;
     const selectedSessions = filterModuleId ? getModuleStudySessions(allSessions, filterModuleId) : allSessions;
     const selectedBestScore = getBestScore(selectedRecords);
     const selectedPassCount = getPassCount(selectedRecords);
-    const selectedSeconds = window.TrackingUtils.sumDuration(selectedSessions);
+    const selectedSeconds = window.TrackingUtils.sumPracticeSeconds(rawSessions, records, filterModuleId ? { moduleId: filterModuleId } : {});
 
     let html = '<div style="margin-bottom:20px;">';
     html += '<button class="btn btn-sm btn-secondary" onclick="loadTeacherProgressData()"> 返回汇总</button>';
@@ -686,7 +992,7 @@ async function showStudentDetailProgress(studentId, studentName, filterModuleId)
     html += '<div style="margin-bottom:15px; padding:15px; background:linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius:10px; color:white;">';
     html += '<div style="display:grid; grid-template-columns:repeat(4, 1fr); gap:16px; text-align:center;">';
     const selectedPracticed = filterModuleId === 'speaking' ? getSpeakingPracticedCount(selectedSessions) : null;
-    html += '<div><div style="font-size:1.3rem; font-weight:bold;">' + formatDuration(selectedSeconds) + '</div><div style="font-size:0.85rem; opacity:0.9;">' + (filterModuleId ? '本模块学习时长' : '全部学习时长') + '</div></div>';
+    html += '<div><div style="font-size:1.3rem; font-weight:bold;">' + formatDuration(selectedSeconds) + '</div><div style="font-size:0.85rem; opacity:0.9;">' + (filterModuleId ? '本模块练习时长' : '全部练习时长') + '</div></div>';
     if (selectedPracticed != null) {
         html += '<div><div style="font-size:1.3rem; font-weight:bold;">' + selectedPracticed + '</div><div style="font-size:0.85rem; opacity:0.9;">已练题目</div></div>';
     } else {
@@ -708,7 +1014,7 @@ async function showStudentDetailProgress(studentId, studentName, filterModuleId)
     html += '<th style="padding:12px; text-align:center; border-bottom:2px solid #dee2e6;">测试次数</th>';
     html += '<th style="padding:12px; text-align:center; border-bottom:2px solid #dee2e6;">达标次数</th>';
     html += '<th style="padding:12px; text-align:center; border-bottom:2px solid #dee2e6;">状态</th>';
-    html += '<th style="padding:12px; text-align:center; border-bottom:2px solid #dee2e6;">学习时长</th>';
+    html += '<th style="padding:12px; text-align:center; border-bottom:2px solid #dee2e6;">练习时长</th>';
     html += '</tr></thead><tbody>';
 
     // 教师详情与学生端一致：只展示已开放模块，其余先隐藏
@@ -717,10 +1023,9 @@ async function showStudentDetailProgress(studentId, studentName, filterModuleId)
         const m = availableModules[i];
         const moduleTarget = getModuleTargetForScore(m, studentTargetScore);
         const moduleRecords = getModuleRecords(records, m.id);
-        const moduleSessions = getModuleStudySessions(allSessions, m.id);
         const bestScore = getBestScore(moduleRecords);
         const passCount = getPassCount(moduleRecords);
-        const moduleTotalSeconds = window.TrackingUtils.sumDuration(moduleSessions);
+        const moduleTotalSeconds = window.TrackingUtils.sumPracticeSeconds(rawSessions, records, { moduleId: m.id });
         const progressPercent = bestScore > 0 ? Math.min(100, Math.round((bestScore / moduleTarget) * 100)) : 0;
         let statusClass = 'badge-info';
         let statusText = '未开始';
@@ -754,16 +1059,16 @@ async function showStudentDetailProgress(studentId, studentName, filterModuleId)
 
     html += '</tbody></table>';
 
-    const dailyRows = buildDailyStudyRows(allSessions, filterModuleId).slice(0, 14);
-    html += '<div style="margin-top:25px;"><h4 style="margin-bottom:12px;">每日学习时长</h4>';
+    const dailyRows = buildDailyPracticeRows(rawSessions, records, filterModuleId).slice(0, 14);
+    html += '<div style="margin-top:25px;"><h4 style="margin-bottom:12px;">每日练习时长</h4>';
     if (dailyRows.length === 0) {
-        html += '<p style="color:#666; padding:12px; background:#f8f9fa; border-radius:8px;">暂无学习时长记录</p>';
+        html += '<p style="color:#666; padding:12px; background:#f8f9fa; border-radius:8px;">暂无练习时长记录</p>';
     } else {
         html += '<table style="width:100%; border-collapse:collapse;"><thead><tr style="background:#f8f9fa;">';
         if (filterModuleId) {
-            html += '<th style="padding:10px; text-align:left;">日期</th><th style="padding:10px; text-align:center;">' + moduleName + '</th><th style="padding:10px; text-align:center;">当天总时长</th><th style="padding:10px; text-align:center;">当天学习次数</th>';
+            html += '<th style="padding:10px; text-align:left;">日期</th><th style="padding:10px; text-align:center;">' + moduleName + '</th><th style="padding:10px; text-align:center;">当天总时长</th><th style="padding:10px; text-align:center;">当天练习次数</th>';
         } else {
-            html += '<th style="padding:10px; text-align:left;">日期</th><th style="padding:10px; text-align:center;">当天总时长</th><th style="padding:10px; text-align:center;">当天学习次数</th>';
+            html += '<th style="padding:10px; text-align:left;">日期</th><th style="padding:10px; text-align:center;">当天总时长</th><th style="padding:10px; text-align:center;">当天练习次数</th>';
         }
         html += '</tr></thead><tbody>';
         for (let j = 0; j < dailyRows.length; j++) {
@@ -781,7 +1086,7 @@ async function showStudentDetailProgress(studentId, studentName, filterModuleId)
     html += '<div><div style="font-size:1.5rem; font-weight:bold; color:#667eea;">' + records.length + '</div><div style="color:#666; font-size:0.9rem;">全部测试次数</div></div>';
     html += '<div><div style="font-size:1.5rem; font-weight:bold; color:#28a745;">' + selectedPassCount + '</div><div style="color:#666; font-size:0.9rem;">' + (filterModuleId ? '本模块达标次数' : '达标次数') + '</div></div>';
     html += '<div><div style="font-size:1.5rem; font-weight:bold; color:#11998e;">' + (selectedRecords.length > 0 ? Math.round(selectedPassCount / selectedRecords.length * 100) : 0) + '%</div><div style="color:#666; font-size:0.9rem;">' + (filterModuleId ? '本模块达标率' : '总达标率') + '</div></div>';
-    html += '<div><div style="font-size:1.5rem; font-weight:bold; color:#764ba2;">' + formatDuration(window.TrackingUtils.sumDuration(allSessions)) + '</div><div style="color:#666; font-size:0.9rem;">全部学习时长</div></div>';
+    html += '<div><div style="font-size:1.5rem; font-weight:bold; color:#764ba2;">' + formatDuration(window.TrackingUtils.sumPracticeSeconds(rawSessions, records)) + '</div><div style="color:#666; font-size:0.9rem;">全部练习时长</div></div>';
     html += '</div></div>';
 
     container.innerHTML = html;
@@ -832,6 +1137,8 @@ function switchTeacherTab(tab, evt, options) {
     document.getElementById('tabStudents').style.display = tab === 'students' ? 'block' : 'none';
     document.getElementById('tabRecords').style.display = tab === 'records' ? 'block' : 'none';
     document.getElementById('tabProgress').style.display = tab === 'progress' ? 'block' : 'none';
+    var tabActive = document.getElementById('tabActive');
+    if (tabActive) tabActive.style.display = tab === 'active' ? 'block' : 'none';
     document.getElementById('tabWriting').style.display = tab === 'writing' ? 'block' : 'none';
     document.getElementById('tabStandards').style.display = tab === 'standards' ? 'block' : 'none';
     var tabTeachers = document.getElementById('tabTeachers');
@@ -842,6 +1149,9 @@ function switchTeacherTab(tab, evt, options) {
     }
     if (tab === 'progress' && !(options && options.skipLoad)) {
         loadTeacherProgressData();
+    }
+    if (tab === 'active') {
+        loadActiveStudents();
     }
     if (tab === 'writing') {
         var frame = document.getElementById('writingReportsIframe');

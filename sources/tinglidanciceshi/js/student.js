@@ -113,14 +113,14 @@ async function loadProgressTable() {
         return;
     }
     const records = (progressResult.data && progressResult.data.test_records) || [];
-    const sessions = getStudySessions((progressResult.data && progressResult.data.study_sessions) || []);
+    const allSessions = (progressResult.data && progressResult.data.study_sessions) || [];
+    const sessions = getStudySessions(allSessions);
     const wrongCount = ((progressResult.data && progressResult.data.wrong_words) || []).length;
-
-    const totalStudySeconds = window.TrackingUtils.sumDuration(sessions);
     const todayKey = getChinaDateKey();
-    const todayStudySeconds = sessions.filter(function(s) {
-        return getChinaDateKey(s.created_at) === todayKey;
-    }).reduce(function(sum, s) { return sum + (Number(s.duration_seconds) || 0); }, 0);
+    const totalStudySeconds = window.TrackingUtils.sumPracticeSeconds(allSessions, records);
+    const todayStudySeconds = window.TrackingUtils.sumPracticeSeconds(allSessions, records, {
+        createdAt: function(iso) { return getChinaDateKey(iso) === todayKey; }
+    });
     const availableModules = MODULES.filter(isModuleAvailable);
     const testableModules = availableModules.filter(function(m) { return isBuiltinDictationModule(m.id) || m.test_url; });
     let totalProgressForTests = 0;
@@ -131,7 +131,7 @@ async function loadProgressTable() {
     html += '<th style="padding:12px; text-align:left; border-bottom:2px solid #dee2e6;">科目</th>';
     html += '<th style="padding:12px; text-align:center; border-bottom:2px solid #dee2e6;">达标线</th>';
     html += '<th style="padding:12px; text-align:center; border-bottom:2px solid #dee2e6;">测试进度</th>';
-    html += '<th style="padding:12px; text-align:center; border-bottom:2px solid #dee2e6;">学习时长</th>';
+    html += '<th style="padding:12px; text-align:center; border-bottom:2px solid #dee2e6;">练习时长</th>';
     html += '<th style="padding:12px; text-align:center; border-bottom:2px solid #dee2e6;">操作</th>';
     html += '</tr></thead><tbody>';
 
@@ -140,7 +140,7 @@ async function loadProgressTable() {
         const moduleTarget = getModuleTarget(m);
         const moduleRecords = getModuleRecords(records, m.id);
         const modSessions = getModuleStudySessions(sessions, m.id);
-        const modSeconds = window.TrackingUtils.sumDuration(modSessions);
+        const modSeconds = window.TrackingUtils.sumPracticeSeconds(allSessions, records, { moduleId: m.id });
         const speakingPracticed = m.id === 'speaking' ? getSpeakingPracticedCount(modSessions) : 0;
         const bestScore = getBestScore(moduleRecords);
         const passCount = getPassCount(moduleRecords);
@@ -218,9 +218,9 @@ async function loadProgressTable() {
     html += '<div><div style="font-size:1.4rem; font-weight:bold; color:#667eea;">' + records.length + '</div><div style="color:#666; font-size:0.9rem;">总测试次数</div></div>';
     html += '<div><div style="font-size:1.4rem; font-weight:bold; color:#28a745;">' + overallProgress + '%</div><div style="color:#666; font-size:0.9rem;">测试汇总进度</div></div>';
     html += '<div><div style="font-size:1.4rem; font-weight:bold; color:#11998e;">' + (records.length > 0 ? Math.round(passedRecords / records.length * 100) : 0) + '%</div><div style="color:#666; font-size:0.9rem;">总达标率</div></div>';
-    html += '<div><div style="font-size:1.4rem; font-weight:bold; color:#764ba2;">' + formatDuration(totalStudySeconds) + '</div><div style="color:#666; font-size:0.9rem;">总学习时长</div></div>';
-    html += '<div><div style="font-size:1.4rem; font-weight:bold; color:#dc3545;">' + formatDuration(todayStudySeconds) + '</div><div style="color:#666; font-size:0.9rem;">今日学习时长</div></div>';
-    html += '</div><div style="margin-top:12px;color:#666;font-size:0.9rem;">待复习错题：' + wrongCount + ' 个</div></div>';
+    html += '<div><div style="font-size:1.4rem; font-weight:bold; color:#764ba2;">' + formatDuration(totalStudySeconds) + '</div><div style="color:#666; font-size:0.9rem;">总练习时长</div></div>';
+    html += '<div><div style="font-size:1.4rem; font-weight:bold; color:#dc3545;">' + formatDuration(todayStudySeconds) + '</div><div style="color:#666; font-size:0.9rem;">今日练习时长</div></div>';
+    html += '</div><div style="margin-top:12px;color:#666;font-size:0.9rem;">待复习错题：' + wrongCount + ' 个。练习时长含学习与测试，5分钟无操作自动停表。</div></div>';
 
     container.innerHTML = html;
 }
@@ -442,10 +442,52 @@ function unlockAudio() {
     console.log('音频上下文已解锁');
 }
 
+var _practiceClock = null;
+var _practiceIdleUnbinds = [];
+
+function startPracticeClock() {
+    stopPracticeClock();
+    if (!window.TrackingUtils || typeof window.TrackingUtils.createIdleClock !== 'function') return;
+    _practiceClock = window.TrackingUtils.createIdleClock();
+    _practiceClock.touch();
+    _practiceIdleUnbinds.push(window.TrackingUtils.bindIdleClock(document, _practiceClock));
+}
+
+function bindIframePracticeClock(iframe) {
+    if (!iframe || !_practiceClock || !window.TrackingUtils) return;
+    function bindDoc() {
+        try {
+            var doc = iframe.contentDocument;
+            if (!doc) return;
+            _practiceIdleUnbinds.push(window.TrackingUtils.bindIdleClock(doc, _practiceClock));
+        } catch (e) {}
+    }
+    iframe.addEventListener('load', bindDoc);
+    bindDoc();
+}
+
+function practiceElapsedSeconds(startedAt) {
+    if (_practiceClock) return _practiceClock.elapsedSeconds();
+    if (!startedAt) return 0;
+    return Math.max(0, Math.round((Date.now() - startedAt) / 1000));
+}
+
+function stopPracticeClock() {
+    while (_practiceIdleUnbinds.length) {
+        var unbind = _practiceIdleUnbinds.pop();
+        try { if (typeof unbind === 'function') unbind(); } catch (e) {}
+    }
+    if (_practiceClock) {
+        try { _practiceClock.stop(); } catch (e) {}
+    }
+    _practiceClock = null;
+}
+
 async function startTest(mode, moduleId) {
     // 用户点击了开始测试，解锁音频
     unlockAudio();
     testStartTime = Date.now(); // 记录测试开始时间
+    startPracticeClock();
     currentDictationModuleId = normalizeModuleType(moduleId || currentDictationModuleId || 'dictation');
     const dictation = getBuiltinDictation(currentDictationModuleId);
     const bank = dictation.words;
@@ -658,7 +700,7 @@ async function finishTest() {
     const threshold = await getPassThreshold(dictation.id, currentStudent);
     const isPassed = score >= threshold;
 
-    const durationSeconds = testStartTime > 0 ? Math.max(0, Math.floor((Date.now() - testStartTime) / 1000)) : 0;
+    const durationSeconds = practiceElapsedSeconds(testStartTime);
     const insertResult = await saveModuleTestRecord({
         student_id: currentStudent.student_id,
         module_type: dictation.id,
@@ -683,6 +725,7 @@ async function finishTest() {
     }
 
     testFinished = true;
+    stopPracticeClock();
     
     let newWrongCount = 0;
     if (!insertResult.skipped) {
@@ -767,7 +810,21 @@ function cancelTestAndReturn() {
     if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
     isPlaying = false;
     timerStarted = false;
+    var elapsed = practiceElapsedSeconds(testStartTime);
+    if (elapsed >= 3 && currentStudent) {
+        var dictation = getBuiltinDictation(currentDictationModuleId);
+        saveStudySession({
+            student_id: currentStudent.student_id,
+            module_type: dictation.id,
+            module_name: dictation.name,
+            session_kind: 'test',
+            duration_seconds: elapsed,
+            started_at: testStartTime > 0 ? new Date(testStartTime).toISOString() : null,
+            ended_at: new Date().toISOString()
+        }).catch(function(e) { console.error('保存中途退出测试时长失败:', e); });
+    }
     testStartTime = 0;
+    stopPracticeClock();
     try {
         audioEl.pause();
         audioEl.currentTime = 0;
@@ -816,6 +873,7 @@ async function showLearnScreen() {
 // 退出学习
 function exitLearn() {
     stopLearnTimer();
+    stopPracticeClock();
     if (learnSession && learnSession.phase !== 'initial') {
         saveLearnProgress();
     }
@@ -825,6 +883,7 @@ function exitLearn() {
 // 学习计时器
 function startLearnTimer() {
     learnStartTime = Date.now();
+    startPracticeClock();
     learnTimerInterval = setInterval(updateLearnTimer, 1000);
 }
 
@@ -836,7 +895,7 @@ function stopLearnTimer() {
 }
 
 function updateLearnTimer() {
-    const elapsed = Math.floor((Date.now() - learnStartTime) / 1000);
+    const elapsed = practiceElapsedSeconds(learnStartTime);
     const minutes = Math.floor(elapsed / 60);
     const seconds = elapsed % 60;
     document.getElementById('learnTime').textContent = minutes + ':' + (seconds < 10 ? '0' : '') + seconds;
@@ -1398,7 +1457,7 @@ function startFinalReviewPractice(wrongWords) {
 function showLearnResult() {
     stopLearnTimer();
     
-    const elapsed = Math.floor((Date.now() - learnSession.startTime) / 1000);
+    const elapsed = practiceElapsedSeconds(learnSession.startTime);
     const minutes = Math.floor(elapsed / 60);
     const seconds = elapsed % 60;
     
@@ -1410,13 +1469,13 @@ function showLearnResult() {
     
     showScreen('learnResultScreen');
     
-    // 保存学习记录
-    saveLearnSession();
+    stopPracticeClock();
+    saveLearnSession(elapsed);
 }
 
 // 保存学习会话记录
-async function saveLearnSession() {
-    const elapsed = Math.floor((Date.now() - learnSession.startTime) / 1000);
+async function saveLearnSession(elapsedSeconds) {
+    const elapsed = elapsedSeconds != null ? elapsedSeconds : practiceElapsedSeconds(learnSession.startTime);
     await saveStudySession({
         student_id: currentStudent.student_id,
         module_type: 'dictation',
@@ -1698,6 +1757,7 @@ function openGenericIframe(moduleId, moduleName, url, mode) {
         startedAt: Date.now(),
         reported: false
     };
+    startPracticeClock();
     const finalUrl = appendModuleParams(url, {
         student_id: currentStudent && currentStudent.student_id,
         student_name: currentStudent && currentStudent.name,
@@ -1714,21 +1774,22 @@ function openGenericIframe(moduleId, moduleName, url, mode) {
     genericIframe.setAttribute('allow', 'microphone; autoplay');
     try { genericIframe.setAttribute('allowfullscreen', ''); } catch (e) {}
     genericIframe.src = finalUrl;
+    bindIframePracticeClock(genericIframe);
 }
 
 async function saveCurrentModuleFallback() {
     const current = window._currentModule;
-    if (!current || current.mode === 'test') return;
+    if (!current) return;
     if (current.pendingStudySave) {
         try { await current.pendingStudySave; } catch (e) {}
     }
     if (current.reported) return;
-    const duration = Math.floor((Date.now() - current.startedAt) / 1000);
+    const duration = practiceElapsedSeconds(current.startedAt);
     if (duration < 3) return;
     const result = await saveStudySession({
         module_type: current.id,
         module_name: current.name,
-        session_kind: 'study',
+        session_kind: current.mode === 'test' ? 'test' : 'study',
         duration_seconds: duration,
         started_at: new Date(current.startedAt).toISOString(),
         ended_at: new Date().toISOString()
@@ -1737,6 +1798,7 @@ async function saveCurrentModuleFallback() {
 }
 
 function finishGenericIframeClose() {
+    stopPracticeClock();
     window._currentModule = null;
     try { document.getElementById('genericIframe').src = ''; } catch(e) {}
     showStudentHome();
@@ -1780,6 +1842,7 @@ function openListeningIframe(moduleId) {
         startedAt: Date.now(),
         reported: false
     };
+    startPracticeClock();
     showScreen('listeningScreen');
     const listeningTitle = document.querySelector('#listeningScreen h2');
     if (listeningTitle) listeningTitle.textContent = dictation.name + '学习';
@@ -1789,6 +1852,7 @@ function openListeningIframe(moduleId) {
         module_name: dictation.name,
         mode: 'study'
     });
+    bindIframePracticeClock(document.getElementById('listeningIframe'));
 }
 
 function exitListening() {
@@ -1800,6 +1864,7 @@ function exitListening() {
     } catch(e) {}
     setTimeout(async function() {
         try { await saveCurrentModuleFallback(); } catch(e) { console.error('保存听力学习兜底时长失败:', e); }
+        stopPracticeClock();
         window._currentModule = null;
         document.getElementById('listeningIframe').src = '';
         showScreen('studentHome');
@@ -1839,7 +1904,7 @@ window.addEventListener('message', async function(event) {
             const totalWords = data.totalWords || data.totalCount || data.wordsTested || 0;
             const totalCorrect = data.totalCorrect || data.rightCount || data.masteredCount || data.correctCount || 0;
             const endedAt = data.endedAt || data.ended_at || new Date().toISOString();
-            const elapsedSeconds = Math.max(0, Math.ceil((Date.now() - current.startedAt) / 1000));
+            const elapsedSeconds = practiceElapsedSeconds(current.startedAt);
             const reportedSeconds = Math.max(0, Math.round(Number(data.durationSeconds || data.duration_seconds || 0)));
             // 口语按录音时长上报；允许略大于打开时长的时钟误差
             const durationSeconds = moduleType === 'speaking'
@@ -1864,7 +1929,7 @@ window.addEventListener('message', async function(event) {
             const result = await savePromise;
             if (current.pendingStudySave === savePromise) current.pendingStudySave = null;
             // 口语已主动上报（含 0 增量退出），跳过墙钟兜底，避免把停留时长记成练习时长
-            if (moduleType === 'speaking') current.reported = true;
+            if (!result.error || moduleType === 'speaking') current.reported = true;
             if (result.error) {
                 console.error('保存学习记录失败:', result.error);
                 showToast('保存学习时长失败', 'error');
@@ -1881,7 +1946,11 @@ window.addEventListener('message', async function(event) {
             // 口语在学习/测试里都可能 AI 评分，两种模式都写入测试记录
             if (current.mode !== 'test' && moduleType !== 'speaking') return;
             const module = getModuleById(moduleType);
-            const durationSeconds = Math.max(0, Math.round(Number(data.durationSeconds || data.duration_seconds || 0)));
+            const reportedSeconds = Math.max(0, Math.round(Number(data.durationSeconds || data.duration_seconds || 0)));
+            const elapsedSeconds = practiceElapsedSeconds(current.startedAt);
+            const durationSeconds = moduleType === 'speaking'
+                ? reportedSeconds
+                : (reportedSeconds > 0 ? Math.min(reportedSeconds, elapsedSeconds + 5) : elapsedSeconds);
             const endedAt = data.endedAt || data.ended_at || new Date().toISOString();
             const startedAt = data.startedAt || data.started_at || new Date(new Date(endedAt).getTime() - durationSeconds * 1000).toISOString();
             const result = await saveModuleTestRecord({
@@ -1897,6 +1966,7 @@ window.addEventListener('message', async function(event) {
                 ended_at: endedAt,
                 details: data.details || []
             });
+            if (!result.error) current.reported = true;
             if (result.error) {
                 console.error('保存测试记录失败:', result.error);
                 showToast('保存测试记录失败', 'error');

@@ -608,23 +608,13 @@ function appendModuleParams(url, params) {
     }
 }
 
+function buildDailyPracticeRows(sessions, testRecords, moduleId) {
+    return window.TrackingUtils.buildDailyPracticeRows(sessions, testRecords, {
+        moduleId: moduleId,
+        dateKey: getChinaDateKey
+    });
+}
+
 function buildDailyStudyRows(sessions, moduleId) {
-    const rows = {};
-    getStudySessions(sessions).forEach(function(session) {
-        const dateKey = getChinaDateKey(session.created_at);
-        if (!rows[dateKey]) {
-            rows[dateKey] = { date: dateKey, moduleSeconds: 0, totalSeconds: 0, moduleCount: 0, totalCount: 0, latest: session.created_at };
-        }
-        const seconds = Number(session.duration_seconds) || 0;
-        rows[dateKey].totalSeconds += seconds;
-        rows[dateKey].totalCount += 1;
-        if (normalizeModuleType(session.module_type) === moduleId) {
-            rows[dateKey].moduleSeconds += seconds;
-            rows[dateKey].moduleCount += 1;
-        }
-        if (new Date(session.created_at) > new Date(rows[dateKey].latest)) rows[dateKey].latest = session.created_at;
-    });
-    return Object.keys(rows).map(function(key) { return rows[key]; }).sort(function(a, b) {
-        return new Date(b.latest) - new Date(a.latest);
-    });
+    return buildDailyPracticeRows(sessions, [], moduleId);
 }
