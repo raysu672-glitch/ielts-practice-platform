@@ -112,7 +112,12 @@ h1{font-size:34px}
 .grid{grid-template-columns:repeat(4,minmax(0,1fr))}
 }
 
-.sec-title{font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:22px 0 8px;font-weight:700}
+.step-bar{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:10px 0 14px}
+.step-pill{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:999px;border:1px solid var(--line);background:var(--card2);color:var(--muted);font-size:12px;font-weight:700}
+.step-pill.on{border-color:var(--gold);color:var(--gold);background:rgba(255,209,102,.12)}
+.step-pill.done{border-color:rgba(54,211,153,.45);color:var(--green);background:rgba(54,211,153,.1)}
+.step-sep{color:var(--muted);font-size:12px}
+.step-mini{font-size:11px;color:var(--muted);margin-top:2px;letter-spacing:.02em}
 .home-grid.two{grid-template-columns:1fr;gap:12px}
 .mode-tag{display:inline-block;font-size:11px;padding:2px 8px;border-radius:999px;margin-bottom:8px;font-weight:700}
 .mode-tag.assemble{background:rgba(255,209,102,.15);color:var(--gold);border:1px solid rgba(255,209,102,.35)}
@@ -517,7 +522,7 @@ items:[
 ];
 
 /* ============ 全局状态 ============ */
-let G = { screen:'home', kind:'pattern', listKind:'pattern', mode:'assemble', pid:null, idx:0, selected:[], done:false, results:[], xp:0, combo:0, best:0, speakPhase:'prompt', speakLeft:8, speakRated:null, queue:null, seq:false, checked:{} };
+let G = { screen:'home', kind:'pattern', listKind:'pattern', mode:'combo', step:'assemble', pid:null, idx:0, selected:[], done:false, results:[], xp:0, combo:0, best:0, speakPhase:'prompt', speakLeft:8, speakRated:null, queue:null, seq:false, checked:{} };
 const SPEAK_SEC=8;
 let speakTimer=null;
 function save(){
@@ -574,105 +579,119 @@ if(G.screen==='shadow') return renderShadow(app);
 function clearSpeakTimer(){ if(speakTimer){ clearInterval(speakTimer); speakTimer=null; } }
 function loadSpeakMap(){ try{ return JSON.parse(localStorage.getItem('kouyu_speak')||'{}'); }catch(e){ return {}; } }
 function saveSpeakRate(key, rate){ try{ const m=loadSpeakMap(); m[key]=rate; localStorage.setItem('kouyu_speak',JSON.stringify(m)); }catch(e){} }
+function loadComboMap(){ try{ return JSON.parse(localStorage.getItem('kouyu_combo')||'{}'); }catch(e){ return {}; } }
+function saveComboStep(key, step, ok){
+try{
+const m=loadComboMap();
+const cur=Object.assign({a:false,sh:false,sp:false}, m[key]||{});
+if(step==='assemble') cur.a=!!ok;
+if(step==='shadow') cur.sh=!!ok;
+if(step==='speak') cur.sp=!!ok;
+m[key]=cur;
+localStorage.setItem('kouyu_combo',JSON.stringify(m));
+}catch(e){}
+}
+function comboProgress(key){
+const c=loadComboMap()[key]||{};
+const a=!!c.a;
+const sh=!!c.sh || loadShadow()[key]==='pass';
+const sp=!!c.sp || loadSpeakMap()[key]==='pass' || loadSpeakMap()[key]==='ok';
+return {a,sh,sp, done:a&&sh&&sp, count:(a?1:0)+(sh?1:0)+(sp?1:0)};
+}
+function isSpeakStep(){ return G.step==='speak' || G.mode==='speak'; }
+function isShadowStep(){ return G.step==='shadow' || (G.mode==='shadow' && G.step!=='speak' && G.step!=='assemble'); }
+function stepBarHTML(){
+const steps=[['assemble','① 拼装'],['shadow','② 跟读'],['speak','③ 脱口而出']];
+const key=(G.pid!=null?G.pid+'_'+G.idx:'');
+const prog=key?comboProgress(key):{a:false,sh:false,sp:false};
+return `<div class="step-bar">${steps.map(([id,lab],i)=>{
+const on=G.step===id;
+const done=(id==='assemble'&&prog.a)||(id==='shadow'&&prog.sh)||(id==='speak'&&prog.sp);
+const cls='step-pill'+(on?' on':'')+(done&&!on?' done':'');
+return (i?`<span class="step-sep">→</span>`:'')+`<span class="${cls}">${lab}</span>`;
+}).join('')}</div>`;
+}
+function resetRecState(){
+SH.recording=false; SH.url=null; SH.rec=null; SH.chunks=[];
+SH.finalText=''; SH.lastPass=null; SH.blob=null; SH.transcribing=false;
+}
+function goToStep(step){
+clearSpeakTimer();
+if(SH.recording) stopShadowRec();
+G.step=step||'assemble';
+G.selected=[]; G.done=false;
+G.speakPhase='prompt'; G.speakRated=null;
+resetRecState();
+if(G.step==='assemble'){ G.screen='drill'; }
+else if(G.step==='shadow'){ G.screen='shadow'; }
+else { G.screen='speak'; }
+render(); window.scrollTo(0,0);
+}
 function renderHome(app){
 const lv=Math.floor(G.xp/100)+1;
-const sm=loadSpeakMap(); const speakDone=Object.keys(sm).length;
+const cm=loadComboMap();
+const comboDone=Object.keys(cm).filter(k=>{const c=cm[k]||{}; return c.a&&c.sh&&c.sp;}).length;
 app.innerHTML=`
 <div class="page-head">
 <h1>口语复合句闯关</h1>
-<p class="sub">三步训练：拼装练打基础 → 跟读熟悉发音 → 脱口而出看中文说英文 · 录音识别判分。</p>
+<p class="sub">每句话走完三步：①拼装认识结构 → ②跟读打磨发音 → ③脱口而出看中文说英文。</p>
 </div>
 <div class="topbar">
 <div class="stat"><b>Lv.${lv}</b><span>等级</span></div>
 <div class="stat"><b>${G.xp}</b><span>经验 XP</span></div>
-<div class="stat"><b>${speakDone}</b><span>脱口而出已练</span></div>
+<div class="stat"><b>${comboDone}</b><span>三步练完</span></div>
 </div>
 
-<div class="sec-title">轨道 A · 拼装练（认识句型）</div>
+<div class="sec-title">选择练习内容</div>
 <div class="home-grid two">
 <div class="card">
-<span class="mode-tag assemble">拼装练</span>
-<h2>句型拼装</h2>
-<p class="sub">看中文 → 选英文碎片填进骨架 → 检查。适合刚接触句型、先建立结构感。</p>
-<button class="btn" onclick="openTrack('assemble','pattern')">开始句型拼装</button>
+<span class="mode-tag assemble">句型 · 三步闯关</span>
+<h2>句型复合句</h2>
+<p class="sub">7 大句型。每句依次：选词拼装 → 跟读识别 → 看中文脱口而出。练到能上场就说。</p>
+<button class="btn" onclick="openTrack('combo','pattern')">开始句型闯关</button>
 </div>
 <div class="card">
-<span class="mode-tag assemble">拼装练</span>
-<h2>词组拼装</h2>
-<p class="sub">10 组高级词组，每组 10 句，用选词拼句熟悉替换表达（I like → a big fan of 等）。</p>
-<button class="btn blue" onclick="openTrack('assemble','adv')">开始词组拼装</button>
+<span class="mode-tag speak">词组 · 三步闯关</span>
+<h2>高级词组</h2>
+<p class="sub">10 组高级词组，每组 10 句。同一套三步流程，把 I like 换成更地道的表达。</p>
+<button class="btn red" onclick="openTrack('combo','adv')">开始词组闯关</button>
 </div>
 </div>
-
-<div class="sec-title">轨道 B · 跟读打磨</div>
-<div class="home-grid two">
-<div class="card">
-<span class="mode-tag assemble">跟读</span>
-<h2>句型跟读</h2>
-<p class="sub">先看标准英文 → 录音上传 P4 识别 → 与原文逐词比对（错一词不通过）。需联网。</p>
-<button class="btn" onclick="openTrack('shadow','pattern')">句型跟读</button>
-</div>
-<div class="card">
-<span class="mode-tag assemble">跟读</span>
-<h2>词组跟读</h2>
-<p class="sub">同上：P4 语音识别 + 严格逐词判分。专练高级词组跟读。</p>
-<button class="btn blue" onclick="openTrack('shadow','adv')">词组跟读</button>
-</div>
-</div>
-
-<div class="sec-title">轨道 C · 脱口而出（主练）</div>
-<div class="home-grid two">
-<div class="card">
-<span class="mode-tag speak">脱口而出</span>
-<h2>句型脱口而出</h2>
-<p class="sub">看中文说英文（不显示答案）→ 录音 → P4 识别自动判分。练的是上场反应。</p>
-<button class="btn red" onclick="openTrack('speak','pattern')">开始句型脱口而出</button>
-</div>
-<div class="card">
-<span class="mode-tag speak">脱口而出</span>
-<h2>词组脱口而出</h2>
-<p class="sub">同上流程：只看中文开口说，识别后与标准句逐词比对。</p>
-<button class="btn red" onclick="openTrack('speak','adv')">开始词组脱口而出</button>
-</div>
-</div>
-<p class="foot">拼装练打底 · 跟读打磨 · 脱口而出主练 · 进度存本地</p>`;
+<p class="foot">一句三步 · 拼装 → 跟读 → 脱口而出 · 进度存本地</p>`;
 }
 function renderList(app){
 const isAdv = G.listKind==='adv';
-const isSpeak = G.mode==='speak';
-const isShadow = G.mode==='shadow';
 const data = isAdv ? ADV : PATTERNS;
-const starter = isShadow ? 'startShadow' : (isSpeak ? 'startSpeak' : 'startDrill');
-const tip = isShadow
-? '听模型 → 跟读 → 自评。点进一组后先看全部句子，可顺序或选句练习。'
-: (isSpeak
-? '看中文说英文（不显示答案），录音后 P4 识别判分。说不出来可回拼装练同一组。'
-: (isAdv?'每组 10 题，选词拼进骨架，熟悉高级词组。':'每型 10 题，选词拼进骨架；做对后可回看整组例句。'));
-const titlePrefix = isShadow?'跟读 · ':(isSpeak?'脱口而出 · ':'');
+const tip = isAdv
+? '每组 10 句。点进后选句练习；每句依次完成拼装 → 跟读 → 脱口而出。'
+: '每型 10 句。点进后选句练习；每句依次完成拼装 → 跟读 → 脱口而出。';
 const cards=data.map(p=>`
-<div class="pat" onclick="${starter}('${p.id}','${isAdv?'adv':'pattern'}')">
+<div class="pat" onclick="startCombo('${p.id}','${isAdv?'adv':'pattern'}')">
 <div class="em">${p.emoji}</div>
 <div class="nm">${p.name}</div>
-<div class="sk">${isShadow?'先看句子列表再跟读':(isSpeak?'看中文说英文 · 识别判分':p.skeleton.replace(/\[(\d+)\]/g,'( )'))}</div>
+<div class="sk">一句三步 · ${p.skeleton.replace(/\[(\d+)\]/g,'( )')}</div>
 </div>`).join('');
 app.innerHTML=`
 <div class="page-head">
-<h1>${titlePrefix}${isAdv?'选一个高级词组':'选一个句型'}</h1>
+<h1>${isAdv?'选一个高级词组':'选一个句型'}</h1>
 <p class="sub">${tip}</p>
 </div>
 <div class="grid">${cards}</div>
 <button class="btn ghost" onclick="go('home')">← 返回首页</button>`;
 }
-function startShadow(id, kind){
+function startCombo(id, kind){
 clearSpeakTimer();
-G.mode='shadow'; G.kind=kind||'pattern'; G.listKind=kind||'pattern';
-G.pid=id; G.idx=0; G.selected=[]; G.queue=null; G.seq=false; G.checked={};
-SH.recording=false; SH.url=null; SH.rec=null; SH.chunks=[];
+G.mode='combo'; G.step='assemble'; G.kind=kind||'pattern'; G.listKind=kind||'pattern';
+G.pid=id; G.idx=0; G.selected=[]; G.done=false; G.results=[];
+G.queue=null; G.seq=false; G.checked={};
+resetRecState();
 G.screen='picker'; render(); window.scrollTo(0,0);
 }
+function startShadow(id, kind){ startCombo(id, kind); }
+function startSpeak(id, kind){ startCombo(id, kind); }
+function startDrill(id, kind){ startCombo(id, kind); }
 function renderShadowList(app){
-/* 兼容旧入口：转到分轨列表 */
-G.mode='shadow';
+G.mode='combo';
 if(!G.listKind) G.listKind='pattern';
 G.screen=G.listKind==='adv'?'advlist':'list';
 renderList(app);
@@ -687,6 +706,7 @@ const qtotal=(G.queue&&G.queue.length)?G.queue.length: total;
 const pctQ=Math.round((qpos-1)/Math.max(1,qtotal)*100);
 const ky=G.pid+'_'+G.idx;
 const saved=loadShadow()[ky];
+const judged=SH.lastPass!==null || saved==='pass' || saved==='fail';
 SH.url=null;
 app.innerHTML=`
 <div class="panel">
@@ -694,6 +714,7 @@ app.innerHTML=`
 <h2>🎤 ${p.emoji} ${p.name}</h2>
 <span class="sub">本轮 ${qpos} / ${qtotal} · 全组第 ${G.idx+1} 句</span>
 </div>
+${stepBarHTML()}
 <div class="progress"><i style="width:${pctQ}%"></i></div>
 <div class="practice-grid">
 <div>
@@ -705,8 +726,8 @@ app.innerHTML=`
 </div>
 </div>
 <div class="practice-side">
-<p class="sub">跟读判分：录音上传到 P4 服务器识别（腾讯云 ASR），再与原文逐词比对。错一个词即不通过（不计标点）。</p>
-<button class="btn red" id="recBtn" onclick="toggleRec()" style="margin-top:0">${SH.recording?'⏹ 停止并上传识别':(SH.transcribing?'⏳ 识别中…':'🎤 开始跟读录音')}</button>
+<p class="sub">第②步跟读：录音上传 P4 识别，与原文逐词比对。通过后进入脱口而出。</p>
+<button class="btn red" id="recBtn" onclick="toggleRec()" style="margin-top:0">${SH.recording?recBtnLabel('recording'):(SH.transcribing?recBtnLabel('busy'):recBtnLabel(judged?'retry':'start'))}</button>
 <div class="stt-label" style="margin-top:12px">识别文字</div>
 <div class="stt-box" id="sttLive">${SH.finalText||'点击开始后朗读英文，停止后上传 P4 识别'}</div>
 <div class="recbox" id="recWrap" style="display:none;margin-top:10px">
@@ -714,12 +735,13 @@ app.innerHTML=`
 <audio id="recplayer" controls></audio>
 </div>
 <div id="compareBox" style="margin-top:12px"></div>
-${saved==='pass'?'<div class="compare-pass">本句已通过 ✓</div>':(saved==='fail'?'<div class="compare-fail">本句上次未通过</div>':'')}
+${saved==='pass'?'<div class="compare-pass">本句跟读已通过 ✓</div>':(saved==='fail'?'<div class="compare-fail">本句上次跟读未通过</div>':'')}
+${judged?`<button class="btn blue" onclick="goToStep('speak')" style="margin-top:12px">进入③脱口而出 →</button>
+<button class="btn ghost" onclick="goToStep('speak')" style="margin-top:8px;width:100%">先跳过，直接脱口而出</button>`:`<button class="btn ghost" onclick="goToStep('speak')" style="margin-top:12px;width:100%">跳过跟读 → 脱口而出</button>`}
 </div>
 </div>
 <div class="actions">
-<button class="btn sm" onclick="shadowPrev()">${(G.queue&&G.queue.indexOf(G.idx)>0)?'◀ 上一句':'← 全部句子'}</button>
-<button class="btn sm blue" onclick="shadowNext()">${(G.queue&&G.queue.indexOf(G.idx)<G.queue.length-1)?'下一句 ▶':'回到句子列表'}</button>
+<button class="btn sm" onclick="comboPrevSentence()">◀ 上一句</button>
 <button class="btn ghost" onclick="backToPicker()" style="margin-top:8px">← 全部句子</button>
 </div>
 </div>`;
@@ -887,8 +909,9 @@ const el=document.getElementById('sttLive');
 if(el) el.textContent=msg;
 }
 function saveJudgeRate(key, passed){
-if(G.mode==='speak') saveSpeakRate(key, passed?'pass':'fail');
+if(isSpeakStep()) saveSpeakRate(key, passed?'pass':'fail');
 else saveShadowRate(key, passed?'pass':'fail');
+saveComboStep(key, isSpeakStep()?'speak':'shadow', !!passed);
 }
 function setRecBtn(label, disabled){
 const rb=document.getElementById('recBtn');
@@ -897,7 +920,7 @@ rb.textContent=label;
 rb.disabled=!!disabled;
 }
 function recBtnLabel(kind){
-const speak=G.mode==='speak';
+const speak=isSpeakStep();
 if(kind==='recording') return speak?'⏹ 停止并识别':'⏹ 停止并上传识别';
 if(kind==='busy') return '⏳ 识别中…';
 if(kind==='retry') return speak?'🎤 重录再说一遍':'🎤 重录并重新判分';
@@ -910,7 +933,7 @@ if(SH.recording || SH.transcribing) return;
 SH.finalText=''; SH.lastPass=null; SH.blob=null; SH.chunks=[];
 const box=document.getElementById('compareBox');
 if(box) box.innerHTML='';
-setSttLive(G.mode==='speak'?'看着中文，用英文说出整句…':'录音中…请完整朗读英文句子');
+setSttLive(isSpeakStep()?'看着中文，用英文说出整句…':'录音中…请完整朗读英文句子');
 try{
 const stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true}});
 SH.stream=stream;
@@ -959,7 +982,7 @@ toast('录音太短，请重试');
 const box=document.getElementById('compareBox');
 if(box) box.innerHTML='<div class="compare-fail">未通过 ✗ 录音太短</div>';
 saveJudgeRate(judgePid+'_'+judgeIdx, false);
-if(G.mode==='speak' && G.pid===judgePid && G.idx===judgeIdx){
+if(isSpeakStep() && G.pid===judgePid && G.idx===judgeIdx){
 render();
 const box2=document.getElementById('compareBox');
 if(box2) box2.innerHTML='<div class="compare-fail">未通过 ✗ 录音太短</div>';
@@ -1013,7 +1036,7 @@ toast('未识别到内容，请重录');
 const box=document.getElementById('compareBox');
 if(box) box.innerHTML='<div class="compare-fail">未通过 ✗ 没有识别到英文</div>';
 saveJudgeRate(judgePid+'_'+judgeIdx, false);
-if(G.mode==='speak' && G.pid===judgePid && G.idx===judgeIdx){
+if(G.pid===judgePid && G.idx===judgeIdx){
 render();
 const box2=document.getElementById('compareBox');
 if(box2) box2.innerHTML='<div class="compare-fail">未通过 ✗ 没有识别到英文</div>';
@@ -1028,7 +1051,7 @@ SH.lastPass=passed;
 saveJudgeRate(judgePid+'_'+judgeIdx, passed);
 if(passed){ G.xp+=15; G.combo++; if(G.combo>G.best) G.best=G.combo; save(); }
 else { G.combo=0; save(); }
-if(G.mode==='speak' && G.pid===judgePid && G.idx===judgeIdx){
+if(G.pid===judgePid && G.idx===judgeIdx){
 render();
 renderCompare(target, spokenForJudge, spoken, repaired.repairs);
 setSttLive(spoken||'（未识别到文字）');
@@ -1040,17 +1063,26 @@ if(SH.url && rw && rp){ rp.src=SH.url; rw.style.display='block'; }
 }
 function rateShadow(s){ /* 已改为 P4 自动判分 */ }
 
-function shadowPrev(){
+function comboPrevSentence(){
+clearSpeakTimer();
+if(SH.recording) stopShadowRec();
 if(G.queue && G.queue.length){
 const pos=G.queue.indexOf(G.idx);
-if(pos>0){ G.idx=G.queue[pos-1]; SH.recording=false; SH.url=null; render(); window.scrollTo(0,0); }
+if(pos>0){ G.idx=G.queue[pos-1]; goToStep('assemble'); }
 else backToPicker();
 } else if(G.idx>0){
-G.idx--; SH.recording=false; SH.url=null; render(); window.scrollTo(0,0);
+G.idx--; goToStep('assemble');
 } else backToPicker();
 }
+function shadowPrev(){ comboPrevSentence(); }
 function shadowNext(){
-advanceQueueOrPicker();
+if(G.step==='shadow') goToStep('speak');
+else advanceQueueOrPicker();
+}
+function speakPrev(){ comboPrevSentence(); }
+function speakNext(){
+if(G.step==='speak') advanceQueueOrPicker();
+else goToStep('speak');
 }
 function shuffle(a){ // Fisher-Yates 洗牌，返回新数组
 const r=a.slice();
@@ -1071,24 +1103,28 @@ const opts=shuffle(p.slots[i]).map(o=>`<option value="${o}" ${G.selected[i]===o?
 html+=`<span class="slot"><select class="dsel" onchange="onSelect(${i},this.value)"><option value="">— 选英文元素 —</option>${opts}</select></span>`;
 } else if(seg.trim() || seg){ html+=`<span class="sk-txt">${seg}</span>`; }
 });
-const pct=Math.round(G.idx/total*100);
-const isAdv=G.kind==='adv';
+const qpos=(G.queue&&G.queue.length)?(G.queue.indexOf(G.idx)+1): (G.idx+1);
+const qtotal=(G.queue&&G.queue.length)?G.queue.length: total;
+const pctQ=Math.round((qpos-1)/Math.max(1,qtotal)*100);
 app.innerHTML=`
 <div class="panel">
 <div class="toolbar">
 <h2>${p.emoji} ${p.name}</h2>
-<span class="sub">第 ${G.idx+1} / ${total} 题</span>
+<span class="sub">本轮 ${qpos} / ${qtotal} · 全组第 ${G.idx+1} 句</span>
 </div>
-<div class="progress"><i style="width:${pct}%"></i></div>
+${stepBarHTML()}
+<div class="progress"><i style="width:${pctQ}%"></i></div>
 <div class="qbox"><span class="part">${item.part||'IELTS'}</span><span class="qtext">考题：${item.q||'通用表达'}</span></div>
 <div class="quiz">${item.cn}</div>
+<p class="sub">第①步拼装：把英文元素填进骨架，做对后进入跟读。</p>
 <div class="skeleton">${html}</div>
 <div class="sentence" id="sentence"></div>
 <div class="feedback" id="fb"></div>
 <div class="actions">
 <button class="listen" onclick="listenNow()">🔊 听我拼的句子</button>
 <button class="btn sm blue" onclick="checkDrill()" style="margin-top:0">✓ 检查</button>
-<button class="btn sm" id="nextBtn" onclick="nextItem()" style="display:none;margin-top:0">下一题 ▶</button>
+<button class="btn sm" id="nextBtn" onclick="afterAssembleOk()" style="display:none;margin-top:0">进入②跟读 →</button>
+<button class="btn ghost" onclick="goToStep('shadow')" style="margin-top:0">跳过拼装 → 跟读</button>
 <button class="btn ghost" onclick="backToPicker()" style="margin-top:0">← 全部句子</button>
 </div>
 </div>`;
@@ -1120,25 +1156,13 @@ render(); window.scrollTo(0,0);
 }
 
 function openTrack(mode, kind){
-G.mode=mode||'assemble';
+G.mode='combo';
+G.step='assemble';
 G.listKind=kind==='adv'?'adv':'pattern';
 G.screen=kind==='adv'?'advlist':'list';
 render(); window.scrollTo(0,0);
 }
 /* 进入某组：先看全部句子列表，再选练 */
-function startSpeak(id, kind){
-clearSpeakTimer();
-G.mode='speak'; G.kind=kind||'pattern'; G.listKind=kind||'pattern';
-G.pid=id; G.idx=0; G.queue=null; G.seq=false; G.checked={};
-G.screen='picker'; render(); window.scrollTo(0,0);
-}
-function startDrill(id, kind){
-clearSpeakTimer();
-G.mode='assemble'; G.kind=kind||'pattern'; G.listKind=kind||'pattern';
-G.pid=id; G.idx=0; G.selected=[]; G.done=false; G.results=[];
-G.queue=null; G.seq=false; G.checked={};
-G.screen='picker'; render(); window.scrollTo(0,0);
-}
 function statusLabel(rate){
 if(rate==='ok') return ['ok','已流畅'];
 if(rate==='half') return ['half','有卡壳'];
@@ -1189,15 +1213,9 @@ function enterPracticeItem(){
 clearSpeakTimer();
 G.selected=[]; G.done=false;
 G.speakPhase='prompt'; G.speakLeft=SPEAK_SEC; G.speakRated=null;
-SH.recording=false; SH.url=null; SH.rec=null; SH.chunks=[];
-SH.finalText=''; SH.lastPass=null; SH.blob=null; SH.transcribing=false;
-if(G.mode==='speak'){
-G.screen='speak'; render(); window.scrollTo(0,0);
-} else if(G.mode==='shadow'){
-G.screen='shadow'; render(); window.scrollTo(0,0);
-} else {
+G.step='assemble';
+resetRecState();
 G.screen='drill'; render(); window.scrollTo(0,0);
-}
 }
 function backToPicker(){
 clearSpeakTimer();
@@ -1213,23 +1231,16 @@ enterPracticeItem();
 return;
 }
 }
-toast(G.mode==='speak'?'本轮练习完成，回到句子列表':(G.mode==='shadow'?'本轮跟读完成，回到句子列表':'本轮拼装完成，回到句子列表'));
+toast('本轮三步练习完成，回到句子列表');
 G.screen='picker'; render(); window.scrollTo(0,0);
 }
 function renderPicker(app){
 const p=CD().find(x=>x.id===G.pid);
-const isSpeak=G.mode==='speak';
-const isShadow=G.mode==='shadow';
-const speakMap=isSpeak?loadSpeakMap():{};
-const shadowMap=isShadow?loadShadow():{};
-const drillDone=G.results||[];
-const modeName=isShadow?'跟读特训':(isSpeak?'脱口而出':'拼装练');
 const rows=p.items.map((it,i)=>{
-let rate=null;
-if(isSpeak) rate=speakMap[p.id+'_'+i];
-else if(isShadow) rate=shadowMap[p.id+'_'+i]||0;
-else rate=drillDone.some(r=>r.idx===i)?'done':null;
-const [cls,lab]=statusLabel(rate);
+const prog=comboProgress(p.id+'_'+i);
+let cls='todo', lab='未练';
+if(prog.done){ cls='ok'; lab='三步完成'; }
+else if(prog.count>0){ cls='half'; lab=`已练 ${prog.count}/3`; }
 const ck=G.checked[i]?'checked':'';
 return `<div class="sent-item" onclick="practiceOne(${i})">
 <input type="checkbox" id="ck_${i}" ${ck} onclick="toggleCheck(${i},event)">
@@ -1237,6 +1248,7 @@ return `<div class="sent-item" onclick="practiceOne(${i})">
 <div>
 <div class="cn">${it.cn}</div>
 <div class="meta"><span class="part" style="margin-right:6px">${it.part||''}</span>${it.q||''}</div>
+<div class="step-mini">${prog.a?'①✓':'①'} · ${prog.sh?'②✓':'②'} · ${prog.sp?'③✓':'③'}</div>
 </div>
 <div class="st ${cls}">${lab}</div>
 </div>`;
@@ -1245,7 +1257,7 @@ const checkedN=getCheckedIdx().length;
 app.innerHTML=`
 <div class="page-head">
 <h1>${p.emoji} ${p.name}</h1>
-<p class="sub">${modeName} · 共 ${p.items.length} 句。可按顺序练，也可勾选或点某一句练习。</p>
+<p class="sub">共 ${p.items.length} 句。每句走完 ①拼装 → ②跟读 → ③脱口而出。可按顺序练，也可勾选或点某一句。</p>
 </div>
 <div class="picker-actions">
 <button class="btn" onclick="practiceAllInOrder()">按顺序练全部</button>
@@ -1257,18 +1269,6 @@ app.innerHTML=`
 <button class="btn ghost" onclick="go('${G.listKind==='adv'?'advlist':'list'}')">← 返回${G.listKind==='adv'?'词组':'句型'}列表</button>`;
 }
 
-function speakPrev(){
-if(G.queue && G.queue.length){
-const pos=G.queue.indexOf(G.idx);
-if(pos>0){ G.idx=G.queue[pos-1]; SH.recording=false; SH.url=null; render(); window.scrollTo(0,0); }
-else backToPicker();
-} else if(G.idx>0){
-G.idx--; SH.recording=false; SH.url=null; render(); window.scrollTo(0,0);
-} else backToPicker();
-}
-function speakNext(){
-advanceQueueOrPicker();
-}
 function quitSpeak(){
 backToPicker();
 }
@@ -1283,20 +1283,20 @@ const pctQ=Math.round((qpos-1)/Math.max(1,qtotal)*100);
 const ky=G.pid+'_'+G.idx;
 const saved=loadSpeakMap()[ky];
 const judged=SH.lastPass!==null || saved==='pass' || saved==='fail';
-const sttHint=G.mode==='speak'
-?(SH.finalText||(judged?'可重录再试':'点击开始后看着中文说英文'))
-:SH.finalText;
+const sttHint=SH.finalText||(judged?'可重录再试':'点击开始后看着中文说英文');
+const hasNext=(G.queue&&G.queue.indexOf(G.idx)<G.queue.length-1)||(!G.queue&&G.idx<total-1);
 app.innerHTML=`
 <div class="panel">
 <div class="toolbar">
 <h2>🗣️ ${p.emoji} ${p.name}</h2>
 <span class="sub">本轮 ${qpos} / ${qtotal} · 全组第 ${G.idx+1} 句</span>
 </div>
+${stepBarHTML()}
 <div class="progress"><i style="width:${pctQ}%"></i></div>
 <div class="practice-grid">
 <div>
 <div class="qbox"><span class="part">${item.part||'IELTS'}</span><span class="qtext">考题：${item.q||'通用表达'}</span></div>
-<p class="sub">只看中文，直接说英文（答案先不显示）</p>
+<p class="sub">第③步脱口而出：只看中文，直接说英文（答案先不显示）</p>
 <div class="speak-prompt">${item.cn}</div>
 ${judged?`<div class="reveal-box show" id="speakAnswerBox">
 <p class="sub">标准句（判分后揭晓）</p>
@@ -1314,12 +1314,13 @@ ${judged?`<div class="reveal-box show" id="speakAnswerBox">
 <audio id="recplayer" controls></audio>
 </div>
 <div id="compareBox" style="margin-top:12px"></div>
-${saved==='pass'||saved==='ok'?'<div class="compare-pass">本句已通过 ✓</div>':((saved==='fail'||saved==='no')?'<div class="compare-fail">本句上次未通过</div>':'')}
+${saved==='pass'||saved==='ok'?'<div class="compare-pass">本句脱口而出已通过 ✓</div>':((saved==='fail'||saved==='no')?'<div class="compare-fail">本句上次未通过</div>':'')}
+${judged?`<button class="btn blue" onclick="advanceQueueOrPicker()" style="margin-top:12px">${hasNext?'下一句 · 从拼装开始 ▶':'回到句子列表'}</button>`:`<button class="btn ghost" onclick="advanceQueueOrPicker()" style="margin-top:12px;width:100%">${hasNext?'跳过本步 → 下一句':'跳过 · 回到列表'}</button>`}
 </div>
 </div>
 <div class="actions" style="margin-top:16px">
-<button class="btn sm" onclick="speakPrev()">${(G.queue&&G.queue.indexOf(G.idx)>0)?'◀ 上一句':(G.idx>0?'◀ 上一句':'← 全部句子')}</button>
-<button class="btn sm blue" onclick="speakNext()">${(G.queue&&G.queue.indexOf(G.idx)<G.queue.length-1)?'下一句 ▶':'回到句子列表'}</button>
+<button class="btn sm" onclick="goToStep('shadow')">◀ 回跟读</button>
+<button class="btn sm" onclick="comboPrevSentence()">◀ 上一句</button>
 <button class="btn ghost" onclick="backToPicker()" style="margin-top:0">← 全部句子</button>
 </div>
 </div>`;
@@ -1347,13 +1348,13 @@ sel.classList.add(G.selected[i]===item.ans[i]?'ok':'no');
 });
 if(correct){
 G.combo++; if(G.combo>G.best) G.best=G.combo; G.xp+=10+Math.min(G.combo,5);
-G.results.push({pid:G.pid, idx:G.idx, s:s});
+if(!(G.results||[]).some(r=>r.pid===G.pid && r.idx===G.idx)) G.results.push({pid:G.pid, idx:G.idx, s:s});
+saveComboStep(G.pid+'_'+G.idx,'assemble',true);
 fb.className='feedback ok';
-fb.textContent='✅ 正确！连击 ×'+G.combo+'  +'+(10+Math.min(G.combo,5))+' XP';
+fb.textContent='✅ 正确！连击 ×'+G.combo+'  +'+(10+Math.min(G.combo,5))+' XP · 下一步跟读';
 save();
 const nb=document.getElementById('nextBtn');
-nb.style.display='inline-block';
-nb.textContent = G.idx>=p.items.length-1 ? '🎉 看结果' : '下一题 ▶';
+if(nb){ nb.style.display='inline-block'; nb.textContent='进入②跟读 →'; }
 playItem(G.pid, G.idx+1);
 } else {
 G.combo=0;
@@ -1361,18 +1362,11 @@ fb.className='feedback no';
 fb.textContent='❌ 有地方不对，对照中文再选一次';
 }
 }
+function afterAssembleOk(){
+goToStep('shadow');
+}
 function nextItem(){
-const p=CD().find(x=>x.id===G.pid);
-if(G.queue && G.queue.length){
-const pos=G.queue.indexOf(G.idx);
-if(pos>=0 && pos<G.queue.length-1){
-G.idx=G.queue[pos+1]; G.selected=[]; render(); window.scrollTo(0,0); return;
-}
-toast('本轮拼装完成，回到句子列表');
-G.screen='picker'; render(); window.scrollTo(0,0); return;
-}
-if(G.idx>=p.items.length-1){ return finishDrill(); }
-G.idx++; G.selected=[]; render(); window.scrollTo(0,0);
+afterAssembleOk();
 }
 function quitDrill(){ backToPicker(); }
 function finishDrill(){
