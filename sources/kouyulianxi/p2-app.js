@@ -543,9 +543,19 @@ class P2Practice {
             const div = document.createElement('div');
             div.className = 'question-item' + (idx === this.questionIndex ? ' active' : '');
             div.dataset.qIndex = String(idx);
+            const heat = [];
+            if (q.tag) heat.push(q.tag);
+            if (q.heatRank != null) heat.push(`#${q.heatRank}`);
+            if (q.recentCount) {
+                const n = q.recentCount;
+                const label = n >= 10000 ? `${Math.round(n / 1000)}k` : String(n);
+                heat.push(`${label}人`);
+            }
+            const heatLine = heat.length ? `<div class="p2-side-heat">${this.escapeHtml(heat.join(' · '))}</div>` : '';
             div.innerHTML = `
                 <div class="question-item-title">${idx + 1}. ${this.escapeHtml(q.title || q.q)}</div>
                 <div class="p2-side-type">${sideNote}</div>
+                ${heatLine}
             `;
             box.appendChild(div);
         });
@@ -574,6 +584,14 @@ class P2Practice {
 
         document.getElementById('p2ApplyTitle').textContent = q.title || q.q;
         document.getElementById('p2ApplyQ').textContent = q.q || '';
+        const catEl = document.querySelector('#p2ApplyCard .question-category');
+        if (catEl) {
+            const bits = ['套题练习'];
+            if (q.tag) bits.push(q.tag);
+            if (q.heatRank != null) bits.push(`热度#${q.heatRank}`);
+            if (q.recentCount) bits.push(`近${q.recentCount}人`);
+            catEl.textContent = bits.join(' · ');
+        }
 
         const matIds = this.applyMaterialIds(q);
         const selectedId = this.selectedApplyMaterialId(q);
@@ -659,6 +677,19 @@ class P2Practice {
                 <p class="p2-ending-note">不必另编故事，用素材第三步感受自然收住即可。</p>
             </div>
         `;
+
+        const sampleEn = (q.sampleEnById && q.sampleEnById[selectedId]) || q.sampleEn || '';
+        const sampleZh = (q.sampleZhById && q.sampleZhById[selectedId]) || q.sampleZh || '';
+        const sampleHtml = sampleEn
+            ? `<details class="p2-sample-box">
+                <summary>参考答案 <span class="p2-sample-badge">6分+示例</span></summary>
+                <p class="p2-sample-text">${this.escapeHtml(sampleEn)}</p>
+                ${sampleZh ? `<p class="p2-sample-hint">${this.escapeHtml(sampleZh)}</p>` : '<p class="p2-sample-hint">按本题开头 + 素材细节 + 感受收尾组织；可对照练习，不必逐字背诵。</p>'}
+               </details>`
+            : '';
+        if (sampleHtml) {
+            blocks.insertAdjacentHTML('beforeend', sampleHtml);
+        }
 
         document.getElementById('p2ListenOpening')?.addEventListener('click', (e) => {
             const q = this.data.questions[this.questionIndex];
