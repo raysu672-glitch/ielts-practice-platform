@@ -1,0 +1,7276 @@
+{
+  "questions": {
+    "haveyouevergotawatchasagift": {
+      "cat": "shishi",
+      "topicEn": "Watch",
+      "q": "Have you ever got a watch as a gift?",
+      "logic": "事实：收到手表礼物→谁送的+实用；别聊名牌。",
+      "words": {
+        "正面回答": [
+          "Yes",
+          "definitely",
+          "Absolutely",
+          "Sure"
+        ],
+        "来源或举例": [
+          "from my parents",
+          "birthday gift",
+          "smartwatch"
+        ],
+        "频次": [
+          "on special occasions",
+          "last year",
+          "once"
+        ],
+        "感受": [
+          "really convenient",
+          "practical",
+          "a useful gift"
+        ]
+      },
+      "source": "explicit"
+    },
+    "whatsubjectsareyoustudying": {
+      "cat": "shishi",
+      "topicEn": "Work or studies",
+      "q": "What subjects are you studying?",
+      "logic": "事实：直接 Yes/No + 具体细节；学生线：subject + why choose + study routine；工作线可简答后拉回学习场景。",
+      "words": {
+        "正面回答": [
+          "I'm majoring in",
+          "Yes",
+          "Several subjects"
+        ],
+        "来源或举例": [
+          "business",
+          "economics",
+          "related courses"
+        ],
+        "频次": [
+          "every weekday",
+          "every day",
+          "from time to time",
+          "at weekends"
+        ],
+        "感受": [
+          "it will be useful for my future career",
+          "practical",
+          "really convenient",
+          "quite useful",
+          "helpful"
+        ]
+      },
+      "source": "clue-alias"
+    },
+    "whydidyouchoosetostudythatsubject": {
+      "cat": "shishi",
+      "topicEn": "Work or studies",
+      "q": "Why did you choose to study that subject?",
+      "logic": "事实：直接 Yes/No + 具体细节；学生线：subject + why choose + study routine；工作线可简答后拉回学习场景。",
+      "words": {
+        "正面回答": [
+          "Because I'm interested in it",
+          "Definitely",
+          "Passion"
+        ],
+        "来源或举例": [
+          "passion for the subject",
+          "future career",
+          "my strengths"
+        ],
+        "频次": [
+          "every weekday",
+          "every day",
+          "from time to time",
+          "at weekends"
+        ],
+        "感受": [
+          "it will be useful for my future career",
+          "practical",
+          "really convenient",
+          "quite useful",
+          "helpful"
+        ]
+      },
+      "source": "clue-alias"
+    },
+    "whatworkdoyoudo": {
+      "cat": "shishi",
+      "topicEn": "Work or studies",
+      "q": "What work do you do?",
+      "logic": "事实：直接 Yes/No + 具体细节；学生线：subject + why choose + study routine；工作线可简答后拉回学习场景。",
+      "words": {
+        "正面回答": [
+          "I'm a student",
+          "I work part-time",
+          "Internship"
+        ],
+        "来源或举例": [
+          "internship",
+          "tutor",
+          "on campus"
+        ],
+        "频次": [
+          "every weekday",
+          "every day",
+          "from time to time",
+          "at weekends"
+        ],
+        "感受": [
+          "it will be useful for my future career",
+          "practical",
+          "really convenient",
+          "quite useful",
+          "helpful"
+        ]
+      },
+      "source": "clue-alias"
+    },
+    "whydidyouchoosetodothattypeofworkorthatjob": {
+      "cat": "shishi",
+      "topicEn": "Work or studies",
+      "q": "Why did you choose to do that type of work (or that job)?",
+      "logic": "事实：直接 Yes/No + 具体细节；学生线：subject + why choose + study routine；工作线可简答后拉回学习场景。",
+      "words": {
+        "正面回答": [
+          "I am a student majoring in",
+          "Yes",
+          "Definitely",
+          "Not really",
+          "Sometimes"
+        ],
+        "来源或举例": [
+          "Study",
+          "attend classes",
+          "listen to a lecture"
+        ],
+        "频次": [
+          "every weekday",
+          "every day",
+          "from time to time",
+          "at weekends"
+        ],
+        "感受": [
+          "it will be useful for my future career",
+          "practical",
+          "really convenient",
+          "quite useful",
+          "helpful"
+        ]
+      },
+      "source": "clue-alias"
+    },
+    "whatrequirementsdidyouneedtomeettogetyourcurrentjob": {
+      "cat": "shishi",
+      "topicEn": "Work or studies",
+      "q": "What requirements did you need to meet to get your current job?",
+      "logic": "事实：直接 Yes/No + 具体细节；学生线：subject + why choose + study routine；工作线可简答后拉回学习场景。",
+      "words": {
+        "正面回答": [
+          "Several requirements",
+          "Yes",
+          "Quite a few"
+        ],
+        "来源或举例": [
+          "a degree",
+          "relevant experience",
+          "good communication skills"
+        ],
+        "频次": [
+          "every weekday",
+          "every day",
+          "from time to time",
+          "at weekends"
+        ],
+        "感受": [
+          "it will be useful for my future career",
+          "practical",
+          "really convenient",
+          "quite useful",
+          "helpful"
+        ]
+      },
+      "source": "clue-alias"
+    },
+    "whohelpsyouthemostandhow": {
+      "cat": "shishi",
+      "topicEn": "Work or studies",
+      "q": "Who helps you the most? And how?",
+      "logic": "事实：直接 Yes/No + 具体细节；学生线：subject + why choose + study routine；工作线可简答后拉回学习场景。",
+      "words": {
+        "正面回答": [
+          "My parents",
+          "My close friends",
+          "Definitely"
+        ],
+        "来源或举例": [
+          "give me advice",
+          "encourage me",
+          "help with planning"
+        ],
+        "频次": [
+          "every weekday",
+          "every day",
+          "from time to time",
+          "at weekends"
+        ],
+        "感受": [
+          "it will be useful for my future career",
+          "practical",
+          "really convenient",
+          "quite useful",
+          "helpful"
+        ]
+      },
+      "source": "clue-alias"
+    },
+    "arethereanychangestothewebsitesyouoftenvisit": {
+      "cat": "shishi",
+      "topicEn": "Websites",
+      "q": "Are there any changes to the websites you often visit?",
+      "logic": "事实：常用站改版/新功能，如学习网站或小红书。",
+      "words": {
+        "正面回答": [
+          "Yes",
+          "definitely",
+          "Quite a few",
+          "Recently yes"
+        ],
+        "来源或举例": [
+          "new layout",
+          "more short videos",
+          "updated design"
+        ],
+        "频次": [
+          "recently",
+          "in the past year",
+          "from time to time"
+        ],
+        "感受": [
+          "takes time to get used to",
+          "mostly positive",
+          "still useful"
+        ]
+      },
+      "source": "explicit"
+    },
+    "whathaveyoulearnedfromwebsitesthathelpwithyourlifeorstudies": {
+      "cat": "shishi",
+      "topicEn": "Websites",
+      "q": "What have you learned from websites that help with your life or studies?",
+      "logic": "事实：从B站/知乎学技能、查资料。",
+      "words": {
+        "正面回答": [
+          "Quite a lot",
+          "A fair amount",
+          "Definitely"
+        ],
+        "来源或举例": [
+          "study skills",
+          "cooking tips",
+          "search information"
+        ],
+        "频次": [
+          "when I need help",
+          "almost every day",
+          "before exams"
+        ],
+        "感受": [
+          "really useful",
+          "save me time",
+          "practical"
+        ]
+      },
+      "source": "explicit"
+    },
+    "doyouhaveateacherfromyourpastthatyoustillremember": {
+      "cat": "shishi",
+      "topicEn": "Teachers",
+      "q": "Do you have a teacher from your past that you still remember?",
+      "logic": "事实：一位耐心老师+具体帮助。",
+      "words": {
+        "正面回答": [
+          "Yes",
+          "clearly",
+          "Definitely",
+          "One in particular"
+        ],
+        "来源或举例": [
+          "my high school English teacher",
+          "very patient",
+          "explained clearly"
+        ],
+        "频次": [
+          "years ago",
+          "in high school",
+          "still remember"
+        ],
+        "感受": [
+          "left a deep impression",
+          "really grateful",
+          "changed my attitude"
+        ]
+      },
+      "source": "explicit"
+    },
+    "areyoustillintouchwithyourprimaryschoolteachers": {
+      "cat": "shishi",
+      "topicEn": "Teachers",
+      "q": "Are you still in touch with your primary school teachers?",
+      "logic": "事实：偶尔联系/节日问候，或坦诚很少联系。",
+      "words": {
+        "正面回答": [
+          "Not really",
+          "Occasionally",
+          "Rarely"
+        ],
+        "来源或举例": [
+          "WeChat messages",
+          "during festivals",
+          "through my parents"
+        ],
+        "频次": [
+          "from time to time",
+          "once a year",
+          "almost never"
+        ],
+        "感受": [
+          "still grateful",
+          "fond memories",
+          "they were caring"
+        ]
+      },
+      "source": "explicit"
+    },
+    "inwhatwayhasyourfavouriteteacherhelpedyou": {
+      "cat": "shishi",
+      "topicEn": "Teachers",
+      "q": "In what way has your favourite teacher helped you?",
+      "logic": "事实：鼓励+讲题+树立信心。",
+      "words": {
+        "正面回答": [
+          "In many ways",
+          "Quite a lot",
+          "Several ways"
+        ],
+        "来源或举例": [
+          "encouraged me",
+          "explained concepts clearly",
+          "gave feedback"
+        ],
+        "频次": [
+          "when I struggled",
+          "during exams",
+          "through university prep"
+        ],
+        "感受": [
+          "gave me confidence",
+          "made me believe in myself",
+          "really supportive"
+        ]
+      },
+      "source": "explicit"
+    },
+    "doyouknowanyfamouspeopleinyourarea": {
+      "cat": "shishi",
+      "topicEn": "The area you live in",
+      "q": "Do you know any famous people in your area?",
+      "logic": "事实：当地名人/网红或坦诚不认识。",
+      "words": {
+        "正面回答": [
+          "Not personally",
+          "One or two",
+          "On TV only"
+        ],
+        "来源或举例": [
+          "a local influencer",
+          "historical figure",
+          "community leader"
+        ],
+        "频次": [
+          "in the news",
+          "heard from neighbours",
+          "rarely"
+        ],
+        "感受": [
+          "interesting stories",
+          "not that famous",
+          "part of local culture"
+        ]
+      },
+      "source": "explicit"
+    },
+    "whataresomechangesinthearearecently": {
+      "cat": "shishi",
+      "topicEn": "The area you live in",
+      "q": "What are some changes in the area recently?",
+      "logic": "事实：新建商场/地铁/环境变化。",
+      "words": {
+        "正面回答": [
+          "Quite a few",
+          "Several changes",
+          "Definitely"
+        ],
+        "来源或举例": [
+          "new shopping malls",
+          "subway extension",
+          "more cafes"
+        ],
+        "频次": [
+          "recently",
+          "in the past few years",
+          "ever ever ever since I moved here"
+        ],
+        "感受": [
+          "more convenient",
+          "busier now",
+          "better facilities"
+        ]
+      },
+      "source": "explicit"
+    },
+    "doyouknowanyofyourneighbors": {
+      "cat": "shishi",
+      "topicEn": "The area you live in",
+      "q": "Do you know any of your neighbors?",
+      "logic": "事实：认识几位邻居/偶尔打招呼。",
+      "words": {
+        "正面回答": [
+          "A few of them",
+          "Some neighbours",
+          "Not many"
+        ],
+        "来源或举例": [
+          "say hello",
+          "elderly couple",
+          "same building"
+        ],
+        "频次": [
+          "when we meet",
+          "in the elevator",
+          "from time to time"
+        ],
+        "感受": [
+          "friendly enough",
+          "peaceful community",
+          "feel safe"
+        ]
+      },
+      "source": "explicit"
+    },
+    "arethepeopleinyourneighborhoodniceandfriendly": {
+      "cat": "shishi",
+      "topicEn": "The area you live in",
+      "q": "Are the people in your neighborhood nice and friendly?",
+      "logic": "事实：邻居友善互助或一般。",
+      "words": {
+        "正面回答": [
+          "Yes",
+          "quite friendly",
+          "Most are nice",
+          "Generally yes"
+        ],
+        "来源或举例": [
+          "help each other",
+          "say hello",
+          "quiet community"
+        ],
+        "频次": [
+          "when needed",
+          "always",
+          "every day",
+          "from time to time",
+          "at weekends"
+        ],
+        "感受": [
+          "feel safe",
+          "warm atmosphere",
+          "comfortable living here"
+        ]
+      },
+      "source": "explicit"
+    },
+    "doyouliveinanoisyoraquietarea": {
+      "cat": "shishi",
+      "topicEn": "The area you live in",
+      "q": "Do you live in a noisy or a quiet area?",
+      "logic": "事实：安静住宅区或临街略吵。",
+      "words": {
+        "正面回答": [
+          "Quite quiet",
+          "Mostly quiet",
+          "A bit noisy"
+        ],
+        "来源或举例": [
+          "residential area",
+          "away from main road",
+          "near a market"
+        ],
+        "频次": [
+          "at night",
+          "during rush hour",
+          "on weekdays"
+        ],
+        "感受": [
+          "peaceful at night",
+          "can sleep well",
+          "busy in the morning"
+        ]
+      },
+      "source": "explicit"
+    },
+    "haveyoueverreturnedanythingyouboughtonline": {
+      "cat": "shishi",
+      "topicEn": "Shopping",
+      "q": "Have you ever returned anything you bought online?",
+      "logic": "事实：网购退货经历+原因尺码/质量。",
+      "words": {
+        "正面回答": [
+          "Yes",
+          "once",
+          "A couple of times",
+          "Definitely"
+        ],
+        "来源或举例": [
+          "wrong size",
+          "quality issue",
+          "through online shopping"
+        ],
+        "频次": [
+          "last month",
+          "from time to time",
+          "rarely"
+        ],
+        "感受": [
+          "the process was easy",
+          "a bit annoying",
+          "sellers were helpful"
+        ]
+      },
+      "source": "explicit"
+    },
+    "haveyoueverboughtmirrors": {
+      "cat": "shishi",
+      "topicEn": "Mirrors",
+      "q": "Have you ever bought mirrors?",
+      "logic": "事实：买过镜子装饰/化妆镜。",
+      "words": {
+        "正面回答": [
+          "Yes",
+          "once",
+          "A few times",
+          "Not really"
+        ],
+        "来源或举例": [
+          "a small mirror",
+          "for my desk",
+          "decorative mirror"
+        ],
+        "频次": [
+          "last year",
+          "when I moved",
+          "rarely"
+        ],
+        "感受": [
+          "practical and cheap",
+          "looks nice",
+          "useful daily"
+        ]
+      },
+      "source": "explicit"
+    },
+    "haveyoutakenanymusicclasses": {
+      "cat": "shishi",
+      "topicEn": "Music",
+      "q": "Have you taken any music classes?",
+      "logic": "事实：学过音乐课/乐器经历。",
+      "words": {
+        "正面回答": [
+          "Yes",
+          "in school",
+          "A short course",
+          "Not really"
+        ],
+        "来源或举例": [
+          "music class",
+          "learned guitar",
+          "in primary school"
+        ],
+        "频次": [
+          "years ago",
+          "for one semester",
+          "when I was young"
+        ],
+        "感受": [
+          "was fun",
+          "basic skills",
+          "wish I continued"
+        ]
+      },
+      "source": "explicit"
+    },
+    "arethetransportfacilitiestoyourhomeverygood": {
+      "cat": "shishi",
+      "topicEn": "Home & Accommodation",
+      "q": "Are the transport facilities to your home very good?",
+      "logic": "事实：地铁公交方便/离家近。",
+      "words": {
+        "正面回答": [
+          "Yes",
+          "quite good",
+          "Very convenient",
+          "Pretty decent"
+        ],
+        "来源或举例": [
+          "near the subway",
+          "bus stops nearby",
+          "easy to get around"
+        ],
+        "频次": [
+          "every day",
+          "when commuting",
+          "to university"
+        ],
+        "感受": [
+          "save a lot of time",
+          "really convenient",
+          "rarely late"
+        ]
+      },
+      "source": "explicit"
+    },
+    "pleasedescribetheroomyoulivein": {
+      "cat": "shishi",
+      "topicEn": "Home & Accommodation",
+      "q": "Please describe the room you live in?",
+      "logic": "事实：直接 Yes/No + 具体细节；住宿线：dorms/apartment + roommate + favourite room，交通用 subway。",
+      "words": {
+        "正面回答": [
+          "I live in a big city",
+          "have lived here since I was a child",
+          "Yes",
+          "Definitely",
+          "Not really"
+        ],
+        "来源或举例": [
+          "my bedroom",
+          "small but cosy",
+          "desk and wardrobe"
+        ],
+        "频次": [
+          "every day",
+          "from time to time",
+          "at weekends"
+        ],
+        "感受": [
+          "feel relaxed and at ease",
+          "nice place to sit back and relax",
+          "practical",
+          "really convenient",
+          "quite useful"
+        ]
+      },
+      "source": "clue-alias"
+    },
+    "howlonghaveyoulivedthere": {
+      "cat": "shishi",
+      "topicEn": "Home & Accommodation",
+      "q": "How long have you lived there?",
+      "logic": "事实：直接 Yes/No + 具体细节；住宿线：dorms/apartment + roommate + favourite room，交通用 subway。",
+      "words": {
+        "正面回答": [
+          "I live in a big city",
+          "have lived here since I was a child",
+          "Yes",
+          "Definitely",
+          "Not really"
+        ],
+        "来源或举例": [
+          "surrounded by convenience stores",
+          "shopping malls",
+          "with easy access to the subway"
+        ],
+        "频次": [
+          "every day",
+          "from time to time",
+          "at weekends"
+        ],
+        "感受": [
+          "feel relaxed and at ease",
+          "nice place to sit back and relax",
+          "practical",
+          "really convenient",
+          "quite useful"
+        ]
+      },
+      "source": "clue-alias"
+    },
+    "canyoudescribetheplacewhereyoulive": {
+      "cat": "shishi",
+      "topicEn": "Home & Accommodation",
+      "q": "Can you describe the place where you live?",
+      "logic": "事实：直接 Yes/No + 具体细节；住宿线：dorms/apartment + roommate + favourite room，交通用 subway。",
+      "words": {
+        "正面回答": [
+          "I live in a big city",
+          "have lived here since I was a child",
+          "Yes",
+          "Definitely",
+          "Not really"
+        ],
+        "来源或举例": [
+          "a residential area",
+          "convenience stores nearby",
+          "quiet street"
+        ],
+        "频次": [
+          "every day",
+          "from time to time",
+          "at weekends"
+        ],
+        "感受": [
+          "feel relaxed and at ease",
+          "nice place to sit back and relax",
+          "practical",
+          "really convenient",
+          "quite useful"
+        ]
+      },
+      "source": "clue-alias"
+    },
+    "doyouliveinanapartmentorahouse": {
+      "cat": "shishi",
+      "topicEn": "Home & Accommodation",
+      "q": "Do you live in an apartment or a house?",
+      "logic": "事实：直接 Yes/No + 具体细节；住宿线：dorms/apartment + roommate + favourite room，交通用 subway。",
+      "words": {
+        "正面回答": [
+          "I live in a big city",
+          "have lived here since I was a child",
+          "Yes",
+          "Definitely",
+          "Not really"
+        ],
+        "来源或举例": [
+          "an apartment",
+          "with my family",
+          "in a high-rise"
+        ],
+        "频次": [
+          "every day",
+          "from time to time",
+          "at weekends"
+        ],
+        "感受": [
+          "feel relaxed and at ease",
+          "nice place to sit back and relax",
+          "practical",
+          "really convenient",
+          "quite useful"
+        ]
+      },
+      "source": "clue-alias"
+    },
+    "whodoyoulivewith": {
+      "cat": "shishi",
+      "topicEn": "Home & Accommodation",
+      "q": "Who do you live with?",
+      "logic": "事实：直接 Yes/No + 具体细节；住宿线：dorms/apartment + roommate + favourite room，交通用 subway。",
+      "words": {
+        "正面回答": [
+          "I live in a big city",
+          "have lived here since I was a child",
+          "Yes",
+          "Definitely",
+          "Not really"
+        ],
+        "来源或举例": [
+          "my parents",
+          "roommates",
+          "my family"
+        ],
+        "频次": [
+          "every day",
+          "from time to time",
+          "at weekends"
+        ],
+        "感受": [
+          "feel relaxed and at ease",
+          "nice place to sit back and relax",
+          "practical",
+          "really convenient",
+          "quite useful"
+        ]
+      },
+      "source": "clue-alias"
+    },
+    "whatkindsofaccommodationdoyoulivein": {
+      "cat": "shishi",
+      "topicEn": "Home & Accommodation",
+      "q": "What kinds of accommodation do you live in?",
+      "logic": "事实：直接 Yes/No + 具体细节；住宿线：dorms/apartment + roommate + favourite room，交通用 subway。",
+      "words": {
+        "正面回答": [
+          "I live in a big city",
+          "have lived here since I was a child",
+          "Yes",
+          "Definitely",
+          "Not really"
+        ],
+        "来源或举例": [
+          "student dorms",
+          "rented apartment",
+          "shared flat"
+        ],
+        "频次": [
+          "every day",
+          "from time to time",
+          "at weekends"
+        ],
+        "感受": [
+          "feel relaxed and at ease",
+          "nice place to sit back and relax",
+          "practical",
+          "really convenient",
+          "quite useful"
+        ]
+      },
+      "source": "clue-alias"
+    },
+    "whereisyourhometown": {
+      "cat": "shishi",
+      "topicEn": "Hometown",
+      "q": "Where is your hometown?",
+      "logic": "事实：直接 Yes/No + 具体细节；家乡三件套：big/small city + famous for + young people，历史文化各一句。",
+      "words": {
+        "正面回答": [
+          "I live in a big city",
+          "have lived here since I was a child",
+          "Yes",
+          "Definitely",
+          "Not really"
+        ],
+        "来源或举例": [
+          "in the south",
+          "a coastal city",
+          "central China"
+        ],
+        "频次": [
+          "every day",
+          "from time to time",
+          "at weekends"
+        ],
+        "感受": [
+          "feel relaxed and at ease",
+          "nice place to sit back and relax",
+          "practical",
+          "really convenient",
+          "quite useful"
+        ]
+      },
+      "source": "clue-alias"
+    },
+    "isthatabigcityorasmallplace": {
+      "cat": "shishi",
+      "topicEn": "Hometown",
+      "q": "Is that a big city or a small place?",
+      "logic": "事实：直接 Yes/No + 具体细节；家乡三件套：big/small city + famous for + young people，历史文化各一句。",
+      "words": {
+        "正面回答": [
+          "I live in a big city",
+          "have lived here since I was a child",
+          "Yes",
+          "Definitely",
+          "Not really"
+        ],
+        "来源或举例": [
+          "a medium-sized city",
+          "not too big",
+          "manageable size"
+        ],
+        "频次": [
+          "every day",
+          "from time to time",
+          "at weekends"
+        ],
+        "感受": [
+          "feel relaxed and at ease",
+          "nice place to sit back and relax",
+          "practical",
+          "really convenient",
+          "quite useful"
+        ]
+      },
+      "source": "clue-alias"
+    },
+    "pleasedescribeyourhometownalittle": {
+      "cat": "shishi",
+      "topicEn": "Hometown",
+      "q": "Please describe your hometown a little?",
+      "logic": "事实：直接 Yes/No + 具体细节；家乡三件套：big/small city + famous for + young people，历史文化各一句。",
+      "words": {
+        "正面回答": [
+          "I live in a big city",
+          "have lived here since I was a child",
+          "Yes",
+          "Definitely",
+          "Not really"
+        ],
+        "来源或举例": [
+          "local food",
+          "friendly people",
+          "nice scenery"
+        ],
+        "频次": [
+          "every day",
+          "from time to time",
+          "at weekends"
+        ],
+        "感受": [
+          "feel relaxed and at ease",
+          "nice place to sit back and relax",
+          "practical",
+          "really convenient",
+          "quite useful"
+        ]
+      },
+      "source": "clue-alias"
+    },
+    "howlonghaveyoubeenlivingthere": {
+      "cat": "shishi",
+      "topicEn": "Hometown",
+      "q": "How long have you been living there?",
+      "logic": "事实：直接 Yes/No + 具体细节；家乡三件套：big/small city + famous for + young people，历史文化各一句。",
+      "words": {
+        "正面回答": [
+          "I live in a big city",
+          "have lived here since I was a child",
+          "Yes",
+          "Definitely",
+          "Not really"
+        ],
+        "来源或举例": [
+          "surrounded by convenience stores",
+          "shopping malls",
+          "with easy access to the subway"
+        ],
+        "频次": [
+          "every day",
+          "from time to time",
+          "at weekends"
+        ],
+        "感受": [
+          "feel relaxed and at ease",
+          "nice place to sit back and relax",
+          "practical",
+          "really convenient",
+          "quite useful"
+        ]
+      },
+      "source": "clue-alias"
+    },
+    "whatsyourhometownfamousfor": {
+      "cat": "shishi",
+      "topicEn": "Hometown",
+      "q": "What's your hometown famous for?",
+      "logic": "事实：直接 Yes/No + 具体细节；家乡三件套：big/small city + famous for + young people，历史文化各一句。",
+      "words": {
+        "正面回答": [
+          "I live in a big city",
+          "have lived here since I was a child",
+          "Yes",
+          "Definitely",
+          "Not really"
+        ],
+        "来源或举例": [
+          "local cuisine",
+          "historical sites",
+          "natural scenery"
+        ],
+        "频次": [
+          "every day",
+          "from time to time",
+          "at weekends"
+        ],
+        "感受": [
+          "feel relaxed and at ease",
+          "nice place to sit back and relax",
+          "practical",
+          "really convenient",
+          "quite useful"
+        ]
+      },
+      "source": "clue-alias"
+    },
+    "didyoulearnaboutthehistoryofyourhometownatschool": {
+      "cat": "shishi",
+      "topicEn": "Hometown",
+      "q": "Did you learn about the history of your hometown at school?",
+      "logic": "事实：学校历史课讲过家乡。",
+      "words": {
+        "正面回答": [
+          "Yes",
+          "briefly",
+          "In history class",
+          "A little"
+        ],
+        "来源或举例": [
+          "local history",
+          "famous events",
+          "in textbooks"
+        ],
+        "频次": [
+          "in middle school",
+          "years ago",
+          "one chapter"
+        ],
+        "感受": [
+          "interesting",
+          "proud of my hometown",
+          "basic knowledge"
+        ]
+      },
+      "source": "explicit"
+    },
+    "aretheremanyyoungpeopleinyourhometown": {
+      "cat": "shishi",
+      "topicEn": "Hometown",
+      "q": "Are there many young people in your hometown?",
+      "logic": "事实：年轻人多/少+就业吸引力。",
+      "words": {
+        "正面回答": [
+          "Yes",
+          "quite a few",
+          "A good number",
+          "Not that many"
+        ],
+        "来源或举例": [
+          "university students",
+          "young workers",
+          "start-up scene"
+        ],
+        "频次": [
+          "nowadays",
+          "in the city centre",
+          "compared to before"
+        ],
+        "感受": [
+          "lively atmosphere",
+          "more opportunities",
+          "some moved away"
+        ]
+      },
+      "source": "explicit"
+    },
+    "haveyoulearnedanythingaboutthehistoryofyourhometown": {
+      "cat": "shishi",
+      "topicEn": "Hometown",
+      "q": "Have you learned anything about the history of your hometown?",
+      "logic": "事实：博物馆/家人讲述了解历史。",
+      "words": {
+        "正面回答": [
+          "Yes",
+          "some things",
+          "A fair amount",
+          "From family"
+        ],
+        "来源或举例": [
+          "local museum",
+          "grandparents' stories",
+          "history books"
+        ],
+        "频次": [
+          "during the holidays",
+          "when I was young",
+          "from time to time"
+        ],
+        "感受": [
+          "proud heritage",
+          "know my roots",
+          "interesting past"
+        ]
+      },
+      "source": "explicit"
+    },
+    "didyoulearnaboutthecultureofyourhometowninyourchildhood": {
+      "cat": "shishi",
+      "topicEn": "Hometown",
+      "q": "Did you learn about the culture of your hometown in your childhood?",
+      "logic": "事实：童年节日习俗/地方美食文化。",
+      "words": {
+        "正面回答": [
+          "Yes",
+          "through festivals",
+          "From my family",
+          "Quite a lot"
+        ],
+        "来源或举例": [
+          "local festivals",
+          "traditional food",
+          "folk customs"
+        ],
+        "频次": [
+          "during childhood",
+          "every spring festival",
+          "with grandparents"
+        ],
+        "感受": [
+          "warm memories",
+          "part of who I am",
+          "still practise some"
+        ]
+      },
+      "source": "explicit"
+    },
+    "whattypeofheadphonesdoyouuse": {
+      "cat": "shishi",
+      "topicEn": "Headphones",
+      "q": "What type of headphones do you use?",
+      "logic": "事实：无线/入耳式耳机+主要用途。",
+      "words": {
+        "正面回答": [
+          "Wireless earbuds",
+          "Over-ear headphones",
+          "Bluetooth ones"
+        ],
+        "来源或举例": [
+          "listen to music",
+          "on the subway",
+          "while studying"
+        ],
+        "频次": [
+          "every day",
+          "when commuting",
+          "in my free time"
+        ],
+        "感受": [
+          "block noise",
+          "really convenient",
+          "good sound quality"
+        ]
+      },
+      "source": "explicit"
+    },
+    "haveyoueverpostedanythingonsocialmedia": {
+      "cat": "shishi",
+      "topicEn": "Social media",
+      "q": "Have you ever posted anything on social media?",
+      "logic": "事实：发过照片/动态的经历。",
+      "words": {
+        "正面回答": [
+          "Yes",
+          "many times",
+          "Occasionally",
+          "A few times"
+        ],
+        "来源或举例": [
+          "post photos",
+          "share daily life",
+          "on WeChat"
+        ],
+        "频次": [
+          "at weekends",
+          "during the holidays",
+          "from time to time"
+        ],
+        "感受": [
+          "keep in touch",
+          "fun to share",
+          "get reactions from friends"
+        ]
+      },
+      "source": "explicit"
+    },
+    "whendidyoustartusingsocialmedia": {
+      "cat": "shishi",
+      "topicEn": "Social media",
+      "q": "When did you start using social media?",
+      "logic": "事实：初中/高中开始用微信等。",
+      "words": {
+        "正面回答": [
+          "In high school",
+          "Years ago",
+          "Around age 15"
+        ],
+        "来源或举例": [
+          "WeChat",
+          "Xiaohongshu",
+          "with my classmates"
+        ],
+        "频次": [
+          "since high school",
+          "for many years",
+          "early teens"
+        ],
+        "感受": [
+          "part of daily life",
+          "hard to imagine without it",
+          "very common"
+        ]
+      },
+      "source": "explicit"
+    },
+    "doyourfriendsusesocialmedia": {
+      "cat": "shishi",
+      "topicEn": "Social media",
+      "q": "Do your friends use social media?",
+      "logic": "事实：朋友都用社媒聊天发动态。",
+      "words": {
+        "正面回答": [
+          "Yes",
+          "all of them",
+          "Almost everyone",
+          "Definitely"
+        ],
+        "来源或举例": [
+          "WeChat",
+          "post photos",
+          "chat every day"
+        ],
+        "频次": [
+          "every day",
+          "constantly",
+          "all the time"
+        ],
+        "感受": [
+          "easy to connect",
+          "share moments",
+          "stay updated"
+        ]
+      },
+      "source": "explicit"
+    },
+    "haveyoueverlearnthowtosing": {
+      "cat": "shishi",
+      "topicEn": "Singing",
+      "q": "Have you ever learnt how to sing?",
+      "logic": "事实：学过唱歌/KTV经历。",
+      "words": {
+        "正面回答": [
+          "Yes",
+          "a little",
+          "In music class",
+          "Self-taught"
+        ],
+        "来源或举例": [
+          "sing a song",
+          "at KTV",
+          "with friends"
+        ],
+        "频次": [
+          "years ago",
+          "during the holidays",
+          "occasionally"
+        ],
+        "感受": [
+          "was fun",
+          "not very skilled",
+          "enjoyed it"
+        ]
+      },
+      "source": "explicit"
+    },
+    "haveyouevertakenasingingclass": {
+      "cat": "shishi",
+      "topicEn": "Singing",
+      "q": "Have you ever taken a singing class?",
+      "logic": "事实：是否上过声乐课。",
+      "words": {
+        "正面回答": [
+          "Yes",
+          "briefly",
+          "In school",
+          "Not really"
+        ],
+        "来源或举例": [
+          "music class",
+          "learned basics",
+          "school choir"
+        ],
+        "频次": [
+          "in primary school",
+          "one semester",
+          "years ago"
+        ],
+        "感受": [
+          "interesting experience",
+          "built confidence",
+          "was nervous"
+        ]
+      },
+      "source": "explicit"
+    },
+    "haveyoueverlearntaboutouterspaceandstars": {
+      "cat": "shishi",
+      "topicEn": "Outer space and stars",
+      "q": "Have you ever learnt about outer space and stars?",
+      "logic": "事实：学校科学课/纪录片了解太空。",
+      "words": {
+        "正面回答": [
+          "Yes",
+          "in school",
+          "Through documentaries",
+          "A bit"
+        ],
+        "来源或举例": [
+          "science class",
+          "documentaries",
+          "science fiction movies"
+        ],
+        "频次": [
+          "in primary school",
+          "years ago",
+          "from time to time"
+        ],
+        "感受": [
+          "found it fascinating",
+          "sparked curiosity",
+          "still curious"
+        ]
+      },
+      "source": "explicit"
+    },
+    "whatcitydoyoulivein": {
+      "cat": "shishi",
+      "topicEn": "The city you live in",
+      "q": "What city do you live in?",
+      "logic": "事实：直接 Yes/No + 具体细节；城市线：city + weather + friendly people + changes，与 area 素材互通。",
+      "words": {
+        "正面回答": [
+          "I live in a big city",
+          "have lived here since I was a child",
+          "Yes",
+          "Definitely",
+          "Not really"
+        ],
+        "来源或举例": [
+          "a major city",
+          "university town",
+          "where I study"
+        ],
+        "频次": [
+          "every day",
+          "from time to time",
+          "at weekends"
+        ],
+        "感受": [
+          "feel relaxed and at ease",
+          "nice place to sit back and relax",
+          "practical",
+          "really convenient",
+          "quite useful"
+        ]
+      },
+      "source": "clue-alias"
+    },
+    "howlonghaveyoulivedinthiscity": {
+      "cat": "shishi",
+      "topicEn": "The city you live in",
+      "q": "How long have you lived in this city?",
+      "logic": "事实：直接 Yes/No + 具体细节；城市线：city + weather + friendly people + changes，与 area 素材互通。",
+      "words": {
+        "正面回答": [
+          "I live in a big city",
+          "have lived here since I was a child",
+          "Yes",
+          "Definitely",
+          "Not really"
+        ],
+        "来源或举例": [
+          "surrounded by convenience stores",
+          "shopping malls",
+          "with easy access to the subway"
+        ],
+        "频次": [
+          "every day",
+          "from time to time",
+          "at weekends"
+        ],
+        "感受": [
+          "feel relaxed and at ease",
+          "nice place to sit back and relax",
+          "practical",
+          "really convenient",
+          "quite useful"
+        ]
+      },
+      "source": "clue-alias"
+    },
+    "isthiscityyourpermanentresidence": {
+      "cat": "shishi",
+      "topicEn": "The city you live in",
+      "q": "Is this city your permanent residence?",
+      "logic": "事实：直接 Yes/No + 具体细节；城市线：city + weather + friendly people + changes，与 area 素材互通。",
+      "words": {
+        "正面回答": [
+          "I live in a big city",
+          "have lived here since I was a child",
+          "Yes",
+          "Definitely",
+          "Not really"
+        ],
+        "来源或举例": [
+          "for now yes",
+          "while studying",
+          "not sure long-term"
+        ],
+        "频次": [
+          "every day",
+          "from time to time",
+          "at weekends"
+        ],
+        "感受": [
+          "feel relaxed and at ease",
+          "nice place to sit back and relax",
+          "practical",
+          "really convenient",
+          "quite useful"
+        ]
+      },
+      "source": "clue-alias"
+    },
+    "aretherebigchangesinthiscity": {
+      "cat": "shishi",
+      "topicEn": "The city you live in",
+      "q": "Are there big changes in this city?",
+      "logic": "事实：城市变化：新建筑/交通发展。",
+      "words": {
+        "正面回答": [
+          "Yes",
+          "huge changes",
+          "Definitely",
+          "Many changes"
+        ],
+        "来源或举例": [
+          "new skyscrapers",
+          "expanded subway",
+          "more parks"
+        ],
+        "频次": [
+          "in recent years",
+          "since I arrived",
+          "constantly"
+        ],
+        "感受": [
+          "more modern",
+          "more convenient",
+          "hard to recognise some areas"
+        ]
+      },
+      "source": "explicit"
+    },
+    "aretherepeopleofdifferentageslivinginthiscity": {
+      "cat": "shishi",
+      "topicEn": "The city you live in",
+      "q": "Are there people of different ages living in this city?",
+      "logic": "事实：各年龄段都有，老少皆宜。",
+      "words": {
+        "正面回答": [
+          "Yes",
+          "all ages",
+          "Definitely",
+          "Very diverse"
+        ],
+        "来源或举例": [
+          "young professionals",
+          "families with kids",
+          "elderly residents"
+        ],
+        "频次": [
+          "everywhere",
+          "in every district",
+          "in my neighbourhood"
+        ],
+        "感受": [
+          "vibrant mix",
+          "balanced community",
+          "feel inclusive"
+        ]
+      },
+      "source": "explicit"
+    },
+    "arethepeoplefriendlyinthecity": {
+      "cat": "shishi",
+      "topicEn": "The city you live in",
+      "q": "Are the people friendly in the city?",
+      "logic": "事实：城市人友善/忙碌但乐于助人。",
+      "words": {
+        "正面回答": [
+          "Yes",
+          "quite friendly",
+          "Most are helpful",
+          "Generally yes"
+        ],
+        "来源或举例": [
+          "give directions",
+          "help strangers",
+          "polite in shops"
+        ],
+        "频次": [
+          "when you need help",
+          "in daily interactions",
+          "often"
+        ],
+        "感受": [
+          "feel welcome",
+          "warm despite busy life",
+          "positive impression"
+        ]
+      },
+      "source": "explicit"
+    },
+    "whatstheweatherlikewhereyoulive": {
+      "cat": "shishi",
+      "topicEn": "The city you live in",
+      "q": "What's the weather like where you live?",
+      "logic": "事实：直接 Yes/No + 具体细节；城市线：city + weather + friendly people + changes，与 area 素材互通。",
+      "words": {
+        "正面回答": [
+          "I live in a big city",
+          "have lived here since I was a child",
+          "Yes",
+          "Definitely",
+          "Not really"
+        ],
+        "来源或举例": [
+          "hot summers",
+          "mild winters",
+          "four seasons"
+        ],
+        "频次": [
+          "every day",
+          "from time to time",
+          "at weekends"
+        ],
+        "感受": [
+          "feel relaxed and at ease",
+          "nice place to sit back and relax",
+          "practical",
+          "really convenient",
+          "quite useful"
+        ]
+      },
+      "source": "clue-alias"
+    },
+    "whendidyoustarttolearnaboutscience": {
+      "cat": "shishi",
+      "topicEn": "Science",
+      "q": "When did you start to learn about science?",
+      "logic": "事实：小学科学课开始接触。",
+      "words": {
+        "正面回答": [
+          "In primary school",
+          "Around age 7",
+          "Early years"
+        ],
+        "来源或举例": [
+          "science class",
+          "simple experiments",
+          "with my teacher"
+        ],
+        "频次": [
+          "years ago",
+          "through school",
+          "step by step"
+        ],
+        "感受": [
+          "was interesting",
+          "built curiosity",
+          "foundation for later"
+        ]
+      },
+      "source": "explicit"
+    },
+    "whatkindsofinterestingthingshaveyoudonewithscience": {
+      "cat": "shishi",
+      "topicEn": "Science",
+      "q": "What kinds of interesting things have you done with science?",
+      "logic": "事实：实验课/参观科技馆经历。",
+      "words": {
+        "正面回答": [
+          "Several things",
+          "A few experiments",
+          "Quite a few"
+        ],
+        "来源或举例": [
+          "science museum",
+          "lab experiments",
+          "biology projects"
+        ],
+        "频次": [
+          "in school",
+          "during the holidays",
+          "years ago"
+        ],
+        "感受": [
+          "really fun",
+          "hands-on learning",
+          "memorable experiences"
+        ]
+      },
+      "source": "explicit"
+    },
+    "haveyouseenanunforgettableandbeautifulvieworscenery": {
+      "cat": "shishi",
+      "topicEn": "Views",
+      "q": "Have you seen an unforgettable and beautiful view or scenery?",
+      "logic": "事实：旅行见过的山海/城市夜景。",
+      "words": {
+        "正面回答": [
+          "Yes",
+          "absolutely",
+          "Several times",
+          "One stands out"
+        ],
+        "来源或举例": [
+          "mountain sunrise",
+          "sea at sunset",
+          "city night view"
+        ],
+        "频次": [
+          "while travelling",
+          "last summer",
+          "on vacation"
+        ],
+        "感受": [
+          "unforgettable",
+          "took many photos",
+          "still remember clearly"
+        ]
+      },
+      "source": "explicit"
+    },
+    "areyougoodattellingjokes": {
+      "cat": "shishi",
+      "topicEn": "Jokes & Comedies",
+      "q": "Are you good at telling jokes?",
+      "logic": "事实：坦诚不太会/偶尔讲冷笑话。",
+      "words": {
+        "正面回答": [
+          "Not really",
+          "A little",
+          "Sometimes"
+        ],
+        "来源或举例": [
+          "forget the punchline",
+          "only simple jokes",
+          "with close friends"
+        ],
+        "频次": [
+          "rarely",
+          "at gatherings",
+          "when mood is right"
+        ],
+        "感受": [
+          "others laugh more",
+          "still fun",
+          "not my strength"
+        ]
+      },
+      "source": "explicit"
+    },
+    "doyourfriendsliketotelljokes": {
+      "cat": "shishi",
+      "topicEn": "Jokes & Comedies",
+      "q": "Do your friends like to tell jokes?",
+      "logic": "事实：朋友爱讲笑话活跃气氛。",
+      "words": {
+        "正面回答": [
+          "Yes",
+          "some do",
+          "Quite a few",
+          "Especially one friend"
+        ],
+        "来源或举例": [
+          "make people laugh",
+          "at parties",
+          "on WeChat"
+        ],
+        "频次": [
+          "when we hang out",
+          "quite often",
+          "to lighten the mood"
+        ],
+        "感受": [
+          "great atmosphere",
+          "have a good laugh",
+          "feel closer"
+        ]
+      },
+      "source": "explicit"
+    },
+    "haveyoueverwatchedaliveshow": {
+      "cat": "shishi",
+      "topicEn": "Jokes & Comedies",
+      "q": "Have you ever watched a live show?",
+      "logic": "事实：看过脱口秀/相声现场演出。",
+      "words": {
+        "正面回答": [
+          "Yes",
+          "once",
+          "A couple of times",
+          "Not yet"
+        ],
+        "来源或举例": [
+          "stand-up comedy",
+          "live show",
+          "with friends"
+        ],
+        "频次": [
+          "last year",
+          "during a festival",
+          "rarely"
+        ],
+        "感受": [
+          "have a good laugh",
+          "great atmosphere",
+          "unforgettable night"
+        ]
+      },
+      "source": "explicit"
+    },
+    "aretheretallbuildingsnearyourhome": {
+      "cat": "shishi",
+      "topicEn": "Building",
+      "q": "Are there tall buildings near your home?",
+      "logic": "事实：直接 Yes/No + 具体细节；建筑=near home tall buildings / take photos，参观欲落到 city centre landmarks。",
+      "words": {
+        "正面回答": [
+          "Yes",
+          "lots of them",
+          "Definitely",
+          "Not really",
+          "Sometimes"
+        ],
+        "来源或举例": [
+          "like shopping malls and hotels",
+          "such as",
+          "in particular",
+          "for instance"
+        ],
+        "频次": [
+          "go there regularly",
+          "in my free time",
+          "every day",
+          "from time to time",
+          "at weekends"
+        ],
+        "感受": [
+          "super convenient",
+          "practical",
+          "really convenient",
+          "quite useful",
+          "helpful"
+        ]
+      },
+      "source": "clue"
+    },
+    "haveyoueversenthandmadegiftstoothers": {
+      "cat": "shishi",
+      "topicEn": "Gifts",
+      "q": "Have you ever sent handmade gifts to others?",
+      "logic": "事实：送过手工礼物→具体做了什么+对方反应。",
+      "words": {
+        "正面回答": [
+          "Yes",
+          "I have",
+          "A few times",
+          "Definitely"
+        ],
+        "来源或举例": [
+          "a handmade card",
+          "knitted scarf",
+          "DIY gift"
+        ],
+        "频次": [
+          "on birthdays",
+          "for close friends",
+          "from time to time"
+        ],
+        "感受": [
+          "they were touched",
+          "meaningful",
+          "worth the effort"
+        ]
+      },
+      "source": "explicit"
+    },
+    "haveyoueverreceivedagreatgift": {
+      "cat": "shishi",
+      "topicEn": "Gifts",
+      "q": "Have you ever received a great gift?",
+      "logic": "事实：收到好礼物→谁送的+为什么感动。",
+      "words": {
+        "正面回答": [
+          "Yes",
+          "definitely",
+          "Absolutely",
+          "Sure"
+        ],
+        "来源或举例": [
+          "a thoughtful gift",
+          "from my best friend",
+          "last month"
+        ],
+        "频次": [
+          "on my birthday",
+          "last year",
+          "once in a while"
+        ],
+        "感受": [
+          "really surprised",
+          "made me happy",
+          "unexpected surprise"
+        ]
+      },
+      "source": "explicit"
+    },
+    "whatgifthaveyoureceivedrecently": {
+      "cat": "shishi",
+      "topicEn": "Gifts",
+      "q": "What gift have you received recently?",
+      "logic": "事实：最近礼物→物品+场合+一句感受。",
+      "words": {
+        "正面回答": [
+          "Yes",
+          "recently",
+          "Just last month",
+          "A small gift"
+        ],
+        "来源或举例": [
+          "a book",
+          "from my parents",
+          "birthday present"
+        ],
+        "频次": [
+          "last month",
+          "this year",
+          "not long ago"
+        ],
+        "感受": [
+          "really thoughtful",
+          "practical",
+          "I loved it"
+        ]
+      },
+      "source": "explicit"
+    },
+    "haveyoueverhadapetbefore": {
+      "cat": "shishi",
+      "topicEn": "Pets and Animals",
+      "q": "Have you ever had a pet before?",
+      "logic": "事实：宠物=puppy at home",
+      "words": {
+        "正面回答": [
+          "Yes",
+          "absolutely",
+          "used to"
+        ],
+        "来源或举例": [
+          "a puppy",
+          "dorms",
+          "home"
+        ],
+        "频次": [
+          "every day",
+          "the park",
+          "from time to time",
+          "at weekends"
+        ],
+        "感受": [
+          "unwind",
+          "really lifts my mood",
+          "practical",
+          "really convenient",
+          "quite useful"
+        ]
+      },
+      "source": "clue"
+    },
+    "haveyouevervisitedazoo": {
+      "cat": "shishi",
+      "topicEn": "Pets and Animals",
+      "q": "Have you ever visited a zoo?",
+      "logic": "事实：宠物=puppy at home",
+      "words": {
+        "正面回答": [
+          "Yes",
+          "absolutely",
+          "used to"
+        ],
+        "来源或举例": [
+          "a puppy",
+          "dorms",
+          "home"
+        ],
+        "频次": [
+          "every day",
+          "the park",
+          "from time to time",
+          "at weekends"
+        ],
+        "感受": [
+          "unwind",
+          "really lifts my mood",
+          "practical",
+          "really convenient",
+          "quite useful"
+        ]
+      },
+      "source": "clue-alias"
+    },
+    "whendidyoulearnhowtotypeonakeyboard": {
+      "cat": "shishi",
+      "topicEn": "Typing",
+      "q": "When did you learn how to type on a keyboard?",
+      "logic": "事实：直接 Yes/No + 具体细节；打字=daily laptop + practice speed，对比 handwriting 强调 faster。",
+      "words": {
+        "正面回答": [
+          "In my childhood",
+          "in primary school",
+          "Yes",
+          "Definitely",
+          "Not really"
+        ],
+        "来源或举例": [
+          "through online shopping",
+          "play video games",
+          "such as",
+          "in particular",
+          "for instance"
+        ],
+        "频次": [
+          "regularly",
+          "as often as I can",
+          "every day",
+          "from time to time",
+          "at weekends"
+        ],
+        "感受": [
+          "practical",
+          "time-saving",
+          "really convenient",
+          "quite useful",
+          "helpful"
+        ]
+      },
+      "source": "clue-alias"
+    },
+    "howdoyouimproveyourtyping": {
+      "cat": "shishi",
+      "topicEn": "Typing",
+      "q": "How do you improve your typing?",
+      "logic": "事实：直接 Yes/No + 具体细节；打字=daily laptop + practice speed，对比 handwriting 强调 faster。",
+      "words": {
+        "正面回答": [
+          "In my childhood",
+          "in primary school",
+          "Yes",
+          "Definitely",
+          "Not really"
+        ],
+        "来源或举例": [
+          "through online shopping",
+          "play video games",
+          "such as",
+          "in particular",
+          "for instance"
+        ],
+        "频次": [
+          "regularly",
+          "as often as I can",
+          "every day",
+          "from time to time",
+          "at weekends"
+        ],
+        "感受": [
+          "practical",
+          "time-saving",
+          "really convenient",
+          "quite useful",
+          "helpful"
+        ]
+      },
+      "source": "clue-alias"
+    },
+    "areyougoodatmemorisingthings": {
+      "cat": "shishi",
+      "topicEn": "Memory",
+      "q": "Are you good at memorising things?",
+      "logic": "事实：记忆力好/一般+用手机备忘。",
+      "words": {
+        "正面回答": [
+          "Average",
+          "Pretty good",
+          "Depends on the topic"
+        ],
+        "来源或举例": [
+          "phone notes",
+          "to-do list",
+          "repeat out loud"
+        ],
+        "频次": [
+          "for exams",
+          "daily reminders",
+          "important dates"
+        ],
+        "感受": [
+          "works for me",
+          "still forget sometimes",
+          "need reminders"
+        ]
+      },
+      "source": "explicit"
+    },
+    "haveyoueverforgottensomethingimportant": {
+      "cat": "shishi",
+      "topicEn": "Memory",
+      "q": "Have you ever forgotten something important?",
+      "logic": "事实：忘带钥匙/证件经历+教训。",
+      "words": {
+        "正面回答": [
+          "Yes",
+          "unfortunately",
+          "Once or twice",
+          "More than once"
+        ],
+        "来源或举例": [
+          "forgot my keys",
+          "missed a deadline",
+          "left my ID at home"
+        ],
+        "频次": [
+          "last semester",
+          "years ago",
+          "recently"
+        ],
+        "感受": [
+          "it taught me to be more careful",
+          "really stressful",
+          "learned a lesson"
+        ]
+      },
+      "source": "explicit"
+    },
+    "whatdoyouneedtorememberinyourdailylife": {
+      "cat": "shishi",
+      "topicEn": "Memory",
+      "q": "What do you need to remember in your daily life?",
+      "logic": "事实：课程表/作业/约会日程。",
+      "words": {
+        "正面回答": [
+          "Many things",
+          "Quite a lot",
+          "A long list"
+        ],
+        "来源或举例": [
+          "class schedule",
+          "assignments",
+          "friends' birthdays"
+        ],
+        "频次": [
+          "every day",
+          "every morning",
+          "before leaving home"
+        ],
+        "感受": [
+          "phone reminders help",
+          "sometimes stressful",
+          "part of student life"
+        ]
+      },
+      "source": "explicit"
+    },
+    "haveyoueverbeenpartofasportsteam": {
+      "cat": "shishi",
+      "topicEn": "Sports team",
+      "q": "Have you ever been part of a sports team?",
+      "logic": "事实：运动队=basketball/volleyball + teamwork，观看与参与同一套。",
+      "words": {
+        "正面回答": [
+          "Definitely",
+          "Yes",
+          "Not really",
+          "Sometimes"
+        ],
+        "来源或举例": [
+          "play basketball",
+          "volleyball in the sports centre",
+          "such as",
+          "in particular",
+          "for instance"
+        ],
+        "频次": [
+          "at weekends",
+          "in my free time",
+          "every day",
+          "from time to time"
+        ],
+        "感受": [
+          "sense of teamwork",
+          "practical",
+          "really convenient",
+          "quite useful",
+          "helpful"
+        ]
+      },
+      "source": "clue"
+    },
+    "whatdidyouoftendowithyourfriendsinyourchildhood": {
+      "cat": "shishi",
+      "topicEn": "Life stages",
+      "q": "What did you often do with your friends in your childhood?",
+      "logic": "事实：童年和朋友户外玩/骑车。",
+      "words": {
+        "正面回答": [
+          "Many things",
+          "Quite a lot",
+          "Played outside"
+        ],
+        "来源或举例": [
+          "play outside",
+          "ride bikes",
+          "play video games"
+        ],
+        "频次": [
+          "after school",
+          "at weekends",
+          "almost every day"
+        ],
+        "感受": [
+          "carefree days",
+          "great memories",
+          "still close friends"
+        ]
+      },
+      "source": "explicit"
+    },
+    "doyouhaveanyplansforthenextfiveyears": {
+      "cat": "shishi",
+      "topicEn": "Life stages",
+      "q": "Do you have any plans for the next five years?",
+      "logic": "事实：五年计划：毕业/工作/提升。",
+      "words": {
+        "正面回答": [
+          "Yes",
+          "definitely",
+          "A rough plan",
+          "Several goals"
+        ],
+        "来源或举例": [
+          "graduate",
+          "find a good job",
+          "improve my skills"
+        ],
+        "频次": [
+          "after university",
+          "step by step",
+          "in the next few years"
+        ],
+        "感受": [
+          "excited about the future",
+          "need to work hard",
+          "clear direction"
+        ]
+      },
+      "source": "explicit"
+    },
+    "wheredidyougoforawalklately": {
+      "cat": "shishi",
+      "topicEn": "Walking",
+      "q": "Where did you go for a walk lately?",
+      "logic": "事实：直接 Yes/No + 具体细节；走路=go for a walk in the park，解压+景色一笔带过。",
+      "words": {
+        "正面回答": [
+          "Recently",
+          "just a few days ago",
+          "Yes",
+          "Definitely",
+          "Not really"
+        ],
+        "来源或举例": [
+          "the local park",
+          "city centre",
+          "such as",
+          "in particular",
+          "for instance"
+        ],
+        "频次": [
+          "after dinner",
+          "feel bored",
+          "every day",
+          "from time to time",
+          "at weekends"
+        ],
+        "感受": [
+          "feel relaxed and at ease",
+          "clear my mind",
+          "practical",
+          "really convenient",
+          "quite useful"
+        ]
+      },
+      "source": "clue"
+    },
+    "whatarethemostbeautifulsightsyouhaveseenwhiletraveling": {
+      "cat": "shishi",
+      "topicEn": "Scenery",
+      "q": "What are the most beautiful sights you have seen while traveling?",
+      "logic": "事实：直接 Yes/No + 具体细节；景色=travel + take photos，山/海对比用 mountains vs sea。",
+      "words": {
+        "正面回答": [
+          "To be honest",
+          "the seaside",
+          "Yes",
+          "Definitely",
+          "Not really"
+        ],
+        "来源或举例": [
+          "take photos of the stunning views",
+          "such as",
+          "in particular",
+          "for instance"
+        ],
+        "频次": [
+          "during the holidays",
+          "when I have time off",
+          "every day",
+          "from time to time",
+          "at weekends"
+        ],
+        "感受": [
+          "It",
+          "s something I",
+          "ll never forget"
+        ]
+      },
+      "source": "clue"
+    },
+    "isthecitywhereyoulivecrowded": {
+      "cat": "shishi",
+      "topicEn": "Crowded place",
+      "q": "Is the city where you live crowded?",
+      "logic": "事实：直接 Yes/No + 具体细节；拥挤=city centre / rush hour / shopping malls，喜好偏 not really。",
+      "words": {
+        "正面回答": [
+          "Honestly",
+          "yes",
+          "Definitely",
+          "Not really",
+          "Sometimes"
+        ],
+        "来源或举例": [
+          "downtown",
+          "rush hour",
+          "shopping malls"
+        ],
+        "频次": [
+          "every single day",
+          "every day",
+          "from time to time",
+          "at weekends"
+        ],
+        "感受": [
+          "it really gets to me",
+          "feel awful",
+          "practical",
+          "really convenient",
+          "quite useful"
+        ]
+      },
+      "source": "clue-alias"
+    },
+    "isthereacrowdedplacenearwhereyoulive": {
+      "cat": "shishi",
+      "topicEn": "Crowded place",
+      "q": "Is there a crowded place near where you live?",
+      "logic": "事实：直接 Yes/No + 具体细节；拥挤=city centre / rush hour / shopping malls，喜好偏 not really。",
+      "words": {
+        "正面回答": [
+          "Honestly",
+          "yes",
+          "Definitely",
+          "Not really",
+          "Sometimes"
+        ],
+        "来源或举例": [
+          "the city centre",
+          "near the subway station",
+          "weekend markets"
+        ],
+        "频次": [
+          "every single day",
+          "every day",
+          "from time to time",
+          "at weekends"
+        ],
+        "感受": [
+          "it really gets to me",
+          "feel awful",
+          "practical",
+          "really convenient",
+          "quite useful"
+        ]
+      },
+      "source": "clue-alias"
+    },
+    "whenwasthelasttimeyouwereinacrowdedplace": {
+      "cat": "shishi",
+      "topicEn": "Crowded place",
+      "q": "When was the last time you were in a crowded place?",
+      "logic": "事实：直接 Yes/No + 具体细节；拥挤=city centre / rush hour / shopping malls，喜好偏 not really。",
+      "words": {
+        "正面回答": [
+          "Honestly",
+          "yes",
+          "Definitely",
+          "Not really",
+          "Sometimes"
+        ],
+        "来源或举例": [
+          "the shopping mall",
+          "during a holiday",
+          "last weekend"
+        ],
+        "频次": [
+          "every single day",
+          "every day",
+          "from time to time",
+          "at weekends"
+        ],
+        "感受": [
+          "it really gets to me",
+          "feel awful",
+          "practical",
+          "really convenient",
+          "quite useful"
+        ]
+      },
+      "source": "clue-alias"
+    },
+    "didyouenjoytravelingbycarwhenyouwereakid": {
+      "cat": "xihao",
+      "topicEn": "Cars",
+      "q": "Did you enjoy traveling by car when you were a kid?",
+      "logic": "喜好：童年坐车出游开心，去郊区/回老家。",
+      "words": {
+        "正面回答": [
+          "Yes",
+          "I loved it",
+          "Definitely",
+          "So much fun"
+        ],
+        "原因或时间": [
+          "family road trips",
+          "when I was a child",
+          "during the holidays"
+        ],
+        "频次": [
+          "during the holidays",
+          "a few times a year",
+          "often"
+        ],
+        "感受": [
+          "feel relaxed and at ease",
+          "great memories",
+          "so much fun"
+        ]
+      },
+      "source": "explicit"
+    },
+    "whattypesofcarsdoyoulike": {
+      "cat": "xihao",
+      "topicEn": "Cars",
+      "q": "What types of cars do you like?",
+      "logic": "喜好：SUV/舒适轿车，理由=空间/安全，别背参数。",
+      "words": {
+        "正面回答": [
+          "I prefer SUVs",
+          "Comfortable sedans",
+          "Electric cars"
+        ],
+        "原因或时间": [
+          "more space",
+          "comfortable seats",
+          "feel safer"
+        ],
+        "频次": [
+          "for long trips",
+          "with my family",
+          "quite often",
+          "at weekends",
+          "from time to time"
+        ],
+        "感受": [
+          "feel safer",
+          "more comfortable",
+          "practical"
+        ]
+      },
+      "source": "explicit"
+    },
+    "willyoubuyanexpensivecarinthefuture": {
+      "cat": "xihao",
+      "topicEn": "Cars",
+      "q": "Will you buy an expensive car in the future?",
+      "logic": "喜好：务实→先实用再考虑，或说毕业后努力买。",
+      "words": {
+        "正面回答": [
+          "Maybe in the future",
+          "Not sure yet",
+          "Perhaps"
+        ],
+        "原因或时间": [
+          "after I graduate",
+          "when I can afford it",
+          "a practical car first"
+        ],
+        "频次": [
+          "not at the moment",
+          "in a few years",
+          "after I start working"
+        ],
+        "感受": [
+          "practical matters more",
+          "quality over price",
+          "it depends"
+        ]
+      },
+      "source": "explicit"
+    },
+    "doyoulikeyoursubject": {
+      "cat": "xihao",
+      "topicEn": "Work or studies",
+      "q": "Do you like your subject?",
+      "logic": "喜好：说清喜欢什么+原因；学生线：subject + why choose + study routine；工作线可简答后拉回学习场景。",
+      "words": {
+        "正面回答": [
+          "I'm passionate about it",
+          "Yes",
+          "Definitely",
+          "I love it",
+          "Not really"
+        ],
+        "原因或时间": [
+          "really convenient",
+          "because",
+          "when I",
+          "for the reason that"
+        ],
+        "频次": [
+          "attend classes",
+          "listen to a lecture",
+          "quite often",
+          "at weekends",
+          "from time to time"
+        ],
+        "感受": [
+          "self-motivated",
+          "strive in one",
+          "s studies"
+        ]
+      },
+      "source": "clue"
+    },
+    "doyouwanttochangeyourmajor": {
+      "cat": "xihao",
+      "topicEn": "Work or studies",
+      "q": "Do you want to change your major?",
+      "logic": "喜好：说清喜欢什么+原因；学生线：subject + why choose + study routine；工作线可简答后拉回学习场景。",
+      "words": {
+        "正面回答": [
+          "absolutely not",
+          "Yes",
+          "Definitely",
+          "I love it",
+          "Not really"
+        ],
+        "原因或时间": [
+          "I'm passionate about it",
+          "because",
+          "when I",
+          "for the reason that"
+        ],
+        "频次": [
+          "study at the library",
+          "quite often",
+          "at weekends",
+          "from time to time"
+        ],
+        "感受": [
+          "it will be useful for my future career",
+          "feel relaxed",
+          "really enjoyable",
+          "it always cheers me up"
+        ]
+      },
+      "source": "clue"
+    },
+    "areyoulookingforwardtoworking": {
+      "cat": "xihao",
+      "topicEn": "Work or studies",
+      "q": "Are you looking forward to working?",
+      "logic": "喜好：说清喜欢什么+原因；学生线：subject + why choose + study routine；工作线可简答后拉回学习场景。",
+      "words": {
+        "正面回答": [
+          "Definitely",
+          "Yes",
+          "I love it",
+          "Not really"
+        ],
+        "原因或时间": [
+          "after graduation",
+          "because",
+          "when I",
+          "for the reason that"
+        ],
+        "频次": [
+          "no longer rely on my parents",
+          "quite often",
+          "at weekends",
+          "from time to time"
+        ],
+        "感受": [
+          "stand on my own two feet",
+          "feel relaxed",
+          "really enjoyable",
+          "it always cheers me up"
+        ]
+      },
+      "source": "clue"
+    },
+    "doyoulikeyourjob": {
+      "cat": "xihao",
+      "topicEn": "Work or studies",
+      "q": "Do you like your job?",
+      "logic": "喜好：说清喜欢什么+原因；学生线：subject + why choose + study routine；工作线可简答后拉回学习场景。",
+      "words": {
+        "正面回答": [
+          "yes",
+          "I do",
+          "Definitely",
+          "I love it",
+          "Not really"
+        ],
+        "原因或时间": [
+          "a great atmosphere",
+          "because",
+          "when I",
+          "for the reason that"
+        ],
+        "频次": [
+          "exchange ideas",
+          "quite often",
+          "at weekends",
+          "from time to time"
+        ],
+        "感受": [
+          "both practical and fulfilling",
+          "feel relaxed",
+          "really enjoyable",
+          "it always cheers me up"
+        ]
+      },
+      "source": "clue"
+    },
+    "doyouwanttochangetoanotherjob": {
+      "cat": "xihao",
+      "topicEn": "Work or studies",
+      "q": "Do you want to change to another job?",
+      "logic": "喜好：说清喜欢什么+原因；学生线：subject + why choose + study routine；工作线可简答后拉回学习场景。",
+      "words": {
+        "正面回答": [
+          "not at the moment",
+          "Yes",
+          "Definitely",
+          "I love it",
+          "Not really"
+        ],
+        "原因或时间": [
+          "at this stage of my life of my life of my life of my life",
+          "because",
+          "when I",
+          "for the reason that"
+        ],
+        "频次": [
+          "focus on my current work",
+          "quite often",
+          "at weekends",
+          "from time to time"
+        ],
+        "感受": [
+          "feel relaxed and at ease",
+          "feel relaxed",
+          "really enjoyable",
+          "it always cheers me up"
+        ]
+      },
+      "source": "clue"
+    },
+    "doyoumissbeingastudent": {
+      "cat": "xihao",
+      "topicEn": "Work or studies",
+      "q": "Do you miss being a student?",
+      "logic": "喜好：说清喜欢什么+原因；学生线：subject + why choose + study routine；工作线可简答后拉回学习场景。",
+      "words": {
+        "正面回答": [
+          "I absolutely miss it",
+          "Yes",
+          "Definitely",
+          "I love it",
+          "Not really"
+        ],
+        "原因或时间": [
+          "when work gets tiring",
+          "because",
+          "when I",
+          "for the reason that"
+        ],
+        "频次": [
+          "the the the the school canteen and the the the classroomss",
+          "quite often",
+          "at weekends",
+          "from time to time"
+        ],
+        "感受": [
+          "holds a lot of precious memories",
+          "feel relaxed",
+          "really enjoyable",
+          "it always cheers me up"
+        ]
+      },
+      "source": "clue"
+    },
+    "whatchangeswouldyouliketoseeinyourschool": {
+      "cat": "xihao",
+      "topicEn": "Work or studies",
+      "q": "What changes would you like to see in your school?",
+      "logic": "喜好：说清喜欢什么+原因；学生线：subject + why choose + study routine；工作线可简答后拉回学习场景。",
+      "words": {
+        "正面回答": [
+          "I'd improve the food in the canteen",
+          "Yes",
+          "Definitely",
+          "I love it",
+          "Not really"
+        ],
+        "原因或时间": [
+          "because",
+          "when I",
+          "for the reason that"
+        ],
+        "频次": [
+          "quite often",
+          "at weekends",
+          "from time to time"
+        ],
+        "感受": [
+          "have a good laugh",
+          "feel relaxed",
+          "really enjoyable",
+          "it always cheers me up"
+        ]
+      },
+      "source": "clue"
+    },
+    "whatisyourfavouritewebsite": {
+      "cat": "xihao",
+      "topicEn": "Websites",
+      "q": "What is your favourite website?",
+      "logic": "喜好：B站/小红书/学校平台，说清用途。",
+      "words": {
+        "正面回答": [
+          "Bilibili",
+          "Xiaohongshu",
+          "Definitely Bilibili"
+        ],
+        "原因或时间": [
+          "watch tutorials",
+          "relax",
+          "learn new skills"
+        ],
+        "频次": [
+          "almost every day",
+          "in my free time",
+          "at night"
+        ],
+        "感受": [
+          "it always cheers me up",
+          "really fun",
+          "very useful"
+        ]
+      },
+      "source": "explicit"
+    },
+    "wouldyouliketohaveyourownwebsite": {
+      "cat": "xihao",
+      "topicEn": "Websites",
+      "q": "Would you like to have your own website?",
+      "logic": "喜好：想有个人博客/作品集，毕业后。",
+      "words": {
+        "正面回答": [
+          "Yes",
+          "I'd love to",
+          "Maybe someday",
+          "Sounds cool"
+        ],
+        "原因或时间": [
+          "share my portfolio",
+          "write blog posts",
+          "in the future"
+        ],
+        "频次": [
+          "not right now",
+          "after graduation",
+          "when I have time"
+        ],
+        "感受": [
+          "sounds cool",
+          "a good idea",
+          "would be fun"
+        ]
+      },
+      "source": "explicit"
+    },
+    "doyouhaveafavoriteteacher": {
+      "cat": "xihao",
+      "topicEn": "Teachers",
+      "q": "Do you have a favorite teacher?",
+      "logic": "喜好：最喜欢某科老师，原因耐心有趣。",
+      "words": {
+        "正面回答": [
+          "Yes",
+          "definitely",
+          "Absolutely",
+          "One favourite"
+        ],
+        "原因或时间": [
+          "patient and humorous",
+          "makes class engaging",
+          "explains clearly"
+        ],
+        "频次": [
+          "every week",
+          "in every class",
+          "through the semester"
+        ],
+        "感受": [
+          "I enjoy their classes",
+          "never boring",
+          "learn a lot"
+        ]
+      },
+      "source": "explicit"
+    },
+    "doyouwanttobeateacherinthefuture": {
+      "cat": "xihao",
+      "topicEn": "Teachers",
+      "q": "Do you want to be a teacher in the future?",
+      "logic": "喜好：想当/不想当+原因（分享知识/压力大）。",
+      "words": {
+        "正面回答": [
+          "Not really",
+          "Maybe",
+          "Haven't decided"
+        ],
+        "原因或时间": [
+          "too much pressure",
+          "love sharing knowledge",
+          "respect the job"
+        ],
+        "频次": [
+          "haven't decided",
+          "maybe later",
+          "not my plan now"
+        ],
+        "感受": [
+          "it depends",
+          "could be rewarding",
+          "admire teachers"
+        ]
+      },
+      "source": "explicit"
+    },
+    "didyoulikegoingtoparksasachild": {
+      "cat": "xihao",
+      "topicEn": "Public gardens and parks",
+      "q": "Did you like going to parks as a child?",
+      "logic": "喜好：童年爱去公园玩/散步。",
+      "words": {
+        "正面回答": [
+          "Yes",
+          "I loved it",
+          "Absolutely",
+          "So much fun"
+        ],
+        "原因或时间": [
+          "play outside",
+          "with my parents",
+          "when I was a child"
+        ],
+        "频次": [
+          "at weekends",
+          "during the holidays",
+          "often"
+        ],
+        "感受": [
+          "feel relaxed and at ease",
+          "great memories",
+          "fresh air"
+        ]
+      },
+      "source": "explicit"
+    },
+    "doyoustilllikegoingtoparksnow": {
+      "cat": "xihao",
+      "topicEn": "Public gardens and parks",
+      "q": "Do you still like going to parks now?",
+      "logic": "喜好：现在仍爱公园散步/透气。",
+      "words": {
+        "正面回答": [
+          "Yes",
+          "definitely",
+          "Still love it",
+          "Quite often"
+        ],
+        "原因或时间": [
+          "go for a walk",
+          "fresh air",
+          "escape the the lively atmosphere"
+        ],
+        "频次": [
+          "at weekends",
+          "after dinner",
+          "when stressed"
+        ],
+        "感受": [
+          "helps me unwind",
+          "feel at peace",
+          "recharge my energy"
+        ]
+      },
+      "source": "explicit"
+    },
+    "wouldyouliketoseemoreparksinyourcity": {
+      "cat": "xihao",
+      "topicEn": "Public gardens and parks",
+      "q": "Would you like to see more parks in your city?",
+      "logic": "喜好：希望更多绿地，理由健康休闲。",
+      "words": {
+        "正面回答": [
+          "Yes",
+          "definitely",
+          "Absolutely",
+          "We need more"
+        ],
+        "原因或时间": [
+          "more green space",
+          "for families",
+          "better air quality"
+        ],
+        "频次": [
+          "in my neighbourhood",
+          "near schools",
+          "city planning"
+        ],
+        "感受": [
+          "good for well-being",
+          "everyone benefits",
+          "really important"
+        ]
+      },
+      "source": "explicit"
+    },
+    "arethereanyparksyouwanttogotointhefuture": {
+      "cat": "xihao",
+      "topicEn": "Public gardens and parks",
+      "q": "Are there any parks you want to go to in the future?",
+      "logic": "喜好：想去的公园/城市名+理由风景。",
+      "words": {
+        "正面回答": [
+          "Yes",
+          "a few",
+          "Definitely",
+          "Several on my list"
+        ],
+        "原因或时间": [
+          "a famous park",
+          "with lakes",
+          "better scenery"
+        ],
+        "频次": [
+          "during the holidays",
+          "next vacation",
+          "when I travel"
+        ],
+        "感受": [
+          "sounds exciting",
+          "on my bucket list",
+          "would love to visit"
+        ]
+      },
+      "source": "explicit"
+    },
+    "whatdoyouliketodowhenvisitingapark": {
+      "cat": "xihao",
+      "topicEn": "Public gardens and parks",
+      "q": "What do you like to do when visiting a park?",
+      "logic": "喜好：散步/聊天/拍照/慢跑。",
+      "words": {
+        "正面回答": [
+          "Go for a walk",
+          "Hang out",
+          "Several things"
+        ],
+        "原因或时间": [
+          "with friends",
+          "take photos",
+          "go jogging"
+        ],
+        "频次": [
+          "at weekends",
+          "after dinner",
+          "when the weather is nice"
+        ],
+        "感受": [
+          "feel relaxed and at ease",
+          "clear my mind",
+          "enjoy nature"
+        ]
+      },
+      "source": "explicit"
+    },
+    "doyouliketheareathatyoulivein": {
+      "cat": "xihao",
+      "topicEn": "The area you live in",
+      "q": "Do you like the area that you live in?",
+      "logic": "喜好：说清喜欢什么+原因；住的区域=residential areas + neighbors + quiet/noisy，变化用 shopping malls。",
+      "words": {
+        "正面回答": [
+          "Definitely",
+          "Yes",
+          "I love it",
+          "Not really"
+        ],
+        "原因或时间": [
+          "great infrastructure",
+          "because",
+          "when I",
+          "for the reason that"
+        ],
+        "频次": [
+          "just a 10-minute walk from my home",
+          "quite often",
+          "at weekends",
+          "from time to time"
+        ],
+        "感受": [
+          "really convenient",
+          "feel relaxed",
+          "really enjoyable",
+          "it always cheers me up"
+        ]
+      },
+      "source": "clue"
+    },
+    "wheredoyouliketogointhatarea": {
+      "cat": "xihao",
+      "topicEn": "The area you live in",
+      "q": "Where do you like to go in that area?",
+      "logic": "喜好：说清喜欢什么+原因；住的区域=residential areas + neighbors + quiet/noisy，变化用 shopping malls。",
+      "words": {
+        "正面回答": [
+          "I love going to the cafes",
+          "Yes",
+          "Definitely",
+          "I love it",
+          "Not really"
+        ],
+        "原因或时间": [
+          "when I have some free time",
+          "because",
+          "when I",
+          "for the reason that"
+        ],
+        "频次": [
+          "read",
+          "quite often",
+          "at weekends",
+          "from time to time"
+        ],
+        "感受": [
+          "reflect on things",
+          "feel relaxed",
+          "really enjoyable",
+          "it always cheers me up"
+        ]
+      },
+      "source": "clue"
+    },
+    "doyoulikeshopping": {
+      "cat": "xihao",
+      "topicEn": "Shopping",
+      "q": "Do you like shopping?",
+      "logic": "喜好：喜欢/不喜欢购物+网购方便。",
+      "words": {
+        "正面回答": [
+          "Yes",
+          "I enjoy it",
+          "Sometimes",
+          "Not really"
+        ],
+        "原因或时间": [
+          "shop online",
+          "shopping malls",
+          "pay by phone"
+        ],
+        "频次": [
+          "at weekends",
+          "when I need things",
+          "from time to time"
+        ],
+        "感受": [
+          "really convenient",
+          "fun with friends",
+          "can be tiring"
+        ]
+      },
+      "source": "explicit"
+    },
+    "doyoulikelookingatyourselfinthemirrorhowoften": {
+      "cat": "xihao",
+      "topicEn": "Mirrors",
+      "q": "Do you like looking at yourself in the mirror? How often?",
+      "logic": "喜好：出门前照镜子+频率每天。",
+      "words": {
+        "正面回答": [
+          "Yes",
+          "I do",
+          "Every day",
+          "Quite often"
+        ],
+        "原因或时间": [
+          "before heading out",
+          "check my look",
+          "when getting dressed"
+        ],
+        "频次": [
+          "every morning",
+          "before parties",
+          "almost daily"
+        ],
+        "感受": [
+          "feel more confident",
+          "part of my routine",
+          "takes a minute"
+        ]
+      },
+      "source": "explicit"
+    },
+    "wouldyouusemirrorstodecorateyourroom": {
+      "cat": "xihao",
+      "topicEn": "Mirrors",
+      "q": "Would you use mirrors to decorate your room?",
+      "logic": "喜好：会用镜子装饰/或觉得不需要。",
+      "words": {
+        "正面回答": [
+          "Maybe",
+          "Yes",
+          "I would",
+          "Not really"
+        ],
+        "原因或时间": [
+          "make the room brighter",
+          "modern look",
+          "above the desk"
+        ],
+        "频次": [
+          "if I redecorate",
+          "in the future",
+          "not now"
+        ],
+        "感受": [
+          "looks stylish",
+          "practical too",
+          "personal taste"
+        ]
+      },
+      "source": "explicit"
+    },
+    "whatkindofhouseorapartmentdoyouwanttoliveininthefuture": {
+      "cat": "xihao",
+      "topicEn": "Home & Accommodation",
+      "q": "What kind of house or apartment do you want to live in in the future?",
+      "logic": "喜好：说清喜欢什么+原因；住宿线：dorms/apartment + roommate + favourite room，交通用 subway。",
+      "words": {
+        "正面回答": [
+          "a spacious house",
+          "Yes",
+          "Definitely",
+          "I love it",
+          "Not really"
+        ],
+        "原因或时间": [
+          "enjoy the peace and quiet",
+          "because",
+          "when I",
+          "for the reason that"
+        ],
+        "频次": [
+          "a residential area",
+          "quite often",
+          "at weekends",
+          "from time to time"
+        ],
+        "感受": [
+          "a good form of self-care",
+          "unwind",
+          "feel relaxed",
+          "really enjoyable",
+          "it always cheers me up"
+        ]
+      },
+      "source": "clue"
+    },
+    "whatpartofyourhomedoyoulikethemost": {
+      "cat": "xihao",
+      "topicEn": "Home & Accommodation",
+      "q": "What part of your home do you like the most?",
+      "logic": "喜好：说清喜欢什么+原因；住宿线：dorms/apartment + roommate + favourite room，交通用 subway。",
+      "words": {
+        "正面回答": [
+          "my bedroom",
+          "Yes",
+          "Definitely",
+          "I love it",
+          "Not really"
+        ],
+        "原因或时间": [
+          "when I need some me-time",
+          "because",
+          "when I",
+          "for the reason that"
+        ],
+        "频次": [
+          "listen to music",
+          "binge-watch TV shows",
+          "quite often",
+          "at weekends",
+          "from time to time"
+        ],
+        "感受": [
+          "unwind",
+          "feel relaxed",
+          "really enjoyable",
+          "it always cheers me up"
+        ]
+      },
+      "source": "clue"
+    },
+    "whatsyourfavoriteroominyourapartmentorhouse": {
+      "cat": "xihao",
+      "topicEn": "Home & Accommodation",
+      "q": "What's your favorite room in your apartment or house?",
+      "logic": "喜好：说清喜欢什么+原因；住宿线：dorms/apartment + roommate + favourite room，交通用 subway。",
+      "words": {
+        "正面回答": [
+          "the living room",
+          "Yes",
+          "Definitely",
+          "I love it",
+          "Not really"
+        ],
+        "原因或时间": [
+          "after dinner",
+          "because",
+          "when I",
+          "for the reason that"
+        ],
+        "频次": [
+          "spend time with my family",
+          "quite often",
+          "at weekends",
+          "from time to time"
+        ],
+        "感受": [
+          "have a good laugh",
+          "feel relaxed",
+          "really enjoyable",
+          "it always cheers me up"
+        ]
+      },
+      "source": "clue"
+    },
+    "doyouplantolivethereforalongtime": {
+      "cat": "xihao",
+      "topicEn": "Home & Accommodation",
+      "q": "Do you plan to live there for a long time?",
+      "logic": "喜好：说清喜欢什么+原因；住宿线：dorms/apartment + roommate + favourite room，交通用 subway。",
+      "words": {
+        "正面回答": [
+          "yes",
+          "I plan to",
+          "Definitely",
+          "I love it",
+          "Not really"
+        ],
+        "原因或时间": [
+          "as long as I live here",
+          "because",
+          "when I",
+          "for the reason that"
+        ],
+        "频次": [
+          "close to convenience stores",
+          "quite often",
+          "at weekends",
+          "from time to time"
+        ],
+        "感受": [
+          "feel relaxed and at ease",
+          "feel relaxed",
+          "really enjoyable",
+          "it always cheers me up"
+        ]
+      },
+      "source": "clue"
+    },
+    "whatkindofclothesdoyouliketowear": {
+      "cat": "xihao",
+      "topicEn": "Clothing",
+      "q": "What kind of clothes do you like to wear?",
+      "logic": "喜好：休闲舒适为主，T恤牛仔裤。",
+      "words": {
+        "正面回答": [
+          "Casual clothes",
+          "Comfortable styles",
+          "Simple outfits"
+        ],
+        "原因或时间": [
+          "t-shirt",
+          "jeans",
+          "sneakers"
+        ],
+        "频次": [
+          "every day",
+          "at university",
+          "on weekdays"
+        ],
+        "感受": [
+          "feel comfortable",
+          "easy to match",
+          "practical"
+        ]
+      },
+      "source": "explicit"
+    },
+    "doyoulikewearingtshirts": {
+      "cat": "xihao",
+      "topicEn": "Clothing",
+      "q": "Do you like wearing T-shirts?",
+      "logic": "喜好：爱穿T恤，理由舒服百搭。",
+      "words": {
+        "正面回答": [
+          "Yes",
+          "I love them",
+          "Definitely",
+          "all the time"
+        ],
+        "原因或时间": [
+          "comfortable",
+          "easy to wash",
+          "go with everything"
+        ],
+        "频次": [
+          "in summer",
+          "almost every day",
+          "at home too"
+        ],
+        "感受": [
+          "feel relaxed",
+          "my go-to choice",
+          "never go wrong"
+        ]
+      },
+      "source": "explicit"
+    },
+    "whatcolourclothesdoyoulike": {
+      "cat": "xihao",
+      "topicEn": "Clothing",
+      "q": "What colour clothes do you like?",
+      "logic": "喜好：颜色偏好+理由（耐脏/显气质）。",
+      "words": {
+        "正面回答": [
+          "Blue and white",
+          "Dark colours",
+          "Neutral tones"
+        ],
+        "原因或时间": [
+          "easy to match",
+          "look clean",
+          "not too flashy"
+        ],
+        "频次": [
+          "when shopping",
+          "most of my wardrobe",
+          "quite often",
+          "at weekends",
+          "from time to time"
+        ],
+        "感受": [
+          "feel confident",
+          "practical choice",
+          "personal style"
+        ]
+      },
+      "source": "explicit"
+    },
+    "doyouliketokeepthingstidy": {
+      "cat": "xihao",
+      "topicEn": "Tidiness",
+      "q": "Do you like to keep things tidy?",
+      "logic": "喜好：爱整洁→桌面整齐更好学习。",
+      "words": {
+        "正面回答": [
+          "Yes",
+          "definitely",
+          "I try to",
+          "Quite important to me"
+        ],
+        "原因或时间": [
+          "study desk",
+          "put things away",
+          "organised space"
+        ],
+        "频次": [
+          "every day",
+          "before studying",
+          "at the end of the day"
+        ],
+        "感受": [
+          "focus better",
+          "feel less stressed",
+          "more productive"
+        ]
+      },
+      "source": "explicit"
+    },
+    "doyoulikeyourhometown": {
+      "cat": "xihao",
+      "topicEn": "Hometown",
+      "q": "Do you like your hometown?",
+      "logic": "喜好：说清喜欢什么+原因；家乡三件套：big/small city + famous for + young people，历史文化各一句。",
+      "words": {
+        "正面回答": [
+          "I'm a big fan of it",
+          "Yes",
+          "Definitely",
+          "I love it",
+          "Not really"
+        ],
+        "原因或时间": [
+          "a foodie paradise",
+          "because",
+          "when I",
+          "for the reason that"
+        ],
+        "频次": [
+          "street food",
+          "tasty local food",
+          "quite often",
+          "at weekends",
+          "from time to time"
+        ],
+        "感受": [
+          "it really hits the spot",
+          "feel relaxed",
+          "really enjoyable",
+          "it always cheers me up"
+        ]
+      },
+      "source": "clue"
+    },
+    "doyoulikelivingthere": {
+      "cat": "xihao",
+      "topicEn": "Hometown",
+      "q": "Do you like living there?",
+      "logic": "喜好：说清喜欢什么+原因；家乡三件套：big/small city + famous for + young people，历史文化各一句。",
+      "words": {
+        "正面回答": [
+          "yes",
+          "I really enjoy living there",
+          "Definitely",
+          "I love it",
+          "Not really"
+        ],
+        "原因或时间": [
+          "in my free time",
+          "because",
+          "when I",
+          "for the reason that"
+        ],
+        "频次": [
+          "go into the city centre",
+          "quite often",
+          "at weekends",
+          "from time to time"
+        ],
+        "感受": [
+          "take a proper break",
+          "feel relaxed",
+          "really enjoyable",
+          "it always cheers me up"
+        ]
+      },
+      "source": "clue"
+    },
+    "whatdoyoulikemostaboutyourhometown": {
+      "cat": "xihao",
+      "topicEn": "Hometown",
+      "q": "What do you like (most) about your hometown?",
+      "logic": "喜好：说清喜欢什么+原因；家乡三件套：big/small city + famous for + young people，历史文化各一句。",
+      "words": {
+        "正面回答": [
+          "the natural scenery",
+          "Yes",
+          "Definitely",
+          "I love it",
+          "Not really"
+        ],
+        "原因或时间": [
+          "on sunny days",
+          "because",
+          "when I",
+          "for the reason that"
+        ],
+        "频次": [
+          "go for a walk in the park",
+          "quite often",
+          "at weekends",
+          "from time to time"
+        ],
+        "感受": [
+          "relieve stress",
+          "feel relaxed",
+          "really enjoyable",
+          "it always cheers me up"
+        ]
+      },
+      "source": "clue"
+    },
+    "isthereanythingyoudislikeaboutit": {
+      "cat": "xihao",
+      "topicEn": "Hometown",
+      "q": "Is there anything you dislike about it?",
+      "logic": "喜好：说清喜欢什么+原因；家乡三件套：big/small city + famous for + young people，历史文化各一句。",
+      "words": {
+        "正面回答": [
+          "The only thing I dislike is",
+          "Yes",
+          "Definitely",
+          "I love it",
+          "Not really"
+        ],
+        "原因或时间": [
+          "the the the the heavy traffic",
+          "because",
+          "when I",
+          "for the reason that"
+        ],
+        "频次": [
+          "during rush hour",
+          "quite often",
+          "at weekends",
+          "from time to time"
+        ],
+        "感受": [
+          "it really gets to me",
+          "feel relaxed",
+          "really enjoyable",
+          "it always cheers me up"
+        ]
+      },
+      "source": "clue"
+    },
+    "doyoulikesingingwhy": {
+      "cat": "xihao",
+      "topicEn": "Singing",
+      "q": "Do you like singing? Why?",
+      "logic": "喜好：喜欢唱歌因为开心/解压。",
+      "words": {
+        "正面回答": [
+          "Yes",
+          "I love it",
+          "Quite enjoy it",
+          "Sometimes"
+        ],
+        "原因或时间": [
+          "it always cheers me up",
+          "with friends at KTV",
+          "relieve stress"
+        ],
+        "频次": [
+          "at weekends",
+          "with friends",
+          "when I'm happy"
+        ],
+        "感受": [
+          "feel relaxed",
+          "great fun",
+          "express emotions"
+        ]
+      },
+      "source": "explicit"
+    },
+    "whodoyouwanttosingfor": {
+      "cat": "xihao",
+      "topicEn": "Singing",
+      "q": "Who do you want to sing for?",
+      "logic": "喜好：想为家人/朋友唱。",
+      "words": {
+        "正面回答": [
+          "My closest friends",
+          "My family",
+          "Close friends"
+        ],
+        "原因或时间": [
+          "at gatherings",
+          "birthday parties",
+          "casual hangouts"
+        ],
+        "频次": [
+          "on special days",
+          "when we meet",
+          "at KTV"
+        ],
+        "感受": [
+          "share happiness",
+          "create memories",
+          "feel connected"
+        ]
+      },
+      "source": "explicit"
+    },
+    "doyoulikelisteningtootherssinging": {
+      "cat": "xihao",
+      "topicEn": "Singing",
+      "q": "Do you like listening to others singing?",
+      "logic": "喜好：听别人唱歌看综艺/比赛。",
+      "words": {
+        "正面回答": [
+          "Yes",
+          "definitely",
+          "Quite enjoy it",
+          "Sometimes"
+        ],
+        "原因或时间": [
+          "music shows",
+          "friends at KTV",
+          "live performances"
+        ],
+        "频次": [
+          "on TV",
+          "at parties",
+          "online videos"
+        ],
+        "感受": [
+          "inspiring",
+          "relaxing",
+          "appreciate their talent"
+        ]
+      },
+      "source": "explicit"
+    },
+    "doyoulikesciencefictionmovieswhy": {
+      "cat": "xihao",
+      "topicEn": "Outer space and stars",
+      "q": "Do you like science fiction movies? Why?",
+      "logic": "喜好：爱科幻片因为想象力和视觉震撼。",
+      "words": {
+        "正面回答": [
+          "Yes",
+          "I'm a big fan",
+          "Love them",
+          "Quite enjoy them"
+        ],
+        "原因或时间": [
+          "imagination",
+          "visual effects",
+          "future technology"
+        ],
+        "频次": [
+          "in my free time",
+          "with friends",
+          "on weekends"
+        ],
+        "感受": [
+          "really fun",
+          "mind-blowing",
+          "inspire curiosity"
+        ]
+      },
+      "source": "explicit"
+    },
+    "doyouwanttoknowmoreaboutouterspace": {
+      "cat": "xihao",
+      "topicEn": "Outer space and stars",
+      "q": "Do you want to know more about outer space?",
+      "logic": "喜好：想了解更多宇宙知识。",
+      "words": {
+        "正面回答": [
+          "Yes",
+          "definitely",
+          "Quite curious",
+          "Absolutely"
+        ],
+        "原因或时间": [
+          "documentaries",
+          "books about space",
+          "online videos"
+        ],
+        "频次": [
+          "when I have time",
+          "in the future",
+          "from time to time"
+        ],
+        "感受": [
+          "universe is mysterious",
+          "always learning",
+          "fascinating topic"
+        ]
+      },
+      "source": "explicit"
+    },
+    "doyouwanttogointoouterspaceinthefuture": {
+      "cat": "xihao",
+      "topicEn": "Outer space and stars",
+      "q": "Do you want to go into outer space in the future?",
+      "logic": "喜好：想去/太遥远/看纪录片就够。",
+      "words": {
+        "正面回答": [
+          "Maybe in dreams",
+          "Not realistically",
+          "Would be amazing"
+        ],
+        "原因或时间": [
+          "if technology allows",
+          "as a tourist",
+          "not for me"
+        ],
+        "频次": [
+          "in the distant future",
+          "not soon",
+          "hard to say"
+        ],
+        "感受": [
+          "sounds thrilling",
+          "too risky",
+          "happy to watch from Earth"
+        ]
+      },
+      "source": "explicit"
+    },
+    "doyoulikethiscitywhy": {
+      "cat": "xihao",
+      "topicEn": "The city you live in",
+      "q": "Do you like this city? Why?",
+      "logic": "喜好：说清喜欢什么+原因；城市线：city + weather + friendly people + changes，与 area 素材互通。",
+      "words": {
+        "正面回答": [
+          "I'm passionate about it",
+          "Yes",
+          "Definitely",
+          "I love it",
+          "Not really"
+        ],
+        "原因或时间": [
+          "ever ever ever ever since I moved here",
+          "because",
+          "when I",
+          "for the reason that"
+        ],
+        "频次": [
+          "take part in extracurricular activities",
+          "quite often",
+          "at weekends",
+          "from time to time"
+        ],
+        "感受": [
+          "holds a lot of memories for me",
+          "feel relaxed",
+          "really enjoyable",
+          "it always cheers me up"
+        ]
+      },
+      "source": "clue"
+    },
+    "wouldyourecommendyourcitytoothers": {
+      "cat": "xihao",
+      "topicEn": "The city you live in",
+      "q": "Would you recommend your city to others?",
+      "logic": "喜好：说清喜欢什么+原因；城市线：city + weather + friendly people + changes，与 area 素材互通。",
+      "words": {
+        "正面回答": [
+          "I highly recommend it",
+          "Yes",
+          "Definitely",
+          "I love it",
+          "Not really"
+        ],
+        "原因或时间": [
+          "because",
+          "when I",
+          "for the reason that"
+        ],
+        "频次": [
+          "quite often",
+          "at weekends",
+          "from time to time"
+        ],
+        "感受": [
+          "the food never disappoints",
+          "feel relaxed",
+          "really enjoyable",
+          "it always cheers me up"
+        ]
+      },
+      "source": "clue"
+    },
+    "doyoulikescience": {
+      "cat": "xihao",
+      "topicEn": "Science",
+      "q": "Do you like science?",
+      "logic": "喜好：喜欢/一般+实验有趣。",
+      "words": {
+        "正面回答": [
+          "Yes",
+          "quite a lot",
+          "Somewhat",
+          "Certain topics"
+        ],
+        "原因或时间": [
+          "interesting experiments",
+          "understand the world",
+          "biology"
+        ],
+        "频次": [
+          "in school",
+          "when topics are practical",
+          "from time to time"
+        ],
+        "感受": [
+          "curious mind",
+          "sometimes challenging",
+          "worth learning"
+        ]
+      },
+      "source": "explicit"
+    },
+    "whichsciencesubjectisinterestingtoyou": {
+      "cat": "xihao",
+      "topicEn": "Science",
+      "q": "Which science subject is interesting to you?",
+      "logic": "喜好：生物/物理等+具体原因。",
+      "words": {
+        "正面回答": [
+          "Biology",
+          "Physics",
+          "Chemistry"
+        ],
+        "原因或时间": [
+          "human body",
+          "how things work",
+          "experiments"
+        ],
+        "频次": [
+          "in high school",
+          "still now",
+          "most classes"
+        ],
+        "感受": [
+          "really fun",
+          "practical knowledge",
+          "easier to relate"
+        ]
+      },
+      "source": "explicit"
+    },
+    "doyoulikewatchingsciencetvprograms": {
+      "cat": "xihao",
+      "topicEn": "Science",
+      "q": "Do you like watching science TV programs?",
+      "logic": "喜好：看科普节目/纪录片。",
+      "words": {
+        "正面回答": [
+          "Yes",
+          "sometimes",
+          "Quite enjoy them",
+          "Occasionally"
+        ],
+        "原因或时间": [
+          "documentaries",
+          "science channels",
+          "online videos"
+        ],
+        "频次": [
+          "in my free time",
+          "with my family",
+          "before bed"
+        ],
+        "感受": [
+          "learn new things",
+          "relaxing and informative",
+          "well made"
+        ]
+      },
+      "source": "explicit"
+    },
+    "wouldyouliketohavemorefreetimeinthefuture": {
+      "cat": "xihao",
+      "topicEn": "Spare time",
+      "q": "Would you like to have more free time in the future?",
+      "logic": "喜好：希望更多空闲休息/发展爱好。",
+      "words": {
+        "正面回答": [
+          "Yes",
+          "definitely",
+          "Absolutely",
+          "Would love that"
+        ],
+        "原因或时间": [
+          "develop hobbies",
+          "get proper rest",
+          "travel more"
+        ],
+        "频次": [
+          "after graduation",
+          "when work is stable",
+          "in the future"
+        ],
+        "感受": [
+          "balance is important",
+          "everyone needs downtime",
+          "quality over quantity"
+        ]
+      },
+      "source": "explicit"
+    },
+    "doyouliketakingpicturesofdifferentviews": {
+      "cat": "xihao",
+      "topicEn": "Views",
+      "q": "Do you like taking pictures of different views?",
+      "logic": "喜好：说清喜欢什么+原因；与 scenery 共用 take photos of views，城乡对比即可。",
+      "words": {
+        "正面回答": [
+          "I'm crazy about it",
+          "Yes",
+          "Definitely",
+          "I love it",
+          "Not really"
+        ],
+        "原因或时间": [
+          "when travelling",
+          "on vacation",
+          "because",
+          "when I",
+          "for the reason that"
+        ],
+        "频次": [
+          "cityscapes and nature",
+          "quite often",
+          "at weekends",
+          "from time to time"
+        ],
+        "感受": [
+          "relieve stress",
+          "feel relaxed",
+          "really enjoyable",
+          "it always cheers me up"
+        ]
+      },
+      "source": "clue"
+    },
+    "whatisyourfavouritefood": {
+      "cat": "xihao",
+      "topicEn": "Food",
+      "q": "What is your favourite food?",
+      "logic": "喜好：说清喜欢什么+原因；食物=favourite dish + street food/takeout，童年口味变化一句。",
+      "words": {
+        "正面回答": [
+          "I am a big fan of",
+          "Yes",
+          "Definitely",
+          "I love it",
+          "Not really"
+        ],
+        "原因或时间": [
+          "delicious",
+          "mouth-watering desserts",
+          "because",
+          "when I",
+          "for the reason that"
+        ],
+        "频次": [
+          "order takeout",
+          "quite often",
+          "at weekends",
+          "from time to time"
+        ],
+        "感受": [
+          "it really hits the spot",
+          "feel relaxed",
+          "really enjoyable",
+          "it always cheers me up"
+        ]
+      },
+      "source": "clue"
+    },
+    "whatkindoffooddidyoulikewhenyouwereyoung": {
+      "cat": "xihao",
+      "topicEn": "Food",
+      "q": "What kind of food did you like when you were young?",
+      "logic": "喜好：说清喜欢什么+原因；食物=favourite dish + street food/takeout，童年口味变化一句。",
+      "words": {
+        "正面回答": [
+          "I had a sweet tooth",
+          "Yes",
+          "Definitely",
+          "I love it",
+          "Not really"
+        ],
+        "原因或时间": [
+          "childhood",
+          "before primary school",
+          "because",
+          "when I",
+          "for the reason that"
+        ],
+        "频次": [
+          "have cake for breakfast",
+          "quite often",
+          "at weekends",
+          "from time to time"
+        ],
+        "感受": [
+          "it always cheers me up",
+          "have a great time",
+          "feel relaxed",
+          "really enjoyable"
+        ]
+      },
+      "source": "clue"
+    },
+    "hasyourfavouritefoodchangedsinceyouwereachild": {
+      "cat": "xihao",
+      "topicEn": "Food",
+      "q": "Has your favourite food changed since you were a child?",
+      "logic": "喜好：说清喜欢什么+原因；食物=favourite dish + street food/takeout，童年口味变化一句。",
+      "words": {
+        "正面回答": [
+          "Yes",
+          "definitely changed",
+          "Definitely",
+          "I love it",
+          "Not really"
+        ],
+        "原因或时间": [
+          "to stay healthy",
+          "because",
+          "when I",
+          "for the reason that"
+        ],
+        "频次": [
+          "buy fresh groceries",
+          "fresh ingredients",
+          "quite often",
+          "at weekends",
+          "from time to time"
+        ],
+        "感受": [
+          "good for both body and mind",
+          "feel relaxed",
+          "really enjoyable",
+          "it always cheers me up"
+        ]
+      },
+      "source": "clue"
+    },
+    "doyouliketowatchcomedies": {
+      "cat": "xihao",
+      "topicEn": "Jokes & Comedies",
+      "q": "Do you like to watch comedies?",
+      "logic": "喜好：爱看喜剧电影/综艺解压。",
+      "words": {
+        "正面回答": [
+          "Yes",
+          "definitely",
+          "Love comedies",
+          "Quite often"
+        ],
+        "原因或时间": [
+          "watch comedies",
+          "funny TV shows",
+          "stand-up clips"
+        ],
+        "频次": [
+          "at weekends",
+          "after a long day",
+          "with friends"
+        ],
+        "感受": [
+          "have a good laugh",
+          "relieve stress",
+          "feel lighter"
+        ]
+      },
+      "source": "explicit"
+    },
+    "isthereabuildingthatyouwouldliketovisit": {
+      "cat": "xihao",
+      "topicEn": "Building",
+      "q": "Is there a building that you would like to visit?",
+      "logic": "喜好：说清喜欢什么+原因；建筑=near home tall buildings / take photos，参观欲落到 city centre landmarks。",
+      "words": {
+        "正面回答": [
+          "yes",
+          "there is one",
+          "Definitely",
+          "I love it",
+          "Not really"
+        ],
+        "原因或时间": [
+          "its its its its unique design",
+          "because",
+          "when I",
+          "for the reason that"
+        ],
+        "频次": [
+          "cafes",
+          "quite often",
+          "at weekends",
+          "from time to time"
+        ],
+        "感受": [
+          "meet like-minded people",
+          "feel relaxed",
+          "really enjoyable",
+          "it always cheers me up"
+        ]
+      },
+      "source": "clue"
+    },
+    "doyouwanttoliveinatallbuilding": {
+      "cat": "xihao",
+      "topicEn": "Building",
+      "q": "Do you want to live in a tall building?",
+      "logic": "喜好：想住高楼视野好/或担心电梯不方便。",
+      "words": {
+        "正面回答": [
+          "Maybe",
+          "Not really",
+          "it depends on the person"
+        ],
+        "原因或时间": [
+          "good views",
+          "modern facilities",
+          "near the city centre"
+        ],
+        "频次": [
+          "in the future",
+          "when I work",
+          "not now"
+        ],
+        "感受": [
+          "sounds convenient",
+          "worry about elevators",
+          "prefer lower floors"
+        ]
+      },
+      "source": "explicit"
+    },
+    "whatsyourfavouriteanimalwhy": {
+      "cat": "xihao",
+      "topicEn": "Pets and Animals",
+      "q": "What's your favourite animal? Why?",
+      "logic": "喜好：说清喜欢什么+原因；宠物=puppy at home；动物喜好/动物园复用同一情感词 unwind。",
+      "words": {
+        "正面回答": [
+          "I'm a dog person",
+          "Yes",
+          "Definitely",
+          "I love it",
+          "Not really"
+        ],
+        "原因或时间": [
+          "they are incredibly loyal",
+          "because",
+          "when I",
+          "for the reason that"
+        ],
+        "频次": [
+          "keep me company at home",
+          "quite often",
+          "at weekends",
+          "from time to time"
+        ],
+        "感受": [
+          "a great way to unwind",
+          "unwind",
+          "feel relaxed",
+          "really enjoyable",
+          "it always cheers me up"
+        ]
+      },
+      "source": "clue"
+    },
+    "doyoulikegettingupearlyinthemorning": {
+      "cat": "xihao",
+      "topicEn": "Morning time",
+      "q": "Do you like getting up early in the morning?",
+      "logic": "喜好：说清喜欢什么+原因；早晨=get up → breakfast → get dressed，童年对比更晚起。",
+      "words": {
+        "正面回答": [
+          "Honestly",
+          "yes",
+          "Definitely",
+          "I love it",
+          "Not really"
+        ],
+        "原因或时间": [
+          "the first thing I do after getting up",
+          "because",
+          "when I",
+          "for the reason that"
+        ],
+        "频次": [
+          "go jogging",
+          "quite often",
+          "at weekends",
+          "from time to time"
+        ],
+        "感受": [
+          "energetic",
+          "full of energy",
+          "feel relaxed",
+          "really enjoyable",
+          "it always cheers me up"
+        ]
+      },
+      "source": "clue"
+    },
+    "doyoulikewatchingteamgameswhy": {
+      "cat": "xihao",
+      "topicEn": "Sports team",
+      "q": "Do you like watching team games? Why?",
+      "logic": "喜好：说清喜欢什么+原因；运动队=basketball/volleyball + teamwork，观看与参与同一套。",
+      "words": {
+        "正面回答": [
+          "I'm really into them",
+          "Yes",
+          "Definitely",
+          "I love it",
+          "Not really"
+        ],
+        "原因或时间": [
+          "in my free time",
+          "when I have some free time",
+          "because",
+          "when I",
+          "for the reason that"
+        ],
+        "频次": [
+          "watch basketball games games games games",
+          "volleyball games",
+          "quite often",
+          "at weekends",
+          "from time to time"
+        ],
+        "感受": [
+          "clear my mind",
+          "feel relaxed",
+          "really enjoyable",
+          "it always cheers me up"
+        ]
+      },
+      "source": "clue"
+    },
+    "whatareyourfavouriteactivities": {
+      "cat": "xihao",
+      "topicEn": "Childhood activities",
+      "q": "What are your favourite activities?",
+      "logic": "喜好：现在最爱运动/听歌/阅读等。",
+      "words": {
+        "正面回答": [
+          "Several favourites",
+          "A few main ones",
+          "Quite a few"
+        ],
+        "原因或时间": [
+          "listen to music",
+          "do some sports",
+          "read"
+        ],
+        "频次": [
+          "in my free time",
+          "at weekends",
+          "almost every day"
+        ],
+        "感受": [
+          "keep me happy",
+          "relieve stress",
+          "good balance"
+        ]
+      },
+      "source": "explicit"
+    },
+    "whatwereyourfavouriteactivitieswhenyouwereachild": {
+      "cat": "xihao",
+      "topicEn": "Childhood activities",
+      "q": "What were your favourite activities when you were a child?",
+      "logic": "喜好：说清喜欢什么+原因；童年活动=play outside / with friends，现在对比更 indoor。",
+      "words": {
+        "正面回答": [
+          "One of my favourite things to do as a child was",
+          "Yes",
+          "Definitely",
+          "I love it",
+          "Not really"
+        ],
+        "原因或时间": [
+          "outside of class",
+          "because",
+          "when I",
+          "for the reason that"
+        ],
+        "频次": [
+          "hang out with friends",
+          "quite often",
+          "at weekends",
+          "from time to time"
+        ],
+        "感受": [
+          "have a good laugh",
+          "feel relaxed",
+          "really enjoyable",
+          "it always cheers me up"
+        ]
+      },
+      "source": "clue"
+    },
+    "doyouenjoybeingtheageyouarenow": {
+      "cat": "xihao",
+      "topicEn": "Life stages",
+      "q": "Do you enjoy being the age you are now?",
+      "logic": "喜好：享受当下青春/压力也有。",
+      "words": {
+        "正面回答": [
+          "Yes",
+          "mostly",
+          "Quite enjoy it",
+          "It's okay"
+        ],
+        "原因或时间": [
+          "freedom at university",
+          "learn and grow",
+          "meet new people"
+        ],
+        "频次": [
+          "at this stage of my life of my life of my life",
+          "right now",
+          "these years"
+        ],
+        "感受": [
+          "full of opportunities",
+          "some pressure too",
+          "grateful for now"
+        ]
+      },
+      "source": "explicit"
+    },
+    "doyoulikereading": {
+      "cat": "xihao",
+      "topicEn": "Reading",
+      "q": "Do you like reading?",
+      "logic": "喜好：说清喜欢什么+原因；阅读=read books / flip through pages，纸质 vs 屏幕对比。",
+      "words": {
+        "正面回答": [
+          "I'm passionate about reading",
+          "Yes",
+          "Definitely",
+          "I love it",
+          "Not really"
+        ],
+        "原因或时间": [
+          "when I feel bored",
+          "because",
+          "when I",
+          "for the reason that"
+        ],
+        "频次": [
+          "read at the library",
+          "quite often",
+          "at weekends",
+          "from time to time"
+        ],
+        "感受": [
+          "unwind",
+          "feel at peace",
+          "feel relaxed",
+          "really enjoyable",
+          "it always cheers me up"
+        ]
+      },
+      "source": "clue"
+    },
+    "wherewouldyouliketotakealongwalkifyouhadthechance": {
+      "cat": "xihao",
+      "topicEn": "Walking",
+      "q": "Where would you like to take a long walk if you had the chance?",
+      "logic": "喜好：说清喜欢什么+原因；走路=go for a walk in the park，解压+景色一笔带过。",
+      "words": {
+        "正面回答": [
+          "the local park",
+          "Yes",
+          "Definitely",
+          "I love it",
+          "Not really"
+        ],
+        "原因或时间": [
+          "when the weather is nice",
+          "because",
+          "when I",
+          "for the reason that"
+        ],
+        "频次": [
+          "go for a walk",
+          "quite often",
+          "at weekends",
+          "from time to time"
+        ],
+        "感受": [
+          "feel relaxed and at ease",
+          "feel relaxed",
+          "really enjoyable",
+          "it always cheers me up"
+        ]
+      },
+      "source": "clue"
+    },
+    "doyouliketotakescenerypictures": {
+      "cat": "xihao",
+      "topicEn": "Scenery",
+      "q": "Do you like to take scenery pictures?",
+      "logic": "喜好：说清喜欢什么+原因；景色=travel + take photos，山/海对比用 mountains vs sea。",
+      "words": {
+        "正面回答": [
+          "Definitely",
+          "Yes",
+          "I love it",
+          "Not really"
+        ],
+        "原因或时间": [
+          "capture moments of my life",
+          "because",
+          "when I",
+          "for the reason that"
+        ],
+        "频次": [
+          "take photos outdoors",
+          "quite often",
+          "at weekends",
+          "from time to time"
+        ],
+        "感受": [
+          "It",
+          "s something I",
+          "ll never forget"
+        ]
+      },
+      "source": "clue"
+    },
+    "doyoulikecrowdedplaces": {
+      "cat": "xihao",
+      "topicEn": "Crowded place",
+      "q": "Do you like crowded places?",
+      "logic": "喜好：说清喜欢什么+原因；拥挤=city centre / rush hour / shopping malls，喜好偏 not really。",
+      "words": {
+        "正面回答": [
+          "to be honest",
+          "no",
+          "Yes",
+          "Definitely",
+          "I love it"
+        ],
+        "原因或时间": [
+          "especially during rush hour",
+          "because",
+          "when I",
+          "for the reason that"
+        ],
+        "频次": [
+          "take the subway",
+          "quite often",
+          "at weekends",
+          "from time to time"
+        ],
+        "感受": [
+          "it really gets to me",
+          "feel relaxed",
+          "really enjoyable",
+          "it always cheers me up"
+        ]
+      },
+      "source": "clue"
+    },
+    "doyouhaveanyhobbies": {
+      "cat": "xihao",
+      "topicEn": "Hobby",
+      "q": "Do you have any hobbies?",
+      "logic": "喜好：说清喜欢什么+原因；爱好直接指向 listen to music / sports / reading 中已背的一项。",
+      "words": {
+        "正面回答": [
+          "I have quite a few",
+          "Yes",
+          "Definitely",
+          "I love it",
+          "Not really"
+        ],
+        "原因或时间": [
+          "at weekends",
+          "because",
+          "when I",
+          "for the reason that"
+        ],
+        "频次": [
+          "binge-watch TV shows",
+          "quite often",
+          "at weekends",
+          "from time to time"
+        ],
+        "感受": [
+          "sit back and relax",
+          "feel relaxed",
+          "really enjoyable",
+          "it always cheers me up"
+        ]
+      },
+      "source": "clue"
+    },
+    "didyouhaveanyhobbieswhenyouwereachild": {
+      "cat": "xihao",
+      "topicEn": "Hobby",
+      "q": "Did you have any hobbies when you were a child?",
+      "logic": "喜好：说清喜欢什么+原因；爱好直接指向 listen to music / sports / reading 中已背的一项。",
+      "words": {
+        "正面回答": [
+          "Absolutely",
+          "Yes",
+          "Definitely",
+          "I love it",
+          "Not really"
+        ],
+        "原因或时间": [
+          "before primary school",
+          "because",
+          "when I",
+          "for the reason that"
+        ],
+        "频次": [
+          "play video games",
+          "quite often",
+          "at weekends",
+          "from time to time"
+        ],
+        "感受": [
+          "great fun",
+          "have a great time",
+          "feel relaxed",
+          "really enjoyable",
+          "it always cheers me up"
+        ]
+      },
+      "source": "clue"
+    },
+    "doyouhaveahobbythatyouvehadsincechildhood": {
+      "cat": "xihao",
+      "topicEn": "Hobby",
+      "q": "Do you have a hobby that you’ve had since childhood?",
+      "logic": "喜好：说清喜欢什么+原因；爱好直接指向 listen to music / sports / reading 中已背的一项。",
+      "words": {
+        "正面回答": [
+          "Exactly",
+          "Yes",
+          "Definitely",
+          "I love it",
+          "Not really"
+        ],
+        "原因或时间": [
+          "before bed",
+          "because",
+          "when I",
+          "for the reason that"
+        ],
+        "频次": [
+          "flip through physical books",
+          "quite often",
+          "at weekends",
+          "from time to time"
+        ],
+        "感受": [
+          "reflect on things",
+          "feel relaxed",
+          "really enjoyable",
+          "it always cheers me up"
+        ]
+      },
+      "source": "clue"
+    },
+    "doyouhavethesamehobbiesasyourfamilymembers": {
+      "cat": "xihao",
+      "topicEn": "Hobby",
+      "q": "Do you have the same hobbies as your family members?",
+      "logic": "喜好：说清喜欢什么+原因；爱好直接指向 listen to music / sports / reading 中已背的一项。",
+      "words": {
+        "正面回答": [
+          "Yes",
+          "we share some",
+          "Definitely",
+          "I love it",
+          "Not really"
+        ],
+        "原因或时间": [
+          "during the holidays",
+          "because",
+          "when I",
+          "for the reason that"
+        ],
+        "频次": [
+          "eat out together",
+          "quite often",
+          "at weekends",
+          "from time to time"
+        ],
+        "感受": [
+          "open up to each other",
+          "feel relaxed",
+          "really enjoyable",
+          "it always cheers me up"
+        ]
+      },
+      "source": "clue"
+    },
+    "doyouwearawatch": {
+      "cat": "xingwei",
+      "topicEn": "Watch",
+      "q": "Do you wear a watch?",
+      "logic": "习惯：每天戴手表看时间，尤其上课/出门。",
+      "words": {
+        "正面回答": [
+          "Yes",
+          "almost every day",
+          "Definitely",
+          "Usually"
+        ],
+        "原因": [
+          "check the time",
+          "stay punctual",
+          "before heading out"
+        ],
+        "时间线+行为描述": [
+          "during class",
+          "when I head out",
+          "every morning"
+        ],
+        "影响": [
+          "helps me stay organised",
+          "really convenient",
+          "saves time"
+        ]
+      },
+      "source": "explicit"
+    },
+    "whatdoyouusuallydowhenthereisatrafficjam": {
+      "cat": "xingwei",
+      "topicEn": "Cars",
+      "q": "What do you usually do when there is a traffic jam?",
+      "logic": "习惯：堵车时听歌/刷短视频/耐心等。",
+      "words": {
+        "正面回答": [
+          "I stay calm",
+          "I listen to music",
+          "Usually patient"
+        ],
+        "原因": [
+          "listen to music",
+          "watch short videos",
+          "chat with friends"
+        ],
+        "时间线+行为描述": [
+          "during rush hour",
+          "on the highway",
+          "in the city"
+        ],
+        "影响": [
+          "helps me pass the time",
+          "relieve stress",
+          "stay relaxed"
+        ]
+      },
+      "source": "explicit"
+    },
+    "howmuchtimedoyouspendonyourstudieseachweek": {
+      "cat": "xingwei",
+      "topicEn": "Work or studies",
+      "q": "How much time do you spend on your studies each week?",
+      "logic": "习惯：描述日常频率和场景；学生线：subject + why choose + study routine；工作线可简答后拉回学习场景。",
+      "words": {
+        "正面回答": [
+          "I spend a lot of time",
+          "Yes",
+          "Usually",
+          "Definitely",
+          "Not really"
+        ],
+        "原因": [
+          "work hard at my studies",
+          "since",
+          "for the reason that",
+          "because"
+        ],
+        "时间线+行为描述": [
+          "the the the the classroom",
+          "finish homework on my own",
+          "every morning",
+          "before class",
+          "after dinner"
+        ],
+        "影响": [
+          "What makes me happy is the moment when",
+          "helps me stay focused",
+          "saves time",
+          "keeps me organised"
+        ]
+      },
+      "source": "clue"
+    },
+    "whattechnologydoyouusewhenyoustudy": {
+      "cat": "xingwei",
+      "topicEn": "Work or studies",
+      "q": "What technology do you use when you study?",
+      "logic": "习惯：描述日常频率和场景；学生线：subject + why choose + study routine；工作线可简答后拉回学习场景。",
+      "words": {
+        "正面回答": [
+          "iPad",
+          "mainly my laptop and iPad",
+          "Yes",
+          "Usually",
+          "Definitely"
+        ],
+        "原因": [
+          "it's just my personal habit",
+          "since",
+          "for the reason that",
+          "because"
+        ],
+        "时间线+行为描述": [
+          "attend classes",
+          "listen to a lecture",
+          "every morning",
+          "before class",
+          "after dinner"
+        ],
+        "影响": [
+          "practical",
+          "helps me stay focused",
+          "saves time",
+          "keeps me organised"
+        ]
+      },
+      "source": "clue-alias"
+    },
+    "whattechnologydoyouuseatwork": {
+      "cat": "xingwei",
+      "topicEn": "Work or studies",
+      "q": "What technology do you use at work?",
+      "logic": "习惯：描述日常频率和场景；学生线：subject + why choose + study routine；工作线可简答后拉回学习场景。",
+      "words": {
+        "正面回答": [
+          "iPad",
+          "mainly my laptop and iPad",
+          "Yes",
+          "Usually",
+          "Definitely"
+        ],
+        "原因": [
+          "it's just my personal habit",
+          "since",
+          "for the reason that",
+          "because"
+        ],
+        "时间线+行为描述": [
+          "attend classes",
+          "listen to a lecture",
+          "every morning",
+          "before class",
+          "after dinner"
+        ],
+        "影响": [
+          "practical",
+          "helps me stay focused",
+          "saves time",
+          "keeps me organised"
+        ]
+      },
+      "source": "clue-alias"
+    },
+    "whatkindsofwebsitesdoyouoftenvisit": {
+      "cat": "xingwei",
+      "topicEn": "Websites",
+      "q": "What kinds of websites do you often visit?",
+      "logic": "习惯：学习+社交+购物网站。",
+      "words": {
+        "正面回答": [
+          "Several types",
+          "Quite a few",
+          "Many kinds"
+        ],
+        "原因": [
+          "study resources",
+          "social media",
+          "shopping sites"
+        ],
+        "时间线+行为描述": [
+          "every day",
+          "throughout the day",
+          "whenever online"
+        ],
+        "影响": [
+          "save me a lot of time",
+          "really convenient",
+          "keep me updated"
+        ]
+      },
+      "source": "explicit"
+    },
+    "howoftendoyougoshopping": {
+      "cat": "xingwei",
+      "topicEn": "Shopping",
+      "q": "How often do you go shopping?",
+      "logic": "习惯：网购频繁/偶尔逛商场。",
+      "words": {
+        "正面回答": [
+          "Quite often",
+          "from time to time",
+          "Almost every week"
+        ],
+        "原因": [
+          "shop online",
+          "shopping malls",
+          "buy clothes"
+        ],
+        "时间线+行为描述": [
+          "at weekends",
+          "when I need something",
+          "every few weeks"
+        ],
+        "影响": [
+          "really convenient",
+          "save time",
+          "enjoy browsing sometimes"
+        ]
+      },
+      "source": "explicit"
+    },
+    "doyouusuallytakeamirrorwithyou": {
+      "cat": "xingwei",
+      "topicEn": "Mirrors",
+      "q": "Do you usually take a mirror with you?",
+      "logic": "习惯：包里小镜子/用手机代替。",
+      "words": {
+        "正面回答": [
+          "Not usually",
+          "Sometimes",
+          "Rarely"
+        ],
+        "原因": [
+          "use my phone",
+          "small pocket mirror",
+          "only for travel"
+        ],
+        "时间线+行为描述": [
+          "when travelling",
+          "at formal events",
+          "almost never"
+        ],
+        "影响": [
+          "phone is enough",
+          "not necessary",
+          "convenient either way"
+        ]
+      },
+      "source": "explicit"
+    },
+    "doyoulistentomusicwhiledoingotherthings": {
+      "cat": "xingwei",
+      "topicEn": "Music",
+      "q": "Do you listen to music while doing other things?",
+      "logic": "习惯：学习/运动时听歌。",
+      "words": {
+        "正面回答": [
+          "Yes",
+          "often",
+          "almost always",
+          "Quite often"
+        ],
+        "原因": [
+          "while studying",
+          "on the subway",
+          "during workouts"
+        ],
+        "时间线+行为描述": [
+          "every day",
+          "when I commute",
+          "in my free time"
+        ],
+        "影响": [
+          "helps me focus",
+          "relieve stress",
+          "makes tasks easier"
+        ]
+      },
+      "source": "explicit"
+    },
+    "whatroomdoesyourfamilyspendmostofthetimein": {
+      "cat": "xingwei",
+      "topicEn": "Home & Accommodation",
+      "q": "What room does your family spend most of the time in?",
+      "logic": "习惯：描述日常频率和场景；住宿线：dorms/apartment + roommate + favourite room，交通用 subway。",
+      "words": {
+        "正面回答": [
+          "definitely the living room",
+          "Yes",
+          "Usually",
+          "Definitely",
+          "Not really"
+        ],
+        "原因": [
+          "share stories",
+          "since",
+          "for the reason that",
+          "because"
+        ],
+        "时间线+行为描述": [
+          "dinner",
+          "every morning",
+          "before class",
+          "after dinner"
+        ],
+        "影响": [
+          "precious memories",
+          "helps me stay focused",
+          "saves time",
+          "keeps me organised"
+        ]
+      },
+      "source": "clue"
+    },
+    "whatdoyouusuallydoinyourapartment": {
+      "cat": "xingwei",
+      "topicEn": "Home & Accommodation",
+      "q": "What do you usually do in your apartment?",
+      "logic": "习惯：描述日常频率和场景；住宿线：dorms/apartment + roommate + favourite room，交通用 subway。",
+      "words": {
+        "正面回答": [
+          "I usually stay at home",
+          "Yes",
+          "Usually",
+          "Definitely",
+          "Not really"
+        ],
+        "原因": [
+          "have some me-time",
+          "since",
+          "for the reason that",
+          "because"
+        ],
+        "时间线+行为描述": [
+          "my rented apartment",
+          "flip through physical books",
+          "every morning",
+          "before class",
+          "after dinner"
+        ],
+        "影响": [
+          "slow down",
+          "helps me stay focused",
+          "saves time",
+          "keeps me organised"
+        ]
+      },
+      "source": "clue"
+    },
+    "doyouspendalotoftimechoosingclothes": {
+      "cat": "xingwei",
+      "topicEn": "Clothing",
+      "q": "Do you spend a lot of time choosing clothes?",
+      "logic": "习惯：出门前选衣时间长短。",
+      "words": {
+        "正面回答": [
+          "Not really",
+          "Sometimes",
+          "A few minutes"
+        ],
+        "原因": [
+          "grab my things and head out",
+          "pick quickly",
+          "same style daily"
+        ],
+        "时间线+行为描述": [
+          "every morning",
+          "before class",
+          "on weekdays"
+        ],
+        "影响": [
+          "prefer simplicity",
+          "save time",
+          "not fussy about fashion"
+        ]
+      },
+      "source": "explicit"
+    },
+    "didyoukeepyourroomtidyasachild": {
+      "cat": "xingwei",
+      "topicEn": "Tidiness",
+      "q": "Did you keep your room tidy as a child?",
+      "logic": "习惯：童年房间整不整齐+父母督促。",
+      "words": {
+        "正面回答": [
+          "Not really",
+          "My parents helped",
+          "Sometimes"
+        ],
+        "原因": [
+          "messy desk",
+          "toys everywhere",
+          "needed reminders"
+        ],
+        "时间线+行为描述": [
+          "when I was young",
+          "before exams",
+          "on weekends"
+        ],
+        "影响": [
+          "learned over time",
+          "childhood habit",
+          "got better later"
+        ]
+      },
+      "source": "explicit"
+    },
+    "howdoyoukeepyourworkorstudyspacetidy": {
+      "cat": "xingwei",
+      "topicEn": "Tidiness",
+      "q": "How do you keep your work or study space tidy?",
+      "logic": "习惯：每天收拾桌面/分类收纳。",
+      "words": {
+        "正面回答": [
+          "I tidy up daily",
+          "Put things away",
+          "A quick clean"
+        ],
+        "原因": [
+          "sort my notes",
+          "clear the desk",
+          "throw out rubbish"
+        ],
+        "时间线+行为描述": [
+          "after studying",
+          "every evening",
+          "before I start work"
+        ],
+        "影响": [
+          "focus better",
+          "feel more organised",
+          "saves time later"
+        ]
+      },
+      "source": "explicit"
+    },
+    "doyouuseheadphones": {
+      "cat": "xingwei",
+      "topicEn": "Headphones",
+      "q": "Do you use headphones?",
+      "logic": "习惯：经常用耳机听歌/听课。",
+      "words": {
+        "正面回答": [
+          "Yes",
+          "almost every day",
+          "Quite often",
+          "Definitely"
+        ],
+        "原因": [
+          "listen to music",
+          "online lectures",
+          "on the subway"
+        ],
+        "时间线+行为描述": [
+          "when commuting",
+          "at the library",
+          "every day"
+        ],
+        "影响": [
+          "block background noise",
+          "helps me focus",
+          "private listening"
+        ]
+      },
+      "source": "explicit"
+    },
+    "whenwouldyouuseheadphones": {
+      "cat": "xingwei",
+      "topicEn": "Headphones",
+      "q": "When would you use headphones?",
+      "logic": "习惯：通勤/图书馆/运动时戴耳机。",
+      "words": {
+        "正面回答": [
+          "When commuting",
+          "While studying",
+          "Several situations"
+        ],
+        "原因": [
+          "on the subway",
+          "at the library",
+          "during workouts"
+        ],
+        "时间线+行为描述": [
+          "every morning",
+          "before exams",
+          "at the gym"
+        ],
+        "影响": [
+          "block noise",
+          "stay focused",
+          "enjoy music privately"
+        ]
+      },
+      "source": "explicit"
+    },
+    "inwhatconditionswouldyounotuseheadphones": {
+      "cat": "xingwei",
+      "topicEn": "Headphones",
+      "q": "In what conditions would you not use headphones?",
+      "logic": "习惯：上课/与人交流时不戴。",
+      "words": {
+        "正面回答": [
+          "In class",
+          "When chatting",
+          "At gatherings"
+        ],
+        "原因": [
+          "need to hear others",
+          "safety on the street",
+          "face-to-face talks"
+        ],
+        "时间线+行为描述": [
+          "during meetings",
+          "with family",
+          "when walking at night"
+        ],
+        "影响": [
+          "stay aware",
+          "be polite",
+          "safety first"
+        ]
+      },
+      "source": "explicit"
+    },
+    "doyouoftenseeyourneighbors": {
+      "cat": "xingwei",
+      "topicEn": "The city you live in",
+      "q": "Do you often see your neighbors?",
+      "logic": "习惯：描述日常频率和场景；城市线：city + weather + friendly people + changes，与 area 素材互通。",
+      "words": {
+        "正面回答": [
+          "yes",
+          "quite often",
+          "Usually",
+          "Definitely",
+          "Not really"
+        ],
+        "原因": [
+          "a residential area",
+          "since",
+          "for the reason that",
+          "because"
+        ],
+        "时间线+行为描述": [
+          "head out",
+          "every morning",
+          "before class",
+          "after dinner"
+        ],
+        "影响": [
+          "have a good chat",
+          "helps me stay focused",
+          "saves time",
+          "keeps me organised"
+        ]
+      },
+      "source": "clue"
+    },
+    "doyouoftenhavefreetime": {
+      "cat": "xingwei",
+      "topicEn": "Spare time",
+      "q": "Do you often have free time?",
+      "logic": "习惯：空闲时间多不多+学业忙。",
+      "words": {
+        "正面回答": [
+          "Not much lately",
+          "Some evenings",
+          "At weekends"
+        ],
+        "原因": [
+          "busy with studies",
+          "packed schedule",
+          "after assignments"
+        ],
+        "时间线+行为描述": [
+          "at weekends",
+          "before exams",
+          "rarely on weekdays"
+        ],
+        "影响": [
+          "wish I had more",
+          "use it wisely",
+          "still manage to relax"
+        ]
+      },
+      "source": "explicit"
+    },
+    "whatdoyouusuallydoinyoursparetime": {
+      "cat": "xingwei",
+      "topicEn": "Spare time",
+      "q": "What do you usually do in your spare time?",
+      "logic": "习惯：刷视频/运动/和朋友聚会。",
+      "words": {
+        "正面回答": [
+          "Several things",
+          "A few favourites",
+          "Depends on mood"
+        ],
+        "原因": [
+          "watch short videos",
+          "hang out",
+          "do some sports"
+        ],
+        "时间线+行为描述": [
+          "at weekends",
+          "in my free time",
+          "after dinner"
+        ],
+        "影响": [
+          "relieve stress",
+          "helps me unwind",
+          "recharge my energy"
+        ]
+      },
+      "source": "explicit"
+    },
+    "doyoueatdifferentfoodsatdifferenttimesoftheyear": {
+      "cat": "xingwei",
+      "topicEn": "Food",
+      "q": "Do you eat different foods at different times of the year?",
+      "logic": "习惯：描述日常频率和场景；食物=favourite dish + street food/takeout，童年口味变化一句。",
+      "words": {
+        "正面回答": [
+          "Absolutely yes",
+          "Yes",
+          "Usually",
+          "Definitely",
+          "Not really"
+        ],
+        "原因": [
+          "groceries",
+          "fresh ingredients",
+          "since",
+          "for the reason that",
+          "because"
+        ],
+        "时间线+行为描述": [
+          "get together",
+          "every morning",
+          "before class",
+          "after dinner"
+        ],
+        "影响": [
+          "good for both body and mind",
+          "helps me stay focused",
+          "saves time",
+          "keeps me organised"
+        ]
+      },
+      "source": "clue"
+    },
+    "doyoutakephotosofbuildings": {
+      "cat": "xingwei",
+      "topicEn": "Building",
+      "q": "Do you take photos of buildings?",
+      "logic": "习惯：描述日常频率和场景；建筑=near home tall buildings / take photos，参观欲落到 city centre landmarks。",
+      "words": {
+        "正面回答": [
+          "I often take photos",
+          "Yes",
+          "Usually",
+          "Definitely",
+          "Not really"
+        ],
+        "原因": [
+          "be passionate about things",
+          "since",
+          "for the reason that",
+          "because"
+        ],
+        "时间线+行为描述": [
+          "the city centre",
+          "take photos",
+          "every morning",
+          "before class",
+          "after dinner"
+        ],
+        "影响": [
+          "reflect on things",
+          "helps me stay focused",
+          "saves time",
+          "keeps me organised"
+        ]
+      },
+      "source": "clue"
+    },
+    "howoftendoyouvisitazoo": {
+      "cat": "xingwei",
+      "topicEn": "Pets and Animals",
+      "q": "How often do you visit a zoo?",
+      "logic": "习惯：偶尔去动物园，假期带孩子或朋友。",
+      "words": {
+        "正面回答": [
+          "Not very often",
+          "Occasionally",
+          "A few times a year"
+        ],
+        "原因": [
+          "with friends",
+          "see animals",
+          "city zoo"
+        ],
+        "时间线+行为描述": [
+          "during the holidays",
+          "once or twice a year",
+          "when I have time"
+        ],
+        "影响": [
+          "fun experience",
+          "learn about animals",
+          "good for a day out"
+        ]
+      },
+      "source": "explicit"
+    },
+    "doyoutypeonadesktoporlaptopkeyboardeveryday": {
+      "cat": "xingwei",
+      "topicEn": "Typing",
+      "q": "Do you type on a desktop or laptop keyboard every day?",
+      "logic": "习惯：描述日常频率和场景；打字=daily laptop + practice speed，对比 handwriting 强调 faster。",
+      "words": {
+        "正面回答": [
+          "my laptop keyboard",
+          "Yes",
+          "Usually",
+          "Definitely",
+          "Not really"
+        ],
+        "原因": [
+          "since",
+          "for the reason that",
+          "because"
+        ],
+        "时间线+行为描述": [
+          "every morning",
+          "before class",
+          "after dinner"
+        ],
+        "影响": [
+          "helps me stay focused",
+          "saves time",
+          "keeps me organised"
+        ]
+      },
+      "source": "clue"
+    },
+    "howdoyourememberimportantthings": {
+      "cat": "xingwei",
+      "topicEn": "Memory",
+      "q": "How do you remember important things?",
+      "logic": "习惯：手机备忘录/清单/重复记忆。",
+      "words": {
+        "正面回答": [
+          "Phone notes",
+          "To-do lists",
+          "Several methods"
+        ],
+        "原因": [
+          "set reminders",
+          "write them down",
+          "repeat aloud"
+        ],
+        "时间线+行为描述": [
+          "every day",
+          "before exams",
+          "for appointments"
+        ],
+        "影响": [
+          "rarely forget",
+          "really convenient",
+          "saves mental energy"
+        ]
+      },
+      "source": "explicit"
+    },
+    "whatdoyouusuallydointhemorning": {
+      "cat": "xingwei",
+      "topicEn": "Morning time",
+      "q": "What do you usually do in the morning?",
+      "logic": "习惯：描述日常频率和场景；早晨=get up → breakfast → get dressed，童年对比更晚起。",
+      "words": {
+        "正面回答": [
+          "I have a daily routine",
+          "Yes",
+          "Usually",
+          "Definitely",
+          "Not really"
+        ],
+        "原因": [
+          "self-care",
+          "since",
+          "for the reason that",
+          "because"
+        ],
+        "时间线+行为描述": [
+          "after I get up",
+          "go jogging",
+          "every morning",
+          "before class",
+          "after dinner"
+        ],
+        "影响": [
+          "energetic",
+          "full of energy",
+          "helps me stay focused",
+          "saves time",
+          "keeps me organised"
+        ]
+      },
+      "source": "clue"
+    },
+    "whatdidyoudointhemorningwhenyouwerelittlewhy": {
+      "cat": "xingwei",
+      "topicEn": "Morning time",
+      "q": "What did you do in the morning when you were little? Why?",
+      "logic": "习惯：描述日常频率和场景；早晨=get up → breakfast → get dressed，童年对比更晚起。",
+      "words": {
+        "正面回答": [
+          "It was quite simple",
+          "Yes",
+          "Usually",
+          "Definitely",
+          "Not really"
+        ],
+        "原因": [
+          "my parents requirements",
+          "since",
+          "for the reason that",
+          "because"
+        ],
+        "时间线+行为描述": [
+          "before primary school",
+          "have breakfast",
+          "every morning",
+          "before class",
+          "after dinner"
+        ],
+        "影响": [
+          "strive in one",
+          "s studies",
+          "helps me stay focused",
+          "saves time",
+          "keeps me organised"
+        ]
+      },
+      "source": "clue-alias"
+    },
+    "doyouwalkalot": {
+      "cat": "xingwei",
+      "topicEn": "Walking",
+      "q": "Do you walk a lot?",
+      "logic": "习惯：描述日常频率和场景；走路=go for a walk in the park，解压+景色一笔带过。",
+      "words": {
+        "正面回答": [
+          "Definitely",
+          "Yes",
+          "Usually",
+          "Not really"
+        ],
+        "原因": [
+          "relieve stress",
+          "since",
+          "for the reason that",
+          "because"
+        ],
+        "时间线+行为描述": [
+          "in my free time",
+          "go for a walk",
+          "every morning",
+          "before class",
+          "after dinner"
+        ],
+        "影响": [
+          "feel relaxed and at ease",
+          "helps me stay focused",
+          "saves time",
+          "keeps me organised"
+        ]
+      },
+      "source": "clue"
+    },
+    "didyouoftengooutsidetohaveawalkwhenyouwereachild": {
+      "cat": "xingwei",
+      "topicEn": "Walking",
+      "q": "Did you often go outside to have a walk when you were a child?",
+      "logic": "习惯：描述日常频率和场景；走路=go for a walk in the park，解压+景色一笔带过。",
+      "words": {
+        "正面回答": [
+          "Yes",
+          "I used to",
+          "Usually",
+          "Definitely",
+          "Not really"
+        ],
+        "原因": [
+          "get close to nature",
+          "since",
+          "for the reason that",
+          "because"
+        ],
+        "时间线+行为描述": [
+          "when the weather is nice",
+          "every morning",
+          "before class",
+          "after dinner"
+        ],
+        "影响": [
+          "have a good laugh",
+          "helps me stay focused",
+          "saves time",
+          "keeps me organised"
+        ]
+      },
+      "source": "clue"
+    },
+    "doyoulookoutthewindowatthescenerywhentravellingbybusorcar": {
+      "cat": "xingwei",
+      "topicEn": "Scenery",
+      "q": "Do you look out the window at the scenery when travelling by bus or car?",
+      "logic": "习惯：描述日常频率和场景；景色=travel + take photos，山/海对比用 mountains vs sea。",
+      "words": {
+        "正面回答": [
+          "I always do that",
+          "Yes",
+          "Usually",
+          "Definitely",
+          "Not really"
+        ],
+        "原因": [
+          "when I feel bored",
+          "since",
+          "for the reason that",
+          "because"
+        ],
+        "时间线+行为描述": [
+          "take a bus",
+          "listen to music",
+          "every morning",
+          "before class",
+          "after dinner"
+        ],
+        "影响": [
+          "clear my mind",
+          "helps me stay focused",
+          "saves time",
+          "keeps me organised"
+        ]
+      },
+      "source": "clue"
+    },
+    "whydosomepeoplewearexpensivewatches": {
+      "cat": "guandian",
+      "topicEn": "Watch",
+      "q": "Why do some people wear expensive watches?",
+      "logic": "观点：谈 status symbol / fashion，别说自己买奢侈品。",
+      "words": {
+        "正面回答": [
+          "I think so",
+          "it depends on the person",
+          "Probably"
+        ],
+        "举例或原因": [
+          "status symbol",
+          "fashion statement",
+          "show success"
+        ],
+        "作用或影响": [
+          "match outfits",
+          "at formal events",
+          "for most people",
+          "quite often"
+        ],
+        "感受": [
+          "it depends on the person",
+          "not my style",
+          "understandable"
+        ]
+      },
+      "source": "explicit"
+    },
+    "doyouthinkitisimportanttowearawatchwhy": {
+      "cat": "guandian",
+      "topicEn": "Watch",
+      "q": "Do you think it is important to wear a watch? Why?",
+      "logic": "观点：对学生=守时 punctual；可说不戴也行但方便。",
+      "words": {
+        "正面回答": [
+          "Yes",
+          "quite important",
+          "Quite useful",
+          "It helps"
+        ],
+        "举例或原因": [
+          "stay punctual",
+          "check time quickly",
+          "during class"
+        ],
+        "作用或影响": [
+          "in class and meetings",
+          "every day",
+          "when busy"
+        ],
+        "感受": [
+          "I find it practical",
+          "really convenient",
+          "helps me focus"
+        ]
+      },
+      "source": "explicit"
+    },
+    "doyouthinkcarcoloursareimportant": {
+      "cat": "guandian",
+      "topicEn": "Cars",
+      "q": "Do you think car colours are important?",
+      "logic": "观点：颜色=个性/耐脏，举例白车黑车。",
+      "words": {
+        "正面回答": [
+          "it depends on the person",
+          "Somewhat",
+          "For some people"
+        ],
+        "举例或原因": [
+          "personality",
+          "easy to keep clean",
+          "white or black cars"
+        ],
+        "作用或影响": [
+          "when buying a car",
+          "for resale value",
+          "for most people",
+          "quite often"
+        ],
+        "感受": [
+          "some people care a lot",
+          "not that important to me",
+          "personal taste"
+        ]
+      },
+      "source": "explicit"
+    },
+    "doyouthinkthatyoursubjectispopularinyourcountry": {
+      "cat": "guandian",
+      "topicEn": "Work or studies",
+      "q": "Do you think that your subject is popular in your country?",
+      "logic": "观点：先表态再理由；学生线：subject + why choose + study routine；工作线可简答后拉回学习场景。",
+      "words": {
+        "正面回答": [
+          "it's quite popular",
+          "Yes",
+          "I think so",
+          "it depends on the person",
+          "Somewhat"
+        ],
+        "举例或原因": [
+          "attend classes",
+          "since",
+          "in my view"
+        ],
+        "作用或影响": [
+          "practical",
+          "for most people",
+          "quite often"
+        ],
+        "感受": [
+          "self-motivated",
+          "quite important",
+          "makes sense",
+          "understandable"
+        ]
+      },
+      "source": "clue"
+    },
+    "whatarethebenefitsofbeingyourage": {
+      "cat": "guandian",
+      "topicEn": "Work or studies",
+      "q": "What are the benefits of being your age?",
+      "logic": "观点：先表态再理由；学生线：subject + why choose + study routine；工作线可简答后拉回学习场景。",
+      "words": {
+        "正面回答": [
+          "there are many advantages",
+          "Yes",
+          "I think so",
+          "it depends on the person",
+          "Somewhat"
+        ],
+        "举例或原因": [
+          "hang out",
+          "since",
+          "in my view"
+        ],
+        "作用或影响": [
+          "be passionate about things",
+          "for most people",
+          "quite often"
+        ],
+        "感受": [
+          "have a great time",
+          "quite important",
+          "makes sense",
+          "understandable"
+        ]
+      },
+      "source": "clue"
+    },
+    "whatdoyouthinkisthemostimportantatthemoment": {
+      "cat": "guandian",
+      "topicEn": "Life stages",
+      "q": "What do you think is the most important at the moment?",
+      "logic": "观点：先表态再理由；人生阶段用 childhood → university → next five years，计划落回 study。",
+      "words": {
+        "正面回答": [
+          "my studies",
+          "for sure",
+          "Yes",
+          "I think so",
+          "it depends on the person"
+        ],
+        "举例或原因": [
+          "work hard at my studies",
+          "since",
+          "in my view"
+        ],
+        "作用或影响": [
+          "finish homework on my own",
+          "for most people",
+          "quite often"
+        ],
+        "感受": [
+          "clear my mind",
+          "quite important",
+          "makes sense",
+          "understandable"
+        ]
+      },
+      "source": "clue"
+    },
+    "whatkindsofwebsitesarepopularinyourcountry": {
+      "cat": "guandian",
+      "topicEn": "Websites",
+      "q": "What kinds of websites are popular in your country?",
+      "logic": "观点：短视频/电商/外卖平台流行。",
+      "words": {
+        "正面回答": [
+          "Short video apps",
+          "E-commerce sites",
+          "Social platforms"
+        ],
+        "举例或原因": [
+          "Douyin",
+          "Taobao",
+          "WeChat"
+        ],
+        "作用或影响": [
+          "almost everyone uses them",
+          "every day",
+          "all age groups"
+        ],
+        "感受": [
+          "very convenient",
+          "really popular",
+          "part of daily life"
+        ]
+      },
+      "source": "explicit"
+    },
+    "doeshappymusicmakeyoufeelmoreexcited": {
+      "cat": "guandian",
+      "topicEn": "Music",
+      "q": "Does happy music make you feel more excited?",
+      "logic": "观点：欢快音乐让人更有活力。",
+      "words": {
+        "正面回答": [
+          "Yes",
+          "definitely",
+          "Absolutely",
+          "Most of the time"
+        ],
+        "举例或原因": [
+          "upbeat songs",
+          "faster tempo",
+          "before exercising"
+        ],
+        "作用或影响": [
+          "when I'm tired",
+          "in the morning",
+          "at parties"
+        ],
+        "感受": [
+          "feel more energetic",
+          "in a better mood",
+          "mood booster"
+        ]
+      },
+      "source": "explicit"
+    },
+    "whatmakesyoufeelpleasantinyourhome": {
+      "cat": "guandian",
+      "topicEn": "Home & Accommodation",
+      "q": "What makes you feel pleasant in your home?",
+      "logic": "观点：先表态再理由；住宿线：dorms/apartment + roommate + favourite room，交通用 subway。",
+      "words": {
+        "正面回答": [
+          "the quiet",
+          "private atmosphere",
+          "Yes",
+          "I think so",
+          "it depends on the person"
+        ],
+        "举例或原因": [
+          "dorms",
+          "home",
+          "since",
+          "in my view"
+        ],
+        "作用或影响": [
+          "have some me-time",
+          "for most people",
+          "quite often"
+        ],
+        "感受": [
+          "unwind",
+          "quite important",
+          "makes sense",
+          "understandable"
+        ]
+      },
+      "source": "clue"
+    },
+    "doyouthinkitisimportanttoliveinacomfortableenvironment": {
+      "cat": "guandian",
+      "topicEn": "Home & Accommodation",
+      "q": "Do you think it is important to live in a comfortable environment?",
+      "logic": "观点：先表态再理由；住宿线：dorms/apartment + roommate + favourite room，交通用 subway。",
+      "words": {
+        "正面回答": [
+          "it's incredibly important",
+          "Yes",
+          "I think so",
+          "it depends on the person",
+          "Somewhat"
+        ],
+        "举例或原因": [
+          "a residential area",
+          "since",
+          "in my view"
+        ],
+        "作用或影响": [
+          "self-care",
+          "for most people",
+          "quite often"
+        ],
+        "感受": [
+          "feel relaxed and at ease",
+          "quite important",
+          "makes sense",
+          "understandable"
+        ]
+      },
+      "source": "clue"
+    },
+    "doyouthinkthatitisnecessarytobetidy": {
+      "cat": "guandian",
+      "topicEn": "Tidiness",
+      "q": "Do you think that it is necessary to be tidy?",
+      "logic": "观点：整洁提高效率，但不必完美主义。",
+      "words": {
+        "正面回答": [
+          "Yes",
+          "quite necessary",
+          "It helps a lot",
+          "Generally yes"
+        ],
+        "举例或原因": [
+          "focus better",
+          "find things easily",
+          "clear mind"
+        ],
+        "作用或影响": [
+          "for studying",
+          "at work",
+          "in shared spaces"
+        ],
+        "感受": [
+          "good habit",
+          "not obsessive though",
+          "balance is key"
+        ]
+      },
+      "source": "explicit"
+    },
+    "doyouthinkyouwillcontinuelivingthereforalongtime": {
+      "cat": "guandian",
+      "topicEn": "Hometown",
+      "q": "Do you think you will continue living there for a long time?",
+      "logic": "观点：先表态再理由；家乡三件套：big/small city + famous for + young people，历史文化各一句。",
+      "words": {
+        "正面回答": [
+          "most likely",
+          "yes",
+          "I think so",
+          "it depends on the person",
+          "Somewhat"
+        ],
+        "举例或原因": [
+          "convenience stores",
+          "since",
+          "in my view"
+        ],
+        "作用或影响": [
+          "lifestyle",
+          "for most people",
+          "quite often"
+        ],
+        "感受": [
+          "holds a lot of precious memories",
+          "quite important",
+          "makes sense",
+          "understandable"
+        ]
+      },
+      "source": "clue"
+    },
+    "isyourhometownagoodplaceforyoungpeopletopursuetheircareers": {
+      "cat": "guandian",
+      "topicEn": "Hometown",
+      "q": "Is your hometown a good place for young people to pursue their careers?",
+      "logic": "观点：先表态再理由；家乡三件套：big/small city + famous for + young people，历史文化各一句。",
+      "words": {
+        "正面回答": [
+          "it's a great place for that",
+          "Yes",
+          "I think so",
+          "it depends on the person",
+          "Somewhat"
+        ],
+        "举例或原因": [
+          "university students",
+          "young workers",
+          "start-ups"
+        ],
+        "作用或影响": [
+          "take the initiative to",
+          "for most people",
+          "quite often"
+        ],
+        "感受": [
+          "a real a real a real a real sense of achievement",
+          "quite important",
+          "makes sense",
+          "understandable"
+        ]
+      },
+      "source": "clue"
+    },
+    "iswearingheadphonescomfortable": {
+      "cat": "guandian",
+      "topicEn": "Headphones",
+      "q": "Is wearing headphones comfortable?",
+      "logic": "观点：短时间舒服，久了耳朵累。",
+      "words": {
+        "正面回答": [
+          "Mostly yes",
+          "it depends on the person",
+          "For a while"
+        ],
+        "举例或原因": [
+          "soft ear cushions",
+          "wireless is light",
+          "good for commuting"
+        ],
+        "作用或影响": [
+          "after an hour",
+          "long sessions",
+          "cheap ones hurt"
+        ],
+        "感受": [
+          "comfortable enough",
+          "take breaks sometimes",
+          "worth it for music"
+        ]
+      },
+      "source": "explicit"
+    },
+    "doyouthinkyouspendtoomuchtimeonsocialmedia": {
+      "cat": "guandian",
+      "topicEn": "Social media",
+      "q": "Do you think you spend too much time on social media?",
+      "logic": "观点：承认有点多，但用于学习/社交。",
+      "words": {
+        "正面回答": [
+          "Sometimes yes",
+          "A bit too much",
+          "it depends on the person"
+        ],
+        "举例或原因": [
+          "watch short videos",
+          "chat with friends",
+          "browse feeds"
+        ],
+        "作用或影响": [
+          "before bed",
+          "during breaks",
+          "too often"
+        ],
+        "感受": [
+          "should cut down",
+          "also useful",
+          "need self-control"
+        ]
+      },
+      "source": "explicit"
+    },
+    "whatdopeopleoftendoonsocialmedia": {
+      "cat": "guandian",
+      "topicEn": "Social media",
+      "q": "What do people often do on social media?",
+      "logic": "观点：聊天、刷视频、晒生活。",
+      "words": {
+        "正面回答": [
+          "Many things",
+          "Quite a lot",
+          "Various activities"
+        ],
+        "举例或原因": [
+          "chat with friends",
+          "watch short videos",
+          "post photos"
+        ],
+        "作用或影响": [
+          "every day",
+          "in their free time",
+          "before bed"
+        ],
+        "感受": [
+          "stay connected",
+          "entertainment",
+          "part of modern life"
+        ]
+      },
+      "source": "explicit"
+    },
+    "doyouthinksingingcanbringhappinesstopeople": {
+      "cat": "guandian",
+      "topicEn": "Singing",
+      "q": "Do you think singing can bring happiness to people?",
+      "logic": "观点：唱歌释放情绪、增进感情。",
+      "words": {
+        "正面回答": [
+          "Yes",
+          "absolutely",
+          "Definitely",
+          "I believe so"
+        ],
+        "举例或原因": [
+          "share joy",
+          "relieve stress",
+          "bond with others"
+        ],
+        "作用或影响": [
+          "at parties",
+          "for all ages",
+          "for most people",
+          "quite often"
+        ],
+        "感受": [
+          "music heals",
+          "universal language",
+          "simple but powerful"
+        ]
+      },
+      "source": "explicit"
+    },
+    "isthecityfriendlytochildrenandoldpeople": {
+      "cat": "guandian",
+      "topicEn": "The city you live in",
+      "q": "Is the city friendly to children and old people?",
+      "logic": "观点：先表态再理由；城市线：city + weather + friendly people + changes，与 area 素材互通。",
+      "words": {
+        "正面回答": [
+          "very friendly",
+          "yes",
+          "I think so",
+          "it depends on the person",
+          "Somewhat"
+        ],
+        "举例或原因": [
+          "the park",
+          "since",
+          "in my view"
+        ],
+        "作用或影响": [
+          "go for a walk",
+          "for most people",
+          "quite often"
+        ],
+        "感受": [
+          "practical",
+          "quite important",
+          "makes sense",
+          "understandable"
+        ]
+      },
+      "source": "clue"
+    },
+    "dochinesepeopleoftenvisitsciencemuseums": {
+      "cat": "guandian",
+      "topicEn": "Science",
+      "q": "Do Chinese people often visit science museums?",
+      "logic": "观点：假期带孩子去科技馆很常见。",
+      "words": {
+        "正面回答": [
+          "Yes",
+          "quite often",
+          "Especially families",
+          "it's quite popular"
+        ],
+        "举例或原因": [
+          "science museum",
+          "interactive exhibits",
+          "during the holidays"
+        ],
+        "作用或影响": [
+          "on weekends",
+          "school trips",
+          "during vacations"
+        ],
+        "感受": [
+          "educational and fun",
+          "good for kids",
+          "worth visiting"
+        ]
+      },
+      "source": "explicit"
+    },
+    "arecomedyshowspopularinyourcountry": {
+      "cat": "guandian",
+      "topicEn": "Jokes & Comedies",
+      "q": "Are comedy shows popular in your country?",
+      "logic": "观点：脱口秀/喜剧综艺很火。",
+      "words": {
+        "正面回答": [
+          "Yes",
+          "very popular",
+          "it's quite popular",
+          "Growing fast"
+        ],
+        "举例或原因": [
+          "stand-up comedy",
+          "TV variety shows",
+          "online clips"
+        ],
+        "作用或影响": [
+          "young people love them",
+          "every weekend",
+          "on streaming apps"
+        ],
+        "感受": [
+          "easy entertainment",
+          "social topic",
+          "good stress relief"
+        ]
+      },
+      "source": "explicit"
+    },
+    "whatdoyouconsiderwhenchoosingagift": {
+      "cat": "guandian",
+      "topicEn": "Gifts",
+      "q": "What do you consider when choosing a gift?",
+      "logic": "观点：先表态再理由；礼物=handmade / thoughtful gift，选择看 receiver's preference。",
+      "words": {
+        "正面回答": [
+          "functionality comes first",
+          "Yes",
+          "I think so",
+          "it depends on the person",
+          "Somewhat"
+        ],
+        "举例或原因": [
+          "coat",
+          "sweatshirt",
+          "since",
+          "in my view"
+        ],
+        "作用或影响": [
+          "practical",
+          "for most people",
+          "quite often"
+        ],
+        "感受": [
+          "lifts my mood",
+          "quite important",
+          "makes sense",
+          "understandable"
+        ]
+      },
+      "source": "clue"
+    },
+    "doyouthinkyouaregoodatchoosinggifts": {
+      "cat": "guandian",
+      "topicEn": "Gifts",
+      "q": "Do you think you are good at choosing gifts?",
+      "logic": "观点：先表态再理由；礼物=handmade / thoughtful gift，选择看 receiver's preference。",
+      "words": {
+        "正面回答": [
+          "I'm quite good at it",
+          "Yes",
+          "I think so",
+          "it depends on the person",
+          "Somewhat"
+        ],
+        "举例或原因": [
+          "open up to each other",
+          "since",
+          "in my view"
+        ],
+        "作用或影响": [
+          "lifestyle",
+          "for most people",
+          "quite often"
+        ],
+        "感受": [
+          "have a good laugh",
+          "quite important",
+          "makes sense",
+          "understandable"
+        ]
+      },
+      "source": "clue"
+    },
+    "whatisthemostpopularanimalinchina": {
+      "cat": "guandian",
+      "topicEn": "Pets and Animals",
+      "q": "What is the most popular animal in China?",
+      "logic": "观点：先表态再理由；宠物=puppy at home；动物喜好/动物园复用同一情感词 unwind。",
+      "words": {
+        "正面回答": [
+          "I'd say pandas and dogs",
+          "Yes",
+          "I think so",
+          "it depends on the person",
+          "Somewhat"
+        ],
+        "举例或原因": [
+          "loyal",
+          "since",
+          "in my view"
+        ],
+        "作用或影响": [
+          "self-care",
+          "for most people",
+          "quite often"
+        ],
+        "感受": [
+          "a great way to unwind",
+          "quite important",
+          "makes sense",
+          "understandable"
+        ]
+      },
+      "source": "clue"
+    },
+    "aretheremanypeoplekeepingpetsinyourcountry": {
+      "cat": "guandian",
+      "topicEn": "Pets and Animals",
+      "q": "Are there many people keeping pets in your country?",
+      "logic": "观点：养宠物越来越普遍，尤其猫狗。",
+      "words": {
+        "正面回答": [
+          "Yes",
+          "more and more",
+          "Quite common",
+          "Definitely growing"
+        ],
+        "举例或原因": [
+          "cats and dogs",
+          "especially in cities",
+          "emotional companions"
+        ],
+        "作用或影响": [
+          "nowadays",
+          "among young people",
+          "in urban areas"
+        ],
+        "感受": [
+          "shows lifestyle change",
+          "pets bring joy",
+          "responsible ownership matters"
+        ]
+      },
+      "source": "explicit"
+    },
+    "shouldschoolsteachstudentsknowledgeaboutpetsoranimals": {
+      "cat": "guandian",
+      "topicEn": "Pets and Animals",
+      "q": "Should schools teach students knowledge about pets or animals?",
+      "logic": "观点：应该教，培养爱心与责任感。",
+      "words": {
+        "正面回答": [
+          "Yes",
+          "they should",
+          "Definitely",
+          "Absolutely"
+        ],
+        "举例或原因": [
+          "animal welfare",
+          "respect nature",
+          "responsible pet care"
+        ],
+        "作用或影响": [
+          "in science class",
+          "through field trips",
+          "at primary school"
+        ],
+        "感受": [
+          "build empathy",
+          "practical knowledge",
+          "good for society"
+        ]
+      },
+      "source": "explicit"
+    },
+    "isteamsportspopularinyourculture": {
+      "cat": "guandian",
+      "topicEn": "Sports team",
+      "q": "Is team sports popular in your culture?",
+      "logic": "观点：先表态再理由；运动队=basketball/volleyball + teamwork，观看与参与同一套。",
+      "words": {
+        "正面回答": [
+          "Absolutely yes",
+          "Yes",
+          "I think so",
+          "it depends on the person",
+          "Somewhat"
+        ],
+        "举例或原因": [
+          "play basketball",
+          "volleyball",
+          "since",
+          "in my view"
+        ],
+        "作用或影响": [
+          "motivate each other",
+          "for most people",
+          "quite often"
+        ],
+        "感受": [
+          "feel relaxed and at ease",
+          "quite important",
+          "makes sense",
+          "understandable"
+        ]
+      },
+      "source": "clue"
+    },
+    "howdopeopleremembereachstageoftheirlives": {
+      "cat": "guandian",
+      "topicEn": "Life stages",
+      "q": "How do people remember each stage of their lives?",
+      "logic": "观点：靠照片/日记/重要事件标记。",
+      "words": {
+        "正面回答": [
+          "In different ways",
+          "Through memories",
+          "Many methods"
+        ],
+        "举例或原因": [
+          "photos",
+          "diaries",
+          "important milestones"
+        ],
+        "作用或影响": [
+          "birthdays",
+          "graduations",
+          "family trips"
+        ],
+        "感受": [
+          "precious memories",
+          "shape who we are",
+          "look back fondly"
+        ]
+      },
+      "source": "explicit"
+    },
+    "atwhatagedoyouthinkpeoplearethehappiest": {
+      "cat": "guandian",
+      "topicEn": "Life stages",
+      "q": "At what age do you think people are the happiest?",
+      "logic": "观点：童年无忧无虑或青年有自由。",
+      "words": {
+        "正面回答": [
+          "It varies",
+          "Childhood perhaps",
+          "Hard to say"
+        ],
+        "举例或原因": [
+          "childhood is carefree",
+          "young adults have freedom",
+          "depends on the person"
+        ],
+        "作用或影响": [
+          "different life stages",
+          "for different people",
+          "no single answer"
+        ],
+        "感受": [
+          "each age has joys",
+          "subjective question",
+          "interesting to think about"
+        ]
+      },
+      "source": "explicit"
+    },
+    "whydopeopleliketowalkinparks": {
+      "cat": "guandian",
+      "topicEn": "Walking",
+      "q": "Why do people like to walk in parks?",
+      "logic": "观点：先表态再理由；走路=go for a walk in the park，解压+景色一笔带过。",
+      "words": {
+        "正面回答": [
+          "to get close to nature",
+          "Yes",
+          "I think so",
+          "it depends on the person",
+          "Somewhat"
+        ],
+        "举例或原因": [
+          "in their free time",
+          "since",
+          "in my view"
+        ],
+        "作用或影响": [
+          "have some me-time",
+          "for most people",
+          "quite often"
+        ],
+        "感受": [
+          "go for a walk",
+          "relieve stress",
+          "quite important",
+          "makes sense",
+          "understandable"
+        ]
+      },
+      "source": "clue"
+    },
+    "domostpeoplelikecrowdedplaces": {
+      "cat": "guandian",
+      "topicEn": "Crowded place",
+      "q": "Do most people like crowded places?",
+      "logic": "观点：先表态再理由；拥挤=city centre / rush hour / shopping malls，喜好偏 not really。",
+      "words": {
+        "正面回答": [
+          "it depends on the person",
+          "Yes",
+          "I think so",
+          "Somewhat"
+        ],
+        "举例或原因": [
+          "be passionate about",
+          "city centre",
+          "since",
+          "in my view"
+        ],
+        "作用或影响": [
+          "meet like-minded people",
+          "for most people",
+          "quite often"
+        ],
+        "感受": [
+          "it really gets to me",
+          "quite important",
+          "makes sense",
+          "understandable"
+        ]
+      },
+      "source": "clue"
+    },
+    "doyouprefertobeadriverorapassenger": {
+      "cat": "duibi",
+      "topicEn": "Cars",
+      "q": "Do you prefer to be a driver or a passenger?",
+      "logic": "对比：司机=自由；乘客=放松。",
+      "words": {
+        "正面回答": [
+          "I'd rather be a passenger",
+          "I prefer being a passenger",
+          "Passenger"
+        ],
+        "选项1的特点与作用": [
+          "more relaxing",
+          "can rest",
+          "less stressful"
+        ],
+        "选项2的特点与作用": [
+          "driver has more control",
+          "more tiring",
+          "need to focus"
+        ],
+        "个人感受": [
+          "I feel more comfortable as a passenger",
+          "can enjoy the view",
+          "less pressure"
+        ]
+      },
+      "source": "explicit"
+    },
+    "doyouprefertostudyinthemorningsorintheafternoons": {
+      "cat": "duibi",
+      "topicEn": "Work or studies",
+      "q": "Do you prefer to study in the mornings or in the afternoons?",
+      "logic": "对比：两边各说特点再表态；学生线：subject + why choose + study routine；工作线可简答后拉回学习场景。",
+      "words": {
+        "正面回答": [
+          "definitely in the mornings",
+          "I prefer A",
+          "I'd rather",
+          "it depends on the person"
+        ],
+        "选项1的特点与作用": [
+          "have breakfast",
+          "is regarded as",
+          "more convenient",
+          "less stressful"
+        ],
+        "选项2的特点与作用": [
+          "binge-watch TV shows",
+          "by contrast",
+          "on the other hand",
+          "find it harder"
+        ],
+        "个人感受": [
+          "work hard at my studies",
+          "I prefer",
+          "which is why",
+          "more comfortable"
+        ]
+      },
+      "source": "clue"
+    },
+    "doyouprefergettinginformationfromwebsitesorbooks": {
+      "cat": "duibi",
+      "topicEn": "Websites",
+      "q": "Do you prefer getting information from websites or books?",
+      "logic": "对比：网站快更新；书更系统。",
+      "words": {
+        "正面回答": [
+          "I prefer websites",
+          "Websites for sure",
+          "Mostly websites"
+        ],
+        "选项1的特点与作用": [
+          "faster",
+          "up to date",
+          "easy to search"
+        ],
+        "选项2的特点与作用": [
+          "books are deeper",
+          "better for focus",
+          "more detailed"
+        ],
+        "个人感受": [
+          "websites suit my daily needs",
+          "both are useful",
+          "depends on the topic"
+        ]
+      },
+      "source": "explicit"
+    },
+    "doyoulikeyourprimaryschoolteachersmorethanyourhighschoolteachers": {
+      "cat": "duibi",
+      "topicEn": "Teachers",
+      "q": "Do you like your primary school teachers more than your high school teachers?",
+      "logic": "对比：小学亲切 vs 高中严格但专业。",
+      "words": {
+        "正面回答": [
+          "I prefer high school teachers",
+          "Both were great",
+          "Hard to choose"
+        ],
+        "选项1的特点与作用": [
+          "more professional",
+          "deeper knowledge",
+          "better at explaining"
+        ],
+        "选项2的特点与作用": [
+          "primary teachers were warmer",
+          "like family",
+          "more playful"
+        ],
+        "个人感受": [
+          "both mattered to me",
+          "different stages",
+          "each helped me grow"
+        ]
+      },
+      "source": "explicit"
+    },
+    "wouldyouprefertoplayinapersonalgardenorpublicgarden": {
+      "cat": "duibi",
+      "topicEn": "Public gardens and parks",
+      "q": "Would you prefer to play in a personal garden or public garden?",
+      "logic": "对比：私家花园安静 vs 公园设施多。",
+      "words": {
+        "正面回答": [
+          "I'd prefer a public garden",
+          "Public garden",
+          "Depends"
+        ],
+        "选项1的特点与作用": [
+          "more facilities",
+          "bigger space",
+          "meet more people"
+        ],
+        "选项2的特点与作用": [
+          "personal garden is quieter",
+          "more private",
+          "at home"
+        ],
+        "个人感受": [
+          "public parks are more fun",
+          "easier to access",
+          "more variety"
+        ]
+      },
+      "source": "explicit"
+    },
+    "howaretheparkstodaydifferentfromthoseyouvisitedasakid": {
+      "cat": "duibi",
+      "topicEn": "Public gardens and parks",
+      "q": "How are the parks today different from those you visited as a kid?",
+      "logic": "对比：现在公园更现代/更多健身设施。",
+      "words": {
+        "正面回答": [
+          "Quite different",
+          "Much better now",
+          "Huge changes"
+        ],
+        "选项1的特点与作用": [
+          "more playgrounds",
+          "better paths",
+          "fitness equipment"
+        ],
+        "选项2的特点与作用": [
+          "older parks were simpler",
+          "fewer facilities",
+          "more natural"
+        ],
+        "个人感受": [
+          "both are nice",
+          "prefer the upgrades",
+          "more convenient now"
+        ]
+      },
+      "source": "explicit"
+    },
+    "doyoupreferonlineshoppingorinstoreshopping": {
+      "cat": "duibi",
+      "topicEn": "Shopping",
+      "q": "Do you prefer online shopping or in-store shopping?",
+      "logic": "对比：网购方便 vs 实体店可试穿。",
+      "words": {
+        "正面回答": [
+          "I prefer online shopping",
+          "Online for sure",
+          "Mostly online"
+        ],
+        "选项1的特点与作用": [
+          "more convenient",
+          "pay by phone",
+          "delivered to my door"
+        ],
+        "选项2的特点与作用": [
+          "can try on clothes",
+          "see the quality",
+          "instant purchase"
+        ],
+        "个人感受": [
+          "online suits my lifestyle",
+          "both have pros",
+          "depends on the item"
+        ]
+      },
+      "source": "explicit"
+    },
+    "doyouprefersadorhappymusic": {
+      "cat": "duibi",
+      "topicEn": "Music",
+      "q": "Do you prefer sad or happy music?",
+      "logic": "对比：开心音乐解压 vs 慢歌安静。",
+      "words": {
+        "正面回答": [
+          "I prefer happy music",
+          "Happy music",
+          "Mostly upbeat"
+        ],
+        "选项1的特点与作用": [
+          "relieve stress",
+          "feel more positive",
+          "while studying"
+        ],
+        "选项2的特点与作用": [
+          "sad songs are emotional",
+          "good when relaxing",
+          "sometimes meaningful"
+        ],
+        "个人感受": [
+          "happy music fits my mood",
+          "both are fine",
+          "depends on the moment"
+        ]
+      },
+      "source": "explicit"
+    },
+    "doyoupreferlivinginahouseoranapartment": {
+      "cat": "duibi",
+      "topicEn": "Home & Accommodation",
+      "q": "Do you prefer living in a house or an apartment?",
+      "logic": "对比：两边各说特点再表态；住宿线：dorms/apartment + roommate + favourite room，交通用 subway。",
+      "words": {
+        "正面回答": [
+          "an apartment",
+          "for now",
+          "I prefer A",
+          "I'd rather",
+          "it depends on the person"
+        ],
+        "选项1的特点与作用": [
+          "my rented apartment",
+          "is regarded as",
+          "more convenient",
+          "less stressful"
+        ],
+        "选项2的特点与作用": [
+          "attend classes",
+          "parties",
+          "by contrast",
+          "on the other hand",
+          "find it harder"
+        ],
+        "个人感受": [
+          "practical",
+          "I prefer",
+          "which is why",
+          "more comfortable"
+        ]
+      },
+      "source": "clue"
+    },
+    "whatsthedifferencebetweenwhereyouarelivingnowandwhereyouhavelivedinthepast": {
+      "cat": "duibi",
+      "topicEn": "Home & Accommodation",
+      "q": "What’s the difference between where you are living now and where you have lived in the past?",
+      "logic": "对比：两边各说特点再表态；住宿线：dorms/apartment + roommate + favourite room，交通用 subway。",
+      "words": {
+        "正面回答": [
+          "there's a huge difference",
+          "I prefer A",
+          "I'd rather",
+          "it depends on the person"
+        ],
+        "选项1的特点与作用": [
+          "a residential area",
+          "convenience stores",
+          "is regarded as",
+          "more convenient",
+          "less stressful"
+        ],
+        "选项2的特点与作用": [
+          "dorms",
+          "by contrast",
+          "on the other hand",
+          "find it harder"
+        ],
+        "个人感受": [
+          "feel relaxed and at ease",
+          "I prefer",
+          "which is why",
+          "more comfortable"
+        ]
+      },
+      "source": "clue"
+    },
+    "doyouprefertowearcomfortableandcasualclothesorsmartclothes": {
+      "cat": "duibi",
+      "topicEn": "Clothing",
+      "q": "Do you prefer to wear comfortable and casual clothes or smart clothes?",
+      "logic": "对比：休闲舒服 vs 正式得体。",
+      "words": {
+        "正面回答": [
+          "Comfortable and casual",
+          "Casual for sure",
+          "Comfort first"
+        ],
+        "选项1的特点与作用": [
+          "t-shirt",
+          "sneakers",
+          "soft fabrics"
+        ],
+        "选项2的特点与作用": [
+          "smart clothes for interviews",
+          "formal events",
+          "look professional"
+        ],
+        "个人感受": [
+          "casual fits my lifestyle",
+          "smart when needed",
+          "both have uses"
+        ]
+      },
+      "source": "explicit"
+    },
+    "doyouweardifferentstylesofclothesonweekdaysandweekends": {
+      "cat": "duibi",
+      "topicEn": "Clothing",
+      "q": "Do you wear different styles of clothes on weekdays and weekends?",
+      "logic": "对比：工作日简约 vs 周末更随意。",
+      "words": {
+        "正面回答": [
+          "Yes",
+          "quite different",
+          "A little different",
+          "Somewhat"
+        ],
+        "选项1的特点与作用": [
+          "casual on weekends",
+          "sportswear",
+          "more colourful"
+        ],
+        "选项2的特点与作用": [
+          "simple on weekdays",
+          "uniform-like",
+          "for class"
+        ],
+        "个人感受": [
+          "weekends feel freer",
+          "both are comfortable",
+          "depends on plans"
+        ]
+      },
+      "source": "explicit"
+    },
+    "whichdaydoyouhavemorefreetimeonsaturdayorsunday": {
+      "cat": "duibi",
+      "topicEn": "Spare time",
+      "q": "Which day do you have more free time on, Saturday or Sunday?",
+      "logic": "对比：周六外出周日休息或相反。",
+      "words": {
+        "正面回答": [
+          "Saturday",
+          "Sunday",
+          "it depends on the person"
+        ],
+        "选项1的特点与作用": [
+          "hang out with friends",
+          "go shopping",
+          "more social"
+        ],
+        "选项2的特点与作用": [
+          "stay at home",
+          "finish homework",
+          "prepare for Monday"
+        ],
+        "个人感受": [
+          "Saturday is livelier",
+          "Sunday is calmer",
+          "both are precious"
+        ]
+      },
+      "source": "explicit"
+    },
+    "doyoupreferviewsinurbanareasorruralareas": {
+      "cat": "duibi",
+      "topicEn": "Views",
+      "q": "Do you prefer views in urban areas or rural areas?",
+      "logic": "对比：两边各说特点再表态；与 scenery 共用 take photos of views，城乡对比即可。",
+      "words": {
+        "正面回答": [
+          "I prefer urban views",
+          "I prefer A",
+          "I'd rather",
+          "it depends on the person"
+        ],
+        "选项1的特点与作用": [
+          "city centre",
+          "shopping malls",
+          "is regarded as",
+          "more convenient",
+          "less stressful"
+        ],
+        "选项2的特点与作用": [
+          "the park",
+          "by contrast",
+          "on the other hand",
+          "find it harder"
+        ],
+        "个人感受": [
+          "practical and makes me happy",
+          "I prefer",
+          "which is why",
+          "more comfortable"
+        ]
+      },
+      "source": "clue"
+    },
+    "doyoupreferviewsinyourowncountryorinothercountries": {
+      "cat": "duibi",
+      "topicEn": "Views",
+      "q": "Do you prefer views in your own country or in other countries?",
+      "logic": "对比：两边各说特点再表态；与 scenery 共用 take photos of views，城乡对比即可。",
+      "words": {
+        "正面回答": [
+          "in my own country",
+          "I prefer A",
+          "I'd rather",
+          "it depends on the person"
+        ],
+        "选项1的特点与作用": [
+          "tasty local food",
+          "is regarded as",
+          "more convenient",
+          "less stressful"
+        ],
+        "选项2的特点与作用": [
+          "groceries",
+          "fresh ingredients",
+          "by contrast",
+          "on the other hand",
+          "find it harder"
+        ],
+        "个人感受": [
+          "it really hits the spot",
+          "I prefer",
+          "which is why",
+          "more comfortable"
+        ]
+      },
+      "source": "clue"
+    },
+    "wheredoyouprefertokeepyourpetindoorsoroutdoors": {
+      "cat": "duibi",
+      "topicEn": "Pets and Animals",
+      "q": "Where do you prefer to keep your pet, indoors or outdoors?",
+      "logic": "对比：两边各说特点再表态；宠物=puppy at home；动物喜好/动物园复用同一情感词 unwind。",
+      "words": {
+        "正面回答": [
+          "definitely indoors",
+          "I prefer A",
+          "I'd rather",
+          "it depends on the person"
+        ],
+        "选项1的特点与作用": [
+          "home",
+          "dorms",
+          "is regarded as",
+          "more convenient",
+          "less stressful"
+        ],
+        "选项2的特点与作用": [
+          "the park",
+          "by contrast",
+          "on the other hand",
+          "find it harder"
+        ],
+        "个人感受": [
+          "unwind",
+          "I prefer",
+          "which is why",
+          "more comfortable"
+        ]
+      },
+      "source": "clue"
+    },
+    "doyouprefertypingorhandwriting": {
+      "cat": "duibi",
+      "topicEn": "Typing",
+      "q": "Do you prefer typing or handwriting?",
+      "logic": "对比：两边各说特点再表态；打字=daily laptop + practice speed，对比 handwriting 强调 faster。",
+      "words": {
+        "正面回答": [
+          "typing",
+          "for sure",
+          "I prefer A",
+          "I'd rather",
+          "it depends on the person"
+        ],
+        "选项1的特点与作用": [
+          "shop online",
+          "is regarded as",
+          "more convenient",
+          "less stressful"
+        ],
+        "选项2的特点与作用": [
+          "the the the the classroom",
+          "by contrast",
+          "on the other hand",
+          "find it harder"
+        ],
+        "个人感受": [
+          "time-saving and effortless",
+          "practical",
+          "I prefer",
+          "which is why",
+          "more comfortable"
+        ]
+      },
+      "source": "clue"
+    },
+    "arethereanydifferencesbetweenwhatyoudointhemorningnowandwhatyoudidinthepast": {
+      "cat": "duibi",
+      "topicEn": "Morning time",
+      "q": "Are there any differences between what you do in the morning now and what you did in the past?",
+      "logic": "对比：两边各说特点再表态；早晨=get up → breakfast → get dressed，童年对比更晚起。",
+      "words": {
+        "正面回答": [
+          "totally different",
+          "I prefer A",
+          "I'd rather",
+          "it depends on the person"
+        ],
+        "选项1的特点与作用": [
+          "have breakfast",
+          "is regarded as",
+          "more convenient",
+          "less stressful"
+        ],
+        "选项2的特点与作用": [
+          "watch short videos",
+          "by contrast",
+          "on the other hand",
+          "find it harder"
+        ],
+        "个人感受": [
+          "feel relaxed and at ease",
+          "I prefer",
+          "which is why",
+          "more comfortable"
+        ]
+      },
+      "source": "clue"
+    },
+    "doyouspendyourmorningsdoingthesamethingsonbothweekendsandweekdayswhy": {
+      "cat": "duibi",
+      "topicEn": "Morning time",
+      "q": "Do you spend your mornings doing the same things on both weekends and weekdays? Why?",
+      "logic": "对比：两边各说特点再表态；早晨=get up → breakfast → get dressed，童年对比更晚起。",
+      "words": {
+        "正面回答": [
+          "no",
+          "they're quite different",
+          "I prefer A",
+          "I'd rather",
+          "it depends on the person"
+        ],
+        "选项1的特点与作用": [
+          "attend classes",
+          "is regarded as",
+          "more convenient",
+          "less stressful"
+        ],
+        "选项2的特点与作用": [
+          "binge-watch TV shows",
+          "by contrast",
+          "on the other hand",
+          "find it harder"
+        ],
+        "个人感受": [
+          "self-care",
+          "I prefer",
+          "which is why",
+          "more comfortable"
+        ]
+      },
+      "source": "clue"
+    },
+    "whatarethedifferencesbetweenteamsportsandindividualsports": {
+      "cat": "duibi",
+      "topicEn": "Sports team",
+      "q": "What are the differences between team sports and individual sports?",
+      "logic": "对比：两边各说特点再表态；运动队=basketball/volleyball + teamwork，观看与参与同一套。",
+      "words": {
+        "正面回答": [
+          "they're very different",
+          "I prefer A",
+          "I'd rather",
+          "it depends on the person"
+        ],
+        "选项1的特点与作用": [
+          "play basketball",
+          "volleyball",
+          "is regarded as",
+          "more convenient",
+          "less stressful"
+        ],
+        "选项2的特点与作用": [
+          "go jogging",
+          "by contrast",
+          "on the other hand",
+          "find it harder"
+        ],
+        "个人感受": [
+          "meet like-minded people",
+          "I prefer",
+          "which is why",
+          "more comfortable"
+        ]
+      },
+      "source": "clue"
+    },
+    "didyouprefertodoactivitiesaloneorwithagroupofpeoplewhenyouwereachild": {
+      "cat": "duibi",
+      "topicEn": "Childhood activities",
+      "q": "Did you prefer to do activities alone or with a group of people when you were a child?",
+      "logic": "对比：两边各说特点再表态；童年活动=play outside / with friends，现在对比更 indoor。",
+      "words": {
+        "正面回答": [
+          "with a group of people",
+          "I prefer A",
+          "I'd rather",
+          "it depends on the person"
+        ],
+        "选项1的特点与作用": [
+          "play video games",
+          "is regarded as",
+          "more convenient",
+          "less stressful"
+        ],
+        "选项2的特点与作用": [
+          "me-time",
+          "by contrast",
+          "on the other hand",
+          "find it harder"
+        ],
+        "个人感受": [
+          "have a good laugh",
+          "I prefer",
+          "which is why",
+          "more comfortable"
+        ]
+      },
+      "source": "clue"
+    },
+    "arethereanydifferencesbetweentheactivitiesyoulikedwhenyouwereachildandthoseyoulikenow": {
+      "cat": "duibi",
+      "topicEn": "Childhood activities",
+      "q": "Are there any differences between the activities you liked when you were a child and those you like now?",
+      "logic": "对比：童年户外 vs 现在室内/手机。",
+      "words": {
+        "正面回答": [
+          "Yes",
+          "quite different",
+          "totally different",
+          "Somewhat different"
+        ],
+        "选项1的特点与作用": [
+          "play outside as a kid",
+          "more screen time now",
+          "different interests"
+        ],
+        "选项2的特点与作用": [
+          "childhood was outdoors",
+          "toys and games",
+          "with neighbourhood friends"
+        ],
+        "个人感受": [
+          "natural shift",
+          "still enjoy active things",
+          "life changes interests"
+        ]
+      },
+      "source": "explicit"
+    },
+    "doyouprefertoreadonpaperoronascreen": {
+      "cat": "duibi",
+      "topicEn": "Reading",
+      "q": "Do you prefer to read on paper or on a screen?",
+      "logic": "对比：两边各说特点再表态；阅读=read books / flip through pages，纸质 vs 屏幕对比。",
+      "words": {
+        "正面回答": [
+          "I prefer reading on paper",
+          "I prefer A",
+          "I'd rather",
+          "it depends on the person"
+        ],
+        "选项1的特点与作用": [
+          "flip through physical books",
+          "is regarded as",
+          "more convenient",
+          "less stressful"
+        ],
+        "选项2的特点与作用": [
+          "spend a lot of time on my phone",
+          "by contrast",
+          "on the other hand",
+          "find it harder"
+        ],
+        "个人感受": [
+          "reflect on things",
+          "I prefer",
+          "which is why",
+          "more comfortable"
+        ]
+      },
+      "source": "clue"
+    },
+    "whendoyouneedtoreadcarefullyandwhennot": {
+      "cat": "duibi",
+      "topicEn": "Reading",
+      "q": "When do you need to read carefully, and when not?",
+      "logic": "对比：两边各说特点再表态；阅读=read books / flip through pages，纸质 vs 屏幕对比。",
+      "words": {
+        "正面回答": [
+          "it depends on what I am reading",
+          "I prefer A",
+          "I'd rather",
+          "it depends on the person"
+        ],
+        "选项1的特点与作用": [
+          "study",
+          "library",
+          "is regarded as",
+          "more convenient",
+          "less stressful"
+        ],
+        "选项2的特点与作用": [
+          "watch short videos",
+          "by contrast",
+          "on the other hand",
+          "find it harder"
+        ],
+        "个人感受": [
+          "finish homework on my own",
+          "practical",
+          "I prefer",
+          "which is why",
+          "more comfortable"
+        ]
+      },
+      "source": "clue"
+    },
+    "doyoupreferscanningordetailedreading": {
+      "cat": "duibi",
+      "topicEn": "Reading",
+      "q": "Do you prefer scanning or detailed reading?",
+      "logic": "对比：两边各说特点再表态；阅读=read books / flip through pages，纸质 vs 屏幕对比。",
+      "words": {
+        "正面回答": [
+          "detailed reading",
+          "mostly",
+          "I prefer A",
+          "I'd rather",
+          "it depends on the person"
+        ],
+        "选项1的特点与作用": [
+          "physical books",
+          "is regarded as",
+          "more convenient",
+          "less stressful"
+        ],
+        "选项2的特点与作用": [
+          "takeout",
+          "by contrast",
+          "on the other hand",
+          "find it harder"
+        ],
+        "个人感受": [
+          "work hard at my studies",
+          "I prefer",
+          "which is why",
+          "more comfortable"
+        ]
+      },
+      "source": "clue"
+    },
+    "doyoupreferthemountainsorthesea": {
+      "cat": "duibi",
+      "topicEn": "Scenery",
+      "q": "Do you prefer the mountains or the sea?",
+      "logic": "对比：两边各说特点再表态；景色=travel + take photos，山/海对比用 mountains vs sea。",
+      "words": {
+        "正面回答": [
+          "definitely the sea",
+          "I prefer A",
+          "I'd rather",
+          "it depends on the person"
+        ],
+        "选项1的特点与作用": [
+          "enjoy tasty local food",
+          "is regarded as",
+          "more convenient",
+          "less stressful"
+        ],
+        "选项2的特点与作用": [
+          "hiking",
+          "by contrast",
+          "on the other hand",
+          "find it harder"
+        ],
+        "个人感受": [
+          "unwind",
+          "I prefer",
+          "which is why",
+          "more comfortable"
+        ]
+      },
+      "source": "clue"
+    }
+  },
+  "stats": {
+    "explicit": 119,
+    "clue-alias": 30,
+    "clue": 82
+  },
+  "fixes_count": 358
+}

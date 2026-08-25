@@ -198,6 +198,7 @@ class P1Practice {
             container.appendChild(entry);
         }
         
+        const season = (this.data.meta && this.data.meta.season) || '';
         this.data.categories.forEach((cat, catIndex) => {
             const catDiv = document.createElement('div');
             catDiv.className = 'category-item';
@@ -205,20 +206,38 @@ class P1Practice {
             const completedCount = cat.questions.filter(q => 
                 this.usedQuestions.has(`${catIndex}-${q.id}`)
             ).length;
+
+            let lastTopic = null;
+            const qHtml = cat.questions.map(q => {
+                let topicHead = '';
+                if (q.topicEn && q.topicEn !== lastTopic) {
+                    lastTopic = q.topicEn;
+                    const heat = q.recentCount != null
+                        ? `热度#${q.heatRank || '-'} · ${this.formatHeatCount(q.recentCount)}人`
+                        : '';
+                    topicHead = `
+                        <div class="p1-topic-head">
+                            <span class="p1-topic-name">${this.escapeHtml(q.topicZh || q.topicEn)}</span>
+                            <span class="p1-topic-meta">${this.escapeHtml(q.tag || '')}${heat ? ' · ' + heat : ''}</span>
+                        </div>`;
+                }
+                return `
+                    ${topicHead}
+                    <div class="question-item ${this.usedQuestions.has(`${catIndex}-${q.id}`) ? 'completed' : ''}"
+                         data-category="${catIndex}"
+                         data-question="${q.id}">
+                        ${this.escapeHtml(q.title)}
+                    </div>`;
+            }).join('');
             
             catDiv.innerHTML = `
                 <div class="category-header" data-category="${catIndex}">
-                    <span class="category-name">${cat.name}</span>
+                    <span class="category-name">${this.escapeHtml(cat.name)}</span>
                     <span class="category-count">${completedCount}/${cat.questions.length}</span>
                 </div>
                 <div class="question-list" id="questions-${catIndex}">
-                    ${cat.questions.map(q => `
-                        <div class="question-item ${this.usedQuestions.has(`${catIndex}-${q.id}`) ? 'completed' : ''}" 
-                             data-category="${catIndex}" 
-                             data-question="${q.id}">
-                            ${this.escapeHtml(q.title)}
-                        </div>
-                    `).join('')}
+                    ${season && catIndex === 0 ? `<div class="p1-season-note">${this.escapeHtml(season)}在考 · 同类按热度排序</div>` : ''}
+                    ${qHtml}
                 </div>
             `;
             
@@ -461,10 +480,28 @@ class P1Practice {
         document.getElementById('practiceCard').style.display = 'block';
         document.getElementById('aiSection').style.display = 'block';
         
-        document.getElementById('currentCategory').textContent = cat.name;
+        const heatBits = [];
+        if (q.topicZh || q.topicEn) heatBits.push(q.topicZh || q.topicEn);
+        if (q.tag) heatBits.push(q.tag);
+        if (q.heatRank != null) heatBits.push(`热度#${q.heatRank}`);
+        if (q.recentCount != null) heatBits.push(`近${this.formatHeatCount(q.recentCount)}人考过`);
+        document.getElementById('currentCategory').textContent =
+            heatBits.length ? `${cat.name} · ${heatBits.join(' · ')}` : cat.name;
         // 只保留大字题目（完整题干）
         document.getElementById('currentTitle').textContent = q.q || q.title;
         this.stopSpeakQuestion();
+
+        const tipBox = document.getElementById('p1TipBanner');
+        if (tipBox) {
+            const tipText = q.tip || q.logic || '';
+            if (tipText) {
+                tipBox.style.display = '';
+                tipBox.innerHTML = `<strong>答题思路</strong><span>${this.escapeHtml(tipText)}</span>`;
+            } else {
+                tipBox.style.display = 'none';
+                tipBox.innerHTML = '';
+            }
+        }
         
         // 渲染步骤
         const stepsContainer = document.getElementById('stepsContainer');
@@ -472,7 +509,7 @@ class P1Practice {
         
         cat.steps.forEach((step, stepIndex) => {
             const words = (q.words && q.words[step]) || [];
-            const frame = this.getComplexFrame(cat, stepIndex);
+            const frame = this.getComplexFrame(cat, stepIndex, q);
             const stepDiv = document.createElement('div');
             stepDiv.className = 'step-item';
             const frameHtml = frame ? `
@@ -503,6 +540,19 @@ class P1Practice {
             });
         });
 
+        const sampleBox = document.getElementById('p1SampleBox');
+        const sampleText = document.getElementById('p1SampleText');
+        if (sampleBox && sampleText) {
+            if (q.sample) {
+                sampleBox.style.display = '';
+                sampleText.textContent = q.sample;
+                sampleBox.open = false;
+            } else {
+                sampleBox.style.display = 'none';
+                sampleText.textContent = '';
+            }
+        }
+
         const key = this.currentQuestionKey();
         this._loadedQuestionKey = key;
         this.isRecording = false;
@@ -515,9 +565,11 @@ class P1Practice {
         }
     }
 
-    getComplexFrame(cat, stepIndex) {
+    getComplexFrame(cat, stepIndex, q) {
         // 第2–4步（index 1–3）挂《口语复合句专练》对应句型；第1步正面回答用简单句
         if (stepIndex < 1 || stepIndex > 3) return null;
+        const qFrames = q && q.frames;
+        if (qFrames && qFrames[String(stepIndex)]) return qFrames[String(stepIndex)];
         const byId = COMPLEX_FRAMES_BY_CAT[cat && cat.id];
         if (byId && byId[stepIndex]) return byId[stepIndex];
         // 兜底：通用三句（句型4 / 6 / 1B）
@@ -3218,6 +3270,13 @@ FC 必须含 naturalness；LR 必须含 chinglish_flags；语法 errors 单独�
             .replace(/</g, '&lt;')
             .replace(/>/g, '&gt;')
             .replace(/"/g, '&quot;');
+    }
+
+    formatHeatCount(n) {
+        const num = Number(n) || 0;
+        if (num >= 10000) return `${(num / 10000).toFixed(num >= 100000 ? 0 : 1).replace(/\.0$/, '')}万`;
+        if (num >= 1000) return `${(num / 1000).toFixed(1).replace(/\.0$/, '')}k`;
+        return String(num);
     }
     
     renderScoreHTML(p) {

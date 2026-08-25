@@ -246,6 +246,119 @@ body {
     color: var(--success);
 }
 
+.p1-season-note {
+    font-size: 11px;
+    color: var(--text-secondary);
+    padding: 6px 10px 4px;
+    line-height: 1.4;
+}
+
+.p1-topic-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 6px 10px;
+    padding: 10px 10px 2px;
+    margin-top: 6px;
+}
+
+.p1-topic-name {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.p1-topic-meta {
+    font-size: 11px;
+    color: var(--text-secondary);
+}
+
+.p1-tip-banner {
+    margin-top: 10px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    background: var(--surface-2);
+    border: 1px solid var(--border, rgba(0,0,0,.08));
+    font-size: 13px;
+    line-height: 1.55;
+    color: var(--text-primary);
+}
+
+.p1-tip-banner strong {
+    display: inline-block;
+    margin-right: 8px;
+    color: var(--brand, #2f6fed);
+    font-size: 12px;
+}
+
+.p1-tip-banner span {
+    color: var(--text-secondary);
+}
+
+.p1-sample-box {
+    width: 100%;
+    margin: 0 0 20px;
+    padding: 0;
+    border: 1px solid var(--border, rgba(0,0,0,.08));
+    border-radius: 8px;
+    background: var(--surface-2, #f7f6f2);
+    color: var(--text-primary);
+}
+
+.p1-sample-box > summary {
+    list-style: none;
+    cursor: pointer;
+    padding: 12px 14px;
+    font-family: var(--font-display);
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--brand-deep, #1f3d2b);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    user-select: none;
+}
+
+.p1-sample-box > summary::-webkit-details-marker {
+    display: none;
+}
+
+.p1-sample-box > summary::before {
+    content: '▸';
+    color: var(--brand, #2f6fed);
+    font-size: 12px;
+}
+
+.p1-sample-box[open] > summary::before {
+    content: '▾';
+}
+
+.p1-sample-badge {
+    font-family: var(--font-body, inherit);
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--brand, #2f6fed);
+    background: rgba(47, 111, 237, 0.08);
+    padding: 2px 8px;
+    border-radius: 999px;
+}
+
+.p1-sample-text {
+    margin: 0;
+    padding: 0 14px 10px;
+    font-size: 14px;
+    line-height: 1.7;
+    color: var(--text-primary);
+    white-space: pre-wrap;
+}
+
+.p1-sample-hint {
+    margin: 0;
+    padding: 0 14px 12px;
+    font-size: 12px;
+    color: var(--text-muted, #888);
+}
+
 /* 中间练习区 */
 .practice-area {
     flex: 1;
