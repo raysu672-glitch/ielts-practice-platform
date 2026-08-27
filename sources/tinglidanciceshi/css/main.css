@@ -769,11 +769,37 @@
         #phraseScreen,
         #listeningScreen {
             min-height: calc(100vh - 48px);
+            min-height: calc(100dvh - 48px);
         }
+
+        #genericScreen.active,
+        #phraseScreen.active,
+        #listeningScreen.active {
+            display: flex !important;
+            flex-direction: column;
+            height: 100dvh;
+            max-height: 100dvh;
+            padding: 0;
+            overflow: hidden;
+        }
+
         #genericScreen iframe,
         #phraseScreen iframe,
         #listeningScreen iframe {
-            height: calc(100vh - 118px) !important;
+            flex: 1;
+            width: 100%;
+            min-height: 0;
+            height: auto !important;
+            border: none;
+        }
+
+        #progressTable {
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        #progressTable table {
+            min-width: 640px;
         }
 
         /* === 复选框筛选组（旧版已废弃，保留空规则避免引用报错） === */

@@ -143,6 +143,7 @@ class P1Practice {
     }
     
     init() {
+        this.setupEmbeddedLayout();
         this.renderCategories();
         this.bindEvents();
         this.loadFromStorage();
@@ -617,6 +618,31 @@ class P1Practice {
         
         this.renderQuestion();
         this.updateActiveQuestion();
+        this.scrollPracticeIntoViewOnMobile();
+    }
+
+    setupEmbeddedLayout() {
+        try {
+            if (window.parent !== window) {
+                document.documentElement.classList.add('is-embedded');
+            }
+            if (window.matchMedia('(max-width: 768px)').matches) {
+                document.documentElement.classList.add('is-mobile');
+            }
+        } catch (_) {}
+    }
+
+    scrollPracticeIntoViewOnMobile() {
+        if (!window.matchMedia('(max-width: 768px)').matches) return;
+        const area = document.getElementById('practiceArea');
+        if (!area) return;
+        requestAnimationFrame(() => {
+            try {
+                area.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            } catch (_) {
+                area.scrollIntoView(true);
+            }
+        });
     }
     
     // 渲染当前题目

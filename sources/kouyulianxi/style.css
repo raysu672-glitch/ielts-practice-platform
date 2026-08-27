@@ -62,9 +62,29 @@ body {
         );
     color: var(--text-primary);
     height: 100vh;
+    height: 100dvh;
     overflow: hidden;
     line-height: 1.6;
     -webkit-font-smoothing: antialiased;
+}
+
+html.is-embedded,
+html.is-embedded body {
+    height: 100%;
+    min-height: 0;
+}
+
+html.is-embedded body {
+    display: flex;
+    flex-direction: column;
+}
+
+html.is-embedded .main-content,
+html.is-embedded .p1-main,
+html.is-embedded .p2-main {
+    flex: 1;
+    height: auto;
+    min-height: 0;
 }
 
 /* 顶部导航 */
@@ -129,6 +149,7 @@ body {
 .main-content {
     display: flex;
     height: calc(100vh - 57px);
+    height: calc(100dvh - 57px);
     min-height: 0;
     overflow: hidden;
 }
@@ -1059,25 +1080,80 @@ body {
 }
 
 @media (max-width: 768px) {
+    .top-nav {
+        flex-wrap: wrap;
+        gap: 8px;
+        padding: 10px 12px;
+    }
+
+    .nav-left {
+        flex: 1 1 100%;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    .nav-right {
+        flex: 1 1 auto;
+        flex-wrap: wrap;
+    }
+
+    .nav-title {
+        font-size: 17px;
+    }
+
+    .nav-btn #modeText {
+        display: none;
+    }
+
+    .p2-pane {
+        flex-direction: column;
+    }
+
     .sidebar {
-        width: 200px;
+        width: 100%;
+        max-height: 42vh;
+        height: auto;
+        border-right: none;
+        border-bottom: 1px solid var(--border);
+        flex-shrink: 0;
     }
-    
+
     .practice-area {
-        padding: 16px;
+        padding: 16px 12px;
+        flex: 1;
+        min-height: 0;
     }
-    
+
+    .empty-state {
+        padding: 32px 12px;
+    }
+
+    .practice-card {
+        width: 100%;
+        max-width: none;
+    }
+
+    .question-row {
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
     .action-buttons {
         flex-direction: column;
     }
-    
+
     .btn {
         width: 100%;
         justify-content: center;
     }
-    
+
     .score-card {
         grid-template-columns: 1fr;
+    }
+
+    .p2-sidebar {
+        width: 100%;
+        max-height: 180px;
     }
 }
 /* —— P1 / P2 切换 —— */
@@ -1107,6 +1183,7 @@ body {
     flex-direction: column;
     display: flex;
     height: calc(100vh - 57px);
+    height: calc(100dvh - 57px);
 }
 .p1-complex-pane {
     flex: 1;
@@ -1129,6 +1206,7 @@ body {
     flex-direction: column;
     display: none;
     height: calc(100vh - 57px);
+    height: calc(100dvh - 57px);
 }
 .p2-mode-bar {
     display: flex;
@@ -1427,32 +1505,5 @@ body {
 @media (max-width: 1024px) {
     .data-panel {
         display: none;
-    }
-}
-
-@media (max-width: 768px) {
-    .sidebar {
-        width: 200px;
-    }
-    
-    .practice-area {
-        padding: 16px;
-    }
-    
-    .action-buttons {
-        flex-direction: column;
-    }
-    
-    .btn {
-        width: 100%;
-        justify-content: center;
-    }
-
-    .p2-pane {
-        flex-direction: column;
-    }
-    .p2-sidebar {
-        width: 100%;
-        max-height: 180px;
     }
 }
