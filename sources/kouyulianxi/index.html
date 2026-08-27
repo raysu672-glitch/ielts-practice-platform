@@ -3,40 +3,40 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>????</title>
+    <title>口语练习</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;600&family=Noto+Serif+SC:wght@600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css?v=20260827complex">
 </head>
 <body>
-    <!-- ???? -->
+    <!-- 顶部导航 -->
     <nav class="top-nav">
         <div class="nav-left">
-            <span class="nav-title" id="navTitle">????</span>
-            <div class="part-switch" role="tablist" aria-label="Part ??">
+            <span class="nav-title" id="navTitle">口语练习</span>
+            <div class="part-switch" role="tablist" aria-label="Part 切换">
                 <button type="button" class="part-tab active" data-part="p1" id="partTabP1">P1</button>
                 <button type="button" class="part-tab" data-part="p2" id="partTabP2">P2</button>
             </div>
-            <span class="nav-subtitle" id="progressText">0 / 0 ?</span>
+            <span class="nav-subtitle" id="progressText">0 / 0 题</span>
         </div>
         <div class="nav-right" id="p1NavRight">
-            <button type="button" class="nav-btn mobile-only" id="mobileQuestionListBtn" aria-label="??????">??</button>
-            <button class="nav-btn" id="modeToggle" title="????/??">
-                <span id="modeIcon">??</span>
-                <span id="modeText">????</span>
+            <button type="button" class="nav-btn mobile-only" id="mobileQuestionListBtn" aria-label="打开题目列表">题目</button>
+            <button class="nav-btn" id="modeToggle" title="切换顺序/随机">
+                <span id="modeIcon">📋</span>
+                <span id="modeText">顺序模式</span>
             </button>
-            <button class="nav-btn" id="showDataBtn" title="??????">??</button>
+            <button class="nav-btn" id="showDataBtn" title="查看已练数据">📊</button>
         </div>
         <div class="nav-right" id="p2NavRight" style="display: none;">
-            <span class="nav-subtitle" id="p2ProgressText">?? 0 / 6</span>
+            <span class="nav-subtitle" id="p2ProgressText">素材 0 / 6</span>
         </div>
     </nav>
 
     <!-- ========== P1 ========== -->
     <main class="main-content p1-main" id="part1View">
         <div class="p2-body">
-            <!-- ???? -->
+            <!-- 题目练习 -->
             <div class="p2-pane" id="p1QuestionsPane">
                 <aside class="sidebar">
                     <div class="category-list" id="categoryList"></div>
@@ -44,9 +44,9 @@
 
                 <section class="practice-area" id="practiceArea">
                     <div class="empty-state" id="emptyState">
-                        <div class="empty-icon">??</div>
-                        <h2>??????????</h2>
-                        <p>?????????????????</p>
+                        <div class="empty-icon">🎤</div>
+                        <h2>选择左侧题目开始练习</h2>
+                        <p>建议先按顺序练一遍，再切换随机模式</p>
                     </div>
 
                     <div class="practice-card" id="practiceCard" style="display: none;">
@@ -54,9 +54,9 @@
                             <span class="question-category" id="currentCategory"></span>
                             <div class="question-row">
                                 <h2 class="question-title" id="currentTitle"></h2>
-                                <button type="button" class="btn-speak" id="speakQuestionBtn" title="????????????" aria-label="????">
-                                    <span class="speak-icon" aria-hidden="true">??</span>
-                                    <span class="speak-label">???</span>
+                                <button type="button" class="btn-speak" id="speakQuestionBtn" title="听题目（预生成神经英音）" aria-label="朗读题目">
+                                    <span class="speak-icon" aria-hidden="true">🔊</span>
+                                    <span class="speak-label">听题目</span>
                                 </button>
                             </div>
                             <div class="p1-tip-banner" id="p1TipBanner" style="display:none;"></div>
@@ -65,42 +65,42 @@
                         <div class="steps-container" id="stepsContainer"></div>
 
                         <details class="p1-sample-box" id="p1SampleBox" style="display:none;">
-                            <summary>???? <span class="p1-sample-badge">6?+??</span></summary>
+                            <summary>参考答案 <span class="p1-sample-badge">6分+示例</span></summary>
                             <p class="p1-sample-text" id="p1SampleText"></p>
-                            <p class="p1-sample-hint">?????????????????????????</p>
+                            <p class="p1-sample-hint">按本题词块与复合句组织；可对照练习，不必逐字背诵。</p>
                         </details>
 
                         <div class="action-buttons">
                             <button class="btn btn-primary" id="startRecordBtn">
-                                <span>???</span> ????
+                                <span>🎙️</span> 开始练习
                             </button>
                             <button class="btn btn-secondary" id="nextQuestionBtn">
-                                <span>??</span> ???
+                                <span>➡️</span> 下一题
                             </button>
                         </div>
 
                         <div class="ai-section" id="aiSection" style="display: none;">
                             <div class="ai-header">
-                                <h3>?? AI ????</h3>
+                                <h3>🤖 AI 雅思评分</h3>
                             </div>
                             <div class="recording-status" id="recordingStatus" style="display: none;">
-                                <div class="status-indicator" id="statusIndicator">??? ????...</div>
+                                <div class="status-indicator" id="statusIndicator">🎙️ 正在录音...</div>
                                 <div class="transcript-preview" id="transcriptPreview"></div>
                             </div>
                             <button class="btn btn-ai" id="aiEvaluateBtn" disabled>
-                                <span>?</span> AI ??
+                                <span>✨</span> AI 评分
                             </button>
                             <div class="ai-result" id="aiResult" style="display: none;">
                                 <div class="loading" id="aiLoading" style="display: none;">
                                     <div class="spinner"></div>
-                                    <p>AI ????????...</p>
+                                    <p>AI 正在分析你的回答...</p>
                                 </div>
                                 <div class="result-content" id="resultContent"></div>
                             </div>
                         </div>
 
                         <div class="feedback-area" id="feedbackArea" style="display: none;">
-                            <h3>????</h3>
+                            <h3>练习反馈</h3>
                             <div class="feedback-content" id="feedbackContent"></div>
                         </div>
                     </div>
@@ -110,7 +110,7 @@
                     <iframe
                         id="p1ComplexFrame"
                         class="p1-complex-frame"
-                        title="???????"
+                        title="口语复合句闯关"
                         src="about:blank"
                         allow="microphone; autoplay"
                     ></iframe>
@@ -118,17 +118,17 @@
 
                 <aside class="data-panel" id="dataPanel">
                     <div class="panel-header">
-                        <h3>????</h3>
-                        <button class="close-panel" id="closePanel">?</button>
+                        <h3>练习数据</h3>
+                        <button class="close-panel" id="closePanel">×</button>
                     </div>
                     <div class="panel-content" id="panelContent">
                         <div class="stat-item">
-                            <span class="stat-label">????</span>
+                            <span class="stat-label">已练题目</span>
                             <span class="stat-value" id="statCompleted">0</span>
                         </div>
                         <div class="stat-item">
-                            <span class="stat-label">????</span>
-                            <span class="stat-value" id="statTime">0?</span>
+                            <span class="stat-label">练习时长</span>
+                            <span class="stat-value" id="statTime">0秒</span>
                         </div>
                         <div class="history-list" id="historyList"></div>
                     </div>
@@ -140,29 +140,29 @@
     <!-- ========== P2 ========== -->
     <main class="main-content p2-main" id="part2View" style="display: none;">
         <div class="p2-mode-bar">
-            <button type="button" class="p2-mode-tab active" data-p2-mode="memorize" id="p2ModeMemorize">???</button>
-            <button type="button" class="p2-mode-tab" data-p2-mode="apply" id="p2ModeApply">????</button>
+            <button type="button" class="p2-mode-tab active" data-p2-mode="memorize" id="p2ModeMemorize">背素材</button>
+            <button type="button" class="p2-mode-tab" data-p2-mode="apply" id="p2ModeApply">套题练习</button>
         </div>
 
         <div class="p2-body">
-            <!-- ??? -->
+            <!-- 背素材 -->
             <div class="p2-pane" id="p2MemorizePane">
                 <aside class="sidebar p2-sidebar">
-                    <div class="p2-side-label">6 ???</div>
+                    <div class="p2-side-label">6 大素材</div>
                     <div class="category-list" id="p2MaterialList"></div>
                 </aside>
                 <section class="practice-area">
                     <div class="empty-state" id="p2MemEmpty">
-                        <div class="empty-icon">??</div>
-                        <h2>??????????</h2>
-                        <p>???????????????????</p>
+                        <div class="empty-icon">📖</div>
+                        <h2>先背熟素材，再去套题</h2>
+                        <p>左侧选一篇，按三步听读；可遮挡英文自测</p>
                     </div>
                     <div class="practice-card p2-card" id="p2MemCard" style="display: none;">
                         <div class="question-header">
                             <span class="question-category" id="p2MemType"></span>
                             <div class="question-row">
                                 <h2 class="question-title" id="p2MemTitle"></h2>
-                                <span class="p2-soft-progress" id="p2MemStepProgress">0 / 3 ???</span>
+                                <span class="p2-soft-progress" id="p2MemStepProgress">0 / 3 段已过</span>
                             </div>
                             <p class="p2-summary" id="p2MemSummary"></p>
                         </div>
@@ -172,30 +172,30 @@
                 </section>
             </div>
 
-            <!-- ???? -->
+            <!-- 套题练习 -->
             <div class="p2-pane" id="p2ApplyPane" style="display: none;">
                 <aside class="sidebar p2-sidebar">
-                    <div class="p2-side-label">??</div>
+                    <div class="p2-side-label">题库</div>
                     <div class="category-list" id="p2QuestionList"></div>
                 </aside>
                 <section class="practice-area">
                     <div class="p2-guide-banner" id="p2GuideBanner" style="display: none;">
-                        <span>???? 6 ???????? 56 ???????????????????? + ?????</span>
-                        <button type="button" class="p2-guide-close" id="p2GuideClose" aria-label="????">?</button>
+                        <span>建议先背 6 块素材，再练完整 56 道套题。素材背熟后，这里主要练「开头扣题 + 选对料」。</span>
+                        <button type="button" class="p2-guide-close" id="p2GuideClose" aria-label="关闭提示">×</button>
                     </div>
                     <div class="empty-state" id="p2ApplyEmpty">
-                        <div class="empty-icon">??</div>
-                        <h2>??????????</h2>
-                        <p>??????????? ? ??? ? ????</p>
+                        <div class="empty-icon">🎯</div>
+                        <h2>选择左侧题目开始套用</h2>
+                        <p>每题固定三步：开头过渡 → 套素材 → 感受收尾</p>
                     </div>
                     <div class="practice-card p2-card" id="p2ApplyCard" style="display: none;">
                         <div class="question-header">
-                            <span class="question-category">????</span>
+                            <span class="question-category">套题练习</span>
                             <div class="question-row">
                                 <h2 class="question-title" id="p2ApplyTitle"></h2>
-                                <button type="button" class="btn-speak" id="p2SpeakQBtn" title="???">
-                                    <span class="speak-icon" aria-hidden="true">??</span>
-                                    <span class="speak-label">???</span>
+                                <button type="button" class="btn-speak" id="p2SpeakQBtn" title="听题目">
+                                    <span class="speak-icon" aria-hidden="true">🔊</span>
+                                    <span class="speak-label">听题目</span>
                                 </button>
                             </div>
                             <p class="p2-q-en" id="p2ApplyQ"></p>
@@ -204,8 +204,8 @@
                         <div class="p2-apply-blocks" id="p2ApplyBlocks"></div>
 
                         <div class="action-buttons">
-                            <button class="btn btn-secondary" id="p2PrevQBtn">???</button>
-                            <button class="btn btn-primary" id="p2NextQBtn">???</button>
+                            <button class="btn btn-secondary" id="p2PrevQBtn">上一题</button>
+                            <button class="btn btn-primary" id="p2NextQBtn">下一题</button>
                         </div>
                     </div>
                 </section>
