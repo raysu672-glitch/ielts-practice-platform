@@ -118,6 +118,7 @@ class P1Practice {
         this.lastRecordingDurationS = 0;
         // 按题目缓存练习结果（切换题目时保留，再点回来可看）
         this.questionSessions = Object.create(null);
+        this.bestScores = Object.create(null); // scoreKey -> best overall band
         this._loadedQuestionKey = null;
         this._recordingQuestionKey = null;
         this.aiConfigured = false;
@@ -145,6 +146,7 @@ class P1Practice {
         this.renderCategories();
         this.bindEvents();
         this.loadFromStorage();
+        this.loadBestScoresFromServer();
         this.resetStudyReportBaseline();
         this.bindParentStudySave();
         this.updateProgress();
@@ -181,8 +183,14 @@ class P1Practice {
     }
     
     // 渲染左侧类别列表
-    renderCategories() {
+    renderCategories(expandedIds = null) {
         const container = document.getElementById('categoryList');
+        if (!expandedIds) {
+            expandedIds = [];
+            document.querySelectorAll('.question-list.expanded').forEach((el) => {
+                if (el.id) expandedIds.push(el.id);
+            });
+        }
         container.innerHTML = '';
 
         const study = this.isStudyMode();
@@ -221,12 +229,15 @@ class P1Practice {
                             <span class="p1-topic-meta">${this.escapeHtml(q.tag || '')}${heat ? ' · ' + heat : ''}</span>
                         </div>`;
                 }
+                const scoreKey = this.scoreKeyForQuestion(q);
                 return `
                     ${topicHead}
                     <div class="question-item ${this.usedQuestions.has(`${catIndex}-${q.id}`) ? 'completed' : ''}"
                          data-category="${catIndex}"
-                         data-question="${q.id}">
-                        ${this.escapeHtml(q.title)}
+                         data-question="${q.id}"
+                         data-score-key="${this.escapeHtml(scoreKey)}">
+                        <span class="question-item-en">${this.escapeHtml(q.title)}</span>
+                        ${this.bestScoreBadgeHtml(q)}
                     </div>`;
             }).join('');
             
@@ -244,8 +255,12 @@ class P1Practice {
             container.appendChild(catDiv);
         });
         
-        const firstList = document.getElementById('questions-0');
-        if (firstList) firstList.classList.add('expanded');
+        if (expandedIds && expandedIds.length) {
+            expandedIds.forEach((id) => document.getElementById(id)?.classList.add('expanded'));
+        } else {
+            const firstList = document.getElementById('questions-0');
+            if (firstList) firstList.classList.add('expanded');
+        }
     }
 
     isStudyMode() {
@@ -326,6 +341,42 @@ class P1Practice {
         document.getElementById('speakQuestionBtn')?.addEventListener('click', () => {
             this.toggleSpeakQuestion();
         });
+
+        this.bindSampleAnswerGuards();
+    }
+
+    bindSampleAnswerGuards() {
+        const box = document.getElementById('p1SampleBox');
+        if (!box || box.dataset.copyGuard === '1') return;
+        box.dataset.copyGuard = '1';
+        const block = (e) => {
+            e.preventDefault();
+            return false;
+        };
+        ['copy', 'cut', 'contextmenu', 'dragstart'].forEach((evt) => {
+            box.addEventListener(evt, block);
+        });
+        box.addEventListener('toggle', () => {
+            // 录音中不允许展开参考答案
+            if (this.isRecording && box.open) {
+                box.open = false;
+            }
+        });
+    }
+
+    collapseSampleAnswer({ lockWhileRecording = false } = {}) {
+        const box = document.getElementById('p1SampleBox');
+        if (!box) return;
+        box.open = false;
+        if (lockWhileRecording) {
+            box.classList.add('is-recording-locked');
+        }
+    }
+
+    unlockSampleAnswer() {
+        const box = document.getElementById('p1SampleBox');
+        if (!box) return;
+        box.classList.remove('is-recording-locked');
     }
     
     currentQuestionKey(catIndex = this.currentCategoryIndex, qIndex = this.currentQuestionIndex) {
@@ -333,6 +384,107 @@ class P1Practice {
         const q = cat && cat.questions[qIndex];
         if (!cat || !q) return null;
         return `${catIndex}-${q.id}`;
+    }
+
+    /** Stable key for best-score history (survives sidebar reorder). */
+    scoreKeyForQuestion(q) {
+        const raw = String((q && (q.q || q.title)) || '').toLowerCase();
+        return raw.replace(/[^a-z0-9]+/g, '') || '';
+    }
+
+    formatBestScore(score) {
+        const n = Number(score);
+        if (!n || isNaN(n)) return '';
+        return (Math.round(n * 2) / 2).toFixed(1);
+    }
+
+    getBestScoreForQuestion(q) {
+        const key = this.scoreKeyForQuestion(q);
+        if (!key) return null;
+        const n = Number(this.bestScores[key]);
+        return (!n || isNaN(n)) ? null : n;
+    }
+
+    recordBestScore(q, overall) {
+        const key = this.scoreKeyForQuestion(q);
+        const n = Number(overall);
+        if (!key || !n || isNaN(n)) return false;
+        const prev = Number(this.bestScores[key]);
+        const qText = (q && (q.q || q.title)) || '';
+        // 先更新内存侧栏；真正落库走服务端
+        if (!prev || isNaN(prev) || n > prev) {
+            this.bestScores[key] = n;
+            this.refreshSidebarBestScore(key);
+        }
+        this.persistBestScoreToServer(qText, n);
+        return true;
+    }
+
+    async persistBestScoreToServer(questionText, overall) {
+        const qText = String(questionText || '').trim();
+        const n = Number(overall);
+        if (!qText || !n || isNaN(n)) return;
+        try {
+            const res = await fetch('/api/student/speaking-best-scores', {
+                method: 'POST',
+                credentials: 'include',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ question: qText, score: n, part: 'p1' })
+            });
+            if (!res.ok) return;
+            const payload = await res.json();
+            const row = payload && payload.data;
+            if (!row) return;
+            const key = row.question_key || this.scoreKeyForQuestion({ q: qText });
+            const best = Number(row.best_score);
+            if (key && best && !isNaN(best)) {
+                this.bestScores[key] = best;
+                this.refreshSidebarBestScore(key);
+            }
+        } catch (_) {
+            // 未登录时无法落库；侧栏仅显示本次会话内存分
+        }
+    }
+
+    bestScoreBadgeHtml(q) {
+        const best = this.getBestScoreForQuestion(q);
+        if (best == null) return '';
+        return `<span class="p1-best-score" title="历史最高分（账号记录）">Band ${this.escapeHtml(this.formatBestScore(best))}</span>`;
+    }
+
+    refreshSidebarBestScore(scoreKey) {
+        if (!scoreKey) return;
+        const score = Number(this.bestScores[scoreKey]);
+        if (!score || isNaN(score)) return;
+        const label = this.formatBestScore(score);
+        document.querySelectorAll(`.question-item[data-score-key="${scoreKey}"]`).forEach((item) => {
+            let badge = item.querySelector('.p1-best-score');
+            if (!badge) {
+                badge = document.createElement('span');
+                badge.className = 'p1-best-score';
+                badge.title = '历史最高分（账号记录）';
+                item.appendChild(badge);
+            }
+            badge.textContent = `Band ${label}`;
+        });
+    }
+
+    async loadBestScoresFromServer() {
+        try {
+            const res = await fetch('/api/student/speaking-best-scores', { credentials: 'include' });
+            if (!res.ok) return;
+            const payload = await res.json();
+            const scores = (payload && payload.data && payload.data.scores) || {};
+            this.bestScores = Object.create(null);
+            Object.keys(scores).forEach((k) => {
+                const n = Number(scores[k]);
+                if (k && n && !isNaN(n)) this.bestScores[k] = n;
+            });
+            this.renderCategories();
+            this.updateActiveQuestion();
+        } catch (_) {
+            // 未登录时侧栏不显示历史最高分
+        }
     }
 
     setPracticeButtonMode(mode) {
@@ -547,9 +699,12 @@ class P1Practice {
                 sampleBox.style.display = '';
                 sampleText.textContent = q.sample;
                 sampleBox.open = false;
+                sampleBox.classList.remove('is-recording-locked');
             } else {
                 sampleBox.style.display = 'none';
                 sampleText.textContent = '';
+                sampleBox.open = false;
+                sampleBox.classList.remove('is-recording-locked');
             }
         }
 
@@ -773,8 +928,10 @@ class P1Practice {
     getPrebuiltAudioUrl(cat, q) {
         if (!cat || !q) return '';
         const manifest = (typeof P1_AUDIO_MANIFEST !== 'undefined' && P1_AUDIO_MANIFEST) || {};
-        const key = `${cat.id}:${q.id}`;
-        const rel = manifest[key] || `audio/${cat.id}/${q.id}.mp3`;
+        const idKey = `${cat.id}:${q.id}`;
+        const text = String(q.q || q.title || '').toLowerCase();
+        const textKey = 'q:' + text.replace(/[^a-z0-9]+/g, '');
+        const rel = manifest[textKey] || manifest[idKey] || `audio/${cat.id}/${q.id}.mp3`;
         // 相对当前模块页面路径，兼容主站 iframe
         try {
             return new URL(rel, window.location.href).href;
@@ -1071,6 +1228,7 @@ class P1Practice {
     
     async startRecording() {
         this.stopSpeakQuestion();
+        this.collapseSampleAnswer({ lockWhileRecording: true });
         try {
             this.recordingStream = await navigator.mediaDevices.getUserMedia({
                 audio: {
@@ -1152,6 +1310,7 @@ class P1Practice {
         
         // 练完后按钮改为「再练一次」（识别中也保持此文案）
         this.setPracticeButtonMode('again');
+        this.unlockSampleAnswer();
         
         document.getElementById('statusIndicator').textContent = '⏳ 录音结束，正在上传识别...';
         document.getElementById('transcriptPreview').textContent = '上传到 P4 ASR，请稍候...';
@@ -1283,6 +1442,7 @@ class P1Practice {
     resetRecordingUI() {
         this.isRecording = false;
         this.isTranscribing = false;
+        this.unlockSampleAnswer();
         const hasResult = !!(this.transcript && this.transcript.trim())
             || !!(this._loadedQuestionKey && this.questionSessions[this._loadedQuestionKey]
                 && this.questionSessions[this._loadedQuestionKey].transcript);
@@ -2145,8 +2305,13 @@ FC 必须含 naturalness；LR 必须含 chinglish_flags；语法 errors 单独�
                 aiHtml: html,
                 aiVisible: true,
                 aiEvaluateEnabled: true,
-                feedbackVisible: true
+                feedbackVisible: true,
+                overall: parsed.overall != null ? Number(parsed.overall) : prev.overall
             };
+            const q = (this._evalContext && this._evalContext.q)
+                || (this.data.categories[this.currentCategoryIndex]
+                    && this.data.categories[this.currentCategoryIndex].questions[this.currentQuestionIndex]);
+            if (q && parsed.overall != null) this.recordBestScore(q, parsed.overall);
         }
         // 已切到别的题：只写入缓存，不覆盖当前页
         if (key && key !== this.currentQuestionKey()) {
@@ -4252,7 +4417,7 @@ FC 必须含 naturalness；LR 必须含 chinglish_flags；语法 errors 单独�
         return true;
     }
 
-    // 本地存储
+    // 本地存储（练习进度；最高分只存数据库）
     saveToStorage() {
         const data = {
             usedQuestions: Array.from(this.usedQuestions),
@@ -4272,6 +4437,18 @@ FC 必须含 naturalness；LR 必须含 chinglish_flags；语法 errors 单独�
             this.practiceHistory = data.history || [];
             this.mode = data.mode || 'sequential';
             this.totalRecordingMs = Number(data.totalRecordingMs) || 0;
+            // 清理旧版误写入的前端最高分
+            if (data.bestScores) {
+                try {
+                    const cleaned = {
+                        usedQuestions: Array.from(this.usedQuestions),
+                        history: this.practiceHistory,
+                        mode: this.mode,
+                        totalRecordingMs: this.totalRecordingMs
+                    };
+                    localStorage.setItem('p1_practice_data', JSON.stringify(cleaned));
+                } catch (_) {}
+            }
             
             const icon = document.getElementById('modeIcon');
             const text = document.getElementById('modeText');
