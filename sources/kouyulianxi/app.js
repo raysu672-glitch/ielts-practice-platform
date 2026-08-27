@@ -146,6 +146,7 @@ class P1Practice {
         this.setupEmbeddedLayout();
         this.renderCategories();
         this.bindEvents();
+        this.bindMobileQuestionNav();
         this.loadFromStorage();
         this.loadBestScoresFromServer();
         this.resetStudyReportBaseline();
@@ -618,6 +619,7 @@ class P1Practice {
         
         this.renderQuestion();
         this.updateActiveQuestion();
+        this.setMobilePracticeLayout(true);
         this.scrollPracticeIntoViewOnMobile();
     }
 
@@ -630,6 +632,25 @@ class P1Practice {
                 document.documentElement.classList.add('is-mobile');
             }
         } catch (_) {}
+    }
+
+    bindMobileQuestionNav() {
+        const btn = document.getElementById('mobileQuestionListBtn');
+        if (!btn) return;
+        btn.addEventListener('click', () => {
+            document.documentElement.classList.remove('mobile-practice-active');
+            document.documentElement.classList.add('mobile-show-sidebar');
+            const list = document.getElementById('categoryList');
+            if (list) list.scrollTop = 0;
+        });
+    }
+
+    setMobilePracticeLayout(active) {
+        if (!window.matchMedia('(max-width: 768px)').matches) return;
+        document.documentElement.classList.toggle('mobile-practice-active', !!active);
+        if (active) {
+            document.documentElement.classList.remove('mobile-show-sidebar');
+        }
     }
 
     scrollPracticeIntoViewOnMobile() {

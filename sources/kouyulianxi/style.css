@@ -145,6 +145,10 @@ html.is-embedded .p2-main {
     color: var(--brand-deep);
 }
 
+.mobile-only {
+    display: none;
+}
+
 /* 主内容区：三栏各自滚动，互不影响 */
 .main-content {
     display: flex;
@@ -1105,17 +1109,42 @@ html.is-embedded .p2-main {
         display: none;
     }
 
+    .mobile-only {
+        display: inline-flex;
+    }
+
     .p2-pane {
         flex-direction: column;
     }
 
     .sidebar {
         width: 100%;
-        max-height: 42vh;
+        max-height: 34vh;
         height: auto;
         border-right: none;
         border-bottom: 1px solid var(--border);
         flex-shrink: 0;
+        transition: max-height 0.25s ease, opacity 0.2s ease;
+    }
+
+    html.is-mobile.mobile-practice-active:not(.mobile-show-sidebar) .sidebar {
+        display: none;
+    }
+
+    html.is-mobile.mobile-practice-active .practice-area {
+        flex: 1 1 auto;
+        min-height: 0;
+    }
+
+    html.is-mobile.mobile-show-sidebar .practice-area {
+        display: none;
+    }
+
+    html.is-mobile.mobile-show-sidebar .sidebar {
+        display: block;
+        max-height: none;
+        flex: 1 1 auto;
+        min-height: 0;
     }
 
     .practice-area {
