@@ -638,6 +638,14 @@ class P1Practice {
         const btn = document.getElementById('mobileQuestionListBtn');
         if (!btn) return;
         btn.addEventListener('click', () => {
+            if (document.documentElement.classList.contains('p1-complex-active')) {
+                if (window.p2Practice && typeof window.p2Practice.setP1Mode === 'function') {
+                    window.p2Practice.setP1Mode('questions');
+                }
+                document.documentElement.classList.remove('mobile-practice-active');
+                document.documentElement.classList.add('mobile-show-sidebar');
+                return;
+            }
             document.documentElement.classList.remove('mobile-practice-active');
             document.documentElement.classList.add('mobile-show-sidebar');
             const list = document.getElementById('categoryList');

@@ -144,13 +144,38 @@ class P2Practice {
         const p1Nav = document.getElementById('p1NavRight');
         const progress = document.getElementById('progressText');
         const complexEntry = document.getElementById('complexSentenceEntry');
+        const mobileListBtn = document.getElementById('mobileQuestionListBtn');
+        const isMobile = window.matchMedia('(max-width: 768px)').matches;
 
         if (practiceArea) practiceArea.style.display = this.p1Mode === 'questions' ? '' : 'none';
         if (dataPanel) dataPanel.style.display = this.p1Mode === 'questions' ? '' : 'none';
         if (complex) complex.style.display = this.p1Mode === 'complex' ? 'flex' : 'none';
-        if (p1Nav) p1Nav.style.display = this.p1Mode === 'questions' ? 'flex' : 'none';
+        if (p1Nav) {
+            if (this.p1Mode === 'questions') {
+                p1Nav.style.display = 'flex';
+            } else if (isMobile) {
+                p1Nav.style.display = 'flex';
+            } else {
+                p1Nav.style.display = 'none';
+            }
+        }
         if (progress) progress.style.display = this.p1Mode === 'questions' ? '' : 'none';
         if (complexEntry) complexEntry.classList.toggle('active', this.p1Mode === 'complex');
+        if (mobileListBtn) {
+            mobileListBtn.textContent = this.p1Mode === 'complex' ? '返回' : '题目';
+            mobileListBtn.setAttribute(
+                'aria-label',
+                this.p1Mode === 'complex' ? '返回题目练习' : '打开题目列表'
+            );
+        }
+
+        document.documentElement.classList.toggle('p1-complex-active', this.p1Mode === 'complex');
+        if (this.p1Mode === 'complex') {
+            document.documentElement.classList.remove('mobile-show-sidebar', 'mobile-practice-active');
+            if (window.p1Practice && typeof window.p1Practice.setMobilePracticeLayout === 'function') {
+                window.p1Practice.setMobilePracticeLayout(false);
+            }
+        }
 
         if (this.p1Mode === 'complex') {
             if (window.p1Practice && typeof window.p1Practice.stopSpeakQuestion === 'function') {
@@ -158,7 +183,7 @@ class P2Practice {
             }
             const frame = document.getElementById('p1ComplexFrame');
             if (frame && !this._complexFrameLoaded) {
-                frame.src = 'complex-sentences.html?v=20260824d';
+                frame.src = 'complex-sentences.html?v=20260827mobile2';
                 this._complexFrameLoaded = true;
             }
         }
