@@ -365,8 +365,10 @@ var testReportSent = false;
 
 function sendTestComplete() {
   if (testReportSent) return;
+  if (!results.length) return;
   testReportSent = true;
-  var pct = Math.round((score / TOTAL) * 100);
+  var total = results.length;
+  var pct = Math.round((score / total) * 100);
   try {
     if (window.parent && window.parent.postMessage) {
       window.parent.postMessage({
@@ -377,7 +379,7 @@ function sendTestComplete() {
         testType: (getQueryParam('wrongbook') === '1' ? 'wrong_words' : 'module_test'),
         scorePercent: pct,
         correctCount: score,
-        totalCount: TOTAL,
+        totalCount: total,
         durationSeconds: Math.max(0, Math.round((Date.now() - testStartTime) / 1000)),
         completed: true,
         details: results
@@ -385,6 +387,10 @@ function sendTestComplete() {
     }
   } catch (e) {}
 }
+
+window.addEventListener('message', function(event) {
+  if (event.data && event.data.type === 'requestSave') sendTestComplete();
+});
 
 /* ========== 渲染 ========== */
 var app = document.getElementById('app');

@@ -83,9 +83,32 @@ function getQueryParam(name) {
 
 let testReportSent = false;
 
+function collectListeningDetails() {
+  return testQuestions.filter(function(q) {
+    return q.userAnswer != null;
+  }).map(function(q) {
+    var ok = q.userAnswer === q.correct_idx;
+    return {
+      item_key: String(q.id),
+      id: q.id,
+      title: q.original,
+      original: q.original,
+      answer: q.answer,
+      selectedAnswer: q.userAnswer,
+      is_correct: ok,
+      isCorrect: ok
+    };
+  });
+}
+
 function sendTestComplete(scorePercent) {
   if (testReportSent) return;
+  var details = collectListeningDetails();
+  if (!details.length) return;
   testReportSent = true;
+  var total = details.length;
+  var correctCount = details.filter(function(d) { return d.is_correct; }).length;
+  var pct = scorePercent != null ? scorePercent : Math.round((correctCount / total) * 100);
   try {
     if (window.parent && window.parent.postMessage) {
       window.parent.postMessage({
@@ -94,28 +117,20 @@ function sendTestComplete(scorePercent) {
         moduleName: getQueryParam('module_name') || '听力同义替换',
         student_id: getQueryParam('student_id'),
         testType: (getQueryParam('wrongbook') === '1' ? 'wrong_words' : 'module_test'),
-        scorePercent: scorePercent,
-        correctCount: score,
-        totalCount: testQuestions.length,
+        scorePercent: pct,
+        correctCount: correctCount,
+        totalCount: total,
         durationSeconds: Math.max(0, Math.round((Date.now() - testStartTime) / 1000)),
         completed: true,
-        details: testQuestions.map(function(q) {
-          var ok = q.userAnswer === q.correct_idx;
-          return {
-            item_key: String(q.id),
-            id: q.id,
-            title: q.original,
-            original: q.original,
-            answer: q.answer,
-            selectedAnswer: q.userAnswer,
-            is_correct: ok,
-            isCorrect: ok
-          };
-        })
+        details: details
       }, '*');
     }
   } catch (e) {}
 }
+
+window.addEventListener('message', function(event) {
+  if (event.data && event.data.type === 'requestSave') sendTestComplete();
+});
 
 function goHome() {
   synth.cancel();

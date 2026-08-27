@@ -436,7 +436,19 @@ def apply_wrong_word_results(
             """,
             (student_id, module_type, word),
         ).fetchone()
-        if not is_correct and not skipped:
+        if skipped:
+            # 跳过/超时不算连对：本里的题清零，未入本的不新增
+            if row and not bool(row["is_mastered"]):
+                conn.execute(
+                    """
+                    UPDATE wrong_words
+                    SET correct_streak = 0, last_tested = ?
+                    WHERE id = ?
+                    """,
+                    (now, row["id"]),
+                )
+            continue
+        if not is_correct:
             if row:
                 conn.execute(
                     """
@@ -608,7 +620,18 @@ def apply_wrong_item_results(
             """,
             (student_id, module_type, item_key),
         ).fetchone()
-        if not is_correct and not skipped:
+        if skipped:
+            if row and not bool(row["is_mastered"]):
+                conn.execute(
+                    """
+                    UPDATE wrong_items
+                    SET correct_streak = 0, last_tested = ?
+                    WHERE id = ?
+                    """,
+                    (now, row["id"]),
+                )
+            continue
+        if not is_correct:
             if row:
                 conn.execute(
                     """

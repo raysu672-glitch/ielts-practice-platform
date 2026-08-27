@@ -1646,7 +1646,8 @@ function _track_isInIframe() {
 /* ----- 通过 postMessage 发送学习数据给主页面 ----- */
 function _track_sendToParent(isExit) {
     if (!_track_sessionStart) return;
-    if (_track_sentFinal || isExit) return;
+    if (_track_sentFinal) return;
+    if (isExit && !(groupResults && groupResults.length)) return;
     const now = Date.now();
     const duration = Math.round((now - _track_sessionStart) / 1000);
     const total = _track_rightCount + _track_wrongCount;

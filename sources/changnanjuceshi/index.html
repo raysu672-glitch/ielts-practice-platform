@@ -336,8 +336,38 @@ function getQueryParam(name) {
   try { return new URLSearchParams(window.location.search).get(name); } catch (e) { return null; }
 }
 
-function sendTestComplete(scorePercent, correctCount, totalCount) {
+function sentenceWasAttempted(sIdx) {
+  if (submitted[sIdx]) return true;
+  var answers = (userAnswers[sIdx] && userAnswers[sIdx].answers) || [];
+  for (var i = 0; i < answers.length; i++) {
+    if (String(answers[i] || '').trim()) return true;
+  }
+  return false;
+}
+
+function collectSentenceDetails() {
+  return testSentences.map(function(s, sIdx) {
+    if (!sentenceWasAttempted(sIdx)) return null;
+    var boxes = s.challenge1.boxes;
+    var allOk = true;
+    for (var b = 0; b < boxes.length; b++) {
+      if (!isBlankCorrect(userAnswers[sIdx].answers[b], boxes[b].answer)) allOk = false;
+    }
+    return {
+      item_key: String(s.num),
+      num: s.num,
+      title: s.original,
+      original: s.original,
+      pattern: s.pattern,
+      is_correct: allOk
+    };
+  }).filter(Boolean);
+}
+
+function sendTestComplete(scorePercent, correctCount, totalCount, details) {
   if (testReportSent) return;
+  var payloadDetails = details || collectSentenceDetails();
+  if (!payloadDetails.length) return;
   testReportSent = true;
   try {
     if (window.parent && window.parent.postMessage) {
@@ -352,25 +382,24 @@ function sendTestComplete(scorePercent, correctCount, totalCount) {
         totalCount: totalCount,
         durationSeconds: Math.max(0, Math.round((Date.now() - testStartTime) / 1000)),
         completed: true,
-        details: testSentences.map(function(s, sIdx) {
-          var boxes = s.challenge1.boxes;
-          var allOk = true;
-          for (var b = 0; b < boxes.length; b++) {
-            if (!isBlankCorrect(userAnswers[sIdx].answers[b], boxes[b].answer)) allOk = false;
-          }
-          return {
-            item_key: String(s.num),
-            num: s.num,
-            title: s.original,
-            original: s.original,
-            pattern: s.pattern,
-            is_correct: allOk
-          };
-        })
+        details: payloadDetails
       }, '*');
     }
   } catch (e) {}
 }
+
+window.addEventListener('message', function(event) {
+  if (!event.data || event.data.type !== 'requestSave') return;
+  var details = collectSentenceDetails();
+  if (!details.length) return;
+  var correctCount = details.filter(function(d) { return d.is_correct; }).length;
+  sendTestComplete(
+    Math.round((correctCount / details.length) * 100),
+    correctCount,
+    details.length,
+    details
+  );
+});
 
 function startTest() {
   if (getQueryParam('wrongbook') === '1' || getQueryParam('mode') === 'wrongbook') {
@@ -522,6 +551,7 @@ function nextSentence() {
 
 function submitTest() {
   if (testReportSent) return;
+  const payloadDetails = collectSentenceDetails();
   for (let i = 0; i < testSentences.length; i++) {
     submitted[i] = true;
   }
@@ -548,7 +578,7 @@ function submitTest() {
     });
   });
   const percentage = Math.round((correctBlanks / totalBlanks) * 100);
-  sendTestComplete(percentage, correctBlanks, totalBlanks);
+  sendTestComplete(percentage, correctBlanks, totalBlanks, payloadDetails);
   document.getElementById('testPage').classList.remove('active');
   document.getElementById('resultPage').classList.add('active');
   document.getElementById('resultScore').textContent = percentage + '%';

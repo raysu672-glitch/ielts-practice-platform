@@ -416,13 +416,13 @@ var MODULES = [
     { id: 'highschool_words', name: '高中单词', target_type: 'dynamic', targets: { 6: 85, 6.5: 95, 7: 100 }, unit: '%', url: '', icon: 'book' },
     { id: 'ielts_core', name: '雅思核心800词', target_type: 'dynamic', targets: { 6: 65, 6.5: 80, 7: 95 }, unit: '%', url: '', icon: 'star' },
     { id: 'grammar', name: '基础语法', target_type: 'dynamic', targets: { 6: 75, 6.5: 85, 7: 85 }, unit: '%', url: '', icon: 'academic' },
-    { id: 'reading_synonym', name: '阅读同义替换', target_type: 'dynamic', targets: { 6: 70, 6.5: 80, 7: 90 }, unit: '%', url: '../tongyitihuan/index.html', test_url: '../tongyitihuanceshi/index.html?v=20260825e', icon: 'eye' },
-    { id: 'sentence', name: '长难句分析', target_type: 'dynamic', targets: { 6: 60, 6.5: 80, 7: 80 }, unit: '%', url: '../changnanju/index.html', test_url: '../changnanjuceshi/index.html?v=20260825e', icon: 'analysis' },
+    { id: 'reading_synonym', name: '阅读同义替换', target_type: 'dynamic', targets: { 6: 70, 6.5: 80, 7: 90 }, unit: '%', url: '../tongyitihuan/index.html', test_url: '../tongyitihuanceshi/index.html?v=20260827c', icon: 'eye' },
+    { id: 'sentence', name: '长难句分析', target_type: 'dynamic', targets: { 6: 60, 6.5: 80, 7: 80 }, unit: '%', url: '../changnanju/index.html', test_url: '../changnanjuceshi/index.html?v=20260827c', icon: 'analysis' },
     { id: 'dictation', name: '听力1000词', target_type: 'dynamic', targets: { 6: 70, 6.5: 80, 7: 90 }, unit: '%', url: '', icon: 'headphones' },
     { id: 'listening_basic', name: '听力基础词汇', target_type: 'dynamic', targets: { 6: 70, 6.5: 80, 7: 90 }, unit: '%', url: '', icon: 'headphones' },
-    { id: 'listening_synonym', name: '听力同义替换', target_type: 'dynamic', targets: { 6: 70, 6.5: 80, 7: 90 }, unit: '%', url: '../daanjutingxie/index.html', test_url: '../daanjutingxieceshi/index.html?v=20260825e', icon: 'headphones' },
-    { id: 'writing_phrase', name: '写作词伙', target_type: 'dynamic', targets: { 6: 50, 6.5: 70, 7: 90 }, unit: '%', url: '../xiezuocihuo/index.html', test_url: '../xiezuocihuoceshi/index.html?v=20260825e', icon: 'writing' },
-    { id: 'writing_translate', name: '写作句子翻译', target_type: 'dynamic', targets: { 6: 50, 6.5: 70, 7: 90 }, unit: '%', url: '../juzifanyixin/index.html', test_url: '../juzifanyixinceshi/index.html?v=20260825e', icon: 'translate' },
+    { id: 'listening_synonym', name: '听力同义替换', target_type: 'dynamic', targets: { 6: 70, 6.5: 80, 7: 90 }, unit: '%', url: '../daanjutingxie/index.html', test_url: '../daanjutingxieceshi/index.html?v=20260827c', icon: 'headphones' },
+    { id: 'writing_phrase', name: '写作词伙', target_type: 'dynamic', targets: { 6: 50, 6.5: 70, 7: 90 }, unit: '%', url: '../xiezuocihuo/index.html', test_url: '../xiezuocihuoceshi/index.html?v=20260827c', icon: 'writing' },
+    { id: 'writing_translate', name: '写作句子翻译', target_type: 'dynamic', targets: { 6: 50, 6.5: 70, 7: 90 }, unit: '%', url: '../juzifanyixin/index.html', test_url: '../juzifanyixinceshi/index.html?v=20260827c', icon: 'translate' },
     { id: 'writing_correction', name: '作文批改', target_type: 'dynamic', targets: { 6: 1, 6.5: 1, 7: 1 }, unit: '次', url: '../xiezuopigai/ielts-student-practice.html', test_url: '', icon: 'edit' },
     
     // 二、听力P4跟读：只练倍速，主站不开放测试和历史

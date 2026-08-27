@@ -366,7 +366,8 @@ function extractWrongItemResults(moduleType, details) {
                 item_key: key,
                 title: item.title || ((item.words && item.words[0]) || key),
                 payload: { words: item.words || [], marked: item.marked || item.wrongClicks || [] },
-                is_correct: !!item.is_correct
+                is_correct: !!item.is_correct,
+                skipped: !!item.skipped
             });
         } else if (moduleType === 'sentence') {
             const key = String(item.item_key != null ? item.item_key : (item.num != null ? item.num : ''));
@@ -375,7 +376,8 @@ function extractWrongItemResults(moduleType, details) {
                 item_key: key,
                 title: item.title || item.original || key,
                 payload: { num: item.num, original: item.original || '', pattern: item.pattern || '' },
-                is_correct: !!item.is_correct
+                is_correct: !!item.is_correct,
+                skipped: !!item.skipped
             });
         } else if (moduleType === 'listening_synonym') {
             const key = String(item.item_key != null ? item.item_key : (item.id != null ? item.id : ''));
@@ -385,7 +387,8 @@ function extractWrongItemResults(moduleType, details) {
                 item_key: key,
                 title: item.title || item.original || key,
                 payload: { id: item.id || Number(key), original: item.original || item.title || '' },
-                is_correct: ok
+                is_correct: ok,
+                skipped: !!item.skipped
             });
         } else if (moduleType === 'writing_phrase') {
             const key = String(item.item_key || item.en || '');
@@ -394,7 +397,8 @@ function extractWrongItemResults(moduleType, details) {
                 item_key: key,
                 title: item.title || item.zh || key,
                 payload: { zh: item.zh || item.title || '', en: item.en || key },
-                is_correct: !!item.correct || !!item.is_correct
+                is_correct: !!item.correct || !!item.is_correct,
+                skipped: !!item.skipped
             });
         } else if (moduleType === 'writing_translate') {
             const key = String(item.item_key != null ? item.item_key : (item.id != null ? item.id : ''));
@@ -403,7 +407,8 @@ function extractWrongItemResults(moduleType, details) {
                 item_key: key,
                 title: item.title || item.en || key,
                 payload: { id: item.id || Number(key), zh: item.zh || '', en: item.en || item.title || '' },
-                is_correct: !!item.correct || !!item.is_correct
+                is_correct: !!item.correct || !!item.is_correct,
+                skipped: !!item.skipped
             });
         }
     }
@@ -955,26 +960,12 @@ async function finishTest() {
     stopPracticeClock();
     
     let newWrongCount = 0;
-    if (!insertResult.skipped) {
-        const applyResult = await apiFetch('/api/student/wrong-words/apply', {
-            method: 'POST',
-            body: JSON.stringify({
-                module_type: dictation.id,
-                results: testResults.map(function(r) {
-                    return {
-                        word: r.word,
-                        is_correct: !!r.isCorrect,
-                        skipped: !!r.skipped
-                    };
-                })
-            })
-        });
-        if (applyResult.error) {
-            console.error('同步错题失败:', applyResult.error);
-            showToast('测试已保存，但错题同步失败', 'error');
-        } else {
-            newWrongCount = Number((applyResult.data && applyResult.data.new_wrong_count) || 0);
-        }
+    const applyResult = await applyDictationWrongBookResults(testResults, dictation.id);
+    if (applyResult && applyResult.error) {
+        console.error('同步错题失败:', applyResult.error);
+        showToast('测试已保存，但错题同步失败', 'error');
+    } else {
+        newWrongCount = Number((applyResult && applyResult.data && applyResult.data.new_wrong_count) || 0);
     }
     
     showScreen('resultScreen');
@@ -1038,14 +1029,34 @@ function backToStudentHome() {
     showStudentHome();
 }
 
-function cancelTestAndReturn() {
+function applyDictationWrongBookResults(results, moduleId) {
+    if (!results || !results.length) return Promise.resolve(null);
+    return apiFetch('/api/student/wrong-words/apply', {
+        method: 'POST',
+        body: JSON.stringify({
+            module_type: moduleId,
+            results: results.map(function(r) {
+                return {
+                    word: r.word,
+                    is_correct: !!r.isCorrect,
+                    skipped: !!r.skipped
+                };
+            })
+        })
+    });
+}
+
+async function cancelTestAndReturn() {
     if (playTimeout) { clearTimeout(playTimeout); playTimeout = null; }
     if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
     isPlaying = false;
     timerStarted = false;
+    var dictation = getBuiltinDictation(currentDictationModuleId);
+    var pendingApply = (testResults && testResults.length)
+        ? applyDictationWrongBookResults(testResults, dictation.id)
+        : null;
     var elapsed = practiceElapsedSeconds(testStartTime);
     if (elapsed >= 3 && currentStudent) {
-        var dictation = getBuiltinDictation(currentDictationModuleId);
         saveStudySession({
             student_id: currentStudent.student_id,
             module_type: dictation.id,
@@ -1066,6 +1077,17 @@ function cancelTestAndReturn() {
     const answerInput = document.getElementById('answerInput');
     if (answerInput) {
         answerInput.value = '';
+    }
+    if (pendingApply) {
+        try {
+            const applyResult = await pendingApply;
+            if (applyResult && applyResult.error) {
+                console.error('同步错题失败:', applyResult.error);
+            }
+        } catch (e) {
+            console.error('同步错题失败:', e);
+        }
+        try { loadProgressTable(); } catch (e) {}
     }
     backToStudentHome();
 }
@@ -1998,7 +2020,7 @@ function openGenericIframe(moduleId, moduleName, url, mode) {
         module_name: moduleName,
         mode: finalMode,
         // 避免浏览器强缓存旧测试页（P4 音频路径修复）
-        v: '20260825e'
+        v: '20260827c'
     });
     showScreen('genericScreen');
     document.getElementById('genericScreenTitle').textContent = moduleName + (finalMode === 'test' ? '测试' : '学习');
