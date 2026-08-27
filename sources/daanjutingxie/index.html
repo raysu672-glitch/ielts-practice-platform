@@ -481,6 +481,7 @@ let playCount = 0;
 const synth = window.speechSynthesis;
 let groupScores = JSON.parse(localStorage.getItem('ieltsListenScores') || '{}');
 const LETTERS = ['A','B','C','D'];
+let singleQuestionMode = false;
 
 function renderHome() {
   const grid = document.getElementById('groupGrid');
@@ -500,6 +501,7 @@ function renderHome() {
 }
 
 function goHome() {
+  singleQuestionMode = false;
   synth.cancel();
   if (currentAudio) { currentAudio.pause(); currentAudio = null; }
   document.getElementById('home').style.display = 'flex';
@@ -509,6 +511,7 @@ function goHome() {
 }
 
 function startGroup(groupIdx) {
+  singleQuestionMode = false;
   currentGroup = groupIdx;
   currentQ = 0;
   score = 0;
@@ -530,9 +533,10 @@ function loadQuestion() {
   }
 
   const q = GROUPS[currentGroup][currentQ];
-  const total = GROUPS[currentGroup].length;
+  const total = singleQuestionMode ? 1 : GROUPS[currentGroup].length;
+  const displayNum = singleQuestionMode ? 1 : (currentQ + 1);
 
-  document.getElementById('progressText').textContent = (currentQ+1) + ' / ' + total;
+  document.getElementById('progressText').textContent = displayNum + ' / ' + total;
   document.getElementById('progressFill').style.width = (currentQ / total * 100) + '%';
 
   const playBtn = document.getElementById('playBtn');
@@ -727,6 +731,10 @@ function selectOption(idx, btnEl) {
 }
 
 function nextQuestion() {
+  if (singleQuestionMode) {
+    goHome();
+    return;
+  }
   const total = GROUPS[currentGroup].length;
   if (currentQ + 1 >= total) {
     showResult();
@@ -761,4 +769,27 @@ function retryGroup() {
 }
 
 renderHome();
+(function tryOpenQueryQuestion() {
+  try {
+    var params = new URLSearchParams(window.location.search);
+    var qid = parseInt(params.get('qid') || params.get('id') || '', 10);
+    if (!qid) return;
+    for (var g = 0; g < GROUPS.length; g++) {
+      for (var i = 0; i < GROUPS[g].length; i++) {
+        if (GROUPS[g][i].id === qid) {
+          singleQuestionMode = true;
+          currentGroup = g;
+          currentQ = i;
+          score = 0;
+          document.getElementById('home').style.display = 'none';
+          document.getElementById('quiz').style.display = 'flex';
+          document.getElementById('result').style.display = 'none';
+          document.getElementById('quizTitle').textContent = '错题复习';
+          loadQuestion();
+          return;
+        }
+      }
+    }
+  } catch (e) {}
+})();
 </script></body></html>

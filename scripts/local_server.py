@@ -47,15 +47,19 @@ from session_auth import (  # noqa: E402
 
 
 from student_api import (  # noqa: E402
+    apply_wrong_item_results,
     apply_wrong_word_results,
     change_password as student_change_password,
     insert_study_session,
     insert_test_record,
     load_progress,
+    load_speaking_best_scores,
     load_standards,
     load_test_records,
     load_word_mastery,
+    load_wrong_book_items,
     load_wrong_words,
+    upsert_speaking_best_score,
     upsert_word_mastery,
 )
 DEFAULT_STATIC_DIR = ROOT / "sources"
@@ -366,6 +370,28 @@ def migrate_wrong_words_module_type(conn: sqlite3.Connection) -> None:
     )
 
 
+def ensure_wrong_items_table(conn: sqlite3.Connection) -> None:
+    conn.executescript(
+        f"""
+        CREATE TABLE IF NOT EXISTS wrong_items (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            student_id TEXT NOT NULL REFERENCES students(student_id),
+            module_type TEXT NOT NULL,
+            item_key TEXT NOT NULL,
+            title TEXT NOT NULL DEFAULT '',
+            payload TEXT NOT NULL DEFAULT '{{}}',
+            wrong_count INTEGER DEFAULT 1,
+            correct_streak INTEGER DEFAULT 0,
+            last_tested TEXT DEFAULT ({now_sql()}),
+            is_mastered INTEGER DEFAULT 0,
+            UNIQUE(student_id, module_type, item_key)
+        );
+        CREATE INDEX IF NOT EXISTS idx_wrong_items_student_id ON wrong_items(student_id);
+        CREATE INDEX IF NOT EXISTS idx_wrong_items_module_type ON wrong_items(module_type);
+        """
+    )
+
+
 def init_db(db_path: Path, *, bind_host: str = "127.0.0.1") -> None:
     db_path.parent.mkdir(parents=True, exist_ok=True)
     with closing(connect(db_path)) as conn:
@@ -477,6 +503,17 @@ def init_db(db_path: Path, *, bind_host: str = "127.0.0.1") -> None:
                 UNIQUE(student_id, module_type, word)
             );
 
+            CREATE TABLE IF NOT EXISTS speaking_best_scores (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                student_id TEXT NOT NULL REFERENCES students(student_id),
+                question_key TEXT NOT NULL,
+                question_text TEXT NOT NULL DEFAULT '',
+                part TEXT NOT NULL DEFAULT 'p1',
+                best_score REAL NOT NULL,
+                updated_at TEXT DEFAULT ({now_sql()}),
+                UNIQUE(student_id, question_key)
+            );
+
             CREATE INDEX IF NOT EXISTS idx_test_records_student_id ON test_records(student_id);
             CREATE INDEX IF NOT EXISTS idx_test_records_created_at ON test_records(created_at DESC);
             CREATE INDEX IF NOT EXISTS idx_test_records_module_type ON test_records(module_type);
@@ -485,6 +522,23 @@ def init_db(db_path: Path, *, bind_host: str = "127.0.0.1") -> None:
             CREATE INDEX IF NOT EXISTS idx_study_sessions_created_at ON study_sessions(created_at DESC);
             CREATE INDEX IF NOT EXISTS idx_wrong_words_student_id ON wrong_words(student_id);
             CREATE INDEX IF NOT EXISTS idx_word_mastery_student_id ON word_mastery(student_id);
+            CREATE INDEX IF NOT EXISTS idx_speaking_best_scores_student_id ON speaking_best_scores(student_id);
+
+            CREATE TABLE IF NOT EXISTS wrong_items (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                student_id TEXT NOT NULL REFERENCES students(student_id),
+                module_type TEXT NOT NULL,
+                item_key TEXT NOT NULL,
+                title TEXT NOT NULL DEFAULT '',
+                payload TEXT NOT NULL DEFAULT '{{}}',
+                wrong_count INTEGER DEFAULT 1,
+                correct_streak INTEGER DEFAULT 0,
+                last_tested TEXT DEFAULT ({now_sql()}),
+                is_mastered INTEGER DEFAULT 0,
+                UNIQUE(student_id, module_type, item_key)
+            );
+            CREATE INDEX IF NOT EXISTS idx_wrong_items_student_id ON wrong_items(student_id);
+            CREATE INDEX IF NOT EXISTS idx_wrong_items_module_type ON wrong_items(module_type);
             """
         )
 
@@ -496,6 +550,7 @@ def init_db(db_path: Path, *, bind_host: str = "127.0.0.1") -> None:
         conn.execute(
             "CREATE INDEX IF NOT EXISTS idx_wrong_words_module_type ON wrong_words(module_type)"
         )
+        ensure_wrong_items_table(conn)
 
         conn.execute(
             """
@@ -1197,6 +1252,37 @@ class LocalHandler(SimpleHTTPRequestHandler):
         with closing(connect(self.db_path)) as conn:
             self.send_json({"data": load_test_records(conn, session["id"]), "error": None})
 
+    def handle_student_speaking_best_scores_get(self) -> None:
+        session = self.require_student_session()
+        if not session:
+            return
+        with closing(connect(self.db_path)) as conn:
+            scores = load_speaking_best_scores(conn, session["id"])
+            self.send_json({"data": {"scores": scores}, "error": None})
+
+    def handle_student_speaking_best_scores_post(self) -> None:
+        session = self.require_student_session()
+        if not session:
+            return
+        payload = self.read_json_body()
+        question = payload.get("question") or payload.get("q") or payload.get("question_text") or ""
+        score = payload.get("score")
+        if score is None:
+            score = payload.get("overall") or payload.get("best_score")
+        part = payload.get("part") or "p1"
+        try:
+            with closing(connect(self.db_path)) as conn:
+                row = upsert_speaking_best_score(
+                    conn,
+                    session["id"],
+                    str(question),
+                    float(score),
+                    part=str(part or "p1"),
+                )
+            self.send_json({"data": row, "error": None})
+        except (TypeError, ValueError) as exc:
+            self.send_json({"data": None, "error": {"message": str(exc)}}, status=400)
+
     def handle_student_standards(self) -> None:
         session = self.require_student_session()
         if not session:
@@ -1271,6 +1357,43 @@ class LocalHandler(SimpleHTTPRequestHandler):
             row = insert_test_record(conn, session["id"], payload)
             self.send_json({"data": row, "error": None})
 
+    def handle_student_wrong_items_get(self) -> None:
+        session = self.require_student_session()
+        if not session:
+            return
+        parsed = urllib.parse.urlparse(self.path)
+        qs = urllib.parse.parse_qs(parsed.query or "")
+        module_type = str((qs.get("module_type") or [""])[0] or "").strip()
+        unmastered = (qs.get("unmastered") or ["1"])[0] in ("1", "true", "yes")
+        if not module_type:
+            self.send_json({"data": None, "error": {"message": "缺少 module_type"}}, status=400)
+            return
+        with closing(connect(self.db_path)) as conn:
+            rows = load_wrong_book_items(
+                conn,
+                session["id"],
+                module_type,
+                unmastered_only=unmastered,
+            )
+            self.send_json({"data": rows, "error": None})
+
+    def handle_student_wrong_items_apply(self) -> None:
+        session = self.require_student_session()
+        if not session:
+            return
+        payload = self.read_json_body()
+        module_type = str(payload.get("module_type") or payload.get("moduleType") or "").strip()
+        results = payload.get("results") or []
+        if not module_type:
+            self.send_json({"data": None, "error": {"message": "缺少 module_type"}}, status=400)
+            return
+        if not isinstance(results, list):
+            self.send_json({"data": None, "error": {"message": "results 必须是数组"}}, status=400)
+            return
+        with closing(connect(self.db_path)) as conn:
+            summary = apply_wrong_item_results(conn, session["id"], module_type, results)
+            self.send_json({"data": summary, "error": None})
+
     def handle_student_wrong_words_apply(self) -> None:
         session = self.require_student_session()
         if not session:
@@ -1319,11 +1442,17 @@ class LocalHandler(SimpleHTTPRequestHandler):
         if parsed.path.rstrip("/") == "/api/student/test-records":
             self.handle_student_test_records_get()
             return
+        if parsed.path.rstrip("/") == "/api/student/speaking-best-scores":
+            self.handle_student_speaking_best_scores_get()
+            return
         if parsed.path.rstrip("/") == "/api/student/standards":
             self.handle_student_standards()
             return
         if parsed.path.rstrip("/") == "/api/student/wrong-words":
             self.handle_student_wrong_words_get()
+            return
+        if parsed.path.rstrip("/") == "/api/student/wrong-items":
+            self.handle_student_wrong_items_get()
             return
         if parsed.path.rstrip("/") == "/api/student/word-mastery":
             self.handle_student_word_mastery_get()
@@ -1415,8 +1544,14 @@ class LocalHandler(SimpleHTTPRequestHandler):
         if path == "/api/student/test-records":
             self.handle_student_test_records_post()
             return
+        if path == "/api/student/speaking-best-scores":
+            self.handle_student_speaking_best_scores_post()
+            return
         if path == "/api/student/wrong-words/apply":
             self.handle_student_wrong_words_apply()
+            return
+        if path == "/api/student/wrong-items/apply":
+            self.handle_student_wrong_items_apply()
             return
         if path == "/api/student/word-mastery":
             self.handle_student_word_mastery_post()

@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>写作句子翻译 · 测试</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif;
+      background: #0a0e17;
+      color: #e0e0e0;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      padding: 24px 16px 40px;
+    }
+    .container {
+      width: 100%;
+      max-width: 760px;
+      background: #111827;
+      border-radius: 16px;
+      padding: 36px 32px;
+      border: 1px solid #1e293b;
+      box-shadow: 0 4px 40px rgba(0,0,0,0.5);
+    }
+    .header { text-align: center; margin-bottom: 28px; }
+    .header h1 {
+      font-size: 22px;
+      font-weight: 700;
+      background: linear-gradient(135deg, #58a6ff, #bc8cff);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .header .sub { font-size: 13px; color: #6b7280; margin-top: 8px; line-height: 1.6; }
+    .start-rules {
+      background: #161b22;
+      border: 1px solid #21262d;
+      border-radius: 12px;
+      padding: 20px 22px;
+      color: #c9d1d9;
+      font-size: 14px;
+      line-height: 1.8;
+      margin-bottom: 24px;
+    }
+    .start-btn, .btn {
+      display: inline-block;
+      padding: 12px 28px;
+      background: linear-gradient(135deg, #238636, #2ea043);
+      border: none;
+      border-radius: 8px;
+      color: #fff;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .start-btn { width: 100%; }
+    .start-btn:hover, .btn:hover { opacity: 0.92; }
+    .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    .btn.next { background: linear-gradient(135deg, #1f6feb, #58a6ff); }
+    .center { text-align: center; }
+    .error { color: #f85149; text-align: center; padding: 24px 0; }
+    .progress-wrap { display: flex; align-items: center; gap: 12px; margin-bottom: 24px; }
+    .progress-bar { flex: 1; height: 6px; background: #1e293b; border-radius: 3px; overflow: hidden; }
+    .progress-fill { height: 100%; background: linear-gradient(90deg, #58a6ff, #bc8cff); border-radius: 3px; transition: width 0.3s; }
+    .progress-text { font-size: 13px; color: #8b949e; white-space: nowrap; min-width: 50px; text-align: right; }
+    .card {
+      background: #161b22;
+      border: 1px solid #21262d;
+      border-radius: 12px;
+      padding: 24px;
+      margin-bottom: 16px;
+    }
+    .en-label { font-size: 12px; color: #8b949e; margin-bottom: 8px; }
+    .en-text { font-size: 18px; line-height: 1.7; color: #f0f6fc; margin-bottom: 18px; }
+    textarea {
+      width: 100%;
+      min-height: 120px;
+      background: #0d1117;
+      border: 2px solid #30363d;
+      border-radius: 8px;
+      padding: 12px 14px;
+      font-size: 16px;
+      color: #e6edf3;
+      font-family: 'Microsoft YaHei', 'Segoe UI', sans-serif;
+      line-height: 1.7;
+      outline: none;
+      resize: vertical;
+    }
+    textarea:focus { border-color: #58a6ff; }
+    textarea.correct { border-color: #3fb950; background: #0d1f14; }
+    textarea.wrong { border-color: #f85149; background: #1f0d0d; }
+    .hint { font-size: 12px; color: #6b7280; margin-top: 8px; }
+    .feedback { margin-top: 14px; font-size: 14px; line-height: 1.7; min-height: 20px; }
+    .feedback.correct-msg { color: #3fb950; }
+    .feedback.wrong-msg { color: #f85149; }
+    .answer-box { margin-top: 8px; color: #c9d1d9; }
+    .answer-box b { color: #f0f6fc; font-weight: 600; }
+    .result { text-align: center; padding: 8px 0; }
+    .score-circle {
+      width: 140px; height: 140px; border-radius: 50%; border: 6px solid #30363d;
+      margin: 0 auto 20px; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    }
+    .score-circle.great { border-color: #3fb950; }
+    .score-circle.good { border-color: #58a6ff; }
+    .score-circle.ok { border-color: #d29922; }
+    .score-circle.poor { border-color: #f85149; }
+    .score-num { font-size: 42px; font-weight: 800; line-height: 1; }
+    .score-label { font-size: 13px; color: #8b949e; margin-top: 4px; }
+    .stats { display: flex; justify-content: center; gap: 32px; margin: 24px 0; }
+    .stat b { display: block; font-size: 28px; }
+    .stat span { font-size: 12px; color: #6b7280; }
+    .detail-item {
+      text-align: left;
+      background: #161b22;
+      border: 1px solid #21262d;
+      border-radius: 10px;
+      padding: 14px 16px;
+      margin-bottom: 10px;
+      font-size: 13px;
+      line-height: 1.65;
+    }
+    .detail-item .num { color: #8b949e; margin-bottom: 6px; }
+    .detail-item .hit { color: #3fb950; }
+    .detail-item .miss { color: #f85149; }
+    .detail-en { color: #58a6ff; margin-bottom: 6px; }
+    .muted { color: #8b949e; }
+    .btn-row { margin-top: 20px; }
+    .btn-retry {
+      padding: 12px 28px;
+      background: linear-gradient(135deg, #1f6feb, #58a6ff);
+      border: none; border-radius: 8px; color: #fff; font-size: 15px; font-weight: 600; cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <div class="container" id="app"></div>
+  <script src="match.js"></script>
+  <script>
+var TOTAL = 10;
+var DATA_URL = '../juzifanyixin/translation_data.json';
+var allSentences = [];
+var questions = [];
+var currentIndex = 0;
+var score = 0;
+var results = [];
+var testStartTime = Date.now();
+var testReportSent = false;
+var checked = false;
+
+function getQueryParam(name) {
+  try { return new URLSearchParams(window.location.search).get(name); } catch (e) { return null; }
+}
+
+function shuffle(arr) {
+  var a = arr.slice();
+  for (var i = a.length - 1; i > 0; i--) {
+    var j = Math.floor(Math.random() * (i + 1));
+    var tmp = a[i]; a[i] = a[j]; a[j] = tmp;
+  }
+  return a;
+}
+
+function escapeHtml(s) {
+  return String(s || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+function sendTestComplete() {
+  if (testReportSent) return;
+  testReportSent = true;
+  var pct = Math.round((score / questions.length) * 100);
+  try {
+    if (window.parent && window.parent.postMessage) {
+      window.parent.postMessage({
+        type: 'genericTestComplete',
+        moduleType: getQueryParam('module_type') || 'writing_translate',
+        moduleName: getQueryParam('module_name') || '写作句子翻译',
+        student_id: getQueryParam('student_id'),
+        testType: (getQueryParam('wrongbook') === '1' ? 'wrong_words' : 'module_test'),
+        scorePercent: pct,
+        correctCount: score,
+        totalCount: questions.length,
+        durationSeconds: Math.max(0, Math.round((Date.now() - testStartTime) / 1000)),
+        completed: true,
+        details: results
+      }, '*');
+    }
+  } catch (e) {}
+}
+
+function renderStart() {
+  var app = document.getElementById('app');
+  app.innerHTML =
+    '<div class="header">' +
+      '<h1>写作句子翻译 · 测试</h1>' +
+      '<div class="sub">从 ' + allSentences.length + ' 句中随机抽 ' + TOTAL + ' 句</div>' +
+    '</div>' +
+    '<div class="start-rules">' +
+      '给出英文，请写出对应的中文。<br>' +
+      '标点可以不同，用词需一致。' +
+    '</div>' +
+    '<div class="center"><button class="start-btn" onclick="startTest()">开始测试</button></div>';
+}
+
+function startTest() {
+  var run = function(list) {
+    questions = list;
+    currentIndex = 0;
+    score = 0;
+    results = [];
+    checked = false;
+    testStartTime = Date.now();
+    testReportSent = false;
+    renderQuiz();
+  };
+  if (getQueryParam('wrongbook') === '1' || getQueryParam('mode') === 'wrongbook') {
+    var mt = getQueryParam('module_type') || 'writing_translate';
+    fetch('/api/student/wrong-items?module_type=' + encodeURIComponent(mt) + '&unmastered=1', { credentials: 'include' })
+      .then(function(r) { return r.json(); })
+      .then(function(j) {
+        var keys = {};
+        ((j && j.data) || []).forEach(function(it) { keys[String(it.item_key)] = true; });
+        var picked = allSentences.filter(function(s) { return keys[String(s.id)]; });
+        picked = shuffle(picked).slice(0, 5);
+        if (!picked.length) {
+          showLoadError('暂无错题');
+          return;
+        }
+        run(picked);
+      })
+      .catch(function() { showLoadError('加载错题失败'); });
+    return;
+  }
+  run(shuffle(allSentences).slice(0, TOTAL));
+}
+
+function renderQuiz() {
+  var q = questions[currentIndex];
+  var progress = Math.round((currentIndex / questions.length) * 100);
+  var app = document.getElementById('app');
+  app.innerHTML =
+    '<div class="header">' +
+      '<h1>写作句子翻译 · 测试</h1>' +
+      '<div class="sub">看英文，写中文</div>' +
+    '</div>' +
+    '<div class="progress-wrap">' +
+      '<div class="progress-bar"><div class="progress-fill" style="width:' + progress + '%"></div></div>' +
+      '<div class="progress-text">' + currentIndex + ' / ' + questions.length + '</div>' +
+    '</div>' +
+    '<div class="card">' +
+      '<div class="en-label">英文</div>' +
+      '<div class="en-text">' + escapeHtml(q.en) + '</div>' +
+      '<textarea id="answerInput" placeholder="输入中文..." autocomplete="off"></textarea>' +
+      '<div class="hint">Ctrl + Enter 提交</div>' +
+      '<div class="feedback" id="feedback"></div>' +
+    '</div>' +
+    '<div class="center"><button id="submitBtn" class="btn">确认</button></div>';
+
+  var input = document.getElementById('answerInput');
+  var btn = document.getElementById('submitBtn');
+  input.focus();
+  checked = false;
+
+  function check() {
+    if (checked) return;
+    var val = input.value;
+    if (!String(val).trim()) return;
+    checked = true;
+    var correct = window.TranslateMatch.isChineseMatch(val, q.zh);
+    input.disabled = true;
+    if (correct) {
+      score++;
+      input.className = 'correct';
+      document.getElementById('feedback').className = 'feedback correct-msg';
+      document.getElementById('feedback').textContent = '正确';
+    } else {
+      input.className = 'wrong';
+      document.getElementById('feedback').className = 'feedback wrong-msg';
+      document.getElementById('feedback').innerHTML =
+        '不正确<div class="answer-box">正确答案：<b>' + escapeHtml(q.zh) + '</b></div>';
+    }
+    results.push({
+      item_key: String(q.id),
+      id: q.id,
+      category: q.category || '',
+      zh: q.zh,
+      en: q.en,
+      title: q.en,
+      user: String(val).trim(),
+      correct: correct,
+      is_correct: correct
+    });
+    btn.textContent = currentIndex + 1 >= questions.length ? '查看结果' : '下一题';
+    btn.className = 'btn next';
+  }
+
+  btn.addEventListener('click', function () {
+    if (!checked) check();
+    else nextQuestion();
+  });
+  input.addEventListener('keydown', function (e) {
+    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+      e.preventDefault();
+      if (!checked) check();
+      else nextQuestion();
+    }
+  });
+}
+
+function nextQuestion() {
+  currentIndex++;
+  if (currentIndex >= questions.length) {
+    renderResult();
+  } else {
+    renderQuiz();
+  }
+}
+
+function renderResult() {
+  var pct = Math.round((score / questions.length) * 100);
+  var cls = pct >= 90 ? 'great' : pct >= 70 ? 'good' : pct >= 50 ? 'ok' : 'poor';
+  var color = pct >= 90 ? '#3fb950' : pct >= 70 ? '#58a6ff' : pct >= 50 ? '#d29922' : '#f85149';
+  var details = '';
+  for (var i = 0; i < results.length; i++) {
+    var r = results[i];
+    details +=
+      '<div class="detail-item">' +
+        '<div class="num">' + (i + 1) + ' · ' + (r.correct ? '<span class="hit">正确</span>' : '<span class="miss">错误</span>') + '</div>' +
+        '<div class="detail-en">' + escapeHtml(r.en) + '</div>' +
+        '<div>标准中文：' + escapeHtml(r.zh) + '</div>' +
+        '<div class="muted">你的输入：' + escapeHtml(r.user || '（未作答）') + '</div>' +
+      '</div>';
+  }
+  document.getElementById('app').innerHTML =
+    '<div class="header"><h1>测试结果</h1><div class="sub">' + questions.length + ' 题 · ' + score + ' 题正确</div></div>' +
+    '<div class="result">' +
+      '<div class="score-circle ' + cls + '">' +
+        '<div class="score-num" style="color:' + color + '">' + pct + '%</div>' +
+        '<div class="score-label">正确率</div>' +
+      '</div>' +
+      '<div class="stats">' +
+        '<div class="stat"><b style="color:#3fb950">' + score + '</b><span>正确</span></div>' +
+        '<div class="stat"><b style="color:#f85149">' + (questions.length - score) + '</b><span>错误</span></div>' +
+      '</div>' +
+      details +
+      '<div class="btn-row"><button class="btn-retry" onclick="startTest()">换一批</button></div>' +
+    '</div>';
+  sendTestComplete();
+}
+
+function showLoadError(msg) {
+  document.getElementById('app').innerHTML =
+    '<div class="header"><h1>写作句子翻译 · 测试</h1></div>' +
+    '<div class="error">' + escapeHtml(msg) + '</div>';
+}
+
+fetch(DATA_URL)
+  .then(function (res) {
+    if (!res.ok) throw new Error('题库加载失败');
+    return res.json();
+  })
+  .then(function (data) {
+    allSentences = (data || []).map(function (item) {
+      return {
+        id: item.id,
+        category: item.category || '',
+        zh: item.fullChinese || '',
+        en: item.finalEnglish || ''
+      };
+    }).filter(function (item) { return item.zh && item.en; });
+    if (!allSentences.length) {
+      showLoadError('题库为空');
+      return;
+    }
+    renderStart();
+  })
+  .catch(function () {
+    showLoadError('无法加载题库，请刷新重试');
+  });
+  </script>
+</body>
+</html>

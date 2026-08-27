@@ -689,6 +689,17 @@ class P2Practice {
             : '';
         if (sampleHtml) {
             blocks.insertAdjacentHTML('beforeend', sampleHtml);
+            const sampleBox = blocks.querySelector('.p2-sample-box');
+            if (sampleBox) {
+                sampleBox.open = false;
+                const block = (e) => {
+                    e.preventDefault();
+                    return false;
+                };
+                ['copy', 'cut', 'contextmenu', 'dragstart'].forEach((evt) => {
+                    sampleBox.addEventListener(evt, block);
+                });
+            }
         }
 
         document.getElementById('p2ListenOpening')?.addEventListener('click', (e) => {

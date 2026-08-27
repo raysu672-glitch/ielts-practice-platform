@@ -374,7 +374,7 @@ function sendTestComplete() {
         moduleType: getQueryParam('module_type') || 'writing_phrase',
         moduleName: getQueryParam('module_name') || '写作词伙',
         student_id: getQueryParam('student_id'),
-        testType: 'module_test',
+        testType: (getQueryParam('wrongbook') === '1' ? 'wrong_words' : 'module_test'),
         scorePercent: pct,
         correctCount: score,
         totalCount: TOTAL,
@@ -437,7 +437,7 @@ function renderQuiz() {
       fb.innerHTML = ' 正确答案：<b>' + q.en + '</b>';
     }
 
-    results.push({ zh: q.zh, en: q.en, user: val.trim(), correct: correct });
+    results.push({ item_key: q.en, zh: q.zh, en: q.en, user: val.trim(), correct: correct });
 
     // 1s 后自动下一题
     setTimeout(nextQuestion, 1200);
@@ -508,13 +508,36 @@ function renderResult() {
 
 function startTest() {
   var all = getAllVocab();
-  questions = shuffle(all).slice(0, TOTAL);
-  currentIndex = 0;
-  score = 0;
-  results = [];
-  testStartTime = Date.now();
-  testReportSent = false;
-  renderQuiz();
+  var run = function(pool, total) {
+    questions = shuffle(pool).slice(0, total);
+    currentIndex = 0;
+    score = 0;
+    results = [];
+    testStartTime = Date.now();
+    testReportSent = false;
+    TOTAL = questions.length;
+    renderQuiz();
+  };
+  if (getQueryParam('wrongbook') === '1' || getQueryParam('mode') === 'wrongbook') {
+    var mt = getQueryParam('module_type') || 'writing_phrase';
+    fetch('/api/student/wrong-items?module_type=' + encodeURIComponent(mt) + '&unmastered=1', { credentials: 'include' })
+      .then(function(r) { return r.json(); })
+      .then(function(j) {
+        var keys = {};
+        ((j && j.data) || []).forEach(function(it) { keys[String(it.item_key)] = true; });
+        var pool = all.filter(function(q) { return keys[q.en]; });
+        if (!pool.length) {
+          document.getElementById('app').innerHTML = '<div class="header"><h1>错题本</h1><div class="sub">暂无错题</div></div>';
+          return;
+        }
+        run(pool, 10);
+      })
+      .catch(function() {
+        document.getElementById('app').innerHTML = '<div class="header"><h1>错题本</h1><div class="sub">加载失败</div></div>';
+      });
+    return;
+  }
+  run(all, 20);
 }
 
 startTest();

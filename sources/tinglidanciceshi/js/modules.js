@@ -416,17 +416,17 @@ var MODULES = [
     { id: 'highschool_words', name: '高中单词', target_type: 'dynamic', targets: { 6: 85, 6.5: 95, 7: 100 }, unit: '%', url: '', icon: 'book' },
     { id: 'ielts_core', name: '雅思核心800词', target_type: 'dynamic', targets: { 6: 65, 6.5: 80, 7: 95 }, unit: '%', url: '', icon: 'star' },
     { id: 'grammar', name: '基础语法', target_type: 'dynamic', targets: { 6: 75, 6.5: 85, 7: 85 }, unit: '%', url: '', icon: 'academic' },
-    { id: 'reading_synonym', name: '阅读同义替换', target_type: 'dynamic', targets: { 6: 70, 6.5: 80, 7: 90 }, unit: '%', url: '../tongyitihuan/index.html', test_url: '../tongyitihuanceshi/index.html', icon: 'eye' },
-    { id: 'sentence', name: '长难句分析', target_type: 'dynamic', targets: { 6: 60, 6.5: 80, 7: 80 }, unit: '%', url: '../changnanju/index.html', test_url: '../changnanjuceshi/index.html', icon: 'analysis' },
+    { id: 'reading_synonym', name: '阅读同义替换', target_type: 'dynamic', targets: { 6: 70, 6.5: 80, 7: 90 }, unit: '%', url: '../tongyitihuan/index.html', test_url: '../tongyitihuanceshi/index.html?v=20260825e', icon: 'eye' },
+    { id: 'sentence', name: '长难句分析', target_type: 'dynamic', targets: { 6: 60, 6.5: 80, 7: 80 }, unit: '%', url: '../changnanju/index.html', test_url: '../changnanjuceshi/index.html?v=20260825e', icon: 'analysis' },
     { id: 'dictation', name: '听力1000词', target_type: 'dynamic', targets: { 6: 70, 6.5: 80, 7: 90 }, unit: '%', url: '', icon: 'headphones' },
     { id: 'listening_basic', name: '听力基础词汇', target_type: 'dynamic', targets: { 6: 70, 6.5: 80, 7: 90 }, unit: '%', url: '', icon: 'headphones' },
-    { id: 'listening_synonym', name: '听力同义替换', target_type: 'dynamic', targets: { 6: 70, 6.5: 80, 7: 90 }, unit: '%', url: '../daanjutingxie/index.html', test_url: '../daanjutingxieceshi/index.html', icon: 'headphones' },
-    { id: 'writing_phrase', name: '写作词伙', target_type: 'dynamic', targets: { 6: 50, 6.5: 70, 7: 90 }, unit: '%', url: '../xiezuocihuo/index.html', test_url: '../xiezuocihuoceshi/index.html', icon: 'writing' },
-    { id: 'writing_translate', name: '写作句子翻译', target_type: 'dynamic', targets: { 6: 50, 6.5: 70, 7: 90 }, unit: '%', url: '../juzifanyixin/index.html', test_url: '', icon: 'translate' },
+    { id: 'listening_synonym', name: '听力同义替换', target_type: 'dynamic', targets: { 6: 70, 6.5: 80, 7: 90 }, unit: '%', url: '../daanjutingxie/index.html', test_url: '../daanjutingxieceshi/index.html?v=20260825e', icon: 'headphones' },
+    { id: 'writing_phrase', name: '写作词伙', target_type: 'dynamic', targets: { 6: 50, 6.5: 70, 7: 90 }, unit: '%', url: '../xiezuocihuo/index.html', test_url: '../xiezuocihuoceshi/index.html?v=20260825e', icon: 'writing' },
+    { id: 'writing_translate', name: '写作句子翻译', target_type: 'dynamic', targets: { 6: 50, 6.5: 70, 7: 90 }, unit: '%', url: '../juzifanyixin/index.html', test_url: '../juzifanyixinceshi/index.html?v=20260825e', icon: 'translate' },
     { id: 'writing_correction', name: '作文批改', target_type: 'dynamic', targets: { 6: 1, 6.5: 1, 7: 1 }, unit: '次', url: '../xiezuopigai/ielts-student-practice.html', test_url: '', icon: 'edit' },
     
-    // 二、听力P4跟读：学习页练倍速，测试页按跟读匹配率计分（%）
-    { id: 'listening_p4_speed', name: '听力P4跟读倍速', target_type: 'dynamic', targets: { 6: 70, 6.5: 80, 7: 90 }, unit: '%', url: '../P4gendu/index.html', test_url: '../P4genduceshi/index.html', icon: 'mic' },
+    // 二、听力P4跟读：只练倍速，主站不开放测试和历史
+    { id: 'listening_p4_speed', name: '听力P4跟读倍速', target_type: 'dynamic', targets: { 6: 70, 6.5: 80, 7: 90 }, unit: '%', url: '../P4gendu/index.html', test_url: '', study_only: true, icon: 'mic' },
     
     // 三、每项需要答对个数
     { id: 'reading_p1', name: '第一篇阅读', target_type: 'dynamic', targets: { 6: 9, 6.5: 11, 7: 12 }, unit: '个', url: '', icon: 'eye' },
@@ -466,6 +466,26 @@ function getModuleById(moduleType) {
 
 // 判断模块是否已开发上线：听力1000词为内置功能始终可用，
 // 其余模块必须配置学习页面或测试页面才展示，避免暴露待开发页面
+function isStudyOnlyModule(m) {
+    return !!(m && m.study_only);
+}
+
+var WRONG_BOOK_TEST_SIZE = {
+    dictation: 10,
+    listening_basic: 10,
+    reading_synonym: 10,
+    sentence: 5,
+    listening_synonym: 5,
+    writing_phrase: 10,
+    writing_translate: 5
+};
+
+function hasWrongBook(m) {
+    if (!m || isStudyOnlyModule(m)) return false;
+    if (m.id === 'writing_correction' || m.id === 'speaking') return false;
+    return isBuiltinDictationModule(m.id) || !!m.test_url;
+}
+
 function isModuleAvailable(m) {
     return isBuiltinDictationModule(m.id) || !!m.url || !!m.test_url;
 }
@@ -478,6 +498,7 @@ function normalizeModuleType(moduleType) {
         writing_phrase_test: 'writing_phrase',
         sentence_test: 'sentence',
         listening_synonym_test: 'listening_synonym',
+        writing_translate_test: 'writing_translate',
         speaking_p1: 'speaking',
         speaking_p2: 'speaking',
         speaking_p3: 'speaking'

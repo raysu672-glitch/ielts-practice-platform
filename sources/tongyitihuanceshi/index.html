@@ -1228,6 +1228,10 @@ function formatTime(sec) {
 let round = 0;
 let rightCount = 0, wrongCount = 0, groupsDone = 0;
 let allMissedWords = [];
+let groupResults = [];
+let activeSourceIdx = [];
+let currentWrongClicks = [];
+let wrongBookKeys = null;
 let activeGroups = [], allWords = [], wordToGroup = {};
 let anchorGroupIdx = null, currentChain = [], usedWords = new Set();
 let combo = 0;
@@ -1253,11 +1257,25 @@ function startGame() {
     _track_wrongCount = 0;
   } catch (e) {}
   allMissedWords = [];
+  groupResults = [];
+  currentWrongClicks = [];
   anchorGroupIdx = null; currentChain = []; usedWords = new Set();
   combo = 0; maxCombo = 0; roundXP = 0;
   groupWrongCount = 0;
 
-  const indices = shuffle([...Array(ALL_GROUPS.length).keys()]).slice(0, 10);
+  var indices;
+  if (wrongBookKeys && wrongBookKeys.length) {
+    indices = shuffle(wrongBookKeys.map(function(k) { return parseInt(k, 10); }).filter(function(i) {
+      return i >= 0 && i < ALL_GROUPS.length;
+    })).slice(0, 10);
+  } else {
+    indices = shuffle([...Array(ALL_GROUPS.length).keys()]).slice(0, 10);
+  }
+  if (!indices.length) {
+    setHint('暂无错题');
+    return;
+  }
+  activeSourceIdx = indices;
   activeGroups = indices.map(i => ALL_GROUPS[i]);
 
   allWords = [];
@@ -1278,7 +1296,9 @@ function startGame() {
   document.getElementById('comboDisplay').classList.remove('active');
   hideFeedback();
 
-  document.getElementById('progressText').textContent = `第 ${round} 轮 · 随机抽取 10 组`;
+  document.getElementById('progressText').textContent = wrongBookKeys
+    ? ('错题本 · ' + activeGroups.length + ' 组')
+    : (`第 ${round} 轮 · 随机抽取 10 组`);
   document.getElementById('sTotal').textContent = allWords.length;
 
   renderGrid();
@@ -1316,6 +1336,7 @@ function handleWordClick(word, event) {
   if (anchorGroupIdx === null) {
     anchorGroupIdx = gi;
     currentChain = [word];
+    currentWrongClicks = [];
     groupWrongCount = 0;
     const btn = getBtn(word);
     btn.classList.add('anchor');
@@ -1385,6 +1406,7 @@ function handleWordClick(word, event) {
       combo = 0;
       document.getElementById('comboDisplay').classList.remove('active');
       groupWrongCount++;
+      if (currentWrongClicks.indexOf(word) < 0) currentWrongClicks.push(word);
 
       const btn = getBtn(word);
       btn.classList.add('wrong');
@@ -1440,6 +1462,15 @@ function finishGroup() {
   const grp = activeGroups[anchorGroupIdx];
   const found = [...currentChain];
   const missed = grp.filter(w => !found.includes(w));
+  const src = activeSourceIdx[anchorGroupIdx];
+  groupResults.push({
+    item_key: String(src),
+    title: grp[0],
+    words: grp.slice(),
+    marked: currentWrongClicks.slice(),
+    is_correct: missed.length === 0 && currentWrongClicks.length === 0
+  });
+  currentWrongClicks = [];
   grp.forEach(w => usedWords.add(w));
   groupsDone++;
 
@@ -1496,10 +1527,10 @@ function renderDoneGroup(num, found, missed) {
 }
 
 function updateStats() {
-  document.getElementById('sDone').textContent = groupsDone + '/10';
+  document.getElementById('sDone').textContent = groupsDone + '/' + (activeGroups.length || 10);
   document.getElementById('sRight').textContent = rightCount;
   document.getElementById('sWrong').textContent = wrongCount;
-  const pct = Math.round(groupsDone / 10 * 100);
+  const pct = Math.round(groupsDone / Math.max(1, activeGroups.length) * 100);
   document.getElementById('progressFill').style.width = pct + '%';
   document.getElementById('progressPct').textContent = pct + '%';
 }
@@ -1564,7 +1595,32 @@ function endGame() {
   }, 300);
 }
 
-startGame();
+function bootSynonymTest() {
+  try {
+    var params = new URLSearchParams(window.location.search);
+    if (params.get('wrongbook') === '1' || params.get('mode') === 'wrongbook') {
+      var mt = params.get('module_type') || 'reading_synonym';
+      fetch('/api/student/wrong-items?module_type=' + encodeURIComponent(mt) + '&unmastered=1', { credentials: 'include' })
+        .then(function(r) { return r.json(); })
+        .then(function(j) {
+          wrongBookKeys = ((j && j.data) || []).map(function(it) { return String(it.item_key); });
+          if (!wrongBookKeys.length) {
+            setHint('暂无错题');
+            document.getElementById('progressText').textContent = '错题本 · 暂无错题';
+            return;
+          }
+          startGame();
+        })
+        .catch(function() {
+          setHint('加载错题失败');
+          document.getElementById('progressText').textContent = '错题本 · 加载失败';
+        });
+      return;
+    }
+  } catch (e) {}
+  startGame();
+}
+bootSynonymTest();
 
 /* ============================================================
    【模块追踪系统】学习时长 + 答题正确率  通过 postMessage 发送给主页面
@@ -1605,7 +1661,7 @@ function _track_sendToParent(isExit) {
                 moduleType: TRACK_MODULE_TYPE,
                 moduleName: TRACK_MODULE_NAME,
                 student_id: _track_studentId,
-                testType: 'module_test',
+                testType: wrongBookKeys ? 'wrong_words' : 'module_test',
                 scorePercent: scorePercent,
                 correctCount: _track_rightCount,
                 totalCount: expectedTotal,
@@ -1613,7 +1669,8 @@ function _track_sendToParent(isExit) {
                 rightCount: _track_rightCount,
                 wrongCount: _track_wrongCount,
                 completed: true,
-                isExit: !!isExit
+                isExit: !!isExit,
+                details: groupResults || []
             }, '*');
         }
     } catch (e) {

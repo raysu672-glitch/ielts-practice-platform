@@ -17,6 +17,7 @@
 | 主站模式 | iframe |
 | `module_type` | `writing_translate` |
 | 学习记录 | 主站根据 iframe 打开时长写入 `study_sessions` |
+| 测试页 | `/juzifanyixinceshi/` |
 
 ## 维护注意
 

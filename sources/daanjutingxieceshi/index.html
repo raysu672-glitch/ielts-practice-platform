@@ -93,19 +93,23 @@ function sendTestComplete(scorePercent) {
         moduleType: getQueryParam('module_type') || 'listening_synonym',
         moduleName: getQueryParam('module_name') || '听力同义替换',
         student_id: getQueryParam('student_id'),
-        testType: 'module_test',
+        testType: (getQueryParam('wrongbook') === '1' ? 'wrong_words' : 'module_test'),
         scorePercent: scorePercent,
         correctCount: score,
         totalCount: testQuestions.length,
         durationSeconds: Math.max(0, Math.round((Date.now() - testStartTime) / 1000)),
         completed: true,
         details: testQuestions.map(function(q) {
+          var ok = q.userAnswer === q.correct_idx;
           return {
+            item_key: String(q.id),
             id: q.id,
+            title: q.original,
             original: q.original,
             answer: q.answer,
             selectedAnswer: q.userAnswer,
-            isCorrect: q.userAnswer === q.correct_idx
+            is_correct: ok,
+            isCorrect: ok
           };
         })
       }, '*');
@@ -121,18 +125,36 @@ function goHome() {
 }
 
 function startTest() {
-  // 随机抽取10题
-  testQuestions = shuffle([...ALL_QUESTIONS]).slice(0, 10);
-  currentQ = 0;
-  score = 0;
-  testStartTime = Date.now();
-  testReportSent = false;
-  
-  document.getElementById('home').style.display = 'none';
-  document.getElementById('quiz').style.display = 'flex';
-  document.getElementById('result').style.display = 'none';
-  
-  loadQuestion();
+  var run = function(list) {
+    testQuestions = list;
+    currentQ = 0;
+    score = 0;
+    testStartTime = Date.now();
+    testReportSent = false;
+    document.getElementById('home').style.display = 'none';
+    document.getElementById('quiz').style.display = 'flex';
+    document.getElementById('result').style.display = 'none';
+    loadQuestion();
+  };
+  if (getQueryParam('wrongbook') === '1' || getQueryParam('mode') === 'wrongbook') {
+    var mt = getQueryParam('module_type') || 'listening_synonym';
+    fetch('/api/student/wrong-items?module_type=' + encodeURIComponent(mt) + '&unmastered=1', { credentials: 'include' })
+      .then(function(r) { return r.json(); })
+      .then(function(j) {
+        var keys = {};
+        ((j && j.data) || []).forEach(function(it) { keys[String(it.item_key)] = true; });
+        var picked = ALL_QUESTIONS.filter(function(q) { return keys[String(q.id)]; });
+        picked = shuffle(picked).slice(0, 5);
+        if (!picked.length) {
+          alert('暂无错题');
+          return;
+        }
+        run(picked);
+      })
+      .catch(function() { alert('加载错题失败'); });
+    return;
+  }
+  run(shuffle([...ALL_QUESTIONS]).slice(0, 10));
 }
 
 function shuffle(array) {

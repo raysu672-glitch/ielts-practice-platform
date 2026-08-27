@@ -142,6 +142,12 @@ body {
 }
 .check-btn:hover { background: #0d47a1; }
 .check-btn:disabled { background: #aaa; cursor: default; }
+.check-sentence-btn {
+  width: 100%;
+  padding: 12px 20px;
+  font-size: 1em;
+  margin-top: 16px;
+}
 
 .nav-btns {
   display: flex;
@@ -252,10 +258,10 @@ body {
 }
 </style></head><body><!-- 开始页面 --><div class="start-page" id="startPage"><h1>长难句骨架测试</h1><p>
     本测试从60句长难句中随机抽取5句。<br>
-    每句设有若干空格，请你填写主句骨架的关键词。<br>
-    全部填写完毕后，系统将公布答案并计算正确率。
+    每句设有若干空格，请填写主句骨架的关键词。<br>
+    每句只有一次「检查」，填完后点检查即可看对错。
   </p><button class="start-btn" onclick="startTest()">开始测试</button></div><!-- 测试页面 --><div class="test-page" id="testPage"><div class="progress-info">
-    句子 <strong id="currentNum">1</strong> / <strong>5</strong></div><div class="sentence-card" id="sentenceCard"><div class="sentence-header"><span class="sentence-num" id="sentenceNum">第1句</span><span class="sentence-pattern" id="sentencePattern"></span></div><div class="sentence-original" id="sentenceOriginal"></div><div id="blanksContainer"></div></div><div class="nav-btns"><button class="nav-btn secondary" id="prevBtn" onclick="prevSentence()" disabled>上一题</button><button class="nav-btn primary" id="nextBtn" onclick="nextSentence()">下一题</button><button class="nav-btn primary" id="submitBtn" onclick="submitTest()" style="display:none;">查看结果</button></div></div><!-- 结果页面 --><div class="result-page" id="resultPage"><div class="result-card"><h2>测试完成！</h2><div class="result-score" id="resultScore">0%</div><div class="result-detail" id="resultDetail"></div><div class="detail-section" id="detailSection"></div><button class="retry-btn" onclick="retryTest()">重新测试</button></div></div><script>
+    句子 <strong id="currentNum">1</strong> / <strong id="totalNum">5</strong></div><div class="sentence-card" id="sentenceCard"><div class="sentence-header"><span class="sentence-num" id="sentenceNum">第1句</span><span class="sentence-pattern" id="sentencePattern"></span></div><div class="sentence-original" id="sentenceOriginal"></div><div id="blanksContainer"></div><button type="button" class="check-btn check-sentence-btn" id="checkSentenceBtn" onclick="checkSentence()">检查</button></div><div class="nav-btns"><button class="nav-btn secondary" id="prevBtn" onclick="prevSentence()" disabled>上一题</button><button class="nav-btn primary" id="nextBtn" onclick="nextSentence()">下一题</button><button class="nav-btn primary" id="submitBtn" onclick="submitTest()" style="display:none;">查看结果</button></div></div><!-- 结果页面 --><div class="result-page" id="resultPage"><div class="result-card"><h2>测试完成！</h2><div class="result-score" id="resultScore">0%</div><div class="result-detail" id="resultDetail"></div><div class="detail-section" id="detailSection"></div><button class="retry-btn" onclick="retryTest()">重新测试</button></div></div><script>
 const SENTENCES = [
   {"num":1,"pattern":"主谓宾倒置与介词短语分隔模式","original":"A really hard curse that would definitely kill an ordinary wizard was put on the Defense Against the Dark Arts teacher position after that.","challenge1":{"boxes":[{"title":"a · 主语","answer":"A really hard curse（一个非常恶毒的诅咒）"},{"title":"b · 谓语","answer":"was put（被施加）"},{"title":"c · 宾语","answer":"on the Defense Against the Dark Arts teacher position（黑魔法防御术教师职位上）"}]}},
   {"num":2,"pattern":"介词短语做状语后置模式","original":"The scientists who study ocean currents claim that the cold water near the North Pole flows constantly toward the equator.","challenge1":{"boxes":[{"title":"a · 主语","answer":"The scientists（科学家们）"},{"title":"b · 谓语","answer":"claim（声称）"},{"title":"c · 宾语","answer":"that the cold water...（冷水...这件事）"}]}},
@@ -340,34 +346,84 @@ function sendTestComplete(scorePercent, correctCount, totalCount) {
         moduleType: getQueryParam('module_type') || 'sentence',
         moduleName: getQueryParam('module_name') || '长难句分析',
         student_id: getQueryParam('student_id'),
-        testType: 'module_test',
+        testType: getQueryParam('wrongbook') === '1' ? 'wrong_words' : 'module_test',
         scorePercent: scorePercent,
         correctCount: correctCount,
         totalCount: totalCount,
         durationSeconds: Math.max(0, Math.round((Date.now() - testStartTime) / 1000)),
         completed: true,
-        details: userAnswers
+        details: testSentences.map(function(s, sIdx) {
+          var boxes = s.challenge1.boxes;
+          var allOk = true;
+          for (var b = 0; b < boxes.length; b++) {
+            if (!isBlankCorrect(userAnswers[sIdx].answers[b], boxes[b].answer)) allOk = false;
+          }
+          return {
+            item_key: String(s.num),
+            num: s.num,
+            title: s.original,
+            original: s.original,
+            pattern: s.pattern,
+            is_correct: allOk
+          };
+        })
       }, '*');
     }
   } catch (e) {}
 }
 
 function startTest() {
+  if (getQueryParam('wrongbook') === '1' || getQueryParam('mode') === 'wrongbook') {
+    var mt = getQueryParam('module_type') || 'sentence';
+    fetch('/api/student/wrong-items?module_type=' + encodeURIComponent(mt) + '&unmastered=1', { credentials: 'include' })
+      .then(function(r) { return r.json(); })
+      .then(function(j) {
+        var keys = {};
+        ((j && j.data) || []).forEach(function(it) { keys[String(it.item_key)] = true; });
+        var picked = SENTENCES.filter(function(s) { return keys[String(s.num)]; })
+          .sort(function() { return Math.random() - 0.5; })
+          .slice(0, 5);
+        if (!picked.length) {
+          alert('暂无错题');
+          return;
+        }
+        beginSentenceTest(picked);
+      })
+      .catch(function() { alert('加载错题失败'); });
+    return;
+  }
+  beginSentenceTest([...SENTENCES].sort(function() { return Math.random() - 0.5; }).slice(0, 5));
+}
+
+function beginSentenceTest(list) {
   document.getElementById('startPage').style.display = 'none';
   document.getElementById('testPage').classList.add('active');
-  testSentences = [...SENTENCES].sort(() => Math.random() - 0.5).slice(0, 5);
-  userAnswers = testSentences.map(s => ({ answers: s.challenge1.boxes.map(() => ''), checked: [] }));
-  submitted = testSentences.map(() => false);
+  testSentences = list;
+  userAnswers = testSentences.map(function(s) { return { answers: s.challenge1.boxes.map(function() { return ''; }), checked: [] }; });
+  submitted = testSentences.map(function() { return false; });
   currentIndex = 0;
   testStartTime = Date.now();
   testReportSent = false;
   renderSentence();
 }
 
+function isBlankCorrect(userAnswer, correctAnswer) {
+  const ua = String(userAnswer || '').trim().toLowerCase();
+  const ca = String(correctAnswer || '').toLowerCase();
+  if (!ua) return false;
+  const correctKeywords = ca.split(/[（），,()]/).filter(k => k.length > 1);
+  for (const keyword of correctKeywords) {
+    const kw = keyword.trim();
+    if (ua.includes(kw) || (kw.includes(ua) && ua.length >= kw.length * 0.5)) return true;
+  }
+  return false;
+}
+
 function renderSentence() {
   const s = testSentences[currentIndex];
   const boxes = s.challenge1.boxes;
   document.getElementById('currentNum').textContent = currentIndex + 1;
+  document.getElementById('totalNum').textContent = testSentences.length;
   document.getElementById('sentenceNum').textContent = '第' + (currentIndex + 1) + '句';
   document.getElementById('sentencePattern').textContent = s.pattern;
   document.getElementById('sentenceOriginal').textContent = s.original;
@@ -389,68 +445,35 @@ function renderSentence() {
     input.addEventListener('input', (e) => {
       userAnswers[currentIndex].answers[i] = e.target.value;
     });
-    const checkBtn = document.createElement('button');
-    checkBtn.className = 'check-btn';
-    checkBtn.textContent = '检查';
-    checkBtn.onclick = () => checkBlank(i);
     const answerDiv = document.createElement('div');
     answerDiv.className = 'blank-answer';
     answerDiv.id = 'blankAnswer' + i;
     div.appendChild(label);
     div.appendChild(input);
-    div.appendChild(checkBtn);
     div.appendChild(answerDiv);
     container.appendChild(div);
   });
   document.getElementById('prevBtn').disabled = currentIndex === 0;
-  if (currentIndex === 4) {
+  if (currentIndex === testSentences.length - 1) {
     document.getElementById('nextBtn').style.display = 'none';
     document.getElementById('submitBtn').style.display = 'inline-block';
   } else {
     document.getElementById('nextBtn').style.display = 'inline-block';
     document.getElementById('submitBtn').style.display = 'none';
   }
+  const checkBtn = document.getElementById('checkSentenceBtn');
+  if (checkBtn) checkBtn.style.display = submitted[currentIndex] ? 'none' : 'block';
   if (submitted[currentIndex]) {
     showAnswersForSentence(currentIndex);
   }
 }
 
-function checkBlank(index) {
-  const s = testSentences[currentIndex];
-  const box = s.challenge1.boxes[index];
-  const userAnswer = userAnswers[currentIndex].answers[index].trim().toLowerCase();
-  const correctAnswer = box.answer.toLowerCase();
-  const input = document.getElementById('blankInput' + index);
-  const blankItem = document.getElementById('blankItem' + index);
-  const answerDiv = document.getElementById('blankAnswer' + index);
-  let isCorrect = false;
-  if (!userAnswer || userAnswer.length === 0) {
-    isCorrect = false;
-  } else {
-    const correctKeywords = correctAnswer.split(/[（），,()]/).filter(k => k.length > 1);
-    for (const keyword of correctKeywords) {
-      const kw = keyword.trim();
-      if (userAnswer.includes(kw) || (kw.includes(userAnswer) && userAnswer.length >= kw.length * 0.5)) {
-        isCorrect = true;
-        break;
-      }
-    }
-  }
-  if (isCorrect) {
-    input.classList.add('correct-input');
-    input.classList.remove('wrong-input');
-    blankItem.classList.add('correct');
-    blankItem.classList.remove('wrong');
-    userAnswers[currentIndex].checked[index] = true;
-  } else {
-    input.classList.add('wrong-input');
-    input.classList.remove('correct-input');
-    blankItem.classList.add('wrong');
-    blankItem.classList.remove('correct');
-    userAnswers[currentIndex].checked[index] = false;
-  }
-  answerDiv.textContent = '正确答案：' + box.answer;
-  answerDiv.classList.add('show');
+function checkSentence() {
+  if (submitted[currentIndex]) return;
+  submitted[currentIndex] = true;
+  showAnswersForSentence(currentIndex);
+  const checkBtn = document.getElementById('checkSentenceBtn');
+  if (checkBtn) checkBtn.style.display = 'none';
 }
 
 function showAnswersForSentence(idx) {
@@ -460,32 +483,20 @@ function showAnswersForSentence(idx) {
     const input = document.getElementById('blankInput' + i);
     const blankItem = document.getElementById('blankItem' + i);
     const answerDiv = document.getElementById('blankAnswer' + i);
-    const checkBtn = blankItem.querySelector('.check-btn');
-    if (checkBtn) checkBtn.style.display = 'none';
-    const userAnswer = userAnswers[idx].answers[i].trim().toLowerCase();
-    const correctAnswer = box.answer.toLowerCase();
-    const correctKeywords = correctAnswer.split(/[（），,()]/).filter(k => k.length > 1);
-    let isCorrect = false;
-    if (!userAnswer || userAnswer.length === 0) {
-      isCorrect = false;
-    } else {
-      for (const keyword of correctKeywords) {
-        const kw = keyword.trim();
-        if (userAnswer.includes(kw) || (kw.includes(userAnswer) && userAnswer.length >= kw.length * 0.5)) {
-          isCorrect = true;
-          break;
-        }
-      }
-    }
+    const isCorrect = isBlankCorrect(userAnswers[idx].answers[i], box.answer);
+    userAnswers[idx].checked[i] = isCorrect;
     if (input) {
+      input.disabled = true;
       if (isCorrect) {
         input.classList.add('correct-input');
-        input.disabled = true;
+        input.classList.remove('wrong-input');
         blankItem.classList.add('correct');
+        blankItem.classList.remove('wrong');
       } else {
         input.classList.add('wrong-input');
-        input.disabled = true;
+        input.classList.remove('correct-input');
         blankItem.classList.add('wrong');
+        blankItem.classList.remove('correct');
       }
     }
     if (answerDiv) {
@@ -503,7 +514,7 @@ function prevSentence() {
 }
 
 function nextSentence() {
-  if (currentIndex < 4) {
+  if (currentIndex < testSentences.length - 1) {
     currentIndex++;
     renderSentence();
   }
@@ -511,7 +522,7 @@ function nextSentence() {
 
 function submitTest() {
   if (testReportSent) return;
-  for (let i = 0; i < 5; i++) {
+  for (let i = 0; i < testSentences.length; i++) {
     submitted[i] = true;
   }
   let totalBlanks = 0;

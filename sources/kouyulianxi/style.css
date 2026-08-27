@@ -225,6 +225,28 @@ body {
     transition: all 0.2s;
     border-left: 3px solid transparent;
     color: var(--text-primary);
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.question-item-en {
+    flex: 1;
+    min-width: 0;
+    line-height: 1.4;
+}
+
+.p1-best-score {
+    flex-shrink: 0;
+    font-size: 11px;
+    font-weight: 600;
+    line-height: 1.3;
+    color: var(--brand, #2f6fed);
+    background: rgba(47, 111, 237, 0.1);
+    padding: 2px 6px;
+    border-radius: 4px;
+    white-space: nowrap;
 }
 
 .question-item:hover {
@@ -237,11 +259,16 @@ body {
     border-left-color: var(--success);
 }
 
-.question-item.completed {
-    opacity: 0.6;
+.question-item.active .p1-best-score {
+    color: #fff;
+    background: rgba(255, 255, 255, 0.22);
 }
 
-.question-item.completed::after {
+.question-item.completed {
+    opacity: 0.85;
+}
+
+.question-item.completed .question-item-en::after {
     content: ' ✓';
     color: var(--success);
 }
@@ -303,6 +330,23 @@ body {
     border-radius: 8px;
     background: var(--surface-2, #f7f6f2);
     color: var(--text-primary);
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+}
+
+.p1-sample-box.is-recording-locked > summary {
+    pointer-events: none;
+    opacity: 0.65;
+    cursor: not-allowed;
+}
+
+.p1-sample-box.is-recording-locked > summary::after {
+    content: '（录音中已收起）';
+    margin-left: 6px;
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--text-muted, #888);
 }
 
 .p1-sample-box > summary {
@@ -350,6 +394,8 @@ body {
     line-height: 1.7;
     color: var(--text-primary);
     white-space: pre-wrap;
+    -webkit-user-select: none;
+    user-select: none;
 }
 
 .p1-sample-hint {
@@ -357,6 +403,8 @@ body {
     padding: 0 14px 12px;
     font-size: 12px;
     color: var(--text-muted, #888);
+    -webkit-user-select: none;
+    user-select: none;
 }
 
 /* 中间练习区 */
@@ -1317,6 +1365,9 @@ body {
     border-radius: 8px;
     background: var(--surface-2, #f7f6f2);
     color: var(--text-primary);
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
 }
 .p2-sample-box > summary {
     list-style: none;
@@ -1358,6 +1409,8 @@ body {
     line-height: 1.7;
     color: var(--text-primary);
     white-space: pre-wrap;
+    -webkit-user-select: none;
+    user-select: none;
 }
 .p2-sample-hint {
     margin: 0;

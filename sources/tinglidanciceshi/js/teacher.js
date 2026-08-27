@@ -766,14 +766,15 @@ function buildProgressRows(students, allRecords, allStudySessions) {
             });
             const practicedCount = module.id === 'speaking' ? getSpeakingPracticedCount(studentSessions) : 0;
             const speakingTotalQ = module.id === 'speaking' ? getSpeakingTotalQuestions(studentSessions) : 0;
+            const studyOnly = isStudyOnlyModule(module);
             let status = 'not_started';
             let statusText = '未开始';
             let statusClass = 'badge-info';
-            if (bestScore >= target && bestScore > 0) {
+            if (!studyOnly && bestScore >= target && bestScore > 0) {
                 status = 'passed';
                 statusText = '已达标';
                 statusClass = 'badge-success';
-            } else if (studentRecords.length > 0 || totalSeconds > 0 || practicedCount > 0) {
+            } else if ((!studyOnly && studentRecords.length > 0) || totalSeconds > 0 || practicedCount > 0) {
                 status = 'in_progress';
                 statusText = '进行中';
                 statusClass = 'badge-warning';
@@ -783,6 +784,7 @@ function buildProgressRows(students, allRecords, allStudySessions) {
                 student_name: s.name,
                 module_id: module.id,
                 module_name: module.name,
+                studyOnly: studyOnly,
                 target: target,
                 unit: module.unit || '%',
                 bestScore: bestScore,
@@ -938,11 +940,11 @@ function renderTeacherProgressSummary() {
         } else {
             html += '<td>' + escapeHtml(row.module_name) + '</td>';
         }
-        html += '<td class="numeric-cell">' + escapeHtml(formatTargetValue(row.target, row.unit)) + '</td>';
-        html += '<td class="numeric-cell">' + (row.testCount > 0 ? escapeHtml(formatTargetValue(row.bestScore, row.unit)) : '-') + '</td>';
-        html += '<td class="numeric-cell">' + row.testCount + '</td>';
-        html += '<td class="numeric-cell">' + row.passCount + '</td>';
-        html += '<td class="numeric-cell">' + (row.testCount > 0 ? row.passRate + '%' : '-') + '</td>';
+        html += '<td class="numeric-cell">' + (row.studyOnly ? '—' : escapeHtml(formatTargetValue(row.target, row.unit))) + '</td>';
+        html += '<td class="numeric-cell">' + (row.studyOnly ? '—' : (row.testCount > 0 ? escapeHtml(formatTargetValue(row.bestScore, row.unit)) : '-')) + '</td>';
+        html += '<td class="numeric-cell">' + (row.studyOnly ? '—' : row.testCount) + '</td>';
+        html += '<td class="numeric-cell">' + (row.studyOnly ? '—' : row.passCount) + '</td>';
+        html += '<td class="numeric-cell">' + (row.studyOnly ? '—' : (row.testCount > 0 ? row.passRate + '%' : '-')) + '</td>';
         html += '<td class="numeric-cell">' + escapeHtml(formatDuration(row.totalSeconds)) + '</td>';
         html += '<td class="numeric-cell">' + escapeHtml(formatDuration(row.todaySeconds)) + '</td>';
         html += '<td><span class="badge ' + row.statusClass + '">' + row.statusText + '</span></td>';
@@ -1026,13 +1028,14 @@ async function showStudentDetailProgress(studentId, studentName, filterModuleId)
         const bestScore = getBestScore(moduleRecords);
         const passCount = getPassCount(moduleRecords);
         const moduleTotalSeconds = window.TrackingUtils.sumPracticeSeconds(rawSessions, records, { moduleId: m.id });
-        const progressPercent = bestScore > 0 ? Math.min(100, Math.round((bestScore / moduleTarget) * 100)) : 0;
+        const studyOnly = isStudyOnlyModule(m);
+        const progressPercent = (!studyOnly && bestScore > 0) ? Math.min(100, Math.round((bestScore / moduleTarget) * 100)) : 0;
         let statusClass = 'badge-info';
         let statusText = '未开始';
-        if (bestScore >= moduleTarget && bestScore > 0) {
+        if (!studyOnly && bestScore >= moduleTarget && bestScore > 0) {
             statusClass = 'badge-success';
             statusText = '达标';
-        } else if (moduleRecords.length > 0 || moduleTotalSeconds > 0) {
+        } else if ((!studyOnly && moduleRecords.length > 0) || moduleTotalSeconds > 0) {
             statusClass = 'badge-warning';
             statusText = '进行中';
         }
@@ -1041,17 +1044,21 @@ async function showStudentDetailProgress(studentId, studentName, filterModuleId)
 
         html += '<tr style="border-bottom:1px solid #dee2e6;">';
         html += '<td style="padding:15px 12px;"><strong>' + m.name + '</strong></td>';
-        html += '<td style="padding:15px 12px; text-align:center;">' + formatTargetValue(moduleTarget, m.unit) + '</td>';
+        html += '<td style="padding:15px 12px; text-align:center;">' + (studyOnly ? '—' : formatTargetValue(moduleTarget, m.unit)) + '</td>';
         html += '<td style="padding:15px 12px; min-width:150px;">';
-        html += '<div style="display:flex; align-items:center; gap:10px;">';
-        html += '<div style="flex:1; background:#e9ecef; border-radius:10px; height:8px; overflow:hidden;">';
-        html += '<div style="width:' + progressPercent + '%; background:' + progressColor + '; height:100%; transition:width 0.3s;"></div>';
-        html += '</div>';
-        html += '<span style="min-width:50px; text-align:right;">' + (moduleRecords.length > 0 ? bestScore + '%' : '0%') + '</span>';
-        html += '</div>';
+        if (studyOnly) {
+            html += '<span style="color:#888;">仅练习</span>';
+        } else {
+            html += '<div style="display:flex; align-items:center; gap:10px;">';
+            html += '<div style="flex:1; background:#e9ecef; border-radius:10px; height:8px; overflow:hidden;">';
+            html += '<div style="width:' + progressPercent + '%; background:' + progressColor + '; height:100%; transition:width 0.3s;"></div>';
+            html += '</div>';
+            html += '<span style="min-width:50px; text-align:right;">' + (moduleRecords.length > 0 ? bestScore + '%' : '0%') + '</span>';
+            html += '</div>';
+        }
         html += '</td>';
-        html += '<td style="padding:15px 12px; text-align:center;">' + moduleRecords.length + '</td>';
-        html += '<td style="padding:15px 12px; text-align:center;">' + passCount + '</td>';
+        html += '<td style="padding:15px 12px; text-align:center;">' + (studyOnly ? '—' : moduleRecords.length) + '</td>';
+        html += '<td style="padding:15px 12px; text-align:center;">' + (studyOnly ? '—' : passCount) + '</td>';
         html += '<td style="padding:15px 12px; text-align:center;"><span class="badge ' + statusClass + '" style="font-size:0.75rem;">' + statusText + '</span></td>';
         html += '<td style="padding:15px 12px; text-align:center; color:#666; font-size:0.9rem;">' + formatDuration(moduleTotalSeconds) + '</td>';
         html += '</tr>';

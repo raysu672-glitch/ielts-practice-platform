@@ -115,7 +115,10 @@ async function loadProgressTable() {
     const records = (progressResult.data && progressResult.data.test_records) || [];
     const allSessions = (progressResult.data && progressResult.data.study_sessions) || [];
     const sessions = getStudySessions(allSessions);
-    const wrongCount = ((progressResult.data && progressResult.data.wrong_words) || []).length;
+    window._wrongBookCounts = (progressResult.data && progressResult.data.wrong_book_counts) || {};
+    const wrongCount = Object.keys(window._wrongBookCounts).reduce(function(sum, key) {
+        return sum + Number(window._wrongBookCounts[key] || 0);
+    }, 0);
     const todayKey = getChinaDateKey();
     const totalStudySeconds = window.TrackingUtils.sumPracticeSeconds(allSessions, records);
     const todayStudySeconds = window.TrackingUtils.sumPracticeSeconds(allSessions, records, {
@@ -145,12 +148,12 @@ async function loadProgressTable() {
         const bestScore = getBestScore(moduleRecords);
         const passCount = getPassCount(moduleRecords);
         const progressPercent = bestScore > 0 ? Math.min(100, Math.round((bestScore / moduleTarget) * 100)) : 0;
-        const isTestable = isBuiltinDictationModule(m.id) || !!m.test_url;
+        const isTestable = !isStudyOnlyModule(m) && (isBuiltinDictationModule(m.id) || !!m.test_url);
         if (isTestable) totalProgressForTests += progressPercent;
 
         let statusClass = 'badge-info';
         let statusText = '未开始';
-        if (bestScore >= moduleTarget && bestScore > 0) {
+        if (!isStudyOnlyModule(m) && bestScore >= moduleTarget && bestScore > 0) {
             statusClass = 'badge-success';
             statusText = '达标';
         } else if (moduleRecords.length > 0 || modSeconds > 0 || speakingPracticed > 0) {
@@ -159,24 +162,33 @@ async function loadProgressTable() {
         }
 
         const progressColor = progressPercent >= 100 ? '#28a745' : '#667eea';
-        const scoreDisplay = moduleRecords.length > 0
-            ? formatTargetValue(bestScore, m.unit)
-            : (modSeconds > 0 ? '学习中' : (m.unit === '分' ? '0分' : '0%'));
+        let scoreDisplay;
+        if (isStudyOnlyModule(m)) {
+            scoreDisplay = '—';
+        } else if (moduleRecords.length > 0) {
+            scoreDisplay = formatTargetValue(bestScore, m.unit);
+        } else {
+            scoreDisplay = modSeconds > 0 ? '学习中' : (m.unit === '分' ? '0分' : '0%');
+        }
         html += '<tr style="border-bottom:1px solid #dee2e6;">';
         html += '<td style="padding:15px 12px;"><strong>' + m.name + '</strong></td>';
-        html += '<td style="padding:15px 12px; text-align:center;">' + formatTargetValue(moduleTarget, m.unit) + '</td>';
+        html += '<td style="padding:15px 12px; text-align:center;">' + (isStudyOnlyModule(m) ? '—' : formatTargetValue(moduleTarget, m.unit)) + '</td>';
         html += '<td style="padding:15px 12px; min-width:180px;">';
         html += '<div style="display:flex; align-items:center; gap:10px;">';
-        html += '<div style="flex:1; background:#e9ecef; border-radius:10px; height:8px; overflow:hidden;">';
-        html += '<div style="width:' + progressPercent + '%; background:' + progressColor + '; height:100%; transition:width 0.3s;"></div>';
-        html += '</div>';
-        html += '<span style="min-width:60px; text-align:right;">' + scoreDisplay + '</span>';
+        if (!isStudyOnlyModule(m)) {
+            html += '<div style="flex:1; background:#e9ecef; border-radius:10px; height:8px; overflow:hidden;">';
+            html += '<div style="width:' + progressPercent + '%; background:' + progressColor + '; height:100%; transition:width 0.3s;"></div>';
+            html += '</div>';
+            html += '<span style="min-width:60px; text-align:right;">' + scoreDisplay + '</span>';
+        }
         html += '<span class="badge ' + statusClass + '" style="font-size:0.75rem;">' + statusText + '</span>';
         html += '</div>';
         if (m.id === 'speaking') {
             const practiced = getSpeakingPracticedCount(modSessions);
             const totalQ = getSpeakingTotalQuestions(modSessions);
             html += '<div style="margin-top:6px; color:#666; font-size:0.8rem;">已练 ' + practiced + (totalQ > 0 ? (' / ' + totalQ) : '') + ' 题；AI评分 ' + moduleRecords.length + ' 次，达标 ' + passCount + ' 次</div>';
+        } else if (isStudyOnlyModule(m)) {
+            html += '<div style="margin-top:6px; color:#666; font-size:0.8rem;">仅练习，不计测试</div>';
         } else {
             html += '<div style="margin-top:6px; color:#666; font-size:0.8rem;">测试 ' + moduleRecords.length + ' 次，达标 ' + passCount + ' 次</div>';
         }
@@ -188,7 +200,7 @@ async function loadProgressTable() {
         if (isBuiltinDictationModule(m.id)) {
             html += '<button class="btn btn-study" onclick="openListeningIframe(\'' + m.id + '\')">学习</button>';
             html += '<button class="btn btn-sm btn-secondary" onclick="startTest(\'random\', \'' + m.id + '\')">测试</button>';
-            html += '<button class="btn btn-sm btn-success" onclick="switchStudentTab(\'history\')">历史</button>';
+            html += '<button class="btn btn-sm btn-success" onclick="openWrongBook(\'' + m.id + '\')">' + wrongBookButtonLabel(m.id) + '</button>';
         } else if (m.id === 'writing_correction') {
             const writingUnseen = Number(window._writingUnseenCount || 0);
             const historyLabel = writingUnseen > 0 ? ('历史 · ' + writingUnseen + '新') : '历史';
@@ -196,16 +208,22 @@ async function loadProgressTable() {
             html += '<button class="btn btn-sm btn-success" onclick="openWritingCorrectionHistory()">' + historyLabel + '</button>';
         } else {
             if (m.url) {
-                html += '<button class="btn btn-study" onclick="openGenericIframe(\'' + m.id + '\', \'' + m.name + '\', \'' + m.url + '\', \'study\')">学习</button>';
+                html += '<button class="btn btn-study" onclick="openGenericIframe(\'' + m.id + '\', \'' + m.name + '\', \'' + m.url + '\', \'study\')">' + (isStudyOnlyModule(m) ? '练习' : '学习') + '</button>';
             } else {
                 html += '<button class="btn btn-study" disabled title="该模块暂未配置学习页面">学习待接入</button>';
             }
-            if (m.test_url) {
-                html += '<button class="btn btn-sm btn-secondary" onclick="openGenericIframe(\'' + m.id + '\', \'' + m.name + '\', \'' + m.test_url + '\', \'test\')">测试</button>';
-            } else {
-                html += '<button class="btn btn-sm btn-secondary" disabled title="该模块暂未配置测试页面">测试待接入</button>';
+            if (!isStudyOnlyModule(m)) {
+                if (m.test_url) {
+                    html += '<button class="btn btn-sm btn-secondary" onclick="openGenericIframe(\'' + m.id + '\', \'' + m.name + '\', \'' + m.test_url + '\', \'test\')">测试</button>';
+                } else {
+                    html += '<button class="btn btn-sm btn-secondary" disabled title="该模块暂未配置测试页面">测试待接入</button>';
+                }
+                if (hasWrongBook(m)) {
+                    html += '<button class="btn btn-sm btn-success" onclick="openWrongBook(\'' + m.id + '\')">' + wrongBookButtonLabel(m.id) + '</button>';
+                } else {
+                    html += '<button class="btn btn-sm btn-success" onclick="switchStudentTab(\'history\')">历史</button>';
+                }
             }
-            html += '<button class="btn btn-sm btn-success" onclick="switchStudentTab(\'history\')">历史</button>';
         }
         html += '</div></td></tr>';
     }
@@ -220,7 +238,7 @@ async function loadProgressTable() {
     html += '<div><div style="font-size:1.4rem; font-weight:bold; color:#11998e;">' + (records.length > 0 ? Math.round(passedRecords / records.length * 100) : 0) + '%</div><div style="color:#666; font-size:0.9rem;">总达标率</div></div>';
     html += '<div><div style="font-size:1.4rem; font-weight:bold; color:#764ba2;">' + formatDuration(totalStudySeconds) + '</div><div style="color:#666; font-size:0.9rem;">总练习时长</div></div>';
     html += '<div><div style="font-size:1.4rem; font-weight:bold; color:#dc3545;">' + formatDuration(todayStudySeconds) + '</div><div style="color:#666; font-size:0.9rem;">今日练习时长</div></div>';
-    html += '</div><div style="margin-top:12px;color:#666;font-size:0.9rem;">待复习错题：' + wrongCount + ' 个。练习时长含学习与测试，5分钟无操作自动停表。</div></div>';
+    html += '</div><div style="margin-top:12px;color:#666;font-size:0.9rem;">待复习错题：' + wrongCount + ' 个。各科点「错题本」复习。练习时长含学习与测试，5分钟无操作自动停表。</div></div>';
 
     container.innerHTML = html;
 }
@@ -329,6 +347,179 @@ function toggleHistoryDetail(index) {
     if (detailDiv) {
         detailDiv.style.display = detailDiv.style.display === 'none' ? 'block' : 'none';
     }
+}
+
+function wrongBookButtonLabel(moduleId) {
+    const n = Number((window._wrongBookCounts || {})[moduleId] || 0);
+    return n > 0 ? ('错题本 · ' + n) : '错题本';
+}
+
+function extractWrongItemResults(moduleType, details) {
+    const list = Array.isArray(details) ? details : [];
+    const out = [];
+    for (let i = 0; i < list.length; i++) {
+        const item = list[i] || {};
+        if (moduleType === 'reading_synonym') {
+            const key = String(item.item_key != null ? item.item_key : (item.srcIndex != null ? item.srcIndex : ''));
+            if (!key) continue;
+            out.push({
+                item_key: key,
+                title: item.title || ((item.words && item.words[0]) || key),
+                payload: { words: item.words || [], marked: item.marked || item.wrongClicks || [] },
+                is_correct: !!item.is_correct
+            });
+        } else if (moduleType === 'sentence') {
+            const key = String(item.item_key != null ? item.item_key : (item.num != null ? item.num : ''));
+            if (!key) continue;
+            out.push({
+                item_key: key,
+                title: item.title || item.original || key,
+                payload: { num: item.num, original: item.original || '', pattern: item.pattern || '' },
+                is_correct: !!item.is_correct
+            });
+        } else if (moduleType === 'listening_synonym') {
+            const key = String(item.item_key != null ? item.item_key : (item.id != null ? item.id : ''));
+            if (!key) continue;
+            const ok = item.is_correct != null ? !!item.is_correct : !!item.isCorrect;
+            out.push({
+                item_key: key,
+                title: item.title || item.original || key,
+                payload: { id: item.id || Number(key), original: item.original || item.title || '' },
+                is_correct: ok
+            });
+        } else if (moduleType === 'writing_phrase') {
+            const key = String(item.item_key || item.en || '');
+            if (!key) continue;
+            out.push({
+                item_key: key,
+                title: item.title || item.zh || key,
+                payload: { zh: item.zh || item.title || '', en: item.en || key },
+                is_correct: !!item.correct || !!item.is_correct
+            });
+        } else if (moduleType === 'writing_translate') {
+            const key = String(item.item_key != null ? item.item_key : (item.id != null ? item.id : ''));
+            if (!key) continue;
+            out.push({
+                item_key: key,
+                title: item.title || item.en || key,
+                payload: { id: item.id || Number(key), zh: item.zh || '', en: item.en || item.title || '' },
+                is_correct: !!item.correct || !!item.is_correct
+            });
+        }
+    }
+    return out;
+}
+
+function ensureWrongBookScreen() {
+    if (document.getElementById('wrongBookScreen')) return;
+    const el = document.createElement('div');
+    el.id = 'wrongBookScreen';
+    el.className = 'screen';
+    el.innerHTML =
+        '<div class="card wrong-book-card">' +
+            '<div class="wrong-book-head">' +
+                '<button type="button" class="btn btn-sm btn-secondary" onclick="closeWrongBook()">返回</button>' +
+                '<h2 id="wrongBookTitle">错题本</h2>' +
+            '</div>' +
+            '<p class="wrong-book-sub" id="wrongBookSub"></p>' +
+            '<div class="wrong-book-actions" id="wrongBookActions"></div>' +
+            '<div id="wrongBookList"></div>' +
+        '</div>';
+    const host = document.querySelector('.container') || document.body;
+    host.appendChild(el);
+}
+
+async function openWrongBook(moduleId) {
+    const m = getModuleById(moduleId);
+    if (!m || !hasWrongBook(m)) {
+        showToast('该科目没有错题本', 'info');
+        return;
+    }
+    window._wrongBookModuleId = m.id;
+    ensureWrongBookScreen();
+    showScreen('wrongBookScreen');
+    document.getElementById('wrongBookTitle').textContent = m.name + ' · 错题本';
+    document.getElementById('wrongBookSub').textContent = '连对 3 次后移出；再错则连对清零。';
+    document.getElementById('wrongBookList').innerHTML = '<p style="color:#666;padding:20px;text-align:center;">加载中…</p>';
+    document.getElementById('wrongBookActions').innerHTML = '';
+    const result = await apiFetch('/api/student/wrong-items?module_type=' + encodeURIComponent(m.id) + '&unmastered=1');
+    if (result.error) {
+        document.getElementById('wrongBookList').innerHTML = '<p style="color:#dc3545;padding:20px;text-align:center;">' + escapeHtml((result.error && result.error.message) || '加载失败') + '</p>';
+        return;
+    }
+    const items = result.data || [];
+    window._wrongBookItems = items;
+    const size = WRONG_BOOK_TEST_SIZE[m.id] || 10;
+    let actions = '';
+    if (items.length > 0) {
+        actions += '<button class="btn btn-sm btn-secondary" onclick="startWrongBookTest(\'' + m.id + '\')">开始测试（每次 ' + size + ' 题）</button>';
+    }
+    document.getElementById('wrongBookActions').innerHTML = actions;
+    if (items.length === 0) {
+        document.getElementById('wrongBookList').innerHTML = '<p style="color:#666;padding:24px;text-align:center;">暂无错题</p>';
+        return;
+    }
+    let html = '<div class="wrong-book-count">待复习 ' + items.length + ' 条</div>';
+    html += '<div class="wrong-book-catalog">';
+    for (let i = 0; i < items.length; i++) {
+        const item = items[i];
+        const streak = Number(item.correct_streak || 0);
+        const payload = item.payload || {};
+        let extra = '';
+        if (m.id === 'reading_synonym' && payload.words && payload.words.length) {
+            extra += '<div class="wrong-book-words">';
+            for (let w = 0; w < payload.words.length; w++) {
+                const word = payload.words[w];
+                const marked = (payload.marked || []).indexOf(word) >= 0;
+                extra += '<span class="wrong-book-word' + (marked ? ' marked' : '') + '">' + escapeHtml(word) + '</span>';
+            }
+            extra += '</div>';
+        }
+        const clickable = m.id === 'listening_synonym';
+        html += '<div class="wrong-book-item"' + (clickable ? ' onclick="openWrongBookLearn(\'' + m.id + '\',\'' + escapeJsString(item.item_key) + '\')"' : '') + '>';
+        html += '<div class="wrong-book-item-title">' + escapeHtml(item.title || item.item_key) + '</div>';
+        if (m.id === 'writing_phrase' && payload.en) {
+            html += '<div class="wrong-book-item-sub">' + escapeHtml(payload.en) + '</div>';
+        }
+        if (m.id === 'writing_translate' && payload.zh) {
+            html += '<div class="wrong-book-item-sub">' + escapeHtml(payload.zh) + '</div>';
+        }
+        extra && (html += extra);
+        html += '<div class="wrong-book-meta">连对 ' + streak + ' / 3</div>';
+        if (clickable) html += '<div class="wrong-book-hint">点击按学习模式练这一句</div>';
+        html += '</div>';
+    }
+    html += '</div>';
+    document.getElementById('wrongBookList').innerHTML = html;
+}
+
+function closeWrongBook() {
+    window._wrongBookModuleId = null;
+    showStudentHome();
+}
+
+function startWrongBookTest(moduleId) {
+    const m = getModuleById(moduleId);
+    if (!m) return;
+    window._wrongBookReturn = moduleId;
+    if (isBuiltinDictationModule(moduleId)) {
+        startTest('wrong_words', moduleId);
+        return;
+    }
+    if (!m.test_url) {
+        showToast('该科目没有测试页', 'info');
+        return;
+    }
+    const joiner = m.test_url.indexOf('?') >= 0 ? '&' : '?';
+    openGenericIframe(m.id, m.name, m.test_url + joiner + 'wrongbook=1', 'test');
+}
+
+function openWrongBookLearn(moduleId, itemKey) {
+    const m = getModuleById(moduleId);
+    if (!m || !m.url) return;
+    window._wrongBookReturn = moduleId;
+    const joiner = m.url.indexOf('?') >= 0 ? '&' : '?';
+    openGenericIframe(m.id, m.name, m.url + joiner + 'qid=' + encodeURIComponent(itemKey), 'study');
 }
 
 async function startWrongWordsTestFromHistory(wordListStr, moduleId) {
@@ -483,9 +674,18 @@ function stopPracticeClock() {
     _practiceClock = null;
 }
 
+function wordsFromWrongBookCache() {
+    const cached = window._wrongBookItems;
+    if (!cached || !cached.length) return [];
+    return cached.map(function(item) {
+        return String((item && (item.word || item.item_key || item.title)) || '').trim();
+    }).filter(Boolean);
+}
+
 async function startTest(mode, moduleId) {
     // 用户点击了开始测试，解锁音频
     unlockAudio();
+    isPlaying = false;
     testStartTime = Date.now(); // 记录测试开始时间
     startPracticeClock();
     currentDictationModuleId = normalizeModuleType(moduleId || currentDictationModuleId || 'dictation');
@@ -498,17 +698,24 @@ async function startTest(mode, moduleId) {
     if (mode === 'random') {
         testWords = shuffleArray(bank.slice()).slice(0, 50);
     } else {
-        const result = await apiFetch('/api/student/wrong-words?module_type=' + encodeURIComponent(currentDictationModuleId) + '&unmastered=1');
-        if (result.error) {
-            showToast((result.error && result.error.message) || '加载错题失败', 'error');
-            return;
+        // 错题本目录已经拉过清单：同步开测，避免 await 丢掉点击手势导致没声音
+        testWords = wordsFromWrongBookCache();
+        if (!testWords.length) {
+            const result = await apiFetch('/api/student/wrong-words?module_type=' + encodeURIComponent(currentDictationModuleId) + '&unmastered=1');
+            if (result.error) {
+                showToast((result.error && result.error.message) || '加载错题失败', 'error');
+                return;
+            }
+            if (!result.data || result.data.length === 0) {
+                showToast('暂无错题可练习', 'info');
+                return;
+            }
+            testWords = result.data.map(function(w) { return w.word; });
         }
-        if (!result.data || result.data.length === 0) {
-            showToast('暂无错题可练习', 'info');
-            return;
-        }
-        testWords = result.data.map(function(w) { return w.word; });
-        if (testWords.length < 50) {
+        if (window._wrongBookReturn) {
+            const size = WRONG_BOOK_TEST_SIZE[currentDictationModuleId] || 10;
+            testWords = shuffleArray(testWords.slice()).slice(0, size);
+        } else if (testWords.length < 50) {
             const more = shuffleArray(bank.filter(function(w) { return testWords.indexOf(w) === -1; })).slice(0, 50 - testWords.length);
             testWords = testWords.concat(more);
         }
@@ -552,6 +759,30 @@ function getDictationAudioBase() {
     return (dictation && dictation.audioBase) ? dictation.audioBase : 'audio/words/';
 }
 
+function finishPlayWord() {
+    if (playTimeout) { clearTimeout(playTimeout); playTimeout = null; }
+    isPlaying = false;
+    safeStartTimer();
+}
+
+function speakDictationWord(word, onDone) {
+    if (!window.speechSynthesis) {
+        if (onDone) onDone();
+        return;
+    }
+    try { speechSynthesis.cancel(); } catch (e) {}
+    var uttered = new SpeechSynthesisUtterance(word);
+    uttered.lang = 'en-GB';
+    uttered.rate = 0.85;
+    uttered.onend = function() { if (onDone) onDone(); };
+    uttered.onerror = function() { if (onDone) onDone(); };
+    try {
+        speechSynthesis.speak(uttered);
+    } catch (e) {
+        if (onDone) onDone();
+    }
+}
+
 function playWord() {
     if (isPlaying) return;
     isPlaying = true;
@@ -560,33 +791,29 @@ function playWord() {
     if (playTimeout) { clearTimeout(playTimeout); playTimeout = null; }
     if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
     var word = testWords[currentTestIndex];
+    var usedFallback = false;
     
     // 超时保护：6秒后强制开始计时
     playTimeout = setTimeout(function() {
         if (isPlaying) {
             try { audioEl.pause(); } catch(e) {}
             try { speechSynthesis.cancel(); } catch(e) {}
-            isPlaying = false;
-            safeStartTimer();
+            finishPlayWord();
         }
     }, 6000);
 
-    // 仅使用本地 MP3（听力1000词 / 听力基础词汇）
+    function fallbackToTts() {
+        if (usedFallback) return;
+        usedFallback = true;
+        speakDictationWord(word, finishPlayWord);
+    }
+
+    // 本地有 MP3 就播文件，没有则退回浏览器朗读
     var localUrl = getDictationAudioBase() + encodeURIComponent(word) + '.mp3';
-    audioEl.onended = function() { if (playTimeout) { clearTimeout(playTimeout); playTimeout = null; } isPlaying = false; safeStartTimer(); };
-    audioEl.onerror = function() {
-        if (playTimeout) { clearTimeout(playTimeout); playTimeout = null; }
-        isPlaying = false;
-        showToast('本地音频缺失：' + word, 'error');
-        safeStartTimer();
-    };
+    audioEl.onended = function() { finishPlayWord(); };
+    audioEl.onerror = fallbackToTts;
     audioEl.src = localUrl;
-    audioEl.play().catch(function() {
-        if (playTimeout) { clearTimeout(playTimeout); playTimeout = null; }
-        isPlaying = false;
-        showToast('音频播放失败：' + word, 'error');
-        safeStartTimer();
-    });
+    audioEl.play().catch(fallbackToTts);
 }
 
 // 安全启动计时器（每题只启动一次）
@@ -802,6 +1029,12 @@ function downloadResult() {
 }
 
 function backToStudentHome() {
+    const returnId = window._wrongBookReturn;
+    window._wrongBookReturn = null;
+    if (returnId) {
+        openWrongBook(returnId);
+        return;
+    }
     showStudentHome();
 }
 
@@ -1008,6 +1241,17 @@ function playLearnWord() {
         word = learnSession.words[learnSession.currentWordIndex];
     }
     
+    var usedFallback = false;
+    function fallbackToTts() {
+        if (usedFallback) return;
+        usedFallback = true;
+        speakDictationWord(word, function() {
+            if (learnPlayTimeout) { clearTimeout(learnPlayTimeout); learnPlayTimeout = null; }
+            learnIsPlaying = false;
+            learnSafeStartTimer();
+        });
+    }
+    
     // 超时保护：6秒后强制开始计时
     learnPlayTimeout = setTimeout(function() {
         if (learnIsPlaying) {
@@ -1018,22 +1262,11 @@ function playLearnWord() {
         }
     }, 6000);
     
-    // 仅使用本地 MP3（听力1000词词库）
-    var localUrl = '/tinglidanciceshi/audio/words/' + encodeURIComponent(word) + '.mp3';
+    var localUrl = getDictationAudioBase() + encodeURIComponent(word) + '.mp3';
     learnAudioEl.onended = function() { if (learnPlayTimeout) { clearTimeout(learnPlayTimeout); learnPlayTimeout = null; } learnIsPlaying = false; learnSafeStartTimer(); };
-    learnAudioEl.onerror = function() {
-        if (learnPlayTimeout) { clearTimeout(learnPlayTimeout); learnPlayTimeout = null; }
-        learnIsPlaying = false;
-        showToast('本地音频缺失：' + word, 'error');
-        learnSafeStartTimer();
-    };
+    learnAudioEl.onerror = fallbackToTts;
     learnAudioEl.src = localUrl;
-    learnAudioEl.play().catch(function() {
-        if (learnPlayTimeout) { clearTimeout(learnPlayTimeout); learnPlayTimeout = null; }
-        learnIsPlaying = false;
-        showToast('音频播放失败：' + word, 'error');
-        learnSafeStartTimer();
-    });
+    learnAudioEl.play().catch(fallbackToTts);
 }
 
 // 学习板块安全启动计时器
@@ -1765,7 +1998,7 @@ function openGenericIframe(moduleId, moduleName, url, mode) {
         module_name: moduleName,
         mode: finalMode,
         // 避免浏览器强缓存旧测试页（P4 音频路径修复）
-        v: '20260824b'
+        v: '20260825e'
     });
     showScreen('genericScreen');
     document.getElementById('genericScreenTitle').textContent = moduleName + (finalMode === 'test' ? '测试' : '学习');
@@ -1801,6 +2034,12 @@ function finishGenericIframeClose() {
     stopPracticeClock();
     window._currentModule = null;
     try { document.getElementById('genericIframe').src = ''; } catch(e) {}
+    const returnId = window._wrongBookReturn;
+    window._wrongBookReturn = null;
+    if (returnId) {
+        openWrongBook(returnId);
+        return;
+    }
     showStudentHome();
 }
 
@@ -1970,8 +2209,21 @@ window.addEventListener('message', async function(event) {
             if (result.error) {
                 console.error('保存测试记录失败:', result.error);
                 showToast('保存测试记录失败', 'error');
-            } else if (!result.skipped) {
-                showToast('测试记录已保存');
+            } else {
+                if (!result.skipped) showToast('测试记录已保存');
+                if (module && hasWrongBook(module)) {
+                    const applyItems = extractWrongItemResults(moduleType, data.details || []);
+                    if (applyItems.length > 0) {
+                        const applyResult = await apiFetch('/api/student/wrong-items/apply', {
+                            method: 'POST',
+                            body: JSON.stringify({ module_type: moduleType, results: applyItems })
+                        });
+                        if (applyResult.error) {
+                            console.error('同步错题失败:', applyResult.error);
+                            showToast('测试已保存，但错题同步失败', 'error');
+                        }
+                    }
+                }
                 try { loadProgressTable(); } catch(e) {}
             }
         }
