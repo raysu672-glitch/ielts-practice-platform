@@ -1179,6 +1179,14 @@ function switchTeacherTab(tab, evt, options) {
 
 function showAddStudentModal() { showModal('addStudentModal'); }
 
+function showAddTeacherModal() {
+    if (!isAdminTeacher()) {
+        showToast('仅管理员可添加教师', 'error');
+        return;
+    }
+    showModal('addTeacherModal');
+}
+
 async function addStudent() {
     const name = document.getElementById('newStudentName').value.trim();
     const targetScore = parseFloat(document.getElementById('newStudentTarget').value);
