@@ -16,7 +16,7 @@ var WRITING_TEACHER_PASSWORD = 'xiezuo8805';
 
 async function restoreTeacherSession() {
     try {
-        const me = await authMe();
+        const me = await authMe('teacher');
         if (!me.data || me.data.role !== 'teacher' || !me.data.teacher) {
             return;
         }
@@ -87,7 +87,7 @@ function teacherLogout() {
     document.body.classList.remove('teacher-writing-wide');
     currentTeacher = null;
     updateTeacherMgmtVisibility();
-    authLogout().finally(function() {
+    authLogout('teacher').finally(function() {
         showScreen('teacherLoginScreen');
         var teacherIdInput = document.getElementById('teacherId');
         if (teacherIdInput) teacherIdInput.value = '';

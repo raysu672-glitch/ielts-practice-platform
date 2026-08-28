@@ -26,7 +26,7 @@ function clearStudentSession() {
 
 async function restoreStudentSession() {
     try {
-        const me = await authMe();
+        const me = await authMe('student');
         if (!me.data || me.data.role !== 'student' || !me.data.student) {
             clearStudentSession();
             return;
@@ -553,7 +553,7 @@ async function startWrongWordsTestFromHistory(wordListStr, moduleId) {
 function studentLogout() {
     currentStudent = null;
     clearStudentSession();
-    authLogout().finally(function() {
+    authLogout('student').finally(function() {
         showScreen('studentLoginScreen');
         document.getElementById('studentId').value = '';
         document.getElementById('studentPassword').value = '';

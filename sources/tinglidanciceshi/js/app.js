@@ -44,16 +44,18 @@ async function apiFetch(url, options) {
     return result;
 }
 
-async function authLogout() {
+async function authLogout(role) {
     try {
-        await apiFetch('/api/auth/logout', { method: 'POST', body: '{}' });
+        var q = role ? ('?role=' + encodeURIComponent(role)) : '';
+        await apiFetch('/api/auth/logout' + q, { method: 'POST', body: '{}' });
     } catch (e) {
         console.warn('退出登录请求失败:', e);
     }
 }
 
-async function authMe() {
-    return apiFetch('/api/auth/me', { method: 'GET' });
+async function authMe(role) {
+    var q = role ? ('?role=' + encodeURIComponent(role)) : '';
+    return apiFetch('/api/auth/me' + q, { method: 'GET' });
 }
 
 // 工具函数

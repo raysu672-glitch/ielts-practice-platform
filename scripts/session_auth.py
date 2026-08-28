@@ -15,9 +15,18 @@ from typing import Any, Optional
 
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_SECRET_PATH = ROOT / "data" / "session_secret.txt"
+# Legacy shared cookie (student/teacher overwrote each other). Kept for migration.
 SESSION_COOKIE_NAME = "ielts_session"
+STUDENT_COOKIE_NAME = "ielts_student_session"
+TEACHER_COOKIE_NAME = "ielts_teacher_session"
 SESSION_DAYS = 7
 SESSION_MAX_AGE = SESSION_DAYS * 24 * 60 * 60
+
+
+def cookie_name_for_role(role: str) -> str:
+    if role == "teacher":
+        return TEACHER_COOKIE_NAME
+    return STUDENT_COOKIE_NAME
 
 
 def _b64url_encode(raw: bytes) -> str:
@@ -105,10 +114,13 @@ def build_session_cookie(
     max_age: int = SESSION_MAX_AGE,
     clear: bool = False,
     secure: bool = False,
+    role: Optional[str] = None,
+    name: Optional[str] = None,
 ) -> str:
+    cookie_name = name or (cookie_name_for_role(role) if role else SESSION_COOKIE_NAME)
     jar = cookies.SimpleCookie()
-    jar[SESSION_COOKIE_NAME] = "" if clear else token
-    morsel = jar[SESSION_COOKIE_NAME]
+    jar[cookie_name] = "" if clear else token
+    morsel = jar[cookie_name]
     morsel["path"] = "/"
     morsel["httponly"] = True
     morsel["samesite"] = "Lax"

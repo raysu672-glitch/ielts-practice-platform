@@ -37,6 +37,7 @@ from password_utils import authenticate_row_password, hash_password, is_password
 from session_auth import (  # noqa: E402
     SESSION_COOKIE_NAME,
     build_session_cookie,
+    cookie_name_for_role,
     issue_session_token,
     load_session_secret,
     parse_session_token,
@@ -793,11 +794,34 @@ class LocalHandler(SimpleHTTPRequestHandler):
         self.send_response(HTTPStatus.NO_CONTENT)
         self.end_headers()
 
-    def current_session(self) -> Optional[dict[str, Any]]:
-        raw = read_cookie_header(self.headers.get("Cookie", ""), SESSION_COOKIE_NAME)
-        if not raw or not self.session_secret:
+    def current_session(self, role: Optional[str] = None) -> Optional[dict[str, Any]]:
+        """Read role-scoped session cookie.
+
+        Student and teacher now use separate cookies so logging into one role
+        no longer overwrites the other. Legacy ``ielts_session`` is still
+        accepted as a fallback for the matching role.
+        """
+        if not self.session_secret:
             return None
-        return parse_session_token(raw, self.session_secret)
+        cookie_header = self.headers.get("Cookie", "")
+
+        def _from_names(names: list[str], expect_role: str) -> Optional[dict[str, Any]]:
+            for name in names:
+                raw = read_cookie_header(cookie_header, name)
+                if not raw:
+                    continue
+                session = parse_session_token(raw, self.session_secret)
+                if session and session.get("role") == expect_role:
+                    return session
+            return None
+
+        if role in ("student", "teacher"):
+            return _from_names(
+                [cookie_name_for_role(role), SESSION_COOKIE_NAME],
+                role,
+            )
+        # Either role (prefer teacher so teacher console keeps working when both exist)
+        return self.current_session("teacher") or self.current_session("student")
 
     def use_secure_cookies(self) -> bool:
         proto = (
@@ -807,8 +831,40 @@ class LocalHandler(SimpleHTTPRequestHandler):
         ).split(",")[0].strip().lower()
         return proto == "https"
 
-    def session_cookie(self, token: str = "", *, clear: bool = False) -> str:
-        return build_session_cookie(token, clear=clear, secure=self.use_secure_cookies())
+    def session_cookie(
+        self,
+        token: str = "",
+        *,
+        clear: bool = False,
+        role: Optional[str] = None,
+        name: Optional[str] = None,
+    ) -> str:
+        return build_session_cookie(
+            token,
+            clear=clear,
+            secure=self.use_secure_cookies(),
+            role=role,
+            name=name,
+        )
+
+    def clear_session_cookies(self, role: Optional[str] = None) -> list[str]:
+        """Clear role cookie(s) plus legacy shared cookie."""
+        secure = self.use_secure_cookies()
+        out: list[str] = []
+        if role in ("student", "teacher"):
+            out.append(build_session_cookie("", clear=True, secure=secure, role=role))
+        else:
+            out.append(build_session_cookie("", clear=True, secure=secure, role="student"))
+            out.append(build_session_cookie("", clear=True, secure=secure, role="teacher"))
+        out.append(build_session_cookie("", clear=True, secure=secure, name=SESSION_COOKIE_NAME))
+        return out
+
+    def login_set_cookies(self, role: str, token: str) -> list[str]:
+        """Set role cookie and drop legacy shared cookie (do not touch the other role)."""
+        return [
+            self.session_cookie(token, role=role),
+            self.session_cookie(clear=True, name=SESSION_COOKIE_NAME),
+        ]
 
     def read_json_body(self) -> dict[str, Any]:
         length = int(self.headers.get("Content-Length", "0"))
@@ -916,7 +972,13 @@ class LocalHandler(SimpleHTTPRequestHandler):
             )
 
     def handle_auth_me(self) -> None:
-        session = self.current_session()
+        parsed = urllib.parse.urlparse(self.path)
+        qs = urllib.parse.parse_qs(parsed.query or "")
+        want_role = str((qs.get("role") or [""])[0] or "").strip().lower()
+        if want_role in ("student", "teacher"):
+            session = self.current_session(want_role)
+        else:
+            session = self.current_session()
         if not session:
             self.send_json({"data": None, "error": {"message": "未登录"}}, status=401)
             return
@@ -930,7 +992,7 @@ class LocalHandler(SimpleHTTPRequestHandler):
                     self.send_json(
                         {"data": None, "error": {"message": "会话已失效"}},
                         status=401,
-                        set_cookies=[self.session_cookie(clear=True)],
+                        set_cookies=self.clear_session_cookies("student"),
                     )
                     return
                 self.send_json(
@@ -951,7 +1013,7 @@ class LocalHandler(SimpleHTTPRequestHandler):
                 self.send_json(
                     {"data": None, "error": {"message": "会话已失效"}},
                     status=401,
-                    set_cookies=[self.session_cookie(clear=True)],
+                    set_cookies=self.clear_session_cookies("teacher"),
                 )
                 return
             self.send_json(
@@ -993,7 +1055,7 @@ class LocalHandler(SimpleHTTPRequestHandler):
             )
             self.send_json(
                 {"data": {"role": "student", "student": public_student(item)}, "error": None},
-                set_cookies=[self.session_cookie(token)],
+                set_cookies=self.login_set_cookies("student", token),
             )
 
     def handle_teacher_login(self) -> None:
@@ -1025,19 +1087,22 @@ class LocalHandler(SimpleHTTPRequestHandler):
             )
             self.send_json(
                 {"data": {"role": "teacher", "teacher": public_teacher(item)}, "error": None},
-                set_cookies=[self.session_cookie(token)],
+                set_cookies=self.login_set_cookies("teacher", token),
             )
 
     def handle_logout(self) -> None:
+        parsed = urllib.parse.urlparse(self.path)
+        qs = urllib.parse.parse_qs(parsed.query or "")
+        role = str((qs.get("role") or [""])[0] or "").strip().lower()
+        if role not in ("student", "teacher"):
+            role = None
         self.send_json(
             {"data": {"ok": True}, "error": None},
-            set_cookies=[self.session_cookie(clear=True)],
+            set_cookies=self.clear_session_cookies(role),
         )
 
-
-
     def require_teacher_session(self) -> Optional[dict[str, Any]]:
-        session = self.current_session()
+        session = self.current_session("teacher")
         if not session or session.get("role") != "teacher":
             self.send_json({"data": None, "error": {"message": "需要教师登录"}}, status=401)
             return None
@@ -1232,7 +1297,7 @@ class LocalHandler(SimpleHTTPRequestHandler):
 
 
     def require_student_session(self) -> Optional[dict[str, Any]]:
-        session = self.current_session()
+        session = self.current_session("student")
         if not session or session.get("role") != "student":
             self.send_json({"data": None, "error": {"message": "需要学生登录"}}, status=401)
             return None
