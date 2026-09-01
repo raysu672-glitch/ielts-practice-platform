@@ -1524,6 +1524,204 @@ class P1Practice {
             .trim();
     }
 
+    topicStopwords() {
+        return new Set([
+            'the', 'and', 'you', 'your', 'have', 'has', 'had', 'do', 'does', 'did', 'are', 'is', 'was', 'were',
+            'be', 'been', 'to', 'of', 'in', 'on', 'at', 'for', 'with', 'from', 'this', 'that', 'what', 'when',
+            'where', 'why', 'how', 'would', 'could', 'should', 'can', 'about', 'there', 'their', 'they', 'them',
+            'we', 'our', 'my', 'me', 'i', 'a', 'an', 'or', 'not', 'so', 'if', 'as', 'by', 'it', 'its', 'he', 'she',
+            'his', 'her', 'who', 'which', 'will', 'just', 'also', 'very', 'really', 'some', 'any', 'all', 'more',
+            'most', 'other', 'into', 'over', 'such', 'no', 'yes', 'well', 'actually', 'maybe', 'think', 'feel',
+            'like', 'know', 'get', 'got', 'go', 'going', 'went', 'come', 'make', 'made', 'take', 'took', 'see',
+            'saw', 'say', 'said', 'tell', 'told', 'ever', 'before', 'after', 'than', 'then', 'too', 'much', 'many'
+        ]);
+    }
+
+    stemTopicWord(word) {
+        let w = String(word || '').toLowerCase();
+        if (w.endsWith('ies') && w.length > 4) w = w.slice(0, -3) + 'y';
+        else if (w.endsWith('ing') && w.length > 5) w = w.slice(0, -3);
+        else if (w.endsWith('ed') && w.length > 4) w = w.slice(0, -2);
+        else if (w.endsWith('es') && w.length > 4) w = w.slice(0, -2);
+        else if (w.endsWith('s') && w.length > 4) w = w.slice(0, -1);
+        return w.length >= 3 ? w : '';
+    }
+
+    collectTopicKeywords(question, qMeta) {
+        const keywords = new Set();
+        const stop = this.topicStopwords();
+        const addText = (text) => {
+            this.normalizeChunkText(text).split(' ').forEach((w) => {
+                if (w.length <= 2 || stop.has(w)) return;
+                keywords.add(w);
+                const stem = this.stemTopicWord(w);
+                if (stem) keywords.add(stem);
+            });
+        };
+        addText(question);
+        if (qMeta && typeof qMeta === 'object') {
+            addText(qMeta.title || '');
+            addText(qMeta.topicEn || '');
+            if (qMeta.words && typeof qMeta.words === 'object') {
+                Object.values(qMeta.words).forEach((group) => {
+                    (Array.isArray(group) ? group : []).forEach((chunk) => addText(chunk));
+                });
+            }
+        }
+        const qNorm = this.normalizeChunkText(question);
+        const addGroup = (words) => words.forEach((w) => keywords.add(w));
+        if (/\b(study|studies|studying|subject|major|university|college|course|school)\b/.test(qNorm)) {
+            addGroup(['study', 'studies', 'studying', 'subject', 'subjects', 'major', 'majoring', 'university', 'college', 'course', 'courses', 'degree', 'school', 'student', 'learn', 'learning', 'academic']);
+        }
+        if (/\b(work|job|career|company|employ|office|workplace)\b/.test(qNorm)) {
+            addGroup(['work', 'working', 'job', 'jobs', 'career', 'company', 'office', 'employ', 'employment', 'colleague', 'boss', 'workplace', 'profession']);
+        }
+        if (/\b(hometown|hometown|city|area|country|place|live|living)\b/.test(qNorm)) {
+            addGroup(['hometown', 'city', 'town', 'area', 'country', 'place', 'live', 'living', 'neighborhood', 'local', 'region', 'province']);
+        }
+        if (/\b(watch|watches|time|clock)\b/.test(qNorm)) {
+            addGroup(['watch', 'watches', 'time', 'clock', 'wear', 'wearing', 'gift', 'smartwatch']);
+        }
+        if (/\b(food|eat|eating|cook|cooking|restaurant|meal)\b/.test(qNorm)) {
+            addGroup(['food', 'eat', 'eating', 'cook', 'cooking', 'restaurant', 'meal', 'dish', 'cuisine', 'snack']);
+        }
+        if (/\b(friend|friends|family|parent|parents)\b/.test(qNorm)) {
+            addGroup(['friend', 'friends', 'family', 'parent', 'parents', 'mother', 'father', 'brother', 'sister', 'relationship']);
+        }
+        return keywords;
+    }
+
+    assessTopicRelevance(question, transcript, qMeta) {
+        const keywords = this.collectTopicKeywords(question, qMeta);
+        const tNorm = this.normalizeChunkText(transcript);
+        const tokens = tNorm.split(' ').filter((w) => w.length > 2 && !this.topicStopwords().has(w));
+        const hits = new Set();
+        tokens.forEach((tok) => {
+            if (keywords.has(tok)) {
+                hits.add(tok);
+                return;
+            }
+            const stem = this.stemTopicWord(tok);
+            if (stem && keywords.has(stem)) hits.add(tok);
+        });
+        const hitCount = hits.size;
+        const tokenCount = tokens.length;
+        const yesNoOnly = tokenCount <= 6 && /^(yes|no|yeah|nope|maybe|sure|ok|okay)\b/i.test(tNorm)
+            && hitCount === 0;
+
+        let level = 'on_topic';
+        let reason = '回答与题目主题词有交集，视为切题。';
+        if (tokenCount < 4) {
+            level = 'partial';
+            reason = '回答过短，难以判断是否真正展开题目。';
+        } else if (yesNoOnly || (hitCount === 0 && tokenCount >= 6)) {
+            level = 'off_topic';
+            reason = '转录中几乎未出现与本题相关的主题词，属于答非所问/严重跑题。';
+        } else if (hitCount <= 1 && tokenCount >= 10) {
+            level = 'off_topic';
+            reason = '仅命中极少主题词，整体内容与题目无关。';
+        } else if (hitCount <= 1 && tokenCount >= 6) {
+            level = 'weak_topic';
+            reason = '与题目关联很弱，未真正回答所问内容。';
+        } else if (hitCount <= 2 && tokenCount >= 18) {
+            level = 'partial';
+            reason = '有少量相关词，但大部分内容未扣题。';
+        }
+
+        return {
+            level,
+            reason,
+            hitCount,
+            tokenCount,
+            hits: Array.from(hits).slice(0, 12)
+        };
+    }
+
+    topicScoreCaps(level) {
+        const caps = {
+            off_topic: { fluency: 4, vocabulary: 4, grammar: 5, pronunciation: 5, overall: 4.0 },
+            weak_topic: { fluency: 5, vocabulary: 5, grammar: 5, pronunciation: 6, overall: 5.0 },
+            partial: { fluency: 5, vocabulary: 5, grammar: 6, pronunciation: 6, overall: 5.5 },
+            on_topic: null
+        };
+        return caps[level] || null;
+    }
+
+    isPositiveDimensionText(text, dim) {
+        const blob = String(text || '').toLowerCase();
+        if (!blob || blob.length < 8) return false;
+        const positive = /清晰|自然|流利|清楚|连贯|顺畅|完整|easy to understand|clear|natural|fluent|well.?connected|good flow|intelligible|coherent|smooth/i;
+        const negative = /um|uh|停顿过多|长停顿|背稿|模板|复述题目|跑题|答非所问|不自然|choppy|hesitat|fragment|不连贯|中式|难懂|偏短|卡壳|stilted|monotone|over.?prepared/i;
+        if (!positive.test(blob)) return false;
+        if (negative.test(blob)) return false;
+        if (dim === 'fluency' && /难上\s*7|维持\s*6|封顶\s*6|不超过\s*6/i.test(blob)) return false;
+        if (dim === 'pronunciation' && /维持\s*6|封顶\s*6|仍\s*pron\s*6/i.test(blob)) return false;
+        return true;
+    }
+
+    dimensionJustificationText(node, dim, reasonFallback) {
+        const parts = [];
+        if (node && typeof node === 'object') {
+            if (node.justification) parts.push(String(node.justification));
+            const da = node.detailed_analysis;
+            if (da && da.summary) parts.push(String(da.summary));
+            if (dim === 'fluency' && da) {
+                if (da.fluency && da.fluency.wpm_assessment) parts.push(String(da.fluency.wpm_assessment));
+                if (da.coherence && da.coherence.topic_development) parts.push(String(da.coherence.topic_development));
+                if (da.naturalness && da.naturalness.assessment) parts.push(String(da.naturalness.assessment));
+            }
+            if (dim === 'pronunciation' && da) {
+                if (da.clarity_assessment) parts.push(String(da.clarity_assessment));
+                if (da.intelligibility) parts.push(String(da.intelligibility));
+                if (da.summary) parts.push(String(da.summary));
+            }
+        }
+        if (reasonFallback) parts.push(String(reasonFallback));
+        return parts.filter(Boolean).join(' ');
+    }
+
+    applyStrongPerformanceUplift(scores, transcript, examSignals, metrics, detailed, reasons) {
+        const topic = (examSignals && examSignals.topic_relevance) || {};
+        if (topic.level === 'off_topic' || topic.level === 'weak_topic') return scores;
+
+        const gs = (examSignals && examSignals.grammar_structure) || {};
+        const blocked = !!(examSignals && (
+            examSignals.question_echo
+            || examSignals.heavy_um_start
+            || gs.svo_and_dominant
+            || gs.fake_relative_count >= 2
+            || ((examSignals.chinglish || []).length >= 2)
+        ));
+        if (blocked) return scores;
+
+        const m = metrics || this.extractSpeakingMetrics(transcript, this.lastAsrResult, this.lastRecordingDurationS);
+        const wordCount = m.total_words || this.countTranscriptWords(transcript);
+        const goodFluencyMetrics = wordCount >= 18
+            && (m.filler_per_min == null || m.filler_per_min <= 6)
+            && (m.long_pause_count == null || m.long_pause_count <= 2)
+            && (m.wpm == null || m.wpm === 0 || (m.wpm >= 80 && m.wpm <= 175));
+        const goodPronMetrics = wordCount >= 12
+            && (!m.suspicious_words || m.suspicious_words.length === 0)
+            && !(examSignals.formulaic && (examSignals.formulaic_hits || []).length >= 3);
+
+        let { fluency, vocabulary, grammar, pronunciation } = scores;
+        const fcText = this.dimensionJustificationText(detailed.fluency, 'fluency', reasons && reasons.fluency);
+        const pronText = this.dimensionJustificationText(detailed.pronunciation, 'pronunciation', reasons && reasons.pronunciation);
+        const fcPositive = this.isPositiveDimensionText(fcText, 'fluency');
+        const pronPositive = this.isPositiveDimensionText(pronText, 'pronunciation');
+
+        if (fluency === 6 && goodFluencyMetrics && grammar >= 5 && vocabulary >= 5
+            && (fcPositive || (topic.level === 'on_topic' && wordCount >= 25 && (m.filler_per_min || 0) <= 3))) {
+            fluency = 7;
+        }
+        if (pronunciation === 6 && goodPronMetrics && goodFluencyMetrics
+            && (pronPositive || (topic.level === 'on_topic' && wordCount >= 20 && (m.suspicious_words || []).length === 0))) {
+            pronunciation = 7;
+        }
+
+        return { fluency, vocabulary, grammar, pronunciation };
+    }
+
     // 词块是否出现在口述转录里（不依赖是否点选芯片）
     chunkAppearsInTranscript(chunk, transcript) {
         const t = this.normalizeChunkText(transcript);
@@ -1753,10 +1951,10 @@ class P1Practice {
 **5.5 档 · Zhang Xin Yu**：FC6 LR6 **GRA5** Pron6 — Part1/2 几乎全是 SVO + 反复 and 连接，错误少是因为句子太简单 → GRA5；LR 因搭配自然、少 Chinglish 最接近 7（不是靠高级词）。
 
 ### 分项规则（跨档位）
-1. **FC**：慢但可 FC6；um/uh 每轮开头多、Part2 明显偏短 → 维持 6 难上 7。跑题/答非所问若流利度反而更好，必须点名并压住冲高。
+1. **FC**：慢但可 FC6；um/uh 每轮开头多、Part2 明显偏短 → 维持 6 难上 7。但若切题、停顿少、填充词少、ASR 完整且连贯，**应给 FC7**，不要因「Part1 短答」一律 6。跑题/答非所问若流利度反而更好，必须点名并压住冲高。
 2. **LR**：用词顺眼/很好仍常 LR6。冲 LR7：精准话题词 + 自然搭配/习语贯穿全篇，少中式英语。2–3 处难懂中式表达 → LR5。词形小错若不影响理解，通常仍 LR6。
 3. **GRA**：**GRA5 强信号** — 假关系从句套话；大量 SVO+and 堆砌、几乎无 that/which/who/从句；该用定语从句却只用并列简单句。偶发时态/情态/条件句错误、结构多样且沟通清楚 → 仍可 GRA6。冲更高：第二条件句、情态动词、真关系从句/嵌入从句。
-4. **Pron**：清晰自然可 Pron7；缺乏语调层次/重音提示通常仍 Pron6（非硬伤）。仅复述题目或明显背稿时封顶 6。
+4. **Pron**：清晰自然、识别完整时应给 **Pron7**（Jiang 模考：FC6 LR6 GRA6 Pron7 仍属 6.0 档）；只有明显平铺直叙、背稿感或复述题目时才维持 Pron6。
 5. **总分**：5.5 常见 GRA 拖后腿；6.0 常见四项均衡或 Pron/LR 单项突出。反馈：肯定档位 + 点明冲高必改项。
 
 ## 反馈原则
@@ -1998,12 +2196,13 @@ class P1Practice {
         }
     }
 
-    // 考官习惯信号：复述题目 / 模板感 / 中式英语（对齐真实考官反馈）
-    buildExaminerSignals(question, transcript) {
+    // 考官习惯信号：复述题目 / 模板感 / 中式英语 / 切题度（对齐真实考官反馈）
+    buildExaminerSignals(question, transcript, qMeta) {
         const qNorm = this.normalizeChunkText(question).replace(/^(have you|do you|did you|are you|is there|what|where|when|why|how|would you|can you)\s+/i, '');
         const tNorm = this.normalizeChunkText(transcript);
         const firstSent = (String(transcript || '').split(/[.!?]+/).map(s => s.trim()).find(Boolean) || '');
         const firstNorm = this.normalizeChunkText(firstSent);
+        const topic_relevance = this.assessTopicRelevance(question, transcript, qMeta);
 
         let question_echo = false;
         let echo_excerpt = '';
@@ -2051,7 +2250,13 @@ class P1Practice {
             || (String(transcript || '').match(/\b(um|uh|er)\b/gi) || []).length >= 5;
 
         let scoring_hint = '按实际表现评分；锚定：6.0 常见 FC/LR/GRA 6（Pron 或 LR 可单项到 7）；5.5 常见 GRA5';
-        if (grammar_structure.svo_and_dominant || grammar_structure.fake_relative_count >= 2) {
+        if (topic_relevance.level === 'off_topic') {
+            scoring_hint = '答非所问/严重跑题：即使英语流利、词数够，FC/LR 也不应超过 4–5，总分封顶约 4.0；必须列入主要问题';
+        } else if (topic_relevance.level === 'weak_topic') {
+            scoring_hint = '与题目关联很弱：FC/LR 倾向 5，总分不应超过 5.0；先扣题再谈流利与词汇';
+        } else if (topic_relevance.level === 'partial') {
+            scoring_hint = '仅部分扣题：FC/LR 难上 6，总分封顶约 5.5';
+        } else if (grammar_structure.svo_and_dominant || grammar_structure.fake_relative_count >= 2) {
             scoring_hint = 'SVO+and 堆砌或假关系从句：GRA 倾向 5（Zhang/Ji 模考案例）；FC/LR 仍可 6';
         } else if (grammar_structure.fake_relative_count >= 1 || grammar_structure.simple_split) {
             scoring_hint = '假关系从句或回避真定语从句：GRA 倾向 5；建议第二条件句+情态动词+that/which/who';
@@ -2080,6 +2285,7 @@ class P1Practice {
             chinglish,
             grammar_structure,
             heavy_um_start: heavyUmStart,
+            topic_relevance,
             scoring_hint
         };
     }
@@ -2113,7 +2319,8 @@ class P1Practice {
         const chipNote = usedChips.length
             ? `\n## 学生勾选的提示词块（练习辅助，不是扣分项）\n学生练习时点选了这些词块：${usedChips.join(', ')}\n评分时：若转录中确实用到了这些表达，可在 LR/FC 中认可；不要因为“没用词块”扣分；也不要仅因点选了词块就抬高分数，以实际说出的话为准。\n`
             : '\n## 学生勾选的提示词块\n（未勾选或未记录）评分只看实际口述转录，不要因为没用词块扣分。\n';
-        const examSignals = this.buildExaminerSignals(q.q || q.title || '', m.transcript || transcript);
+        const examSignals = this.buildExaminerSignals(q.q || q.title || '', m.transcript || transcript, q);
+        const tr = examSignals.topic_relevance || {};
 
         return `请评估以下学生的雅思口语 PART1 回答。
 重要：
@@ -2131,7 +2338,8 @@ ${chipNote}
 ${m.transcript || transcript}
 
 ## 考官习惯信号（本地预检，请重点核验）
-- 开场复述题目: ${examSignals.question_echo ? '是（不自然，类似 Band 4 习惯）' : '否'}
+- 切题/答非所问预检: ${tr.level || 'on_topic'}（${tr.reason || '—'}）
+${tr.hits && tr.hits.length ? `  · 命中主题词: ${tr.hits.join(', ')}\n` : ''}- 开场复述题目: ${examSignals.question_echo ? '是（不自然，类似 Band 4 习惯）' : '否'}
 ${examSignals.echo_excerpt ? `  · 疑似复述片段: 「${examSignals.echo_excerpt}」\n` : ''}- 模板/背稿感: ${examSignals.formulaic ? '偏强' : '不明显'}
 ${examSignals.formulaic_hits.length ? `  · 信号: ${examSignals.formulaic_hits.join('；')}\n` : ''}- 疑似中式英语/怪搭配: ${examSignals.chinglish.length ? examSignals.chinglish.join('；') : '未检出'}
 - 语法结构预检: 假关系从句=${examSignals.grammar_structure && examSignals.grammar_structure.fake_relative_count ? examSignals.grammar_structure.fake_relative.join('；') : '无'}；SVO+and 堆砌=${examSignals.grammar_structure && examSignals.grammar_structure.svo_and_dominant ? '是（GRA 倾向 5）' : '否'}；真关系从句(which/who)=${examSignals.grammar_structure ? examSignals.grammar_structure.realRelative : 0}；第二条件句=${examSignals.grammar_structure && examSignals.grammar_structure.secondConditional ? '有' : '无'}
@@ -2559,7 +2767,7 @@ FC 必须含 naturalness；LR 必须含 chinglish_flags；语法 errors 单独�
         });
         
         const lengthFallback = this.estimateLengthFallbackScore(transcript);
-        const pronFallback = Math.min(this.estimatePronunciationScore(transcript), Math.max(lengthFallback, 6));
+        const pronFallback = Math.min(this.estimatePronunciationScore(transcript), lengthFallback);
         fluency = this.pickBandScore(fluency, lengthFallback);
         vocabulary = this.pickBandScore(vocabulary, lengthFallback);
         grammar = this.pickBandScore(grammar, lengthFallback);
@@ -2574,7 +2782,16 @@ FC 必须含 naturalness；LR 必须含 chinglish_flags；语法 errors 单独�
         else if (grammarErrorCount >= 3) grammar = Math.min(grammar, 6);
 
         const qText = (this._evalContext && this._evalContext.q && (this._evalContext.q.q || this._evalContext.q.title)) || '';
-        const examSignals = this.buildExaminerSignals(qText, transcript);
+        const qObj = (this._evalContext && this._evalContext.q) || null;
+        const examSignals = this.buildExaminerSignals(qText, transcript, qObj);
+        const topicRel = examSignals.topic_relevance || {};
+        const topicCaps = this.topicScoreCaps(topicRel.level);
+        if (topicCaps) {
+            fluency = Math.min(fluency, topicCaps.fluency);
+            vocabulary = Math.min(vocabulary, topicCaps.vocabulary);
+            grammar = Math.min(grammar, topicCaps.grammar);
+            pronunciation = Math.min(pronunciation, topicCaps.pronunciation);
+        }
         const gs = examSignals.grammar_structure || {};
         // GRA5：假关系从句 / SVO+and 堆砌 / 回避定语从句（Ji Peng Hao、Zhang Xin Yu 模考）
         if (gs.svo_and_dominant || gs.fake_relative_count >= 2) {
@@ -2593,6 +2810,21 @@ FC 必须含 naturalness；LR 必须含 chinglish_flags；语法 errors 单独�
         // 模板/背稿感：仅复述题目或模板信号很强时压 Pron；轻微模板不阻止 Pron7
         const heavyFormulaic = examSignals.formulaic && (examSignals.formulaic_hits || []).length >= 3;
         if (examSignals.question_echo || heavyFormulaic) pronunciation = Math.min(pronunciation, 6);
+
+        const metrics = this.extractSpeakingMetrics(transcript, this.lastAsrResult, this.lastRecordingDurationS);
+        ({
+            fluency,
+            vocabulary,
+            grammar,
+            pronunciation
+        } = this.applyStrongPerformanceUplift(
+            { fluency, vocabulary, grammar, pronunciation },
+            transcript,
+            examSignals,
+            metrics,
+            detailed,
+            reasons
+        ));
 
         const capped = this.clampScoresForShortAnswer(transcript, {
             fluency, vocabulary, grammar, pronunciation
@@ -2645,7 +2877,8 @@ FC 必须含 naturalness；LR 必须含 chinglish_flags；语法 errors 单独�
             // 优先用我们按官方规则重算，避免模型 overall 与单项不一致
             overallNum = this.ieltsOverallRound(avg);
         }
-        const maxOverall = this.maxOverallForTranscript(transcript);
+        const maxOverall = this.maxOverallForTranscript(transcript, topicRel.level);
+        if (topicCaps && overallNum > topicCaps.overall) overallNum = topicCaps.overall;
         if (overallNum > maxOverall) overallNum = maxOverall;
         const overall = overallNum.toFixed(1);
         
@@ -2749,7 +2982,10 @@ FC 必须含 naturalness；LR 必须含 chinglish_flags；语法 errors 单独�
         return {
             repeats_question: repeats,
             sounds_rehearsed: rehearsed,
-            chinglish_expressions: chinglish
+            chinglish_expressions: chinglish,
+            answers_question: examSignals.topic_relevance && examSignals.topic_relevance.level === 'off_topic'
+                ? { detected: false, evidence: examSignals.topic_relevance.reason || '本地预检：答非所问' }
+                : (base.answers_question || { detected: true, evidence: '' })
         };
     }
 
@@ -3927,6 +4163,10 @@ FC 必须含 naturalness；LR 必须含 chinglish_flags；语法 errors 单独�
             return '本次识别偏碎（约 ' + words + ' 词），推测清晰度一般。识别结果：「' + snip + '」。';
         }
         if (s <= 5) return '本次识别基本完整。识别文本：「' + snip + '」。';
+        if (s >= 7) return '本次识别完整、连贯，发音清晰自然（识别文本：「' + snip + '」）。';
+        if (words >= 18 && avgLen >= 4) {
+            return '本次识别较完整，发音/清晰度良好；若语调更自然、少模板感，可冲 Pron7。识别文本：「' + snip + '」。';
+        }
         return '本次识别较完整，推测发音清晰。识别文本：「' + snip + '」。';
     }
 
@@ -3938,7 +4178,7 @@ FC 必须含 naturalness；LR 必须含 chinglish_flags；语法 errors 单独�
         lines.push('Vocabulary ' + s.lexical + '：' + s.lexicalReason);
         lines.push('Grammar ' + s.grammar + '：' + s.grammarReason);
         lines.push('Pronunciation ' + s.pronunciation + '：' + s.pronunciationReason);
-        lines.push('参考：像 “I used to have a puppy. Every day I walked him to the park, and it really lifted my mood.” 这种清楚完整的回答，总体大约 Band 6。');
+        lines.push('参考：像 “I used to have a puppy. Every day I walked him to the park, and it really lifted my mood.” 这种清楚完整的回答，FC/Pron 可到 7，总体常见 6.0–6.5。');
         return lines.map(l => '- ' + l).join('\n');
     }
 
@@ -3955,14 +4195,18 @@ FC 必须含 naturalness；LR 必须含 chinglish_flags；语法 errors 单独�
         return 6;
     }
 
-    maxOverallForTranscript(transcript) {
+    maxOverallForTranscript(transcript, topicLevel) {
         const n = this.countTranscriptWords(transcript);
-        if (n < 5) return 3.0;
-        if (n < 8) return 3.5;
-        if (n < 12) return 4.0;
-        if (n < 16) return 4.5;
-        if (n < 22) return 5.0;
-        return 9.0;
+        let cap = 9.0;
+        if (n < 5) cap = 3.0;
+        else if (n < 8) cap = 3.5;
+        else if (n < 12) cap = 4.0;
+        else if (n < 16) cap = 4.5;
+        else if (n < 22) cap = 5.0;
+        if (topicLevel === 'off_topic') cap = Math.min(cap, 4.0);
+        else if (topicLevel === 'weak_topic') cap = Math.min(cap, 5.0);
+        else if (topicLevel === 'partial') cap = Math.min(cap, 5.5);
+        return cap;
     }
 
     clampScoresForShortAnswer(transcript, scores) {
@@ -3997,6 +4241,17 @@ FC 必须含 naturalness；LR 必须含 chinglish_flags；语法 errors 单独�
             if (list.length >= 5) return;
             list.push(item);
         };
+        if (examSignals.topic_relevance && examSignals.topic_relevance.level === 'off_topic'
+            && !hasTopic(/跑题|答非所问|off.?topic|未回答|无关/i)) {
+            push({
+                rank: 1,
+                category: 'fluency',
+                issue: '回答与题目无关（答非所问）',
+                why_it_matters: '考官首先看是否回答了所问内容；跑题再流利也不能给 6 分。',
+                how_to_fix: '先听清/看清题目关键词，直接回答所问（如专业、工作、原因），不要讲无关话题。',
+                example: examSignals.topic_relevance.reason || '请围绕题目主题词展开，而不是随便说几句英语。'
+            });
+        }
         if (examSignals.question_echo && !hasTopic(/复述题目|重复.*题目|repeat the question/i)) {
             push({
                 rank: 1,
