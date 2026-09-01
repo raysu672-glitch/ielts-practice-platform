@@ -1144,6 +1144,8 @@ function switchTeacherTab(tab, evt, options) {
     document.getElementById('tabStudents').style.display = tab === 'students' ? 'block' : 'none';
     document.getElementById('tabRecords').style.display = tab === 'records' ? 'block' : 'none';
     document.getElementById('tabProgress').style.display = tab === 'progress' ? 'block' : 'none';
+    var tabTasks = document.getElementById('tabTasks');
+    if (tabTasks) tabTasks.style.display = tab === 'tasks' ? 'block' : 'none';
     var tabActive = document.getElementById('tabActive');
     if (tabActive) tabActive.style.display = tab === 'active' ? 'block' : 'none';
     document.getElementById('tabWriting').style.display = tab === 'writing' ? 'block' : 'none';
@@ -1151,6 +1153,9 @@ function switchTeacherTab(tab, evt, options) {
     var tabTeachers = document.getElementById('tabTeachers');
     if (tabTeachers) tabTeachers.style.display = (tab === 'teachers' && isAdminTeacher()) ? 'block' : 'none';
     document.body.classList.toggle('teacher-writing-wide', tab === 'writing');
+    if (tab === 'tasks') {
+        initTeacherTaskPlanTab();
+    }
     if (tab === 'records') {
         loadRecords();
     }
@@ -1404,3 +1409,1369 @@ document.addEventListener('click', function(e) {
         });
     }
 });
+
+// ── 任务计划（MVP）──────────────────────────────────────────────
+var _taskDraftItems = [];
+var _taskLiveItems = [];
+var _taskHasDbDraft = false;
+var _taskPendingEffectiveLabel = '';
+var _taskUnitCatalog = [];
+var _taskPendingPlanChange = false;
+var _taskLibraryModule = '';
+var _taskLibrarySearch = '';
+var _stageTestModalModule = '';
+/** true = 收起；undefined 也视为收起（默认全收） */
+var _taskPlanCollapse = {};
+var _taskLiveCollapse = {};
+/** 有序清单当前展开操作菜单的行下标 */
+var _taskPlanOpenMenuIdx = null;
+/** 各科目是否展示已完成行；默认 false=收起已完成 */
+var _taskPlanShowCompleted = {};
+var _taskLiveShowCompleted = {};
+
+/** 科目 Tab 顺序：阅读优先；未列出的新科目按中文名排在后面 */
+var TASK_LIBRARY_MODULE_ORDER = [
+    'reading_synonym',
+    'dictation',
+    'listening_basic',
+    'listening_synonym',
+    'sentence',
+    'writing_phrase',
+    'writing_translate',
+    'listening_p4_speed',
+    'speaking_complex',
+    'speaking_p1',
+    'speaking_p2_material',
+    'speaking_p2_apply'
+];
+
+function taskLibraryModuleLabel(mt) {
+    var mod = (typeof getModuleById === 'function') ? getModuleById(mt) : null;
+    return (mod && mod.name) || mt || '';
+}
+
+/** 清单里用的短科目名，避免「学 · 第2组」看不出科 */
+function taskModuleShortLabel(mt) {
+    var aliases = {
+        reading_synonym: '阅读',
+        dictation: '听力千词',
+        listening_basic: '听力基础',
+        listening_synonym: '听力同义',
+        sentence: '长难句',
+        writing_phrase: '写作词汇',
+        writing_translate: '写作翻译',
+        listening_p4_speed: 'P4跟读',
+        speaking_complex: '口语复杂',
+        speaking_p1: '口语P1',
+        speaking_p2_material: '口语P2素材',
+        speaking_p2_apply: '口语P2应用'
+    };
+    if (mt && aliases[mt]) return aliases[mt];
+    return taskLibraryModuleLabel(mt) || '未分科';
+}
+
+function normalizeTestUnitIds(raw) {
+    if (Array.isArray(raw)) return raw.slice();
+    if (typeof raw === 'string' && raw) {
+        try {
+            var parsed = JSON.parse(raw);
+            if (Array.isArray(parsed)) return parsed.slice();
+        } catch (e) { /* ignore */ }
+    }
+    return [];
+}
+
+function inferTaskItemModuleType(it, items) {
+    if (it && it.module_type) return it.module_type;
+    if (!it || it.item_type !== 'test') return '';
+    var covers = normalizeTestUnitIds(it.test_unit_ids);
+    var list = items || _taskDraftItems || [];
+    for (var i = 0; i < covers.length; i++) {
+        var row = list.find(function(x) {
+            return x.item_type === 'study' && x.unit_id === covers[i];
+        });
+        if (row && row.module_type) return row.module_type;
+    }
+    return '';
+}
+
+function formatTaskPlanItemLabel(it, items) {
+    var mt = inferTaskItemModuleType(it, items);
+    var mod = taskModuleShortLabel(mt);
+    var body = formatTaskPlanItemBody(it);
+    return '<span style="display:inline-block;min-width:4.5em;color:#64748b;font-size:12px;">' +
+        escapeTeacherAttr(mod) + '</span> ' + body;
+}
+
+function formatTaskPlanItemBody(it) {
+    var body = it.item_type === 'test'
+        ? ('测 · ' + (it.test_title || '阶段测'))
+        : ('学 · ' + (it.unit_title || it.unit_id || ''));
+    if (isTaskItemDone(it)) {
+        body += ' <span style="color:#94a3b8;font-size:12px;">已完成</span>';
+    }
+    return body;
+}
+
+function isTaskItemDone(it) {
+    if (!it) return false;
+    if (it.item_type === 'test') return !!Number(it.test_passed);
+    return !!Number(it.study_completed);
+}
+
+function toggleTaskPlanShowCompleted(mt) {
+    _taskPlanShowCompleted[mt] = !_taskPlanShowCompleted[mt];
+    renderTaskPlanList();
+}
+
+function toggleTaskLiveShowCompleted(mt) {
+    _taskLiveShowCompleted[mt] = !_taskLiveShowCompleted[mt];
+    renderTaskLivePlanList();
+}
+
+/** 段内展示顺序：未完成在前、已完成沉底（不改 sort_order） */
+function orderSegmentIndicesForDisplay(items, indices, showCompleted) {
+    var pending = [];
+    var done = [];
+    (indices || []).forEach(function(i) {
+        if (isTaskItemDone(items[i])) done.push(i);
+        else pending.push(i);
+    });
+    if (showCompleted) return pending.concat(done);
+    return pending;
+}
+
+function groupTaskItemsByModuleSegments(items) {
+    var segments = [];
+    var cur = null;
+    (items || []).forEach(function(it, idx) {
+        var mt = inferTaskItemModuleType(it, items) || '_none';
+        if (!cur || cur.moduleType !== mt) {
+            cur = { moduleType: mt, indices: [] };
+            segments.push(cur);
+        }
+        cur.indices.push(idx);
+    });
+    return segments;
+}
+
+function isTaskSectionCollapsed(mt, map) {
+    if (!map) return true;
+    if (map[mt] === undefined) return true;
+    return !!map[mt];
+}
+
+function toggleTaskPlanSection(mt) {
+    _taskPlanCollapse[mt] = !isTaskSectionCollapsed(mt, _taskPlanCollapse);
+    _taskPlanOpenMenuIdx = null;
+    renderTaskPlanList();
+}
+
+function toggleTaskLiveSection(mt) {
+    _taskLiveCollapse[mt] = !isTaskSectionCollapsed(mt, _taskLiveCollapse);
+    renderTaskLivePlanList();
+}
+
+function expandTaskPlanModule(mt) {
+    if (!mt) return;
+    _taskPlanCollapse[mt] = false;
+}
+
+function scrollTaskPlanSegmentIntoView(mt) {
+    setTimeout(function() {
+        var el = document.getElementById('taskPlanSeg_' + mt);
+        if (el && el.scrollIntoView) {
+            el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+        }
+    }, 40);
+}
+
+function toggleTaskRowMenu(idx) {
+    _taskPlanOpenMenuIdx = _taskPlanOpenMenuIdx === idx ? null : idx;
+    renderTaskPlanList();
+}
+
+function insertStageTestForModuleSegment(moduleType) {
+    var lastStudy = -1;
+    for (var i = 0; i < _taskDraftItems.length; i++) {
+        var it = _taskDraftItems[i];
+        if (it.item_type === 'study' && it.module_type === moduleType && it.unit_id) {
+            lastStudy = i;
+        }
+    }
+    if (lastStudy < 0) {
+        showToast('该科目没有学习单元', 'error');
+        return;
+    }
+    expandTaskPlanModule(moduleType);
+    insertStageTestThrough(lastStudy);
+}
+
+function removeTaskDraftModuleSegment(moduleType) {
+    var label = taskModuleShortLabel(moduleType);
+    if (!window.confirm('确定移除「' + label + '」整段（该科目全部学/测）？')) return;
+    var snapshot = _taskDraftItems.slice();
+    _taskDraftItems = snapshot.filter(function(it) {
+        return inferTaskItemModuleType(it, snapshot) !== moduleType;
+    });
+    _taskPlanOpenMenuIdx = null;
+    renderTaskPlanList();
+    renderTaskUnitLibrary();
+    schedulePackPreviewRefresh();
+    showToast('已移除「' + label + '」整段（记得保存）', 'success');
+}
+
+function sortedTaskModuleTypes(catalog) {
+    var set = {};
+    (catalog || []).forEach(function(u) {
+        if (u && u.module_type) set[u.module_type] = true;
+    });
+    var keys = Object.keys(set);
+    keys.sort(function(a, b) {
+        var ia = TASK_LIBRARY_MODULE_ORDER.indexOf(a);
+        var ib = TASK_LIBRARY_MODULE_ORDER.indexOf(b);
+        if (ia === -1 && ib === -1) {
+            return taskLibraryModuleLabel(a).localeCompare(taskLibraryModuleLabel(b), 'zh');
+        }
+        if (ia === -1) return 1;
+        if (ib === -1) return -1;
+        return ia - ib;
+    });
+    return keys;
+}
+
+function escapeTeacherAttr(s) {
+    return String(s || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+}
+
+function selectTaskLibraryModule(mt) {
+    _taskLibraryModule = mt;
+    _taskLibrarySearch = '';
+    renderTaskUnitLibrary();
+}
+
+function onTaskUnitSearchInput(val) {
+    _taskLibrarySearch = val || '';
+    renderTaskUnitLibraryList();
+}
+
+function renderTaskUnitLibraryList() {
+    var box = document.getElementById('taskUnitLibrary');
+    if (!box) return;
+    var planned = {};
+    _taskDraftItems.forEach(function(it) {
+        if (it.item_type === 'study' && it.unit_id && it.status !== 'removed') {
+            planned[it.unit_id] = true;
+        }
+    });
+    if (!_taskUnitCatalog.length) {
+        box.innerHTML = '<p style="color:#666;margin:0;">暂无单元</p>';
+        return;
+    }
+    var q = (_taskLibrarySearch || '').trim().toLowerCase();
+    var units = _taskUnitCatalog.filter(function(u) {
+        if (u.module_type !== _taskLibraryModule) return false;
+        if (!q) return true;
+        var title = (u.title || '').toLowerCase();
+        var uid = (u.unit_id || '').toLowerCase();
+        return title.indexOf(q) >= 0 || uid.indexOf(q) >= 0 || String(u.unit_no || '').indexOf(q) >= 0;
+    }).sort(function(a, b) {
+        return (a.unit_no || 0) - (b.unit_no || 0);
+    });
+    var html = '<div style="font-size:12px;color:#64748b;margin-bottom:6px;">' +
+        taskLibraryModuleLabel(_taskLibraryModule) + ' · 显示 ' + units.length + ' 个' +
+        (q ? '（已筛选）' : '') + '</div>';
+    if (!units.length) {
+        html += '<p style="color:#666;margin:0;">无匹配单元，请换关键词或切换科目</p>';
+    } else {
+        units.forEach(function(u) {
+            var used = !!planned[u.unit_id];
+            var noLabel = u.unit_no ? ('<span style="color:#94a3b8;font-size:12px;margin-right:6px;">#' + u.unit_no + '</span>') : '';
+            html += '<div style="display:flex;justify-content:space-between;gap:8px;padding:4px 0;' +
+                (used ? 'opacity:0.45;' : '') + '">';
+            html += '<span>' + noLabel + (u.title || u.unit_id) + '</span>';
+            html += used
+                ? '<span style="color:#94a3b8;font-size:12px;">已排</span>'
+                : '<button type="button" class="btn btn-secondary" style="padding:2px 8px;font-size:12px;" onclick="addUnitToTaskDraft(\'' +
+                    u.unit_id + '\')">加入</button>';
+            html += '</div>';
+        });
+    }
+    box.innerHTML = html;
+}
+
+function renderTaskUnitLibrary() {
+    var moduleTypes = sortedTaskModuleTypes(_taskUnitCatalog);
+    renderTaskUnitLibraryToolbar(moduleTypes);
+    renderTaskUnitLibraryList();
+}
+
+function batchAddTaskUnits() {
+    var fromEl = document.getElementById('taskUnitBatchFrom');
+    var toEl = document.getElementById('taskUnitBatchTo');
+    var from = parseInt(fromEl && fromEl.value, 10);
+    var to = parseInt(toEl && toEl.value, 10);
+    if (isNaN(from) || isNaN(to)) {
+        showToast('请输入有效序号', 'error');
+        return;
+    }
+    if (from > to) {
+        var swap = from;
+        from = to;
+        to = swap;
+    }
+    var units = _taskUnitCatalog.filter(function(u) {
+        return u.module_type === _taskLibraryModule;
+    }).sort(function(a, b) {
+        return (a.unit_no || 0) - (b.unit_no || 0);
+    });
+    var added = 0;
+    var skipped = 0;
+    for (var n = from; n <= to; n++) {
+        var u = units.find(function(x) { return x.unit_no === n; });
+        if (!u) continue;
+        if (_taskDraftItems.some(function(it) {
+            return it.item_type === 'study' && it.unit_id === u.unit_id && it.status !== 'removed';
+        })) {
+            skipped++;
+            continue;
+        }
+        var row = {
+            item_type: 'study',
+            unit_id: u.unit_id,
+            module_type: u.module_type,
+            unit_title: u.title,
+            status: 'pending'
+        };
+        var at = findDraftInsertIndexForUnit(u);
+        _taskDraftItems.splice(at, 0, row);
+        added++;
+    }
+    if (!added) {
+        showToast(skipped ? '所选单元已在计划中' : '未找到对应序号的单元', 'error');
+        return;
+    }
+    expandTaskPlanModule(_taskLibraryModule);
+    _taskPlanOpenMenuIdx = null;
+    renderTaskPlanList();
+    renderTaskUnitLibrary();
+    scrollTaskPlanSegmentIntoView(_taskLibraryModule);
+    showToast(
+        '已加入 ' + added + ' 个单元' + (skipped ? ('，跳过 ' + skipped + ' 个已排') : ''),
+        'success'
+    );
+    schedulePackPreviewRefresh();
+}
+
+function renderTaskUnitLibraryToolbar(moduleTypes) {
+    var bar = document.getElementById('taskUnitLibraryToolbar');
+    if (!bar) return;
+    if (!_taskLibraryModule && moduleTypes.length) {
+        _taskLibraryModule = moduleTypes[0];
+    }
+    if (_taskLibraryModule && moduleTypes.indexOf(_taskLibraryModule) === -1) {
+        _taskLibraryModule = moduleTypes[0] || '';
+    }
+    var moduleUnits = _taskUnitCatalog.filter(function(u) {
+        return u.module_type === _taskLibraryModule;
+    });
+    var maxNo = moduleUnits.reduce(function(m, u) {
+        return Math.max(m, u.unit_no || 0);
+    }, 0);
+    var html = '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;">';
+    moduleTypes.forEach(function(mt) {
+        var active = mt === _taskLibraryModule;
+        var count = _taskUnitCatalog.filter(function(u) { return u.module_type === mt; }).length;
+        html += '<button type="button" class="btn ' + (active ? '' : 'btn-secondary') + '" ' +
+            'style="padding:4px 10px;font-size:12px;" onclick="selectTaskLibraryModule(\'' + mt + '\')">' +
+            taskLibraryModuleLabel(mt) + ' (' + count + ')</button>';
+    });
+    html += '</div>';
+    html += '<div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:8px;">';
+    html += '<input type="search" id="taskUnitSearchInput" placeholder="搜索单元…" value="' +
+        escapeTeacherAttr(_taskLibrarySearch) + '" style="flex:1;min-width:140px;padding:6px 8px;border:1px solid #e5e7eb;border-radius:6px;" ' +
+        'oninput="onTaskUnitSearchInput(this.value)">';
+    if (maxNo > 1) {
+        html += '<span style="font-size:12px;color:#64748b;white-space:nowrap;">序号</span>';
+        html += '<input type="number" id="taskUnitBatchFrom" min="1" max="' + maxNo + '" style="width:52px;padding:4px;" value="1">';
+        html += '<span style="font-size:12px;color:#64748b;">—</span>';
+        html += '<input type="number" id="taskUnitBatchTo" min="1" max="' + maxNo + '" style="width:52px;padding:4px;" value="' + Math.min(6, maxNo) + '">';
+        html += '<button type="button" class="btn btn-secondary" style="padding:4px 8px;font-size:12px;" onclick="batchAddTaskUnits()">批量加入</button>';
+    }
+    html += '</div>';
+    bar.innerHTML = html;
+}
+
+function taskFormatLocalYmd(d) {
+    d = d || new Date();
+    var y = d.getFullYear();
+    var m = String(d.getMonth() + 1).padStart(2, '0');
+    var day = String(d.getDate()).padStart(2, '0');
+    return y + '-' + m + '-' + day;
+}
+
+function taskDefaultEffectiveYmd() {
+    var d = new Date();
+    d.setDate(d.getDate() + 1);
+    return taskFormatLocalYmd(d);
+}
+
+function taskEffectiveLabel(ymd) {
+    if (!ymd) return '明天';
+    var today = taskFormatLocalYmd(new Date());
+    var tom = taskDefaultEffectiveYmd();
+    if (ymd === today) return '今天';
+    if (ymd === tom) return '明天';
+    return ymd;
+}
+
+function readTaskEffectiveFromInput() {
+    var el = document.getElementById('taskEffectiveFrom');
+    if (!el || !el.value) return taskDefaultEffectiveYmd();
+    return el.value;
+}
+
+function setTaskEffectiveFromInput(ymd) {
+    var el = document.getElementById('taskEffectiveFrom');
+    if (!el) return;
+    el.min = taskFormatLocalYmd(new Date());
+    el.value = ymd || taskDefaultEffectiveYmd();
+}
+
+function updateTaskPlanSectionTitles(data) {
+    var hasDbDraft = !!(data && (data.draft_pending || (data.draft && data.draft.length)));
+    var effLabel = taskEffectiveLabel(
+        (data && (data.pending_effective_from || data.draft_effective_from)) ||
+            readTaskEffectiveFromInput()
+    );
+    var draftListTitle = document.getElementById('taskDraftListTitle');
+    if (draftListTitle) {
+        draftListTitle.textContent = hasDbDraft
+            ? ('有序清单（待生效草稿，' + effLabel + ' 起替换左侧）')
+            : '有序清单（编辑区，与左侧同步；改完后选生效日期保存）';
+    }
+    var packDraftTitle = document.getElementById('taskPackPreviewDraftTitle');
+    if (packDraftTitle) {
+        packDraftTitle.textContent = hasDbDraft
+            ? ('待生效草稿装箱预览（' + effLabel + '）')
+            : '编辑装箱预览（按右侧清单试算，保存后才生效）';
+    }
+}
+
+async function initTeacherTaskPlanTab() {
+    var sel = document.getElementById('taskPlanStudentSelect');
+    if (!sel) return;
+    if (!_teacherStudents || !_teacherStudents.length) {
+        try {
+            var r = await teacherApiGet('/api/teacher/students');
+            _teacherStudents = (r && r.data) || [];
+        } catch (e) {
+            _teacherStudents = [];
+        }
+    }
+    var students = (_teacherStudents || []).filter(function(s) {
+        return !s.status || s.status === 'active';
+    });
+    var prev = sel.value;
+    sel.innerHTML = students.map(function(s) {
+        return '<option value="' + s.student_id + '">' + s.student_id + ' ' + (s.name || '') + '</option>';
+    }).join('');
+    if (prev && students.some(function(s) { return s.student_id === prev; })) {
+        sel.value = prev;
+    }
+    var unitsRes = await teacherApiGet('/api/task/units');
+    _taskUnitCatalog = (unitsRes && unitsRes.data) || [];
+    renderTaskUnitLibrary();
+    bindTaskDurationPreviewInputs();
+    await loadTeacherTaskPlan();
+}
+
+function renderTaskPlanList() {
+    var box = document.getElementById('taskPlanList');
+    if (!box) return;
+    if (!_taskDraftItems.length) {
+        box.innerHTML = '<p style="color:#666;margin:0;">从左侧加入单元</p>';
+        return;
+    }
+    var issues = _taskDraftOrderIssues(_taskDraftItems);
+    var html = '';
+    if (issues.length) {
+        html += '<div style="background:#fef2f2;border:1px solid #fecaca;color:#b91c1c;padding:8px;border-radius:8px;margin-bottom:8px;font-size:13px;position:sticky;top:0;z-index:3;">';
+        html += '<strong>顺序问题：</strong>' + issues.join('；') +
+            '。可点「修正测验顺序」或保存清单时自动修正。</div>';
+    }
+    var segments = groupTaskItemsByModuleSegments(_taskDraftItems);
+    segments.forEach(function(seg) {
+        var mt = seg.moduleType;
+        var pendingStudy = 0;
+        var doneStudy = 0;
+        var testN = 0;
+        var testPassed = 0;
+        seg.indices.forEach(function(i) {
+            var it = _taskDraftItems[i];
+            if (it.item_type === 'test') {
+                testN++;
+                if (isTaskItemDone(it)) testPassed++;
+            } else if (isTaskItemDone(it)) {
+                doneStudy++;
+            } else {
+                pendingStudy++;
+            }
+        });
+        var collapsed = isTaskSectionCollapsed(mt, _taskPlanCollapse);
+        var showDone = !!_taskPlanShowCompleted[mt];
+        var arrow = collapsed ? '▶' : '▼';
+        var safeMt = String(mt).replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+        var summary = escapeTeacherAttr(taskModuleShortLabel(mt)) +
+            ' · 待学 ' + pendingStudy + ' · 已完成 ' + doneStudy +
+            ' · 测 ' + testN + (testN ? ('（过关 ' + testPassed + '）') : '');
+        html += '<div id="taskPlanSeg_' + escapeTeacherAttr(mt) +
+            '" style="position:sticky;top:' + (issues.length ? '42px' : '0') +
+            ';z-index:2;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;margin:6px 0 4px;padding:6px 8px;">';
+        html += '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;">';
+        html += '<button type="button" class="btn btn-secondary" style="padding:4px 10px;font-size:13px;font-weight:600;" ' +
+            'onclick="toggleTaskPlanSection(\'' + safeMt + '\')">' + arrow + ' ' + summary + '</button>';
+        html += '<span style="display:flex;gap:4px;flex-shrink:0;">';
+        if (doneStudy + testPassed > 0) {
+            html += '<button type="button" class="btn btn-secondary" style="padding:2px 8px;font-size:11px;" ' +
+                'onclick="toggleTaskPlanShowCompleted(\'' + safeMt + '\')">' +
+                (showDone ? '收起已完成' : ('展开已完成 ' + (doneStudy + testPassed))) + '</button>';
+        }
+        html += '<button type="button" class="btn btn-secondary" style="padding:2px 8px;font-size:11px;" ' +
+            'onclick="insertStageTestForModuleSegment(\'' + safeMt + '\')" title="对本科目当前最后一段插入阶段测">本段测至末</button>';
+        html += '<button type="button" class="btn btn-secondary" style="padding:2px 8px;font-size:11px;" ' +
+            'onclick="removeTaskDraftModuleSegment(\'' + safeMt + '\')">移除本段</button>';
+        html += '</span></div></div>';
+        if (collapsed) return;
+        var displayIdx = orderSegmentIndicesForDisplay(_taskDraftItems, seg.indices, showDone);
+        displayIdx.forEach(function(idx) {
+            var it = _taskDraftItems[idx];
+            var done = isTaskItemDone(it);
+            var bad = issues.some(function(msg) { return msg.indexOf('第' + (idx + 1) + '条') === 0; });
+            var menuOpen = _taskPlanOpenMenuIdx === idx;
+            var rowBg = bad ? 'background:#fff7ed;' : (done ? 'background:#f8fafc;' : '');
+            var dim = done ? 'color:#94a3b8;' : '';
+            html += '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;padding:5px 6px;border-bottom:1px solid #f1f5f9;' +
+                rowBg + dim + '">';
+            html += '<span style="font-size:13px;line-height:1.4;">' + (idx + 1) + '. ' +
+                formatTaskPlanItemBody(it) + '</span>';
+            html += '<span style="position:relative;flex-shrink:0;">';
+            html += '<button type="button" class="btn btn-secondary" style="padding:2px 8px;font-size:12px;" ' +
+                'onclick="toggleTaskRowMenu(' + idx + ')" title="操作">⋯</button>';
+            if (menuOpen) {
+                html += '<div style="position:absolute;right:0;top:100%;z-index:5;background:#fff;border:1px solid #e2e8f0;' +
+                    'border-radius:8px;box-shadow:0 4px 12px rgba(15,23,42,0.12);padding:6px;min-width:110px;display:flex;flex-direction:column;gap:4px;color:#334155;">';
+                if (it.item_type === 'study' && it.unit_id) {
+                    html += '<button type="button" class="btn btn-secondary" style="padding:4px 8px;font-size:12px;text-align:left;" ' +
+                        'onclick="insertStageTestThrough(' + idx + ')">测至此处</button>';
+                }
+                if (idx > 0) {
+                    html += '<button type="button" class="btn btn-secondary" style="padding:4px 8px;font-size:12px;text-align:left;" ' +
+                        'onclick="moveTaskDraft(' + idx + ',-1)">上移</button>';
+                }
+                if (idx < _taskDraftItems.length - 1) {
+                    html += '<button type="button" class="btn btn-secondary" style="padding:4px 8px;font-size:12px;text-align:left;" ' +
+                        'onclick="moveTaskDraft(' + idx + ',1)">下移</button>';
+                }
+                html += '<button type="button" class="btn btn-secondary" style="padding:4px 8px;font-size:12px;text-align:left;" ' +
+                    'onclick="removeTaskDraft(' + idx + ')">移除</button>';
+                html += '</div>';
+            }
+            html += '</span></div>';
+        });
+        if (!showDone && (doneStudy + testPassed) > 0) {
+            html += '<div style="padding:4px 8px;font-size:12px;color:#94a3b8;">已收起 ' +
+                (doneStudy + testPassed) + ' 条已完成 · 点上方「展开已完成」查看</div>';
+        }
+    });
+    box.innerHTML = html;
+}
+
+function _taskDraftOrderIssues(items) {
+    var issues = [];
+    var studySeen = {};
+    (items || []).forEach(function(it, idx) {
+        if (it.item_type === 'study' && it.unit_id) {
+            studySeen[it.unit_id] = true;
+        } else if (it.item_type === 'test') {
+            var covers = normalizeTestUnitIds(it.test_unit_ids);
+            var missing = covers.filter(function(uid) { return !studySeen[uid]; });
+            if (missing.length) {
+                var mod = taskModuleShortLabel(inferTaskItemModuleType(it, items));
+                issues.push('第' + (idx + 1) + '条「' + mod + ' · ' + (it.test_title || '阶段测') +
+                    '」排在部分学习单元之前');
+            }
+        }
+    });
+    return issues;
+}
+
+function normalizeStageTestOrderClient(items) {
+    var out = items.filter(function(it) { return it.item_type !== 'test'; }).map(function(it) {
+        return Object.assign({}, it, {
+            test_unit_ids: normalizeTestUnitIds(it.test_unit_ids)
+        });
+    });
+    var tests = items.filter(function(it) { return it.item_type === 'test'; });
+    var seen = {};
+    var uniqueTests = [];
+    tests.forEach(function(test) {
+        var coverIds = normalizeTestUnitIds(test.test_unit_ids);
+        var covers = coverIds.slice().sort().join('\u0001');
+        if (!covers || seen[covers]) return;
+        seen[covers] = true;
+        var mt = test.module_type || inferTaskItemModuleType(
+            { item_type: 'test', test_unit_ids: coverIds }, out
+        );
+        uniqueTests.push(Object.assign({}, test, {
+            test_unit_ids: coverIds,
+            module_type: mt || test.module_type || ''
+        }));
+    });
+    var keyed = uniqueTests.map(function(test) {
+        var coverSet = {};
+        (test.test_unit_ids || []).forEach(function(u) { coverSet[u] = true; });
+        var indices = [];
+        out.forEach(function(st, i) {
+            if (st.item_type === 'study' && st.unit_id && coverSet[st.unit_id]) indices.push(i);
+        });
+        if (!indices.length) return { last: out.length, first: 0, n: 0, test: test };
+        return {
+            last: Math.max.apply(null, indices),
+            first: Math.min.apply(null, indices),
+            n: (test.test_unit_ids || []).length,
+            test: test
+        };
+    });
+    keyed.sort(function(a, b) {
+        if (a.last !== b.last) return a.last - b.last;
+        if (a.first !== b.first) return a.first - b.first;
+        return a.n - b.n;
+    });
+    for (var ki = keyed.length - 1; ki >= 0; ki--) {
+        out.splice(keyed[ki].last + 1, 0, keyed[ki].test);
+    }
+    return out;
+}
+
+function draftItemUnitNo(it) {
+    if (!it || it.item_type !== 'study' || !it.unit_id) return null;
+    var u = (_taskUnitCatalog || []).find(function(x) { return x.unit_id === it.unit_id; });
+    if (u && u.unit_no != null && u.unit_no !== '') return Number(u.unit_no) || 0;
+    var m = /_u(\d+)$/i.exec(String(it.unit_id));
+    return m ? Number(m[1]) : 0;
+}
+
+function regroupDraftItemsByModule(items) {
+    // 按科目首次出现顺序归拢；同科学生成按组号/单元号排序。装箱时再多科轮换。
+    var order = [];
+    var buckets = {};
+    (items || []).forEach(function(it) {
+        var mt = inferTaskItemModuleType(it, items) || '_none';
+        if (!buckets[mt]) {
+            buckets[mt] = [];
+            order.push(mt);
+        }
+        buckets[mt].push(it);
+    });
+    var out = [];
+    order.forEach(function(mt) {
+        var bucket = buckets[mt];
+        var studies = bucket.filter(function(it) { return it.item_type === 'study'; });
+        var tests = bucket.filter(function(it) { return it.item_type !== 'study'; });
+        studies.sort(function(a, b) {
+            return (draftItemUnitNo(a) || 0) - (draftItemUnitNo(b) || 0);
+        });
+        out = out.concat(studies).concat(tests);
+    });
+    return out;
+}
+
+function fixStageTestOrderDraft() {
+    if (!_taskDraftItems.length) return;
+    _taskDraftItems = normalizeStageTestOrderClient(
+        regroupDraftItemsByModule(_taskDraftItems)
+    );
+    // 修正后默认今天生效，避免只改了右侧、左侧「当前生效」一直不动
+    setTaskEffectiveFromInput(taskFormatLocalYmd(new Date()));
+    renderTaskPlanList();
+    showToast('有序清单已重排；生效日已设为今天，请点「保存清单草稿」以更新左侧当前生效清单', 'success');
+    schedulePackPreviewRefresh();
+}
+
+async function loadTaskPackPreviews(studentId) {
+    var liveBox = document.getElementById('taskPackPreviewLive');
+    var draftBox = document.getElementById('taskPackPreviewDraft');
+    if (!liveBox || !draftBox || !studentId) return;
+    liveBox.innerHTML = '<span style="color:#94a3b8;">加载中…</span>';
+    draftBox.innerHTML = '<span style="color:#94a3b8;">加载中…</span>';
+
+    var liveRes = await teacherApiGet(
+        '/api/task/students/' + encodeURIComponent(studentId) + '/pack-preview?source=live'
+    );
+    if (liveRes.error) {
+        liveBox.innerHTML = '<span style="color:#b45309;">今日预览加载失败：' +
+            escapeTeacherAttr((liveRes.error && liveRes.error.message) || '接口不可用') +
+            '。若刚更新代码，请<strong>重启本地服务</strong>后刷新。</span>';
+    } else {
+        liveBox.innerHTML = renderPackPreviewHtml(liveRes.data, '今日');
+    }
+
+    var formWd = Number(document.getElementById('taskWeekdayMinutes') && document.getElementById('taskWeekdayMinutes').value);
+    var formWe = Number(document.getElementById('taskWeekendMinutes') && document.getElementById('taskWeekendMinutes').value);
+    var draftPayload = {
+        items: (_taskDraftItems || []).map(function(it) {
+            return {
+                item_type: it.item_type,
+                unit_id: it.unit_id || null,
+                module_type: it.module_type,
+                test_unit_ids: it.test_unit_ids || [],
+                test_title: it.test_title || '',
+                est_minutes: it.est_minutes,
+                status: it.status || 'pending'
+            };
+        })
+    };
+    if (!isNaN(formWd) && formWd > 0) draftPayload.weekday_minutes = formWd;
+    if (!isNaN(formWe) && formWe > 0) draftPayload.weekend_minutes = formWe;
+    var draftRes = await teacherApiPost(
+        '/api/task/students/' + encodeURIComponent(studentId) + '/pack-preview',
+        draftPayload
+    );
+    if (draftRes.error) {
+        draftBox.innerHTML = '<span style="color:#b45309;">编辑预览失败：' +
+            escapeTeacherAttr((draftRes.error && draftRes.error.message) || '接口不可用') +
+            '。请重启本地服务后刷新。</span>';
+        return;
+    }
+    var draftLabel = _taskHasDbDraft
+        ? _taskPendingEffectiveLabel
+        : ('保存·' + taskEffectiveLabel(readTaskEffectiveFromInput()));
+    var draftHtml = renderPackPreviewHtml(draftRes.data, draftLabel);
+    if (draftRes.data && draftRes.data.source === 'draft_items') {
+        draftHtml = '<div style="color:#64748b;font-size:12px;margin-bottom:6px;">' +
+            (_taskHasDbDraft
+                ? '按待生效草稿 + 上方时长输入试算'
+                : '按右侧清单与上方时长输入实时试算（改分钟后无需先保存）') +
+            '</div>' + draftHtml;
+    }
+    var liveBudget = liveRes && liveRes.data ? Number(liveRes.data.budget_minutes) : NaN;
+    if (!isNaN(formWd) && !isNaN(liveBudget) && formWd !== liveBudget) {
+        draftHtml = '<div style="color:#b45309;font-size:12px;margin-bottom:6px;">' +
+            '上方周中 ' + formWd + '′ 尚未成为「今日实际」预算（当前生效 ' + liveBudget +
+            '′）。点「保存时长」且生效日为今天后，上方预览会同步。</div>' + draftHtml;
+    }
+    draftBox.innerHTML = draftHtml;
+}
+
+var _packPreviewTimer = null;
+function schedulePackPreviewRefresh() {
+    var sel = document.getElementById('taskPlanStudentSelect');
+    if (!sel || !sel.value) return;
+    if (_packPreviewTimer) clearTimeout(_packPreviewTimer);
+    _packPreviewTimer = setTimeout(function() {
+        loadTaskPackPreviews(sel.value);
+    }, 350);
+}
+
+function bindTaskDurationPreviewInputs() {
+    ['taskWeekdayMinutes', 'taskWeekendMinutes', 'taskEffectiveFrom'].forEach(function(id) {
+        var el = document.getElementById(id);
+        if (!el || el._packBound) return;
+        el._packBound = true;
+        el.addEventListener('change', schedulePackPreviewRefresh);
+        el.addEventListener('input', schedulePackPreviewRefresh);
+    });
+}
+
+function renderPackPreviewHtml(data, label) {
+    if (!data || !data.items || !data.items.length) {
+        return '<span style="color:#64748b;">' + label + '暂无装箱任务（或清单为空）</span>';
+    }
+    var rot = data.rotated
+        ? '<span style="color:#16a34a;margin-left:6px;">多科轮换</span>'
+        : '<span style="color:#64748b;margin-left:6px;">单科顺序</span>';
+    var locked = data.source === 'live_locked'
+        ? '<span style="color:#64748b;margin-left:6px;">（今日已锁定）</span>' : '';
+    var html = '<div style="margin-bottom:6px;color:#64748b;">预算 ' + (data.budget_minutes || 0) +
+        '′ · 预计放出 ' + (data.est_total_minutes || 0) + '′' + rot + locked + '</div>';
+    data.items.forEach(function(it, i) {
+        var mod = (typeof getModuleById === 'function') ? getModuleById(it.module_type) : null;
+        var modName = (mod && mod.name) || it.module_type || '';
+        var prefix = it.item_type === 'test' ? '测' : '学';
+        html += '<div style="padding:2px 0;">' + (i + 1) + '. <span style="color:#94a3b8;">' +
+            modName + '</span> ' + prefix + ' · ' + (it.title || '') +
+            ' <span style="color:#94a3b8;">(' + (it.est_minutes || 0) + '′)</span></div>';
+    });
+    return html;
+}
+
+function getStageTestModuleUnits(moduleType) {
+    return _taskDraftItems.filter(function(it) {
+        return it.item_type === 'study' && it.unit_id && it.module_type === moduleType;
+    });
+}
+
+function buildStageTestTitle(unitIds) {
+    var titles = unitIds.map(function(uid) {
+        var x = _taskDraftItems.find(function(it) { return it.unit_id === uid; });
+        return (x && x.unit_title) || uid;
+    });
+    if (!titles.length) return '阶段测';
+    if (titles.length === 1) return titles[0] + ' 阶段测';
+    return titles[0] + '–' + titles[titles.length - 1] + ' 阶段测';
+}
+
+function insertStageTestForUnits(unitIds) {
+    if (!unitIds || !unitIds.length) {
+        showToast('请至少选择一个单元', 'error');
+        return false;
+    }
+    var moduleType = null;
+    var i;
+    for (i = 0; i < unitIds.length; i++) {
+        var row = _taskDraftItems.find(function(it) {
+            return it.item_type === 'study' && it.unit_id === unitIds[i];
+        });
+        if (!row) {
+            showToast('单元不在清单中', 'error');
+            return false;
+        }
+        if (!moduleType) moduleType = row.module_type;
+        else if (row.module_type !== moduleType) {
+            showToast('阶段测只能覆盖同一科目', 'error');
+            return false;
+        }
+    }
+    var unitSet = {};
+    unitIds.forEach(function(uid) { unitSet[uid] = true; });
+    for (i = 0; i < _taskDraftItems.length; i++) {
+        var testItem = _taskDraftItems[i];
+        if (testItem.item_type !== 'test') continue;
+        var covers = normalizeTestUnitIds(testItem.test_unit_ids);
+        if (covers.length === unitIds.length &&
+            covers.every(function(uid) { return unitSet[uid]; })) {
+            showToast('已有相同范围的阶段测', 'error');
+            return false;
+        }
+    }
+    var lastIdx = -1;
+    for (i = 0; i < _taskDraftItems.length; i++) {
+        if (_taskDraftItems[i].item_type === 'study' && unitSet[_taskDraftItems[i].unit_id]) {
+            lastIdx = i;
+        }
+    }
+    if (lastIdx < 0) {
+        showToast('未找到对应学习单元', 'error');
+        return false;
+    }
+    var testTitle = buildStageTestTitle(unitIds);
+    _taskDraftItems.splice(lastIdx + 1, 0, {
+        item_type: 'test',
+        unit_id: null,
+        module_type: moduleType,
+        test_unit_ids: unitIds.slice(),
+        test_title: testTitle,
+        est_minutes: 20,
+        status: 'pending'
+    });
+    _taskDraftItems = normalizeStageTestOrderClient(_taskDraftItems);
+    expandTaskPlanModule(moduleType);
+    _taskPlanOpenMenuIdx = null;
+    renderTaskPlanList();
+    scrollTaskPlanSegmentIntoView(moduleType);
+    schedulePackPreviewRefresh();
+    return true;
+}
+
+function insertStageTestThrough(draftIdx) {
+    var anchor = _taskDraftItems[draftIdx];
+    if (!anchor || anchor.item_type !== 'study' || !anchor.unit_id) return;
+    var moduleType = anchor.module_type;
+    // 只覆盖「当前段」：上一同科目阶段测之后（或上一其他科目之后）到本单元。
+    // 这样最后加的第二组也能单独插测，并被「修正测验顺序」正确归位。
+    var startIdx = 0;
+    var i;
+    for (i = draftIdx - 1; i >= 0; i--) {
+        var prev = _taskDraftItems[i];
+        if (prev.item_type === 'test' &&
+            (prev.module_type === moduleType ||
+                inferTaskItemModuleType(prev, _taskDraftItems) === moduleType)) {
+            startIdx = i + 1;
+            break;
+        }
+        if (prev.item_type === 'study' && prev.module_type && prev.module_type !== moduleType) {
+            startIdx = i + 1;
+            break;
+        }
+    }
+    var unitIds = [];
+    for (i = startIdx; i <= draftIdx; i++) {
+        var it = _taskDraftItems[i];
+        if (it.item_type === 'study' && it.module_type === moduleType && it.unit_id) {
+            unitIds.push(it.unit_id);
+        }
+    }
+    if (insertStageTestForUnits(unitIds)) {
+        showToast('已插入阶段测（本段 ' + unitIds.length + ' 个单元，至第 ' + (draftIdx + 1) + ' 项）', 'success');
+    }
+}
+
+function openStageTestModal() {
+    var studies = _taskDraftItems.filter(function(it) {
+        return it.item_type === 'study' && it.unit_id;
+    });
+    if (!studies.length) {
+        showToast('请先加入学习单元', 'error');
+        return;
+    }
+    var modules = [];
+    var seen = {};
+    studies.forEach(function(it) {
+        var mt = it.module_type || 'other';
+        if (!seen[mt]) {
+            seen[mt] = true;
+            modules.push(mt);
+        }
+    });
+    modules.sort(function(a, b) {
+        var ia = TASK_LIBRARY_MODULE_ORDER.indexOf(a);
+        var ib = TASK_LIBRARY_MODULE_ORDER.indexOf(b);
+        if (ia === -1 && ib === -1) return taskLibraryModuleLabel(a).localeCompare(taskLibraryModuleLabel(b), 'zh');
+        if (ia === -1) return 1;
+        if (ib === -1) return -1;
+        return ia - ib;
+    });
+    var tabs = document.getElementById('taskStageTestModuleTabs');
+    if (!tabs) return;
+    _stageTestModalModule = modules[0] || '';
+    tabs.innerHTML = modules.map(function(mt) {
+        var active = mt === _stageTestModalModule;
+        return '<button type="button" data-mt="' + escapeTeacherAttr(mt) + '" class="btn ' +
+            (active ? '' : 'btn-secondary') + '" style="padding:4px 10px;font-size:12px;" ' +
+            'onclick="selectStageTestModule(this.getAttribute(\'data-mt\'))">' +
+            taskLibraryModuleLabel(mt) + '</button>';
+    }).join('');
+    renderStageTestRangeUI();
+    showModal('taskStageTestModal');
+}
+
+function selectStageTestModule(moduleType) {
+    _stageTestModalModule = moduleType;
+    var tabs = document.getElementById('taskStageTestModuleTabs');
+    if (tabs) {
+        tabs.querySelectorAll('button[data-mt]').forEach(function(btn) {
+            var active = btn.getAttribute('data-mt') === moduleType;
+            btn.className = 'btn ' + (active ? '' : 'btn-secondary');
+        });
+    }
+    renderStageTestRangeUI();
+}
+
+function renderStageTestRangeUI() {
+    var fromSel = document.getElementById('taskStageTestFrom');
+    var toSel = document.getElementById('taskStageTestTo');
+    if (!fromSel || !toSel) return;
+    var units = getStageTestModuleUnits(_stageTestModalModule);
+    if (!units.length) {
+        fromSel.innerHTML = '';
+        toSel.innerHTML = '';
+        updateStageTestPreview();
+        return;
+    }
+    var opts = units.map(function(it, idx) {
+        var label = (idx + 1) + '. ' + (it.unit_title || it.unit_id);
+        return '<option value="' + escapeTeacherAttr(it.unit_id) + '">' + escapeTeacherAttr(label) + '</option>';
+    }).join('');
+    fromSel.innerHTML = opts;
+    toSel.innerHTML = opts;
+    var defaultFrom = Math.max(0, units.length - 3);
+    fromSel.selectedIndex = defaultFrom;
+    toSel.selectedIndex = units.length - 1;
+    onStageTestRangeChange();
+}
+
+function onStageTestRangeChange() {
+    var fromSel = document.getElementById('taskStageTestFrom');
+    var toSel = document.getElementById('taskStageTestTo');
+    if (!fromSel || !toSel || fromSel.selectedIndex < 0 || toSel.selectedIndex < 0) {
+        updateStageTestPreview();
+        return;
+    }
+    if (fromSel.selectedIndex > toSel.selectedIndex) {
+        toSel.selectedIndex = fromSel.selectedIndex;
+    }
+    updateStageTestPreview();
+}
+
+function applyStageTestQuickRange(count) {
+    var units = getStageTestModuleUnits(_stageTestModalModule);
+    var fromSel = document.getElementById('taskStageTestFrom');
+    var toSel = document.getElementById('taskStageTestTo');
+    if (!units.length || !fromSel || !toSel) return;
+    toSel.selectedIndex = units.length - 1;
+    if (!count) {
+        fromSel.selectedIndex = 0;
+    } else {
+        fromSel.selectedIndex = Math.max(0, units.length - count);
+    }
+    updateStageTestPreview();
+}
+
+function collectStageTestRangeUnitIds() {
+    var fromSel = document.getElementById('taskStageTestFrom');
+    var toSel = document.getElementById('taskStageTestTo');
+    if (!fromSel || !toSel) return [];
+    var units = getStageTestModuleUnits(_stageTestModalModule);
+    if (!units.length) return [];
+    var fromIdx = fromSel.selectedIndex;
+    var toIdx = toSel.selectedIndex;
+    if (fromIdx < 0 || toIdx < 0) return [];
+    if (fromIdx > toIdx) {
+        var tmp = fromIdx;
+        fromIdx = toIdx;
+        toIdx = tmp;
+    }
+    var slice = units.slice(fromIdx, toIdx + 1);
+    return slice.map(function(it) { return it.unit_id; });
+}
+
+function updateStageTestPreview() {
+    var box = document.getElementById('taskStageTestPreview');
+    if (!box) return;
+    var unitIds = collectStageTestRangeUnitIds();
+    if (!unitIds.length) {
+        box.textContent = '请先在清单中加入该科目的学习单元';
+        return;
+    }
+    box.textContent = '将插入：' + buildStageTestTitle(unitIds) + '（覆盖 ' + unitIds.length + ' 个单元）';
+}
+
+function confirmInsertStageTest() {
+    var unitIds = collectStageTestRangeUnitIds();
+    if (!unitIds.length) {
+        showToast('请选择覆盖范围', 'error');
+        return;
+    }
+    if (!insertStageTestForUnits(unitIds)) return;
+    closeModal('taskStageTestModal');
+    showToast('已插入阶段测（记得保存清单）', 'success');
+}
+
+function renderTaskLivePlanList() {
+    var box = document.getElementById('taskLivePlanList');
+    if (!box) return;
+    var title = document.getElementById('taskLivePlanTitle');
+    if (!_taskLiveItems.length) {
+        if (title) title.textContent = '当前生效清单';
+        box.innerHTML = '<p style="color:#666;margin:0;">暂无生效清单</p>';
+        return;
+    }
+    var studyN = _taskLiveItems.filter(function(it) { return it.item_type === 'study'; }).length;
+    var testN = _taskLiveItems.filter(function(it) { return it.item_type === 'test'; }).length;
+    if (title) {
+        title.textContent = '当前生效清单（共 ' + _taskLiveItems.length + ' 项）';
+    }
+    var html = '';
+    html += '<p style="color:#64748b;font-size:12px;margin:0 0 8px;">这是<strong>完整学习队列</strong>（学 ' +
+        studyN + ' / 测 ' + testN + '），不是学生今天要做的全部。系统按每日预算从中逐日装箱，请看下方「装箱预览」。</p>';
+    if (_taskPendingPlanChange) {
+        html += '<p style="color:#b45309;margin:0 0 8px;">有待生效草稿/时长变更；到达生效日后将替换本列表。</p>';
+    }
+    var segments = groupTaskItemsByModuleSegments(_taskLiveItems);
+    segments.forEach(function(seg) {
+        var mt = seg.moduleType;
+        var pendingStudy = 0;
+        var doneStudy = 0;
+        var tN = 0;
+        var tPass = 0;
+        seg.indices.forEach(function(i) {
+            var it = _taskLiveItems[i];
+            if (it.item_type === 'test') {
+                tN++;
+                if (isTaskItemDone(it)) tPass++;
+            } else if (isTaskItemDone(it)) {
+                doneStudy++;
+            } else {
+                pendingStudy++;
+            }
+        });
+        var collapsed = isTaskSectionCollapsed(mt, _taskLiveCollapse);
+        var showDone = !!_taskLiveShowCompleted[mt];
+        var arrow = collapsed ? '▶' : '▼';
+        var safeMt = String(mt).replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+        var summary = escapeTeacherAttr(taskModuleShortLabel(mt)) +
+            ' · 待学 ' + pendingStudy + ' · 已完成 ' + doneStudy +
+            ' · 测 ' + tN + (tN ? ('（过关 ' + tPass + '）') : '');
+        html += '<div style="position:sticky;top:0;z-index:1;background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;margin:4px 0;padding:4px 6px;">';
+        html += '<div style="display:flex;flex-wrap:wrap;gap:4px;align-items:center;">';
+        html += '<button type="button" class="btn btn-secondary" style="padding:3px 8px;font-size:12px;font-weight:600;" ' +
+            'onclick="toggleTaskLiveSection(\'' + safeMt + '\')">' + arrow + ' ' + summary + '</button>';
+        if (doneStudy + tPass > 0) {
+            html += '<button type="button" class="btn btn-secondary" style="padding:2px 6px;font-size:11px;" ' +
+                'onclick="toggleTaskLiveShowCompleted(\'' + safeMt + '\')">' +
+                (showDone ? '收起已完成' : ('展开已完成 ' + (doneStudy + tPass))) + '</button>';
+        }
+        html += '</div></div>';
+        if (collapsed) return;
+        var displayIdx = orderSegmentIndicesForDisplay(_taskLiveItems, seg.indices, showDone);
+        displayIdx.forEach(function(idx) {
+            var it = _taskLiveItems[idx];
+            var done = isTaskItemDone(it);
+            html += '<div style="padding:2px 6px;font-size:13px;' +
+                (done ? 'color:#94a3b8;' : 'color:#334155;') + '">' +
+                (idx + 1) + '. ' + formatTaskPlanItemBody(it) + '</div>';
+        });
+        if (!showDone && (doneStudy + tPass) > 0) {
+            html += '<div style="padding:2px 8px;font-size:12px;color:#94a3b8;">已收起 ' +
+                (doneStudy + tPass) + ' 条已完成</div>';
+        }
+    });
+    box.innerHTML = html;
+}
+
+function findDraftInsertIndexForUnit(unit) {
+    var moduleType = unit && unit.module_type;
+    if (!moduleType) return _taskDraftItems.length;
+    var newNo = Number(unit.unit_no);
+    if (isNaN(newNo)) {
+        var m = /_u(\d+)$/i.exec(String(unit.unit_id || ''));
+        newNo = m ? Number(m[1]) : 0;
+    }
+    var firstSame = -1;
+    var insertAfterStudy = -1;
+    for (var i = 0; i < _taskDraftItems.length; i++) {
+        var it = _taskDraftItems[i];
+        var mt = inferTaskItemModuleType(it, _taskDraftItems);
+        if (mt !== moduleType) continue;
+        if (firstSame < 0) firstSame = i;
+        if (it.item_type !== 'study') continue;
+        var no = draftItemUnitNo(it);
+        if (no != null && no < newNo) insertAfterStudy = i;
+    }
+    if (firstSame < 0) return _taskDraftItems.length;
+    // 第2组插到第1组正下方（同科按组号），而不是甩到该科末尾
+    if (insertAfterStudy >= 0) return insertAfterStudy + 1;
+    return firstSame;
+}
+
+function addUnitToTaskDraft(unitId) {
+    if (_taskDraftItems.some(function(it) {
+        return it.item_type === 'study' && it.unit_id === unitId && it.status !== 'removed';
+    })) {
+        showToast('该单元已在计划中', 'error');
+        return;
+    }
+    var u = _taskUnitCatalog.find(function(x) { return x.unit_id === unitId; });
+    if (!u) return;
+    var row = {
+        item_type: 'study',
+        unit_id: unitId,
+        module_type: u.module_type,
+        unit_title: u.title,
+        status: 'pending'
+    };
+    var at = findDraftInsertIndexForUnit(u);
+    _taskDraftItems.splice(at, 0, row);
+    expandTaskPlanModule(u.module_type);
+    _taskPlanOpenMenuIdx = null;
+    renderTaskPlanList();
+    renderTaskUnitLibrary();
+    scrollTaskPlanSegmentIntoView(u.module_type);
+    schedulePackPreviewRefresh();
+}
+
+function moveTaskDraft(idx, delta) {
+    var j = idx + delta;
+    if (j < 0 || j >= _taskDraftItems.length) return;
+    var tmp = _taskDraftItems[idx];
+    _taskDraftItems[idx] = _taskDraftItems[j];
+    _taskDraftItems[j] = tmp;
+    _taskPlanOpenMenuIdx = null;
+    renderTaskPlanList();
+    schedulePackPreviewRefresh();
+}
+
+function removeTaskDraft(idx) {
+    _taskDraftItems.splice(idx, 1);
+    _taskPlanOpenMenuIdx = null;
+    renderTaskPlanList();
+    renderTaskUnitLibrary();
+    schedulePackPreviewRefresh();
+}
+
+async function loadTeacherTaskPlan() {
+    var sel = document.getElementById('taskPlanStudentSelect');
+    if (!sel || !sel.value) return;
+    var sid = sel.value;
+    var planRes = await teacherApiGet('/api/task/students/' + encodeURIComponent(sid) + '/plan');
+    if (planRes.error) {
+        if (planRes._httpStatus === 401) {
+            showToast('教师登录已失效，请重新登录', 'error');
+            currentTeacher = null;
+            showScreen('teacherLoginScreen');
+            return;
+        }
+        showToast((planRes.error && planRes.error.message) || '加载计划失败', 'error');
+        return;
+    }
+    var data = planRes.data || {};
+    await applyTeacherTaskPlanData(data);
+}
+
+async function saveTeacherTaskPlan() {
+    var sel = document.getElementById('taskPlanStudentSelect');
+    if (!sel || !sel.value) return;
+    _taskDraftItems = normalizeStageTestOrderClient(
+        regroupDraftItemsByModule(_taskDraftItems)
+    );
+    var items = _taskDraftItems.map(function(it) {
+        return {
+            item_type: it.item_type,
+            unit_id: it.unit_id || null,
+            module_type: it.module_type,
+            test_unit_ids: it.test_unit_ids || [],
+            test_title: it.test_title || '',
+            est_minutes: it.est_minutes,
+            status: it.status || 'pending'
+        };
+    });
+    var effYmd = readTaskEffectiveFromInput();
+    var result = await teacherApiPost(
+        '/api/task/students/' + encodeURIComponent(sel.value) + '/plan',
+        { items: items, effective_from: effYmd }
+    );
+    if (result.error) {
+        showToast((result.error && result.error.message) || '保存失败', 'error');
+        return;
+    }
+    var data = result.data || {};
+    var appliedNow = !(data.draft_pending || (data.draft && data.draft.length));
+    if (appliedNow) {
+        showToast('清单已保存，当前生效清单已更新', 'success');
+    } else {
+        showToast(
+            '草稿已保存，' + taskEffectiveLabel(data.draft_effective_from || effYmd) +
+            ' 起才替换左侧「当前生效」；若要马上改，请把生效日期改成今天再保存',
+            'info'
+        );
+    }
+    if (result.data) {
+        await applyTeacherTaskPlanData(result.data);
+    } else {
+        await loadTeacherTaskPlan();
+    }
+}
+
+async function applyTeacherTaskPlanData(data) {
+    _taskPendingPlanChange = !!data.pending_plan_change;
+    _taskHasDbDraft = !!(data.draft_pending || (data.draft && data.draft.length));
+    _taskPendingEffectiveLabel = taskEffectiveLabel(
+        data.pending_effective_from || data.draft_effective_from || readTaskEffectiveFromInput()
+    );
+    _taskPlanOpenMenuIdx = null;
+    var liveRows = (data.live || []).filter(function(it) {
+        return it.status !== 'removed';
+    });
+    var liveByUnit = {};
+    var liveTests = [];
+    liveRows.forEach(function(it) {
+        if (it.item_type === 'study' && it.unit_id) {
+            liveByUnit[it.unit_id] = it;
+        } else if (it.item_type === 'test') {
+            liveTests.push(it);
+        }
+    });
+    function matchLiveTest(draftIt) {
+        var covers = normalizeTestUnitIds(draftIt.test_unit_ids).slice().sort().join('\u0001');
+        if (!covers) return null;
+        for (var i = 0; i < liveTests.length; i++) {
+            var c = normalizeTestUnitIds(liveTests[i].test_unit_ids).slice().sort().join('\u0001');
+            if (c === covers) return liveTests[i];
+        }
+        return null;
+    }
+    _taskLiveItems = liveRows.map(function(it) {
+        return {
+            item_type: it.item_type,
+            unit_id: it.unit_id,
+            module_type: it.module_type,
+            unit_title: it.unit_title,
+            test_title: it.test_title,
+            test_unit_ids: it.test_unit_ids || [],
+            status: it.status || 'pending',
+            study_completed: Number(it.study_completed) || 0,
+            test_passed: Number(it.test_passed) || 0
+        };
+    });
+    var source = (data.draft && data.draft.length) ? data.draft : liveRows;
+    _taskDraftItems = source.map(function(it) {
+        var studyDone = Number(it.study_completed) || 0;
+        var testPass = Number(it.test_passed) || 0;
+        if (it.item_type === 'study' && it.unit_id && liveByUnit[it.unit_id]) {
+            studyDone = Number(liveByUnit[it.unit_id].study_completed) || 0;
+        } else if (it.item_type === 'test') {
+            var liveT = matchLiveTest(it);
+            if (liveT) testPass = Number(liveT.test_passed) || 0;
+        }
+        return {
+            item_type: it.item_type,
+            unit_id: it.unit_id,
+            module_type: it.module_type,
+            unit_title: it.unit_title,
+            test_title: it.test_title,
+            test_unit_ids: it.test_unit_ids || [],
+            est_minutes: it.est_minutes,
+            status: it.status || 'pending',
+            study_completed: studyDone,
+            test_passed: testPass
+        };
+    });
+    _taskDraftItems = normalizeStageTestOrderClient(_taskDraftItems);
+    var tp = data.time_profile || {};
+    var wd = document.getElementById('taskWeekdayMinutes');
+    var we = document.getElementById('taskWeekendMinutes');
+    if (wd) wd.value = tp.pending_weekday_minutes != null ? tp.pending_weekday_minutes : (tp.weekday_minutes || 40);
+    if (we) we.value = tp.pending_weekend_minutes != null ? tp.pending_weekend_minutes : (tp.weekend_minutes || 90);
+    // 无待生效时不要重置成「明天」，否则下次保存又进草稿、当前生效不更新
+    var effFrom = data.draft_effective_from || data.pending_profile_effective_from ||
+        readTaskEffectiveFromInput() || taskFormatLocalYmd(new Date());
+    setTaskEffectiveFromInput(effFrom);
+    var hint = document.getElementById('taskPlanHint');
+    if (hint) {
+        var base = '多科目会自动轮换装箱（各科交替练习），清单按科目分段加入即可，不必手动交错排序。';
+        var effLabel = taskEffectiveLabel(data.pending_effective_from || effFrom);
+        hint.textContent = data.pending_plan_change
+            ? base + ' 有待生效变更（' + effLabel + ' 起生效）；上面「当前生效」才是学生今日所见。'
+            : base + ' 可选择生效日期；选「今天」保存后立即更新清单并重排今日任务。';
+    }
+    updateTaskPlanSectionTitles(data);
+    renderTaskLivePlanList();
+    renderTaskPlanList();
+    renderTaskUnitLibrary();
+    var sel = document.getElementById('taskPlanStudentSelect');
+    if (sel && sel.value) await loadTaskPackPreviews(sel.value);
+}
+
+async function saveTeacherTimeProfile() {
+    var sel = document.getElementById('taskPlanStudentSelect');
+    if (!sel || !sel.value) return;
+    var wd = Number(document.getElementById('taskWeekdayMinutes').value);
+    var we = Number(document.getElementById('taskWeekendMinutes').value);
+    var result = await teacherApiPost(
+        '/api/task/students/' + encodeURIComponent(sel.value) + '/time-profile',
+        {
+            weekday_minutes: wd,
+            weekend_minutes: we,
+            effective_from: readTaskEffectiveFromInput()
+        }
+    );
+    if (result.error) {
+        showToast((result.error && result.error.message) || '保存失败', 'error');
+        return;
+    }
+    showToast('时长已保存（' + taskEffectiveLabel(readTaskEffectiveFromInput()) + ' 起生效）', 'success');
+    if (result.data) {
+        await loadTeacherTaskPlan();
+    }
+}

@@ -75,8 +75,265 @@ function showStudentHome() {
     showScreen('studentHome');
     document.getElementById('studentWelcome').textContent = '你好，' + currentStudent.name + '！';
     refreshWritingUnseenCount(true).finally(function() {
+        loadTodayTasks();
         loadProgressTable();
     });
+}
+
+function formatTaskMinutes(m) {
+    const n = Number(m) || 0;
+    if (n <= 0) return '0';
+    if (n < 10 && Math.abs(n - Math.round(n)) > 0.05) {
+        return String(Math.round(n * 10) / 10);
+    }
+    return String(Math.round(n));
+}
+
+function renderTaskItemTimeCompare(est, actual) {
+    const e = Number(est) || 0;
+    const a = Number(actual) || 0;
+    let actualColor = '#64748b';
+    if (a > 0 && e > 0 && a > e * 1.2) actualColor = '#b45309';
+    if (a > 0 && e > 0 && a <= e) actualColor = '#16a34a';
+    return ' <span style="color:#94a3b8;font-size:0.85rem;">预计 ' + formatTaskMinutes(e) +
+        '′ · 已练 <span style="color:' + actualColor + ';">' + formatTaskMinutes(a) + '′</span></span>';
+}
+
+async function loadTodayTasks() {
+    const panel = document.getElementById('taskTodayPanel');
+    const planPanel = document.getElementById('taskPlanProgressPanel');
+    if (!panel) return;
+    panel.innerHTML = '<p style="color:#666;">加载今日任务…</p>';
+    const result = await apiFetch('/api/task/me/today');
+    if (result.error) {
+        panel.innerHTML = '<p style="color:#c00;">加载失败：' +
+            ((result.error && result.error.message) || '请稍后再试') + '</p>';
+        return;
+    }
+    const data = result.data || {};
+    const items = data.items || [];
+    const progress = data.progress || {};
+    let html = '<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:16px;">';
+    html += '<div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:10px;">';
+    html += '<h3 style="margin:0;">① 今日任务</h3>';
+    const estTotal = Number(data.est_total_minutes) || 0;
+    const actualTotal = Number(data.actual_total_minutes) || 0;
+    const budgetMin = Number(data.budget_minutes) || 0;
+    const budgetPct = budgetMin > 0 ? Math.min(100, Math.round(actualTotal / budgetMin * 100)) : 0;
+    let actualColor = '#334155';
+    if (actualTotal > budgetMin && budgetMin > 0) actualColor = '#b45309';
+    else if (actualTotal > estTotal && estTotal > 0) actualColor = '#b45309';
+    else if (actualTotal > 0) actualColor = '#16a34a';
+    html += '<div style="text-align:right;min-width:200px;">';
+    html += '<div style="color:#64748b;font-size:0.9rem;">预计 ' + formatTaskMinutes(estTotal) +
+        '′ · 已练 <span style="color:' + actualColor + ';font-weight:600;">' +
+        formatTaskMinutes(actualTotal) + '′</span> · 预算 ' + formatTaskMinutes(budgetMin) + '′</div>';
+    if (budgetMin > 0) {
+        html += '<div style="margin-top:6px;height:6px;background:#e2e8f0;border-radius:999px;overflow:hidden;">';
+        html += '<div style="height:100%;width:' + budgetPct + '%;background:' +
+            (budgetPct > 100 ? '#f59e0b' : '#667eea') + ';border-radius:999px;"></div></div>';
+    }
+    html += '</div></div>';
+    if (actualTotal > budgetMin && budgetMin > 0 && items.length) {
+        html += '<p style="color:#b45309;margin:8px 0 0;font-size:0.85rem;">' +
+            '已练时长超过今日预算，仍可继续完成任务。</p>';
+    }
+    if (data.pending_plan_change) {
+        var eff = data.pending_effective_from;
+        var todayStr = (function() {
+            var d = new Date();
+            var m = d.getMonth() + 1;
+            var day = d.getDate();
+            return d.getFullYear() + '-' + (m < 10 ? '0' : '') + m + '-' + (day < 10 ? '0' : '') + day;
+        })();
+        if (eff && eff <= todayStr) {
+            html += '<p style="color:#b45309;margin:8px 0 0;">计划有待合并的更新，请下拉刷新本页；若仍无变化请联系助教将生效日设为今天并重新保存。</p>';
+        } else {
+            var effText = eff ? (eff + ' 起生效') : '稍后生效';
+            html += '<p style="color:#b45309;margin:8px 0 0;">计划已更新，' + effText + '（到期前今日任务仍按原清单）</p>';
+        }
+    }
+    if (!items.length) {
+        html += '<p style="margin:16px 0 0;color:#64748b;">' +
+            (data.empty_message || '今日暂无任务，请联系助教') + '</p>';
+    } else {
+        const byMod = {};
+        items.forEach(function(it) {
+            const mt = it.module_type || 'other';
+            if (!byMod[mt]) byMod[mt] = [];
+            byMod[mt].push(it);
+        });
+        Object.keys(byMod).forEach(function(mt) {
+            const p = progress[mt] || {};
+            const mod = getModuleById(mt);
+            const name = (mod && mod.name) || mt;
+            html += '<div style="margin-top:14px;padding-top:12px;border-top:1px solid #e2e8f0;">';
+            html += '<div style="font-weight:600;margin-bottom:8px;">' + name +
+                ' <span style="font-weight:400;color:#64748b;font-size:0.9rem;">计划学习 ' +
+                (p.study_x || 0) + '/' + (p.study_y || 0) +
+                (p.pass_b ? (' · 过关 ' + (p.pass_a || 0) + '/' + p.pass_b) : '') +
+                '</span></div>';
+            byMod[mt].forEach(function(it) {
+                const done = it.state === 'done_study' || it.state === 'done_pass';
+                const fail = it.state === 'done_fail';
+                let btn = '';
+                if (done) {
+                    btn = '<span style="color:#16a34a;">已完成</span>';
+                } else if (fail) {
+                    btn = '<span style="color:#dc2626;">未过关 · 可重测</span> ' +
+                        '<button class="btn btn-secondary" type="button" onclick="openTaskItem(' +
+                        it.plan_item_id + ')">继续测试</button>';
+                } else if (it.item_type === 'test') {
+                    btn = '<button class="btn btn-primary" type="button" onclick="openTaskItem(' +
+                        it.plan_item_id + ')">去测试</button>';
+                } else {
+                    btn = '<button class="btn btn-primary" type="button" onclick="openTaskItem(' +
+                        it.plan_item_id + ')">去学习</button>';
+                }
+                html += '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 0;">';
+                html += '<div><span style="color:#64748b;font-size:0.85rem;">' +
+                    (it.item_type === 'test' ? '测' : '学') + '</span> ' +
+                    escapeHtml(it.title || '') +
+                    renderTaskItemTimeCompare(it.est_minutes, it.actual_minutes) +
+                    (it.scope_total ? (' <span style="color:#94a3b8;font-size:0.85rem;">本单元 ' +
+                        (it.scope_done || 0) + '/' + it.scope_total + (it.scope_unit || '') +
+                        '</span>') : '') +
+                    '</div><div>' + btn + '</div></div>';
+            });
+            html += '</div>';
+        });
+    }
+    html += '</div>';
+    panel.innerHTML = html;
+
+    if (planPanel) {
+        let phtml = '<div style="border:1px solid #e2e8f0;border-radius:12px;padding:14px;">';
+        phtml += '<h3 style="margin:0 0 10px;">② 我的计划进度</h3>';
+        const keys = Object.keys(progress);
+        if (!keys.length) {
+            phtml += '<p style="color:#64748b;margin:0;">暂无已排科目</p>';
+        } else {
+            keys.forEach(function(mt) {
+                const p = progress[mt];
+                const mod = getModuleById(mt);
+                phtml += '<div style="padding:6px 0;">' + ((mod && mod.name) || mt) +
+                    ' · 学习 ' + (p.study_x || 0) + '/' + (p.study_y || 0) +
+                    (p.pass_b ? (' · 过关 ' + (p.pass_a || 0) + '/' + p.pass_b) : '') +
+                    '</div>';
+            });
+        }
+        phtml += '</div>';
+        planPanel.innerHTML = phtml;
+    }
+    window._todayTaskItems = items;
+}
+
+function escapeHtml(s) {
+    return String(s || '').replace(/[&<>"']/g, function(c) {
+        return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c];
+    });
+}
+
+function openTaskItem(planItemId) {
+    const items = window._todayTaskItems || [];
+    const it = items.find(function(x) { return x.plan_item_id === planItemId; });
+    if (!it) {
+        showToast('任务不存在，请刷新', 'error');
+        return;
+    }
+    if (it.item_type === 'test') {
+        // MVP: simple stage test via prompt score
+        const raw = window.prompt('阶段测得分（MVP 手填，正式版接测试页）', '85');
+        if (raw == null) return;
+        const score = Number(raw);
+        if (isNaN(score)) {
+            showToast('请输入数字', 'error');
+            return;
+        }
+        apiFetch('/api/task/me/submit-test', {
+            method: 'POST',
+            body: JSON.stringify({
+                plan_item_id: planItemId,
+                score: score,
+                threshold: 80
+            })
+        }).then(function(result) {
+            if (result.error) {
+                showToast((result.error && result.error.message) || '提交失败', 'error');
+                return;
+            }
+            showToast(result.data && result.data.passed ? '已过关' : '未过关', result.data && result.data.passed ? 'success' : 'error');
+            loadTodayTasks();
+        });
+        return;
+    }
+    let url = it.study_url || '';
+    if (!url) {
+        showToast('该单元暂无学习链接', 'error');
+        return;
+    }
+    window._currentTaskContext = {
+        plan_item_id: it.plan_item_id,
+        unit_id: it.unit_id,
+        content_version: it.content_version || '1',
+        daily_task_id: it.daily_task_id
+    };
+    const mod = getModuleById(it.module_type) || { id: it.module_type, name: it.module_type };
+    if ((it.module_type === 'dictation' || it.module_type === 'listening_basic') &&
+        typeof openListeningIframe === 'function') {
+        const groupMatch = /[?&]group=(\d+)/.exec(url);
+        const groupIndex = groupMatch ? Number(groupMatch[1]) : 0;
+        openListeningIframe(it.module_type, {
+            group: groupIndex,
+            task_id: it.daily_task_id,
+            plan_item_id: it.plan_item_id,
+            unit_id: it.unit_id,
+            content_version: it.content_version || '1'
+        });
+        return;
+    }
+    openGenericIframe(mod.id, mod.name || it.title, url, 'study');
+}
+
+async function completeCurrentTaskStudy(payload) {
+    const ctx = window._currentTaskContext || {};
+    const planItemId = (payload && payload.plan_item_id) || ctx.plan_item_id;
+    const contentVersion = (payload && payload.content_version) || ctx.content_version || '1';
+    if (!planItemId) {
+        showToast('无任务上下文', 'error');
+        return;
+    }
+    const result = await apiFetch('/api/task/me/complete-study', {
+        method: 'POST',
+        body: JSON.stringify({
+            plan_item_id: planItemId,
+            content_version: contentVersion
+        })
+    });
+    if (result.error) {
+        showToast((result.error && result.error.message) || '打勾失败', 'error');
+        return;
+    }
+    showToast('任务已完成', 'success');
+    window._currentTaskContext = null;
+    showStudentHome();
+    switchStudentTab('tasks');
+}
+
+function switchStudentTab(tab) {
+    document.querySelectorAll('#studentHome [data-student-tab]').forEach(function(t) {
+        t.classList.toggle('active', t.getAttribute('data-student-tab') === tab);
+    });
+    var tasksEl = document.getElementById('studentTabTasks');
+    if (tasksEl) tasksEl.style.display = tab === 'tasks' ? 'block' : 'none';
+    document.getElementById('studentTabProgress').style.display = tab === 'progress' ? 'block' : 'none';
+    document.getElementById('studentTabHistory').style.display = tab === 'history' ? 'block' : 'none';
+    if (tab === 'history') {
+        loadStudentHistory();
+    }
+    if (tab === 'tasks') {
+        loadTodayTasks();
+    }
 }
 
 async function refreshWritingUnseenCount(showTip) {
@@ -241,17 +498,6 @@ async function loadProgressTable() {
     html += '</div><div style="margin-top:12px;color:#666;font-size:0.9rem;">待复习错题：' + wrongCount + ' 个。各科点「错题本」复习。练习时长含学习与测试，5分钟无操作自动停表。</div></div>';
 
     container.innerHTML = html;
-}
-
-function switchStudentTab(tab) {
-    document.querySelectorAll('#studentHome [data-student-tab]').forEach(function(t) {
-        t.classList.toggle('active', t.getAttribute('data-student-tab') === tab);
-    });
-    document.getElementById('studentTabProgress').style.display = tab === 'progress' ? 'block' : 'none';
-    document.getElementById('studentTabHistory').style.display = tab === 'history' ? 'block' : 'none';
-    if (tab === 'history') {
-        loadStudentHistory();
-    }
 }
 
 async function loadStudentHistory() {
@@ -2005,23 +2251,29 @@ function openPhraseIframe() {
 function openGenericIframe(moduleId, moduleName, url, mode) {
     const finalMode = mode || 'study';
     const normalizedModuleId = normalizeModuleType(moduleId);
+    const ctx = window._currentTaskContext || {};
     window._currentModule = {
         id: normalizedModuleId,
         name: moduleName,
         mode: finalMode,
         startedAt: Date.now(),
-        reported: false
+        reported: false,
+        plan_item_id: ctx.plan_item_id,
+        unit_id: ctx.unit_id
     };
     startPracticeClock();
-    const finalUrl = appendModuleParams(url, {
+    const paramObj = {
         student_id: currentStudent && currentStudent.student_id,
         student_name: currentStudent && currentStudent.name,
         module_type: normalizedModuleId,
         module_name: moduleName,
         mode: finalMode,
-        // 避免浏览器强缓存旧测试页（P4 音频路径修复）
         v: '20260827d'
-    });
+    };
+    if (ctx.plan_item_id != null) paramObj.plan_item_id = ctx.plan_item_id;
+    if (ctx.unit_id) paramObj.unit_id = ctx.unit_id;
+    if (ctx.content_version) paramObj.content_version = ctx.content_version;
+    const finalUrl = appendModuleParams(url, paramObj);
     showScreen('genericScreen');
     document.getElementById('genericScreenTitle').textContent = moduleName + (finalMode === 'test' ? '测试' : '学习');
     const genericIframe = document.getElementById('genericIframe');
@@ -2092,8 +2344,8 @@ function exitPhrase() {
     }, 700);
 }
 
-// 新版听力学习 iframe
-function openListeningIframe(moduleId) {
+// 新版听力学习 iframe；taskOpts 可选：{ group, task_id, plan_item_id, unit_id, content_version }
+function openListeningIframe(moduleId, taskOpts) {
     const dictation = getBuiltinDictation(moduleId || 'dictation');
     currentDictationModuleId = dictation.id;
     window._currentModule = {
@@ -2101,18 +2353,29 @@ function openListeningIframe(moduleId) {
         name: dictation.name,
         mode: 'study',
         startedAt: Date.now(),
-        reported: false
+        reported: false,
+        plan_item_id: taskOpts && taskOpts.plan_item_id,
+        unit_id: taskOpts && taskOpts.unit_id
     };
     startPracticeClock();
     showScreen('listeningScreen');
     const listeningTitle = document.querySelector('#listeningScreen h2');
     if (listeningTitle) listeningTitle.textContent = dictation.name + '学习';
-    document.getElementById('listeningIframe').src = appendModuleParams(dictation.studyPage, {
+    const params = {
         student_id: currentStudent && currentStudent.student_id,
         module_type: dictation.id,
         module_name: dictation.name,
-        mode: 'study'
-    });
+        mode: 'study',
+        v: '20260828spell'
+    };
+    if (taskOpts && typeof taskOpts === 'object') {
+        if (taskOpts.group != null && taskOpts.group !== '') params.group = taskOpts.group;
+        if (taskOpts.task_id != null) params.task_id = taskOpts.task_id;
+        if (taskOpts.plan_item_id != null) params.plan_item_id = taskOpts.plan_item_id;
+        if (taskOpts.unit_id) params.unit_id = taskOpts.unit_id;
+        if (taskOpts.content_version) params.content_version = taskOpts.content_version;
+    }
+    document.getElementById('listeningIframe').src = appendModuleParams(dictation.studyPage, params);
     bindIframePracticeClock(document.getElementById('listeningIframe'));
 }
 
@@ -2128,8 +2391,7 @@ function exitListening() {
         stopPracticeClock();
         window._currentModule = null;
         document.getElementById('listeningIframe').src = '';
-        showScreen('studentHome');
-        try { loadProgressTable(); } catch(e) {}
+        showStudentHome();
     }, 700);
 }
 
@@ -2153,6 +2415,31 @@ function isTrustedModuleMessage(event, current) {
 window.addEventListener('message', async function(event) {
     const data = event.data;
     if (!data || !data.type) return;
+    if (data.type === 'taskScopeProgress') {
+        if (event.origin && event.origin !== window.location.origin) return;
+        const ctx = window._currentTaskContext || {};
+        const planItemId = data.plan_item_id || ctx.plan_item_id;
+        if (!planItemId) return;
+        const body = { plan_item_id: planItemId };
+        if (data.scope_done != null) body.scope_done = data.scope_done;
+        else if (data.delta != null) body.delta = data.delta;
+        else return;
+        apiFetch('/api/task/me/scope-progress', {
+            method: 'POST',
+            body: JSON.stringify(body)
+        }).then(function(result) {
+            if (result.error) {
+                console.warn('scope progress failed', result.error);
+            }
+        });
+        return;
+    }
+    if (data.type === 'taskUnitComplete') {
+        // Same-origin iframe task completion (may fire before _currentModule checks)
+        if (event.origin && event.origin !== window.location.origin) return;
+        await completeCurrentTaskStudy(data);
+        return;
+    }
     const current = window._currentModule;
     if (!isTrustedModuleMessage(event, current)) return;
 

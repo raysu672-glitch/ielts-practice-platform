@@ -81,6 +81,23 @@ from teacher_api import (  # noqa: E402
     toggle_teacher_status,
     update_standard,
 )
+from task_api import (  # noqa: E402
+    complete_study as task_complete_study,
+    ensure_task_tables,
+    get_plan as task_get_plan,
+    get_time_profile as task_get_time_profile,
+    get_today as task_get_today,
+    insert_stage_test as task_insert_stage_test,
+    list_units as task_list_units,
+    normalize_stage_test_positions,
+    preview_daily_pack as task_preview_daily_pack,
+    preview_daily_pack_items as task_preview_daily_pack_items,
+    put_plan_draft as task_put_plan_draft,
+    put_time_profile as task_put_time_profile,
+    seed_mvp_units,
+    submit_stage_test as task_submit_stage_test,
+    update_scope_progress as task_update_scope_progress,
+)
 DEFAULT_DB_PATH = ROOT / "data" / "ielts_local.db"
 DEFAULT_P4_ASR_BASE = "https://p4.oyenglish.com.cn"
 DEFAULT_WRITING_API_BASE = "http://127.0.0.1:8080"
@@ -309,6 +326,24 @@ def _drop_default_password_column(conn: sqlite3.Connection, table: str) -> None:
         conn.execute("PRAGMA foreign_keys=ON")
 
 
+def migrate_study_sessions_task_columns(conn: sqlite3.Connection) -> None:
+    """Add plan_item_id / unit_id for per-task study duration (task system)."""
+    tables = {
+        r[0]
+        for r in conn.execute(
+            "SELECT name FROM sqlite_master WHERE type='table'"
+        ).fetchall()
+    }
+    if "study_sessions" not in tables:
+        return
+    cols = {r[1] for r in conn.execute("PRAGMA table_info(study_sessions)").fetchall()}
+    if "plan_item_id" not in cols:
+        conn.execute("ALTER TABLE study_sessions ADD COLUMN plan_item_id INTEGER")
+    if "unit_id" not in cols:
+        conn.execute("ALTER TABLE study_sessions ADD COLUMN unit_id TEXT")
+    conn.commit()
+
+
 def migrate_password_storage(conn: sqlite3.Connection) -> None:
     """Hash legacy plaintext passwords and remove default_password columns."""
     for table, id_column in (("students", "student_id"), ("teachers", "teacher_id")):
@@ -469,6 +504,8 @@ def init_db(db_path: Path, *, bind_host: str = "127.0.0.1") -> None:
                 initial_correct INTEGER DEFAULT 0,
                 initial_wrong INTEGER DEFAULT 0,
                 groups_completed INTEGER DEFAULT 0,
+                plan_item_id INTEGER,
+                unit_id TEXT,
                 score_percent REAL,
                 duration_seconds INTEGER NOT NULL DEFAULT 0,
                 details TEXT DEFAULT '[]',
@@ -548,10 +585,13 @@ def init_db(db_path: Path, *, bind_host: str = "127.0.0.1") -> None:
         migrate_teachers_username_to_teacher_id(conn)
         migrate_teachers_profile_columns(conn)
         migrate_password_storage(conn)
+        migrate_study_sessions_task_columns(conn)
         conn.execute(
             "CREATE INDEX IF NOT EXISTS idx_wrong_words_module_type ON wrong_words(module_type)"
         )
         ensure_wrong_items_table(conn)
+        ensure_task_tables(conn)
+        seed_mvp_units(conn)
 
         conn.execute(
             """
@@ -793,6 +833,18 @@ class LocalHandler(SimpleHTTPRequestHandler):
     def do_OPTIONS(self) -> None:
         self.send_response(HTTPStatus.NO_CONTENT)
         self.end_headers()
+
+    def do_PUT(self) -> None:
+        """MVP task plan / time-profile updates (also accepted via POST)."""
+        parsed = urllib.parse.urlparse(self.path)
+        path = parsed.path.rstrip("/")
+        if path.startswith("/api/task/students/") and path.endswith("/plan"):
+            self.handle_task_student_plan_put()
+            return
+        if path.startswith("/api/task/students/") and path.endswith("/time-profile"):
+            self.handle_task_student_time_profile_put()
+            return
+        self.send_json({"data": None, "error": {"message": "Not Found"}}, status=404)
 
     def current_session(self, role: Optional[str] = None) -> Optional[dict[str, Any]]:
         """Read role-scoped session cookie.
@@ -1485,6 +1537,267 @@ class LocalHandler(SimpleHTTPRequestHandler):
         except ValueError as exc:
             self.send_json({"data": None, "error": {"message": str(exc)}}, status=400)
 
+    # ── Task system (MVP) ──────────────────────────────────────────────
+
+    def handle_task_units_get(self) -> None:
+        if not self.require_logged_in_session():
+            return
+        parsed = urllib.parse.urlparse(self.path)
+        qs = urllib.parse.parse_qs(parsed.query or "")
+        module_type = str((qs.get("module_type") or [""])[0] or "").strip() or None
+        with closing(connect(self.db_path)) as conn:
+            ensure_task_tables(conn)
+            seed_mvp_units(conn)
+            self.send_json({"data": task_list_units(conn, module_type), "error": None})
+
+    def handle_task_me_today(self) -> None:
+        session = self.require_student_session()
+        if not session:
+            return
+        with closing(connect(self.db_path)) as conn:
+            ensure_task_tables(conn)
+            seed_mvp_units(conn)
+            self.send_json({"data": task_get_today(conn, session["id"]), "error": None})
+
+    def handle_task_me_complete_study(self) -> None:
+        session = self.require_student_session()
+        if not session:
+            return
+        payload = self.read_json_body()
+        plan_item_id = payload.get("plan_item_id")
+        content_version = str(payload.get("content_version") or "1")
+        if plan_item_id is None:
+            self.send_json({"data": None, "error": {"message": "缺少 plan_item_id"}}, status=400)
+            return
+        try:
+            with closing(connect(self.db_path)) as conn:
+                ensure_task_tables(conn)
+                data = task_complete_study(
+                    conn, session["id"], int(plan_item_id), content_version
+                )
+                self.send_json({"data": data, "error": None})
+        except ValueError as exc:
+            self.send_json({"data": None, "error": {"message": str(exc)}}, status=400)
+
+    def handle_task_me_scope_progress(self) -> None:
+        session = self.require_student_session()
+        if not session:
+            return
+        payload = self.read_json_body()
+        plan_item_id = payload.get("plan_item_id")
+        if plan_item_id is None:
+            self.send_json({"data": None, "error": {"message": "缺少 plan_item_id"}}, status=400)
+            return
+        try:
+            with closing(connect(self.db_path)) as conn:
+                ensure_task_tables(conn)
+                data = task_update_scope_progress(
+                    conn,
+                    session["id"],
+                    int(plan_item_id),
+                    scope_done=payload.get("scope_done"),
+                    delta=payload.get("delta"),
+                )
+                self.send_json({"data": data, "error": None})
+        except ValueError as exc:
+            self.send_json({"data": None, "error": {"message": str(exc)}}, status=400)
+
+    def handle_task_me_submit_test(self) -> None:
+        session = self.require_student_session()
+        if not session:
+            return
+        payload = self.read_json_body()
+        plan_item_id = payload.get("plan_item_id")
+        if plan_item_id is None:
+            self.send_json({"data": None, "error": {"message": "缺少 plan_item_id"}}, status=400)
+            return
+        try:
+            score = float(payload.get("score"))
+            threshold = float(payload.get("threshold", 80))
+        except (TypeError, ValueError):
+            self.send_json({"data": None, "error": {"message": "score/threshold 无效"}}, status=400)
+            return
+        try:
+            with closing(connect(self.db_path)) as conn:
+                ensure_task_tables(conn)
+                data = task_submit_stage_test(
+                    conn,
+                    session["id"],
+                    int(plan_item_id),
+                    score,
+                    threshold=threshold,
+                    details=payload.get("details"),
+                )
+                self.send_json({"data": data, "error": None})
+        except ValueError as exc:
+            self.send_json({"data": None, "error": {"message": str(exc)}}, status=400)
+
+    def _task_student_id_from_path(self, prefix: str) -> Optional[str]:
+        parsed = urllib.parse.urlparse(self.path)
+        path = parsed.path.rstrip("/")
+        if not path.startswith(prefix):
+            return None
+        rest = path[len(prefix) :].lstrip("/")
+        if not rest:
+            return None
+        return rest.split("/")[0]
+
+    def handle_task_student_plan_get(self) -> None:
+        if not self.require_teacher_session():
+            return
+        student_id = self._task_student_id_from_path("/api/task/students/")
+        if not student_id or student_id.endswith("plan"):
+            # path like /api/task/students/2025001/plan
+            parsed = urllib.parse.urlparse(self.path)
+            parts = [p for p in parsed.path.split("/") if p]
+            # ['api','task','students', sid, 'plan']
+            if len(parts) >= 5 and parts[3]:
+                student_id = parts[3]
+            else:
+                self.send_json({"data": None, "error": {"message": "缺少 student_id"}}, status=400)
+                return
+        with closing(connect(self.db_path)) as conn:
+            ensure_task_tables(conn)
+            seed_mvp_units(conn)
+            self.send_json({"data": task_get_plan(conn, student_id), "error": None})
+
+    def handle_task_pack_preview_get(self) -> None:
+        if not self.require_teacher_session():
+            return
+        parsed = urllib.parse.urlparse(self.path)
+        parts = [p for p in parsed.path.split("/") if p]
+        if len(parts) < 5:
+            self.send_json({"data": None, "error": {"message": "缺少 student_id"}}, status=400)
+            return
+        student_id = parts[3]
+        qs = urllib.parse.parse_qs(parsed.query)
+        source = (qs.get("source") or ["live"])[0]
+        if source not in ("live", "draft"):
+            source = "live"
+        with closing(connect(self.db_path)) as conn:
+            ensure_task_tables(conn)
+            seed_mvp_units(conn)
+            data = task_preview_daily_pack(conn, student_id, source=source)
+            self.send_json({"data": data, "error": None})
+
+    def handle_task_pack_preview_post(self) -> None:
+        if not self.require_teacher_session():
+            return
+        parsed = urllib.parse.urlparse(self.path)
+        parts = [p for p in parsed.path.split("/") if p]
+        if len(parts) < 5:
+            self.send_json({"data": None, "error": {"message": "缺少 student_id"}}, status=400)
+            return
+        student_id = parts[3]
+        payload = self.read_json_body()
+        items = payload.get("items")
+        if not isinstance(items, list):
+            self.send_json({"data": None, "error": {"message": "items 必须是数组"}}, status=400)
+            return
+        try:
+            raw_wd = payload.get("weekday_minutes")
+            raw_we = payload.get("weekend_minutes")
+            wd = None if raw_wd in (None, "") else int(raw_wd)
+            we = None if raw_we in (None, "") else int(raw_we)
+        except (TypeError, ValueError):
+            self.send_json({"data": None, "error": {"message": "时长须为数字"}}, status=400)
+            return
+        try:
+            with closing(connect(self.db_path)) as conn:
+                ensure_task_tables(conn)
+                seed_mvp_units(conn)
+                data = task_preview_daily_pack_items(
+                    conn,
+                    student_id,
+                    items,
+                    weekday_minutes=wd,
+                    weekend_minutes=we,
+                )
+                self.send_json({"data": data, "error": None})
+        except ValueError as exc:
+            self.send_json({"data": None, "error": {"message": str(exc)}}, status=400)
+
+    def handle_task_student_plan_put(self) -> None:
+        if not self.require_teacher_session():
+            return
+        parsed = urllib.parse.urlparse(self.path)
+        parts = [p for p in parsed.path.split("/") if p]
+        if len(parts) < 5:
+            self.send_json({"data": None, "error": {"message": "缺少 student_id"}}, status=400)
+            return
+        student_id = parts[3]
+        payload = self.read_json_body()
+        items = payload.get("items")
+        if not isinstance(items, list):
+            self.send_json({"data": None, "error": {"message": "items 必须是数组"}}, status=400)
+            return
+        try:
+            with closing(connect(self.db_path)) as conn:
+                ensure_task_tables(conn)
+                seed_mvp_units(conn)
+                data = task_put_plan_draft(
+                    conn, student_id, items, effective_from=payload.get("effective_from")
+                )
+                self.send_json({"data": data, "error": None})
+        except ValueError as exc:
+            self.send_json({"data": None, "error": {"message": str(exc)}}, status=409)
+
+    def handle_task_student_time_profile_get(self) -> None:
+        if not self.require_teacher_session():
+            return
+        parsed = urllib.parse.urlparse(self.path)
+        parts = [p for p in parsed.path.split("/") if p]
+        if len(parts) < 5:
+            self.send_json({"data": None, "error": {"message": "缺少 student_id"}}, status=400)
+            return
+        student_id = parts[3]
+        with closing(connect(self.db_path)) as conn:
+            ensure_task_tables(conn)
+            self.send_json({"data": task_get_time_profile(conn, student_id), "error": None})
+
+    def handle_task_student_time_profile_put(self) -> None:
+        if not self.require_teacher_session():
+            return
+        parsed = urllib.parse.urlparse(self.path)
+        parts = [p for p in parsed.path.split("/") if p]
+        if len(parts) < 5:
+            self.send_json({"data": None, "error": {"message": "缺少 student_id"}}, status=400)
+            return
+        student_id = parts[3]
+        payload = self.read_json_body()
+        with closing(connect(self.db_path)) as conn:
+            ensure_task_tables(conn)
+            data = task_put_time_profile(conn, student_id, payload)
+            self.send_json({"data": data, "error": None})
+
+    def handle_task_insert_stage_test(self) -> None:
+        if not self.require_teacher_session():
+            return
+        parsed = urllib.parse.urlparse(self.path)
+        parts = [p for p in parsed.path.split("/") if p]
+        # api/task/students/:id/plan/insert-stage-test
+        if len(parts) < 5:
+            self.send_json({"data": None, "error": {"message": "缺少 student_id"}}, status=400)
+            return
+        student_id = parts[3]
+        payload = self.read_json_body()
+        unit_ids = payload.get("unit_ids") or []
+        if not isinstance(unit_ids, list):
+            self.send_json({"data": None, "error": {"message": "unit_ids 必须是数组"}}, status=400)
+            return
+        try:
+            with closing(connect(self.db_path)) as conn:
+                ensure_task_tables(conn)
+                data = task_insert_stage_test(
+                    conn,
+                    student_id,
+                    unit_ids=unit_ids,
+                    after_sort_order=payload.get("after_sort_order"),
+                    test_title=str(payload.get("test_title") or ""),
+                )
+                self.send_json({"data": data, "error": None})
+        except ValueError as exc:
+            self.send_json({"data": None, "error": {"message": str(exc)}}, status=400)
 
     def do_GET(self) -> None:
         parsed = urllib.parse.urlparse(self.path)
@@ -1521,6 +1834,27 @@ class LocalHandler(SimpleHTTPRequestHandler):
             return
         if parsed.path.rstrip("/") == "/api/student/word-mastery":
             self.handle_student_word_mastery_get()
+            return
+        if parsed.path.rstrip("/") == "/api/task/units":
+            self.handle_task_units_get()
+            return
+        if parsed.path.rstrip("/") == "/api/task/me/today":
+            self.handle_task_me_today()
+            return
+        if parsed.path.startswith("/api/task/students/") and parsed.path.rstrip("/").endswith(
+            "/pack-preview"
+        ):
+            self.handle_task_pack_preview_get()
+            return
+        if parsed.path.startswith("/api/task/students/") and parsed.path.rstrip("/").endswith(
+            "/plan"
+        ):
+            self.handle_task_student_plan_get()
+            return
+        if parsed.path.startswith("/api/task/students/") and parsed.path.rstrip("/").endswith(
+            "/time-profile"
+        ):
+            self.handle_task_student_time_profile_get()
             return
         if parsed.path.rstrip("/") == "/api/teacher/students":
             self.handle_teacher_students_get()
@@ -1620,6 +1954,27 @@ class LocalHandler(SimpleHTTPRequestHandler):
             return
         if path == "/api/student/word-mastery":
             self.handle_student_word_mastery_post()
+            return
+        if path == "/api/task/me/complete-study":
+            self.handle_task_me_complete_study()
+            return
+        if path == "/api/task/me/scope-progress":
+            self.handle_task_me_scope_progress()
+            return
+        if path == "/api/task/me/submit-test":
+            self.handle_task_me_submit_test()
+            return
+        if path.startswith("/api/task/students/") and path.endswith("/plan/insert-stage-test"):
+            self.handle_task_insert_stage_test()
+            return
+        if path.startswith("/api/task/students/") and path.endswith("/pack-preview"):
+            self.handle_task_pack_preview_post()
+            return
+        if path.startswith("/api/task/students/") and path.endswith("/plan"):
+            self.handle_task_student_plan_put()
+            return
+        if path.startswith("/api/task/students/") and path.endswith("/time-profile"):
+            self.handle_task_student_time_profile_put()
             return
         if path == "/api/teacher/students":
             self.handle_teacher_students_create()

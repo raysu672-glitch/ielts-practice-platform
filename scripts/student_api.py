@@ -278,31 +278,66 @@ def insert_study_session(conn: Any, student_id: str, payload: dict[str, Any]) ->
     }
     if record["session_kind"] not in ("study", "test"):
         record["session_kind"] = "study"
-    cur = conn.execute(
-        """
-        INSERT INTO study_sessions (
-            student_id, module_type, module_name, session_kind,
-            words_tested, initial_correct, initial_wrong, groups_completed,
-            score_percent, duration_seconds, details, started_at, ended_at, created_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """,
-        (
-            record["student_id"],
-            record["module_type"],
-            record["module_name"],
-            record["session_kind"],
-            record["words_tested"],
-            record["initial_correct"],
-            record["initial_wrong"],
-            record["groups_completed"],
-            record["score_percent"],
-            record["duration_seconds"],
-            record["details"],
-            record["started_at"],
-            record["ended_at"],
-            record["created_at"],
-        ),
-    )
+    plan_item_id = payload.get("plan_item_id", payload.get("planItemId"))
+    unit_id = payload.get("unit_id", payload.get("unitId"))
+    cols = {r[1] for r in conn.execute("PRAGMA table_info(study_sessions)").fetchall()}
+    has_plan_item = "plan_item_id" in cols
+    has_unit_id = "unit_id" in cols
+    if has_plan_item and has_unit_id:
+        cur = conn.execute(
+            """
+            INSERT INTO study_sessions (
+                student_id, module_type, module_name, session_kind,
+                words_tested, initial_correct, initial_wrong, groups_completed,
+                plan_item_id, unit_id,
+                score_percent, duration_seconds, details, started_at, ended_at, created_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                record["student_id"],
+                record["module_type"],
+                record["module_name"],
+                record["session_kind"],
+                record["words_tested"],
+                record["initial_correct"],
+                record["initial_wrong"],
+                record["groups_completed"],
+                int(plan_item_id) if plan_item_id not in (None, "") else None,
+                str(unit_id) if unit_id not in (None, "") else None,
+                record["score_percent"],
+                record["duration_seconds"],
+                record["details"],
+                record["started_at"],
+                record["ended_at"],
+                record["created_at"],
+            ),
+        )
+    else:
+        cur = conn.execute(
+            """
+            INSERT INTO study_sessions (
+                student_id, module_type, module_name, session_kind,
+                words_tested, initial_correct, initial_wrong, groups_completed,
+                score_percent, duration_seconds, details, started_at, ended_at, created_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                record["student_id"],
+                record["module_type"],
+                record["module_name"],
+                record["session_kind"],
+                record["words_tested"],
+                record["initial_correct"],
+                record["initial_wrong"],
+                record["groups_completed"],
+                record["score_percent"],
+                record["duration_seconds"],
+                record["details"],
+                record["started_at"],
+                record["ended_at"],
+                record["created_at"],
+            ),
+        )
     conn.commit()
     record["id"] = cur.lastrowid
     record["details"] = payload.get("details") or []

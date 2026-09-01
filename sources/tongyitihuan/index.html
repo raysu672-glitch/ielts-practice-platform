@@ -3248,8 +3248,11 @@ function startGameWithSet(groups) {
   anchorGroupIdx = null; currentChain = []; usedWords = new Set();
   combo = 0; maxCombo = 0; roundXP = 0;
 
-  // 练习分组与学习页面保持一致，按顺序取前 10 组（如果不足 10 组则取全部）
-  activeGroups = groups.slice(0, 10);
+  // 任务模式按单元实际组数练习（综合篇 5 组，其余 10 组）
+  const limit = (window._taskMode && window._taskMode.scope_total)
+    ? window._taskMode.scope_total
+    : 10;
+  activeGroups = groups.slice(0, limit);
 
   allWords = [];
   wordToGroup = {};
@@ -3431,6 +3434,10 @@ function confirmGroup() {
 }
 
 function skipGroup() {
+  if (window._taskMode && window._taskMode.plan_item_id) {
+    showFeedback('任务模式不能跳过，请找齐本组同义词后再确认', 'warn');
+    return;
+  }
   if (anchorGroupIdx === null) return;
   playSound('skip');
   combo = 0;
@@ -3446,6 +3453,7 @@ function finishGroup() {
   groupsDone++;
 
   renderDoneGroup(groupsDone, found, missed);
+  _taskReportScopeProgress(1);
 
   anchorGroupIdx = null;
   currentChain = [];
@@ -3588,6 +3596,8 @@ function endGame() {
 
   document.getElementById('endScreen').classList.add('show');
 
+  _taskSetupEndScreenActions();
+
   setTimeout(() => {
     spawnParticleBurst(window.innerWidth / 2, window.innerHeight / 3, 60, ['#fbbf24','#8b5cf6','#22d3a7','#38bdf8','#f43f5e'], ['star','diamond']);
   }, 300);
@@ -3595,6 +3605,64 @@ function endGame() {
 
 startGame();
 
+
+function _taskScopeTotalForSet(setId) {
+  return setId === 23 ? 5 : 10;
+}
+
+function _taskReportScopeProgress(delta) {
+  const ctx = window._taskMode;
+  if (!ctx || !ctx.plan_item_id || !delta) return;
+  try {
+    if (window.parent && window.parent !== window) {
+      window.parent.postMessage({
+        type: 'taskScopeProgress',
+        plan_item_id: Number(ctx.plan_item_id),
+        delta: delta
+      }, '*');
+    }
+  } catch (e) {
+    console.warn('[Task] scope progress failed', e);
+  }
+}
+
+function _taskPostUnitComplete() {
+  const ctx = window._taskMode || {};
+  if (!ctx.plan_item_id) return;
+  if (window.parent && window.parent !== window) {
+    window.parent.postMessage({
+      type: 'taskUnitComplete',
+      unit_id: ctx.unit_id,
+      content_version: ctx.content_version || '1',
+      task_id: ctx.task_id,
+      plan_item_id: Number(ctx.plan_item_id)
+    }, '*');
+  }
+}
+
+function _taskSetupEndScreenActions() {
+  const ctx = window._taskMode;
+  const row = document.querySelector('#endScreen .end-btn-row');
+  if (!row) return;
+  const retryBtn = row.querySelector('button');
+  if (ctx && ctx.plan_item_id) {
+    if (retryBtn) retryBtn.style.display = 'none';
+    let doneBtn = document.getElementById('taskEndCompleteBtn');
+    if (!doneBtn) {
+      doneBtn = document.createElement('button');
+      doneBtn.id = 'taskEndCompleteBtn';
+      doneBtn.className = 'btn-primary';
+      doneBtn.textContent = '✅ 完成本单元，返回任务';
+      doneBtn.onclick = _taskPostUnitComplete;
+      row.appendChild(doneBtn);
+    }
+    doneBtn.style.display = '';
+  } else if (retryBtn) {
+    retryBtn.style.display = '';
+    const doneBtn = document.getElementById('taskEndCompleteBtn');
+    if (doneBtn) doneBtn.style.display = 'none';
+  }
+}
 
 /* ============================================================
    【模块追踪系统】学习时长 + 答题正确率 → 通过 postMessage 发送给主页面
@@ -3675,13 +3743,41 @@ function recordAnswer(isCorrect, questionInfo) {
             _track_studentId = urlStudentId;
         }
 
+        const taskUnit = urlParams.get('unit') || urlParams.get('setId');
+        const taskId = urlParams.get('task_id') || urlParams.get('plan_item_id');
+        const isTaskMode = !!(taskUnit || taskId);
+
         // 启动计时
         _track_sessionStart = Date.now();
         _track_rightCount = 0;
         _track_wrongCount = 0;
 
-        // 显示首页
-        goHome();
+        if (isTaskMode && taskUnit) {
+            const setId = parseInt(taskUnit, 10);
+            const scopeTotal = _taskScopeTotalForSet(setId);
+            window._taskMode = {
+                setId: setId,
+                task_id: urlParams.get('task_id'),
+                plan_item_id: urlParams.get('plan_item_id'),
+                unit_id: urlParams.get('unit_id') || ('reading_synonym_u' + String(setId).padStart(2, '0')),
+                content_version: urlParams.get('content_version') || '1',
+                scope_total: scopeTotal
+            };
+            selectSet(setId);
+            setTimeout(function() {
+                const bar = document.querySelector('.top-bar') || document.body;
+                const banner = document.createElement('div');
+                banner.id = 'taskModeBanner';
+                banner.style.cssText = 'background:#eff6ff;border:1px solid #bfdbfe;color:#1e40af;padding:10px 14px;margin:8px;border-radius:8px;font-size:14px;';
+                banner.innerHTML = '<strong>今日任务 · 本单元</strong> 请完成全部 <strong>' + scopeTotal +
+                    ' 组</strong> 同义替换练习；<span style="color:#64748b;">不能跳过，全部做完后在结束页返回任务。</span>';
+                if (bar && bar.parentNode) bar.parentNode.insertBefore(banner, bar.nextSibling);
+                else document.body.insertBefore(banner, document.body.firstChild);
+            }, 100);
+        } else {
+            // 显示首页
+            goHome();
+        }
 
         console.log('[Track] 同义替换追踪已启动（学习模式）');
     } catch (e) {

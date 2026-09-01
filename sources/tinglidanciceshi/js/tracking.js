@@ -380,6 +380,7 @@ function getStudySaveKey(record) {
         record.student_id,
         record.module_type,
         record.session_kind,
+        record.plan_item_id || '',
         Math.round((Number(record.duration_seconds) || 0) / 5) * 5,
         record.words_tested || 0,
         record.initial_correct || 0,
@@ -414,6 +415,12 @@ async function saveStudySession(payload) {
     }
 
     const nowIso = new Date().toISOString();
+    const taskCtx = window._currentTaskContext || {};
+    const taskMod = window._currentModule || {};
+    const planItemId = payload.plan_item_id != null ? payload.plan_item_id
+        : (payload.planItemId != null ? payload.planItemId
+            : (taskMod.plan_item_id != null ? taskMod.plan_item_id : taskCtx.plan_item_id));
+    const unitId = payload.unit_id || payload.unitId || taskMod.unit_id || taskCtx.unit_id;
     const record = {
         student_id: studentId,
         module_type: moduleType,
@@ -430,6 +437,8 @@ async function saveStudySession(payload) {
         ended_at: payload.endedAt || payload.ended_at || nowIso,
         created_at: nowIso
     };
+    if (planItemId != null && planItemId !== '') record.plan_item_id = Number(planItemId);
+    if (unitId) record.unit_id = String(unitId);
 
     const cacheKey = getStudySaveKey(record);
     const cacheTime = studySaveCache[cacheKey];
