@@ -5038,7 +5038,7 @@ const P1_DATA = {
               "for the reason that"
             ],
             "频次": [
-              "the the the the the school canteen and the the the the classroomss",
+              "the school canteen and the classrooms",
               "quite often",
               "at weekends",
               "from time to time"
@@ -5951,8 +5951,8 @@ const P1_DATA = {
         },
         {
           "id": 25,
-          "title": "What kind of house or apartment do you want to live in in the future",
-          "q": "What kind of house or apartment do you want to live in in the future?",
+          "title": "What kind of house or apartment do you want to live in the future",
+          "q": "What kind of house or apartment do you want to live in the future?",
           "topicEn": "Home & Accommodation",
           "topicZh": "住宿",
           "tag": "万年",
@@ -6639,7 +6639,7 @@ const P1_DATA = {
               "Not really"
             ],
             "原因或时间": [
-              "the the the the the heavy traffic",
+              "the heavy traffic",
               "because",
               "when I",
               "for the reason that"
@@ -6674,7 +6674,7 @@ const P1_DATA = {
               "tip": "第4步：宾补写感受，再用 which 补放松/收获"
             }
           },
-          "sample": "Yes, definitely. I am keen on this for the reason that the the the the the heavy traffic and because matters to me. Whenever I have time, I enjoy it during rush hour to stay positive. I find this activity relaxed, which helps me unwind, and it really gets to me.",
+          "sample": "Yes, definitely. Not really. What I dislike most is the heavy traffic during rush hour — it wears me out. Whenever I have time, I prefer quieter spots so I can stay positive and unwind.",
           "sampleOk": true,
           "sampleNote": "ok",
           "sampleSource": "template",
@@ -8825,7 +8825,7 @@ const P1_DATA = {
               "because"
             ],
             "时间线+行为描述": [
-              "the the the the the classroom",
+              "the classroom",
               "finish homework on my own",
               "every morning",
               "before class",
@@ -11893,7 +11893,7 @@ const P1_DATA = {
               "tip": "第4步：形式宾语收束感受或普遍看法"
             }
           },
-          "sample": "Yes, definitely. Since cats and dogs and especially in cities is common, people tend to talk about it seriously. This shows up in nowadays and among young people, which affects daily life more than we think. I find it practical, and shows lifestyle change is a fair conclusion.",
+          "sample": "Yes, definitely. Since cats and dogs and especially in cities is common, people tend to talk about it seriously. This shows up nowadays and among young people, which affects daily life more than we think. I find it practical, and shows lifestyle change is a fair conclusion.",
           "sampleOk": true,
           "sampleNote": "ok",
           "sampleSource": "template",
@@ -12437,7 +12437,7 @@ const P1_DATA = {
               "tip": "第4步：对比收束用 prefer + which 给理由"
             }
           },
-          "sample": "I prefer A. As for the first side, it is regarded as stronger because of have breakfast and is regarded as. By contrast, regarding the other side, people find it different due to binge-watch TV shows and by contrast. Overall, I find work hard at my studies more suitable, which I prefer.",
+          "sample": "I prefer having breakfast to binge-watching TV shows. A proper breakfast keeps me focused for morning classes, while long shows often waste time and make me sluggish. Overall, studying with energy matters more to me.",
           "sampleOk": true,
           "sampleNote": "ok",
           "sampleSource": "template",
@@ -12842,7 +12842,7 @@ const P1_DATA = {
               "tip": "第4步：对比收束用 prefer + which 给理由"
             }
           },
-          "sample": "I prefer A. As for the first side, it is regarded as stronger because of my rented apartment and is regarded as. By contrast, regarding the other side, people find it different due to attend classes and parties. Overall, I find practical more suitable, which I prefer.",
+          "sample": "I prefer living in a rented apartment near campus. It is more practical for attending classes, even though parties with friends are fun. Being close to school helps me manage time better.",
           "sampleOk": true,
           "sampleNote": "ok",
           "sampleSource": "template",
@@ -13200,7 +13200,7 @@ const P1_DATA = {
               "tip": "第4步：对比收束用 prefer + which 给理由"
             }
           },
-          "sample": "I prefer A. As for the first side, it is regarded as stronger because of tasty local food and is regarded as. By contrast, regarding the other side, people find it different due to groceries and fresh ingredients. Overall, I find it really hits the spot more suitable, which I prefer.",
+          "sample": "I prefer tasty local food when I eat out. It really hits the spot, although buying groceries and cooking with fresh ingredients is healthier. For a quick treat, local dishes win for me.",
           "sampleOk": true,
           "sampleNote": "ok",
           "sampleSource": "template",
@@ -13295,7 +13295,7 @@ const P1_DATA = {
               "less stressful"
             ],
             "选项2的特点与作用": [
-              "the the the the the classroom",
+              "the classroom",
               "by contrast",
               "on the other hand",
               "find it harder"
@@ -13325,7 +13325,7 @@ const P1_DATA = {
               "tip": "第4步：对比收束用 prefer + which 给理由"
             }
           },
-          "sample": "I prefer A. As for the first side, it is regarded as stronger because of shop online and is regarded as. By contrast, regarding the other side, people find it different due to the the the the the classroom and by contrast. Overall, I find time-saving and effortless more suitable, which practical.",
+          "sample": "I prefer shopping online because it is time-saving and effortless. Going out or dealing with crowded places takes longer. For daily needs, online shopping suits me better.",
           "sampleOk": true,
           "sampleNote": "ok",
           "sampleSource": "template",
@@ -13386,7 +13386,7 @@ const P1_DATA = {
               "tip": "第4步：个人偏好 + which 补一句理由"
             }
           },
-          "sample": "I prefer A. As for the first side, it is regarded as stronger because of have breakfast and is regarded as. By contrast, regarding the other side, people find it different due to watch short videos and by contrast. Overall, I find feel relaxed and at ease more suitable, which I prefer.",
+          "sample": "I prefer having breakfast in the morning rather than scrolling short videos. Eating properly helps me feel relaxed and ready for the day, while videos often leave me restless.",
           "sampleOk": true,
           "sampleNote": "ok",
           "sampleSource": "template",
@@ -13448,7 +13448,7 @@ const P1_DATA = {
               "tip": "第4步：个人偏好 + which 补一句理由"
             }
           },
-          "sample": "I prefer A. As for the first side, it is regarded as stronger because of attend classes and is regarded as. By contrast, regarding the other side, people find it different due to binge-watch TV shows and by contrast. Overall, I find self-care more suitable, which I prefer.",
+          "sample": "I prefer attending classes over binge-watching TV shows. Classes keep me on track, and I still leave some evening time for self-care. Balance matters more than endless episodes.",
           "sampleOk": true,
           "sampleNote": "ok",
           "sampleSource": "template",
@@ -13571,7 +13571,7 @@ const P1_DATA = {
               "tip": "第4步：对比收束用 prefer + which 给理由"
             }
           },
-          "sample": "I prefer A. As for the first side, it is regarded as stronger because of play video games and is regarded as. By contrast, regarding the other side, people find it different due to me-time and by contrast. Overall, I find have a good laugh more suitable, which I prefer.",
+          "sample": "I prefer playing video games when I need a good laugh with friends. Quiet me-time is also valuable, but games help me unwind faster after a stressful day.",
           "sampleOk": true,
           "sampleNote": "ok",
           "sampleSource": "template",
@@ -13690,7 +13690,7 @@ const P1_DATA = {
               "tip": "第4步：对比收束用 prefer + which 给理由"
             }
           },
-          "sample": "I prefer reading on paper. As for the first side, it is regarded as stronger because of flip through physical books and is regarded as. By contrast, regarding the other side, people find it different due to spend a lot of time on my phone and by contrast. Overall, I find reflect on things more suitable, which I prefer.",
+          "sample": "I prefer reading on paper because flipping through physical books helps me reflect. Spending a lot of time on my phone is convenient, but paper reading feels deeper and calmer.",
           "sampleOk": true,
           "sampleNote": "ok",
           "sampleSource": "template",
@@ -13815,7 +13815,7 @@ const P1_DATA = {
               "tip": "第4步：对比收束用 prefer + which 给理由"
             }
           },
-          "sample": "I prefer A. As for the first side, it is regarded as stronger because of physical books and is regarded as. By contrast, regarding the other side, people find it different due to takeout and by contrast. Overall, I find work hard at my studies more suitable, which I prefer.",
+          "sample": "I prefer physical books when I study hard. Takeout is convenient on busy nights, but books keep me focused better than eating while scrolling.",
           "sampleOk": true,
           "sampleNote": "ok",
           "sampleSource": "template",
@@ -13876,7 +13876,7 @@ const P1_DATA = {
               "tip": "第4步：对比收束用 prefer + which 给理由"
             }
           },
-          "sample": "I prefer A. As for the first side, it is regarded as stronger because of enjoy tasty local food and is regarded as. By contrast, regarding the other side, people find it different due to hiking and by contrast. Overall, I find unwind more suitable, which I prefer.",
+          "sample": "I prefer enjoying tasty local food to unwind, though hiking is a healthier option. After a long week, good food helps me relax more quickly.",
           "sampleOk": true,
           "sampleNote": "ok",
           "sampleSource": "template",

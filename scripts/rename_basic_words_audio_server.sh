@@ -24,7 +24,8 @@ rename_one() {
     return 0
   fi
   if [[ -f "$new" ]]; then
-    echo "跳过（目标已存在）: $new"
+    rm -f -- "$old"
+    echo "已删旧文件（目标已存在）: $old"
     return 0
   fi
   mv -- "$old" "$new"
@@ -94,5 +95,38 @@ rename_one "tempie waiis" "temple walls"
 rename_one "tities" "titles"
 rename_one "transiation" "translation"
 rename_one "window iocks" "window locks"
+
+# 第二批：用法/词形修正（content audit）
+rename_one "alarming system" "alarm system"
+rename_one "golf court" "golf course"
+rename_one "plane science" "planet science"
+rename_one "personal officer" "personnel officer"
+rename_one "privacy company" "private company"
+rename_one "bottle water" "bottled water"
+rename_one "animals behavior" "animal behaviour"
+rename_one "culture awareness" "cultural awareness"
+rename_one "culture context" "cultural context"
+rename_one "families life" "family life"
+rename_one "finance market" "financial market"
+rename_one "environment damage" "environmental damage"
+rename_one "economics history" "economic history"
+rename_one "eye contacts" "eye contact"
+rename_one "children background" "children's background"
+rename_one "children mind" "children's minds"
+rename_one "girl club" "girls' club"
+rename_one "hairs" "hair"
+rename_one "weathers" "weather"
+rename_one "study skill" "study skills"
+rename_one "repaired cost" "repair cost"
+rename_one "time consuming" "time-consuming"
+rename_one "triangle sharp" "triangle shape"
+rename_one "political man" "politician"
+rename_one "high user" "heavy user"
+rename_one "free pick" "free pick-up"
+rename_one "banana ride" "banana boat"
+rename_one "advance level" "advanced level"
+rename_one "view shelter" "viewing shelter"
+rename_one "pet meat" "pet food"
+rename_one "videocameras" "video cameras"
 
 echo "完成。当前 mp3 数量: $(find . -maxdepth 1 -name '*.mp3' | wc -l)"

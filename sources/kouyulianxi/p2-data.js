@@ -14,8 +14,8 @@ const P2_DATA = {
         },
         {
           label: "主体事件（默认情况A·大学考研；亦可选情况B·高考选专业，见 variants）",
-          zh: "在我大学三年级的时候，我面临着一个抉择：是继续攻读硕士学位，还是毕业后直接工作。我感到十分茫然，于是找雨萌聊了聊。那天我们在校园里边走边聊，她非常耐心地倾听。然后她建议说：「别担心找工作的压力。想想你未来一生想做什么。如果你确定想继续深造，那就全力以赴。我相信你最终会找到一份热爱的工作。」 最后，。。。",
-          en: "When I was in my third year at university, I faced a crossroads: whether to pursue further studies for a master's degree or to start working after graduation. I felt quite at a loss, so I talked with Yumeng about it. That day we walked around the campus, and she listened very patiently. Then she suggested, \"Don't worry about the pressure of finding a job. Think about what you want to do for the rest of your life. If you are sure you want to further your studies, just go for it. I believe you'll find a job you love eventually.\" In the end, ...."
+          zh: "在我大学三年级的时候，我面临着一个抉择：是继续攻读硕士学位，还是毕业后直接工作。我感到十分茫然，于是找雨萌聊了聊。那天我们在校园里边走边聊，她非常耐心地倾听。然后她建议说：「别担心找工作的压力。想想你未来一生想做什么。如果你确定想继续深造，那就全力以赴。我相信你最终会找到一份热爱的工作。」 最后，我决定申请硕士，并一步步朝着目标努力。",
+          en: "When I was in my third year at university, I faced a crossroads: whether to pursue further studies for a master's degree or to start working after graduation. I felt quite at a loss, so I talked with Yumeng about it. That day we walked around the campus, and she listened very patiently. Then she suggested, \"Don't worry about the pressure of finding a job. Think about what you want to do for the rest of your life. If you are sure you want to further your studies, just go for it. I believe you'll find a job you love eventually.\" In the end, I decided to apply for a master's program and worked toward that goal step by step."
         },
         {
           label: "感受与升华",
@@ -27,8 +27,8 @@ const P2_DATA = {
         {
           id: "a",
           label: "情况A·大学考研",
-          zh: "在我大学三年级的时候，我面临着一个抉择：是继续攻读硕士学位，还是毕业后直接工作。我感到十分茫然，于是找雨萌聊了聊。那天我们在校园里边走边聊，她非常耐心地倾听。然后她建议说：「别担心找工作的压力。想想你未来一生想做什么。如果你确定想继续深造，那就全力以赴。我相信你最终会找到一份热爱的工作。」 最后，。。。",
-          en: "When I was in my third year at university, I faced a crossroads: whether to pursue further studies for a master's degree or to start working after graduation. I felt quite at a loss, so I talked with Yumeng about it. That day we walked around the campus, and she listened very patiently. Then she suggested, \"Don't worry about the pressure of finding a job. Think about what you want to do for the rest of your life. If you are sure you want to further your studies, just go for it. I believe you'll find a job you love eventually.\" In the end, ...."
+          zh: "在我大学三年级的时候，我面临着一个抉择：是继续攻读硕士学位，还是毕业后直接工作。我感到十分茫然，于是找雨萌聊了聊。那天我们在校园里边走边聊，她非常耐心地倾听。然后她建议说：「别担心找工作的压力。想想你未来一生想做什么。如果你确定想继续深造，那就全力以赴。我相信你最终会找到一份热爱的工作。」 最后，我决定申请硕士，并一步步朝着目标努力。",
+          en: "When I was in my third year at university, I faced a crossroads: whether to pursue further studies for a master's degree or to start working after graduation. I felt quite at a loss, so I talked with Yumeng about it. That day we walked around the campus, and she listened very patiently. Then she suggested, \"Don't worry about the pressure of finding a job. Think about what you want to do for the rest of your life. If you are sure you want to further your studies, just go for it. I believe you'll find a job you love eventually.\" In the end, I decided to apply for a master's program and worked toward that goal step by step."
         },
         {
           id: "b",
@@ -96,7 +96,7 @@ const P2_DATA = {
         {
           label: "起因背景",
           zh: "最近，我忙于申请硕士项目和学英语，所以总是很累，有时无法专注学习；朋友建议我锻炼身体，于是我开始打羽毛球。",
-          en: "Recently, I have been occupied by applying for master's programs and studying English, so I always get tired and sometimes can't focus on my studies. My friends advised me to do some exercise, so I started to play badminton."
+          en: "Recently, I have been occupied with applying for master's programs and studying English, so I always get tired and sometimes can't focus on my studies. My friends advised me to do some exercise, so I started to play badminton."
         },
         {
           label: "主体益处·社交",
@@ -175,7 +175,7 @@ const P2_DATA = {
         {
           label: "攀登过程",
           zh: "首先是一段通往山顶的极长阶梯，我们必须爬上去，但至少景色确实令人叹为观止。你可以俯瞰整片山脉，看到前所未见的湛蓝天空，而且空气也格外清新。",
-          en: "First there was an extremely long staircase which leads to the hilltop, we had to go up it, but at least the scenery was truly breathtaking. You can overlook the entire mountain and see the most clear blue sky you've ever seen, also, the air was extremely fresh."
+          en: "First there was an extremely long staircase which leads to the hilltop, we had to go up it, but at least the scenery was truly breathtaking. You can overlook the entire mountain and see the clearest blue sky you've ever seen, also, the air was extremely fresh."
         },
         {
           label: "登顶震撼与感受",
@@ -231,7 +231,7 @@ const P2_DATA = {
       "materialId": "badminton",
       "materialHint": "把申请硕士与学英语的压力作为改变原因，引出开始打球、与陌生人组队、变得更外向，最后用挥拍忘压收尾。",
       "endingTip": "全神贯注于身心，暂时忘却学业压力",
-      "sampleEn": "The change I want to talk about is something quite simple but meaningful: I started to play badminton regularly. About three months ago, I had been occupied by applying for master's programs and studying English, so I always got tired and sometimes couldn't focus on my studies. A friend noticed how stressed I looked and advised me to do some exercise, and that was what caused the change. What I did was book a court twice a week and force myself to show up even when I felt busy. At first I was awkward, but badminton is a sport that requires a partner, so I often team up with strangers at the court. Soon I made friends with people who shared the same passion for sports, and we started meeting up every weekend. I also found myself becoming more and more outgoing, which surprised me. Second, when I swing my racket, all I hear is its sound and the wind, allowing me to focus solely on my mind and body and forget the pressure from my studies for a while. Looking back, I feel genuinely positive about this change because it rebuilt both my energy and my social life.",
+      "sampleEn": "The change I want to talk about is something quite simple but meaningful: I started to play badminton regularly. About three months ago, I had been occupied with applying for master's programs and studying English, so I always got tired and sometimes couldn't focus on my studies. A friend noticed how stressed I looked and advised me to do some exercise, and that was what caused the change. What I did was book a court twice a week and force myself to show up even when I felt busy. At first I was awkward, but badminton is a sport that requires a partner, so I often team up with strangers at the court. Soon I made friends with people who shared the same passion for sports, and we started meeting up every weekend. I also found myself becoming more and more outgoing, which surprised me. Second, when I swing my racket, all I hear is its sound and the wind, allowing me to focus solely on my mind and body and forget the pressure from my studies for a while. Looking back, I feel genuinely positive about this change because it rebuilt both my energy and my social life.",
       "sampleZh": "近期因申请硕士和学英语压力大，朋友建议锻炼，于是开始打羽毛球；常和陌生人组队、变得外向，挥拍时能暂时忘却学业压力，我对这个改变很满意。"
     },
     {
@@ -253,7 +253,7 @@ const P2_DATA = {
       "materialId": "badminton",
       "materialHint": "主体换成表弟：他学习压力大后开始打羽毛球，组队交友、变得外向，挥拍忘压；你为他的坚持自豪。",
       "endingTip": "全神贯注于身心，暂时忘却学业压力",
-      "sampleEn": "I still remember how proud I felt when my cousin turned his stress into a healthier lifestyle last year. He is two years younger than me, and around last spring he was occupied by applying for master's programs and studying English. He always got tired and sometimes couldn't focus, so the whole family was worried. What he did next really impressed me: following a friend's advice, he started to play badminton twice a week. Because badminton requires a partner, he often teams up with strangers at the court, and soon he made friends who shared the same passion for sports. They began meeting every weekend, and I found him becoming more and more outgoing. When he swings his racket, he says all he hears is its sound and the wind, which helps him forget the pressure from his studies for a while. I felt proud not only because his mood improved, but also because he chose a positive way to handle difficulty instead of complaining. Watching that change in a family member made me respect him even more.",
+      "sampleEn": "I still remember how proud I felt when my cousin turned his stress into a healthier lifestyle last year. He is two years younger than me, and around last spring he was occupied with applying for master's programs and studying English. He always got tired and sometimes couldn't focus, so the whole family was worried. What he did next really impressed me: following a friend's advice, he started to play badminton twice a week. Because badminton requires a partner, he often teams up with strangers at the court, and soon he made friends who shared the same passion for sports. They began meeting every weekend, and I found him becoming more and more outgoing. When he swings his racket, he says all he hears is its sound and the wind, which helps him forget the pressure from his studies for a while. I felt proud not only because his mood improved, but also because he chose a positive way to handle difficulty instead of complaining. Watching that change in a family member made me respect him even more.",
       "sampleZh": "表弟去年因申请压力大，后来坚持打羽毛球、与陌生人组队、变得外向；我为他用积极方式面对困难而骄傲。"
     },
     {
@@ -341,8 +341,8 @@ const P2_DATA = {
       "materialId": "tianchi",
       "materialHint": "用长白山天池景点禁扔垃圾、禁私搭乱建等具体保护区规定切入；串未开发自然、极长阶梯与清澈湖水，说明法律如何保护游客与生态，感受落在登顶值得。",
       "endingTip": "一看到天池，攀登的所有汗水都值得了",
-      "sampleEn": "One environmental law I really support is the scenic-area protection rule that bans littering and unauthorized building inside national nature reserves, and I first understood why after visiting Changbai Mountain. In practice, visitors must carry trash out, stay on marked paths, and cannot open shops or hotels beside protected lakes. I learned about these rules when park guides explained them before we entered a remote area in the northeast part of China which is famous for its untouched nature and a lake called \"Tianchi\", the pond of heaven. First there was an extremely long staircase which leads to the hilltop; we had to go up it, but the scenery was truly breathtaking. You can overlook the entire mountain, see the most clear blue sky you've ever seen, and breathe extremely fresh air. When we finally reached the top, we saw the very Tianchi—huge and pure like jade, shining like a huge diamond under the sunlight. Locals, future visitors, and wildlife all benefit, because without the littering ban and construction limits the jade-blue water could be spoiled by plastic bottles and noisy hotels. As soon as I saw Tianchi, all the sweat from the climbing was worth it, and that feeling made me respect this concrete protection law even more.",
-      "sampleZh": "我支持景区禁扔垃圾与禁私搭乱建的保护法；在长白山听讲解后更理解天池之美，登顶时一切汗水都值得。我支持自然保护区保护法；在长白山听讲解后更理解天池之美，登顶时一切汗水都值得。"
+      "sampleEn": "One environmental law I really support is the scenic-area protection rule that bans littering and unauthorized building inside national nature reserves, and I first understood why after visiting Changbai Mountain. In practice, visitors must carry trash out, stay on marked paths, and cannot open shops or hotels beside protected lakes. I learned about these rules when park guides explained them before we entered a remote area in the northeast part of China which is famous for its untouched nature and a lake called \"Tianchi\", the pond of heaven. First there was an extremely long staircase which leads to the hilltop; we had to go up it, but the scenery was truly breathtaking. You can overlook the entire mountain, see the clearest blue sky you've ever seen, and breathe extremely fresh air. When we finally reached the top, we saw the very Tianchi—huge and pure like jade, shining like a huge diamond under the sunlight. Locals, future visitors, and wildlife all benefit, because without the littering ban and construction limits the jade-blue water could be spoiled by plastic bottles and noisy hotels. As soon as I saw Tianchi, all the sweat from the climbing was worth it, and that feeling made me respect this concrete protection law even more.",
+      "sampleZh": "我支持景区禁扔垃圾与禁私搭乱建的保护法；在长白山听讲解后更理解天池之美，登顶时一切汗水都值得。"
     },
     {
       "id": 7,
@@ -482,7 +482,7 @@ const P2_DATA = {
       "materialId": "tianchi",
       "materialHint": "按天池素材讲东北未开发自然、极长阶梯、碧玉般湖面；推荐理由落在登顶震撼。",
       "endingTip": "一看到天池，攀登的所有汗水都值得了",
-      "sampleEn": "If I could recommend only one trip, it would be Changbai Mountain and its famous Tianchi lake. It is a remote area in the northeast part of China which is famous for its untouched nature and a lake located at the peak of a hill called Tianchi, which means the pond of heaven. When I went there, the first challenge was an extremely long staircase leading to the hilltop. The climb was tough, but the scenery was truly breathtaking: you can overlook the entire mountain, see the most clear blue sky you've ever seen, and breathe extremely fresh air. When we finally reached the top, the lake looked huge and pure like jade, shining like a huge diamond under the sunlight. I would recommend it because the view is unforgettable, and as soon as I saw Tianchi, all the sweat from the climbing was worth it. Friends who need a break from city noise would love this place.",
+      "sampleEn": "If I could recommend only one trip, it would be Changbai Mountain and its famous Tianchi lake. It is a remote area in the northeast part of China which is famous for its untouched nature and a lake located at the peak of a hill called Tianchi, which means the pond of heaven. When I went there, the first challenge was an extremely long staircase leading to the hilltop. The climb was tough, but the scenery was truly breathtaking: you can overlook the entire mountain, see the clearest blue sky you've ever seen, and breathe extremely fresh air. When we finally reached the top, the lake looked huge and pure like jade, shining like a huge diamond under the sunlight. I would recommend it because the view is unforgettable, and as soon as I saw Tianchi, all the sweat from the climbing was worth it. Friends who need a break from city noise would love this place.",
       "sampleZh": "推荐长白山天池：东北未开发自然、极长阶梯与清澈湖面；登顶那一刻所有汗水都值得。"
     },
     {
@@ -504,7 +504,7 @@ const P2_DATA = {
       "materialId": "badminton",
       "materialHint": "对比：图书馆枯燥闷坐 vs 后来去球场打羽毛球；组队、挥拍忘压反衬无聊。",
       "endingTip": "全神贯注于身心，暂时忘却学业压力",
-      "sampleEn": "The most boring place I visited recently was a quiet library corner where I tried to force myself to study all weekend. I went there with a classmate because we were occupied by applying for master's programs and studying English, and we thought sitting still for ten hours would help. What we did was stare at the same pages, check phones secretly, and whisper complaints. Nothing moved, nothing changed, and I felt my brain freeze. That boredom actually pushed me to leave and start to play badminton later that afternoon. At the court I could team up with strangers, hear the sound of the racket and the wind, and suddenly feel alive again. Compared with swinging my racket and becoming more outgoing with sports friends, that library corner was painfully dull. I call it boring not because libraries are bad, but because forcing focus without movement made the pressure worse instead of helping me forget it for a while.",
+      "sampleEn": "The most boring place I visited recently was a quiet library corner where I tried to force myself to study all weekend. I went there with a classmate because we were occupied with applying for master's programs and studying English, and we thought sitting still for ten hours would help. What we did was stare at the same pages, check phones secretly, and whisper complaints. Nothing moved, nothing changed, and I felt my brain freeze. That boredom actually pushed me to leave and start to play badminton later that afternoon. At the court I could team up with strangers, hear the sound of the racket and the wind, and suddenly feel alive again. Compared with swinging my racket and becoming more outgoing with sports friends, that library corner was painfully dull. I call it boring not because libraries are bad, but because forcing focus without movement made the pressure worse instead of helping me forget it for a while.",
       "sampleZh": "周末图书馆硬坐学习极无聊；后来去打羽毛球组队、挥拍，才感到清醒，反衬那个角落多么沉闷。"
     },
     {
@@ -570,7 +570,7 @@ const P2_DATA = {
       "materialId": "tianchi",
       "materialHint": "把山顶观景台/高阶梯建筑当作tall building；登顶后俯瞰山脉与天池，解释为何喜欢。",
       "endingTip": "一看到天池，攀登的所有汗水都值得了",
-      "sampleEn": "The tall building I like most is not a glass tower in a city center, but the observation structure near Tianchi on Changbai Mountain. It is used for visitors to rest and look out after climbing, and it sits in a remote area in the northeast part of China famous for untouched nature. From below it looks simple, almost plain, but reaching it means walking an extremely long staircase that leads toward the hilltop. When I finally stood there, the scenery was truly breathtaking: I could overlook the entire mountain, see the most clear blue sky, and feel extremely fresh air. Beyond the platform, Tianchi appeared like pure jade, shining like a huge diamond under the sunlight. I like this tall building because its height serves nature rather than blocking it, and as soon as I saw the pond of heaven, all the sweat from the climbing was worth it.",
+      "sampleEn": "The tall building I like most is not a glass tower in a city center, but the observation structure near Tianchi on Changbai Mountain. It is used for visitors to rest and look out after climbing, and it sits in a remote area in the northeast part of China famous for untouched nature. From below it looks simple, almost plain, but reaching it means walking an extremely long staircase that leads toward the hilltop. When I finally stood there, the scenery was truly breathtaking: I could overlook the entire mountain, see the clearest blue sky, and feel extremely fresh air. Beyond the platform, Tianchi appeared like pure jade, shining like a huge diamond under the sunlight. I like this tall building because its height serves nature rather than blocking it, and as soon as I saw the pond of heaven, all the sweat from the climbing was worth it.",
       "sampleZh": "喜欢天池附近观景高台：需爬极长阶梯，俯瞰山脉与碧玉般天池；高度服务于自然，登顶汗水都值得。"
     },
     {
@@ -791,7 +791,7 @@ const P2_DATA = {
       "materialId": "badminton",
       "materialHint": "早起为打球：申请压力大需要运动；清晨组队挥拍，身心专注忘压。",
       "endingTip": "全神贯注于身心，暂时忘却学业压力",
-      "sampleEn": "One early morning I still remember clearly was when I got up at six to claim a badminton court before the rush. It was during a month when I was occupied by applying for master's programs and studying English, so I always got tired and could not focus well. Friends advised me to exercise, and I had started to play badminton, but evening courts were always full. That is why I got up early: to practice while the hall was quiet. I met two regular partners, we warmed up, and soon I was swinging my racket with only its sound and the wind in my ears. The early start felt hard at first, yet it let me focus solely on my mind and body and forget the pressure from my studies for a while. By breakfast I felt more outgoing and awake than after any late-night cramming session.",
+      "sampleEn": "One early morning I still remember clearly was when I got up at six to claim a badminton court before the rush. It was during a month when I was occupied with applying for master's programs and studying English, so I always got tired and could not focus well. Friends advised me to exercise, and I had started to play badminton, but evening courts were always full. That is why I got up early: to practice while the hall was quiet. I met two regular partners, we warmed up, and soon I was swinging my racket with only its sound and the wind in my ears. The early start felt hard at first, yet it let me focus solely on my mind and body and forget the pressure from my studies for a while. By breakfast I felt more outgoing and awake than after any late-night cramming session.",
       "sampleZh": "申请季六点起床抢球场；清晨挥拍只听见球拍与风声，能暂时忘却学业压力，反而更清醒。"
     },
     {
@@ -1457,7 +1457,7 @@ const P2_DATA = {
       "materialId": "badminton",
       "materialHint": "球场禁手机为专注挥拍与组队；起初不习惯，后来体会忘压好处。",
       "endingTip": "全神贯注于身心，暂时忘却学业压力",
-      "sampleEn": "The strictest no-phone rule I met recently was at a badminton training session my coach ran. It was on a Saturday morning at the campus sports hall, during the months when I was occupied by applying for master's programs and studying English. Phones had to stay in lockers because the coach wanted us to focus and to team up with partners without scrolling between rallies. At first I felt restless, worried about messages. Then I started to play, swinging my racket until all I heard was its sound and the wind. Without the phone, I became more outgoing with strangers at the court and could forget the pressure from my studies for a while. Looking back I felt grateful for the ban: it forced the mental reset I had come for.",
+      "sampleEn": "The strictest no-phone rule I met recently was at a badminton training session my coach ran. It was on a Saturday morning at the campus sports hall, during the months when I was occupied with applying for master's programs and studying English. Phones had to stay in lockers because the coach wanted us to focus and to team up with partners without scrolling between rallies. At first I felt restless, worried about messages. Then I started to play, swinging my racket until all I heard was its sound and the wind. Without the phone, I became more outgoing with strangers at the court and could forget the pressure from my studies for a while. Looking back I felt grateful for the ban: it forced the mental reset I had come for.",
       "sampleZh": "羽毛球课禁手机，起初不安；挥拍专注后反而更能忘却申请压力，后来觉得感激。"
     },
     {
@@ -1501,7 +1501,7 @@ const P2_DATA = {
       "materialId": "badminton",
       "materialHint": "朋友自学打球减压：看视频、与陌生人组队；教师或许更快，但自学让他更外向。",
       "endingTip": "全神贯注于身心，暂时忘却学业压力",
-      "sampleEn": "One friend taught himself badminton through videos and court practice, without ever hiring a coach. He is a classmate who was occupied by applying for master's programs and studying English, always tired and unable to focus. He learned footwork and serves from online clips, then started to play badminton at the public court. Why? He needed a cheap way to reset. He often team up with strangers, became more and more outgoing, and now meets friends every weekend. Would a teacher be easier? Probably for clean technique, yes. But self-learning forced him to observe, fail, and adjust, which built confidence. When he swings his racket he says all he hears is its sound and the wind, letting him forget study pressure for a while. That result matters more to him than perfect form from day one.",
+      "sampleEn": "One friend taught himself badminton through videos and court practice, without ever hiring a coach. He is a classmate who was occupied with applying for master's programs and studying English, always tired and unable to focus. He learned footwork and serves from online clips, then started to play badminton at the public court. Why? He needed a cheap way to reset. He often team up with strangers, became more and more outgoing, and now meets friends every weekend. Would a teacher be easier? Probably for clean technique, yes. But self-learning forced him to observe, fail, and adjust, which built confidence. When he swings his racket he says all he hears is its sound and the wind, letting him forget study pressure for a while. That result matters more to him than perfect form from day one.",
       "sampleZh": "朋友看视频自学羽毛球来减压，与陌生人组队变外向；有教练或许更快，但自学带来自信与忘压。"
     },
     {
