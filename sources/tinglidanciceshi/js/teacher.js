@@ -1412,7 +1412,9 @@ document.addEventListener('click', function(e) {
 
 // ── 任务计划（MVP）──────────────────────────────────────────────
 var _taskDraftItems = [];
+var _taskModuleQuotas = {};
 var _taskLiveItems = [];
+var _taskPlanPause = null;
 var _taskHasDbDraft = false;
 var _taskPendingEffectiveLabel = '';
 var _taskUnitCatalog = [];
@@ -1420,6 +1422,17 @@ var _taskPendingPlanChange = false;
 var _taskLibraryModule = '';
 var _taskLibrarySearch = '';
 var _stageTestModalModule = '';
+var _taskPlanSubtab = 'overview';
+var _taskOverviewData = null;
+var _taskOverviewFilters = {
+    incomplete: false,
+    yesterdayIncomplete: false,
+    backlog: false,
+    refresh: false,
+    testFail: false,
+    attention: false,
+    noPlan: false
+};
 /** true = 收起；undefined 也视为收起（默认全收） */
 var _taskPlanCollapse = {};
 var _taskLiveCollapse = {};
@@ -1446,8 +1459,7 @@ var TASK_LIBRARY_MODULE_ORDER = [
 ];
 
 function taskLibraryModuleLabel(mt) {
-    var mod = (typeof getModuleById === 'function') ? getModuleById(mt) : null;
-    return (mod && mod.name) || mt || '';
+    return taskModuleShortLabel(mt);
 }
 
 /** 清单里用的短科目名，避免「学 · 第2组」看不出科 */
@@ -1458,16 +1470,17 @@ function taskModuleShortLabel(mt) {
         listening_basic: '听力基础',
         listening_synonym: '听力同义',
         sentence: '长难句',
-        writing_phrase: '写作词汇',
+        writing_phrase: '写作词伙',
         writing_translate: '写作翻译',
         listening_p4_speed: 'P4跟读',
-        speaking_complex: '口语复杂',
+        speaking_complex: '口语复合句',
         speaking_p1: '口语P1',
         speaking_p2_material: '口语P2素材',
-        speaking_p2_apply: '口语P2应用'
+        speaking_p2_apply: '口语P2套题'
     };
     if (mt && aliases[mt]) return aliases[mt];
-    return taskLibraryModuleLabel(mt) || '未分科';
+    var mod = (typeof getModuleById === 'function') ? getModuleById(mt) : null;
+    return (mod && mod.name) || mt || '未分科';
 }
 
 function normalizeTestUnitIds(raw) {
@@ -1556,8 +1569,9 @@ function groupTaskItemsByModuleSegments(items) {
 }
 
 function isTaskSectionCollapsed(mt, map) {
-    if (!map) return true;
-    if (map[mt] === undefined) return true;
+    // 默认展开：折叠时只看得到「待学 N」，容易误以为清单只有当天那几条
+    if (!map) return false;
+    if (map[mt] === undefined) return false;
     return !!map[mt];
 }
 
@@ -1779,6 +1793,8 @@ function renderTaskUnitLibraryToolbar(moduleTypes) {
         return Math.max(m, u.unit_no || 0);
     }, 0);
     var html = '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;">';
+    html += '<span style="font-size:12px;color:#64748b;align-self:center;width:100%;">科目 ' +
+        moduleTypes.length + ' · 单元 ' + (_taskUnitCatalog || []).length + '</span>';
     moduleTypes.forEach(function(mt) {
         var active = mt === _taskLibraryModule;
         var count = _taskUnitCatalog.filter(function(u) { return u.module_type === mt; }).length;
@@ -1883,7 +1899,221 @@ async function initTeacherTaskPlanTab() {
     _taskUnitCatalog = (unitsRes && unitsRes.data) || [];
     renderTaskUnitLibrary();
     bindTaskDurationPreviewInputs();
+    bindTaskScheduleModeInputs();
+    renderTaskOverviewFilterChips();
+    if (_taskPlanSubtab === 'plan') {
+        switchTaskPlanSubtab('plan');
+        await loadTeacherTaskPlan();
+    } else {
+        switchTaskPlanSubtab('overview');
+        await loadTaskClassOverview();
+    }
+}
+
+function switchTaskPlanSubtab(which) {
+    _taskPlanSubtab = which === 'plan' ? 'plan' : 'overview';
+    var ov = document.getElementById('taskClassOverviewPane');
+    var pl = document.getElementById('taskStudentPlanPane');
+    var bOv = document.getElementById('taskSubtabOverviewBtn');
+    var bPl = document.getElementById('taskSubtabPlanBtn');
+    if (ov) ov.style.display = _taskPlanSubtab === 'overview' ? 'block' : 'none';
+    if (pl) pl.style.display = _taskPlanSubtab === 'plan' ? 'block' : 'none';
+    if (bOv) bOv.classList.toggle('active', _taskPlanSubtab === 'overview');
+    if (bPl) bPl.classList.toggle('active', _taskPlanSubtab === 'plan');
+    if (_taskPlanSubtab === 'overview') {
+        renderTaskOverviewFilterChips();
+        if (!_taskOverviewData) loadTaskClassOverview();
+        else renderTaskClassOverview();
+    }
+}
+
+async function openStudentPlanFromOverview(studentId) {
+    if (!studentId) return;
+    var sel = document.getElementById('taskPlanStudentSelect');
+    if (sel) sel.value = studentId;
+    switchTaskPlanSubtab('plan');
     await loadTeacherTaskPlan();
+}
+
+function renderTaskOverviewFilterChips() {
+    var box = document.getElementById('taskOverviewFilters');
+    if (!box) return;
+    var chips = [
+        { key: null, label: '全部学生' },
+        { key: 'paused', label: '计划暂停' },
+        { key: 'yesterdayIncomplete', label: '昨日未完成' },
+        { key: 'incomplete', label: '今日未完成' },
+        { key: 'backlog', label: '有积压' },
+        { key: 'attention', label: '需关注' },
+        { key: 'noPlan', label: '无计划' }
+    ];
+    var anyFilter = Object.keys(_taskOverviewFilters).some(function(k) {
+        return !!_taskOverviewFilters[k];
+    });
+    box.innerHTML = chips.map(function(c) {
+        var on = c.key ? !!_taskOverviewFilters[c.key] : !anyFilter;
+        return '<button type="button" class="btn btn-secondary" style="padding:3px 8px;font-size:12px;' +
+            (on ? 'background:#e0f2fe;border-color:#7dd3fc;' : '') + '" ' +
+            'onclick="toggleTaskOverviewFilter(' + (c.key ? ("'" + c.key + "'") : 'null') + ')">' +
+            c.label + '</button>';
+    }).join('');
+}
+
+function toggleTaskOverviewFilter(key) {
+    if (!key) {
+        Object.keys(_taskOverviewFilters).forEach(function(k) {
+            _taskOverviewFilters[k] = false;
+        });
+    } else {
+        _taskOverviewFilters[key] = !_taskOverviewFilters[key];
+    }
+    renderTaskOverviewFilterChips();
+    renderTaskClassOverview();
+}
+
+async function loadTaskClassOverview() {
+    var wrap = document.getElementById('taskOverviewTableWrap');
+    var stats = document.getElementById('taskOverviewStats');
+    if (wrap) wrap.innerHTML = '<div style="padding:12px;color:#94a3b8;">加载中…</div>';
+    var res = await teacherApiGet('/api/task/class-overview');
+    if (res.error) {
+        if (wrap) {
+            wrap.innerHTML = '<div style="padding:12px;color:#b45309;">加载失败：' +
+                escapeTeacherAttr((res.error && res.error.message) || '接口不可用') +
+                '。请重启本地服务后刷新。</div>';
+        }
+        return;
+    }
+    _taskOverviewData = res.data || {};
+    renderTaskClassOverview();
+    if (stats && _taskOverviewData.generated_at) {
+        /* stats filled in render */
+    }
+}
+
+function filterTaskOverviewRows(rows) {
+    var q = ((document.getElementById('taskOverviewSearch') || {}).value || '').trim().toLowerCase();
+    return (rows || []).filter(function(r) {
+        if (q) {
+            var blob = (r.student_id + ' ' + (r.name || '')).toLowerCase();
+            if (blob.indexOf(q) < 0) return false;
+        }
+        if (_taskOverviewFilters.paused) {
+            var pp = r.plan_pause || {};
+            if (!(pp.active || pp.upcoming)) return false;
+        }
+        if (_taskOverviewFilters.incomplete) {
+            if (!(r.today_total > 0 && r.today_done < r.today_total)) return false;
+        }
+        if (_taskOverviewFilters.yesterdayIncomplete) {
+            if (!r.yesterday_incomplete) return false;
+        }
+        if (_taskOverviewFilters.backlog && !(r.backlog > 0)) return false;
+        if (_taskOverviewFilters.attention && r.row_status !== 'red') return false;
+        if (_taskOverviewFilters.noPlan && r.plan_status !== 'none') return false;
+        return true;
+    });
+}
+
+function taskOverviewStatusEmoji(st) {
+    if (st === 'red') return '🔴';
+    if (st === 'yellow') return '🟡';
+    if (st === 'green') return '🟢';
+    return '⚪';
+}
+
+function taskOverviewRowBg(st) {
+    if (st === 'red') return 'background:#fff5f5;';
+    if (st === 'yellow') return 'background:#fffbeb;';
+    if (st === 'green') return '';
+    return '';
+}
+
+function renderTaskClassOverview() {
+    var wrap = document.getElementById('taskOverviewTableWrap');
+    var statsEl = document.getElementById('taskOverviewStats');
+    if (!wrap) return;
+    var data = _taskOverviewData || {};
+    var all = data.students || [];
+    var rows = filterTaskOverviewRows(all);
+    var st = data.stats || {};
+    if (statsEl) {
+        statsEl.textContent = '共 ' + (st.total != null ? st.total : all.length) +
+            ' 人 · 计划暂停 ' + (st.plan_paused || 0) +
+            ' · 昨日未完成 ' + (st.yesterday_incomplete || 0) +
+            ' · 今日已全完成 ' + (st.today_all_done || 0) +
+            ' · 需关注 ' + (st.need_attention || 0) +
+            ' · 无计划 ' + (st.no_plan || 0) +
+            (data.generated_at ? (' · 更新 ' + data.generated_at) : '') +
+            (rows.length !== all.length ? (' · 筛选后 ' + rows.length) : '');
+    }
+    if (!all.length) {
+        wrap.innerHTML = '<div style="padding:16px;color:#64748b;">暂无在读学生</div>';
+        return;
+    }
+    if (!rows.length) {
+        wrap.innerHTML = '<div style="padding:16px;color:#64748b;">无匹配学生</div>';
+        return;
+    }
+    var html = '<table style="width:100%;border-collapse:collapse;font-size:13px;min-width:720px;">' +
+        '<thead><tr style="background:#f8fafc;text-align:left;">' +
+        '<th style="padding:8px 6px;">状态</th>' +
+        '<th style="padding:8px 6px;">学号</th>' +
+        '<th style="padding:8px 6px;">姓名</th>' +
+        '<th style="padding:8px 6px;">昨日任务</th>' +
+        '<th style="padding:8px 6px;">昨日学习时长</th>' +
+        '<th style="padding:8px 6px;">积压</th>' +
+        '<th style="padding:8px 6px;">计划进度</th>' +
+        '</tr></thead><tbody>';
+    rows.forEach(function(r) {
+        var sid = escapeTeacherAttr(r.student_id);
+        var yCell;
+        if (!(r.yesterday_total > 0)) {
+            yCell = '<span style="color:#94a3b8;">— 无任务</span>';
+        } else {
+            var yPct = Math.round((r.yesterday_done / r.yesterday_total) * 100);
+            var yDanger = r.yesterday_incomplete ? 'color:#dc2626;font-weight:600;' : '';
+            yCell = '<span style="' + yDanger + '">' + r.yesterday_done + '/' + r.yesterday_total +
+                ' · ' + yPct + '%</span>';
+        }
+        var brief = (r.plan_progress_brief || []).map(function(b) {
+            return b.text || '';
+        }).join(' · ');
+        if (r.plan_status === 'none') brief = '未排计划';
+        else if ((r.plan_pause || {}).active) {
+            brief = '⏸ 暂停至 ' + (r.plan_pause.resume_on || '') +
+                ' · ' + (r.plan_pause.reason || '');
+        } else if ((r.plan_pause || {}).upcoming) {
+            brief = '⏸ 将于 ' + (r.plan_pause.pause_from || '') + ' 暂停 · ' +
+                (r.plan_pause.reason || '');
+        } else if (r.plan_status === 'all_paused') brief = '计划已暂停';
+        else if (!brief) brief = '—';
+        var pendingTag = r.pending_plan_change
+            ? (' <span style="color:#b45309;font-size:11px;">明生效</span>')
+            : '';
+        if ((r.plan_pause || {}).active || (r.plan_pause || {}).upcoming) {
+            pendingTag += ' <span style="color:#b45309;font-size:11px;">暂停</span>';
+        }
+        var yMins = Number(r.yesterday_minutes) || 0;
+        var tMins = Number(r.total_minutes) || 0;
+        var timeCell = (yMins > 0 || tMins > 0)
+            ? (yMins + '/' + tMins + ' 分')
+            : '—';
+        html += '<tr style="border-top:1px solid #f1f5f9;cursor:pointer;' +
+            taskOverviewRowBg(r.row_status) + '" ' +
+            'onclick="openStudentPlanFromOverview(\'' + sid.replace(/'/g, "\\'") + '\')">' +
+            '<td style="padding:8px 6px;">' + taskOverviewStatusEmoji(r.row_status) + '</td>' +
+            '<td style="padding:8px 6px;">' + sid + '</td>' +
+            '<td style="padding:8px 6px;">' + escapeTeacherAttr(r.name || '') + pendingTag + '</td>' +
+            '<td style="padding:8px 6px;">' + yCell + '</td>' +
+            '<td style="padding:8px 6px;" title="昨日时长 / 累计总时长">' + timeCell + '</td>' +
+            '<td style="padding:8px 6px;' + (r.backlog >= 3 ? 'color:#dc2626;font-weight:600;' : '') + '">' +
+            (r.backlog > 0 ? r.backlog : '—') + '</td>' +
+            '<td style="padding:8px 6px;">' + escapeTeacherAttr(brief) + '</td>' +
+            '</tr>';
+    });
+    html += '</tbody></table>';
+    wrap.innerHTML = html;
 }
 
 function renderTaskPlanList() {
@@ -1891,6 +2121,7 @@ function renderTaskPlanList() {
     if (!box) return;
     if (!_taskDraftItems.length) {
         box.innerHTML = '<p style="color:#666;margin:0;">从左侧加入单元</p>';
+        if (readTaskPackMode() === 'units_per_day') renderTaskModuleQuotaTable();
         return;
     }
     var issues = _taskDraftOrderIssues(_taskDraftItems);
@@ -1985,6 +2216,7 @@ function renderTaskPlanList() {
         }
     });
     box.innerHTML = html;
+    if (readTaskPackMode() === 'units_per_day') renderTaskModuleQuotaTable();
 }
 
 function _taskDraftOrderIssues(items) {
@@ -2100,9 +2332,66 @@ function fixStageTestOrderDraft() {
 }
 
 async function loadTaskPackPreviews(studentId) {
+    if (!studentId) return;
+    var packMode = readTaskPackMode();
+    // 先记住表单配额，再刷新 UI，避免重绘把刚改的数字盖回旧值
+    rememberTaskModuleQuotasFromForm();
+    toggleTaskScheduleModeUI();
+
+    var draftPayload = {
+        pack_mode: packMode,
+        items: (_taskDraftItems || []).map(function(it) {
+            return {
+                item_type: it.item_type,
+                unit_id: it.unit_id || null,
+                module_type: it.module_type,
+                test_unit_ids: it.test_unit_ids || [],
+                test_title: it.test_title || '',
+                est_minutes: it.est_minutes,
+                status: it.status || 'pending'
+            };
+        })
+    };
+
+    if (packMode === 'units_per_day') {
+        var schedBox = document.getElementById('taskUnitsSchedule');
+        var schedTitle = document.getElementById('taskUnitsScheduleTitle');
+        if (!schedBox) return;
+        schedBox.innerHTML = '<span style="color:#94a3b8;">加载中…</span>';
+        draftPayload.module_quotas = collectTaskModuleQuotasPayload();
+        if (!draftPayload.module_quotas.length) {
+            draftPayload.module_quotas = Object.keys(_taskModuleQuotas || {}).map(function(mt) {
+                return {
+                    module_type: mt,
+                    weekday_units: _taskModuleQuotas[mt].weekday_units,
+                    weekend_units: _taskModuleQuotas[mt].weekend_units
+                };
+            });
+        }
+        var effInput = readTaskEffectiveFromInput();
+        if (effInput) draftPayload.effective_from = effInput;
+        var unitsRes = await teacherApiPost(
+            '/api/task/students/' + encodeURIComponent(studentId) + '/pack-preview',
+            draftPayload
+        );
+        if (unitsRes.error) {
+            schedBox.innerHTML = '<span style="color:#b45309;">排程预览失败：' +
+                escapeTeacherAttr((unitsRes.error && unitsRes.error.message) || '接口不可用') +
+                '。请重启本地服务后刷新。</span>';
+            return;
+        }
+        if (schedTitle) {
+            schedTitle.textContent = _taskHasDbDraft
+                ? ('每日任务排程（与学生对齐；待生效草稿试算，' + (_taskPendingEffectiveLabel || '') + '）')
+                : '每日任务排程（与学生端对齐；周末条数按生效日配额，未到生效日仍用旧配额）';
+        }
+        schedBox.innerHTML = renderUnitsScheduleHtml(unitsRes.data);
+        return;
+    }
+
     var liveBox = document.getElementById('taskPackPreviewLive');
     var draftBox = document.getElementById('taskPackPreviewDraft');
-    if (!liveBox || !draftBox || !studentId) return;
+    if (!liveBox || !draftBox) return;
     liveBox.innerHTML = '<span style="color:#94a3b8;">加载中…</span>';
     draftBox.innerHTML = '<span style="color:#94a3b8;">加载中…</span>';
 
@@ -2119,19 +2408,6 @@ async function loadTaskPackPreviews(studentId) {
 
     var formWd = Number(document.getElementById('taskWeekdayMinutes') && document.getElementById('taskWeekdayMinutes').value);
     var formWe = Number(document.getElementById('taskWeekendMinutes') && document.getElementById('taskWeekendMinutes').value);
-    var draftPayload = {
-        items: (_taskDraftItems || []).map(function(it) {
-            return {
-                item_type: it.item_type,
-                unit_id: it.unit_id || null,
-                module_type: it.module_type,
-                test_unit_ids: it.test_unit_ids || [],
-                test_title: it.test_title || '',
-                est_minutes: it.est_minutes,
-                status: it.status || 'pending'
-            };
-        })
-    };
     if (!isNaN(formWd) && formWd > 0) draftPayload.weekday_minutes = formWd;
     if (!isNaN(formWe) && formWe > 0) draftPayload.weekend_minutes = formWe;
     var draftRes = await teacherApiPost(
@@ -2159,7 +2435,7 @@ async function loadTaskPackPreviews(studentId) {
     if (!isNaN(formWd) && !isNaN(liveBudget) && formWd !== liveBudget) {
         draftHtml = '<div style="color:#b45309;font-size:12px;margin-bottom:6px;">' +
             '上方周中 ' + formWd + '′ 尚未成为「今日实际」预算（当前生效 ' + liveBudget +
-            '′）。点「保存时长」且生效日为今天后，上方预览会同步。</div>' + draftHtml;
+            '′）。点「保存排程设置」且生效日为今天后，上方预览会同步。</div>' + draftHtml;
     }
     draftBox.innerHTML = draftHtml;
 }
@@ -2174,6 +2450,118 @@ function schedulePackPreviewRefresh() {
     }, 350);
 }
 
+function readTaskPackMode() {
+    return 'units_per_day';
+}
+
+function setTaskPackMode(mode) {
+    toggleTaskScheduleModeUI();
+}
+
+function toggleTaskScheduleModeUI() {
+    var quotaPanel = document.getElementById('taskModuleQuotaPanel');
+    var timePack = document.getElementById('taskTimePackPreviewBlock');
+    var unitsSched = document.getElementById('taskUnitsScheduleBlock');
+    if (quotaPanel) quotaPanel.style.display = 'block';
+    if (timePack) timePack.style.display = 'none';
+    if (unitsSched) unitsSched.style.display = 'block';
+    rememberTaskModuleQuotasFromForm();
+    renderTaskModuleQuotaTable();
+}
+
+function rememberTaskModuleQuotasFromForm() {
+    collectTaskModuleQuotasPayload().forEach(function(q) {
+        if (!_taskModuleQuotas) _taskModuleQuotas = {};
+        _taskModuleQuotas[q.module_type] = {
+            weekday_units: q.weekday_units,
+            weekend_units: q.weekend_units
+        };
+    });
+}
+
+function collectModulesInDraft() {
+    var order = [];
+    var seen = {};
+    (_taskDraftItems || []).forEach(function(it) {
+        var mt = inferTaskItemModuleType(it, _taskDraftItems) || it.module_type;
+        if (!mt || seen[mt]) return;
+        seen[mt] = true;
+        order.push(mt);
+    });
+    return order;
+}
+
+function syncTaskModuleQuotasFromProfile(tp) {
+    _taskModuleQuotas = {};
+    (tp && tp.module_quotas || []).forEach(function(q) {
+        if (!q.module_type) return;
+        _taskModuleQuotas[q.module_type] = {
+            weekday_units: q.pending_weekday_units != null ? q.pending_weekday_units :
+                (q.weekday_units != null ? q.weekday_units : 1),
+            weekend_units: q.pending_weekend_units != null ? q.pending_weekend_units :
+                (q.weekend_units != null ? q.weekend_units : 1)
+        };
+    });
+}
+
+function renderTaskModuleQuotaTable() {
+    var panel = document.getElementById('taskModuleQuotaPanel');
+    if (!panel) return;
+    var modules = collectModulesInDraft();
+    if (!modules.length) {
+        panel.innerHTML = '<span style="color:#64748b;font-size:13px;">请先在右侧清单加入科目单元</span>';
+        return;
+    }
+    rememberTaskModuleQuotasFromForm();
+    var quotas = _taskModuleQuotas || {};
+    var html = '<table style="width:100%;max-width:520px;border-collapse:collapse;font-size:13px;">' +
+        '<thead><tr><th style="text-align:left;padding:4px 8px;">科目</th>' +
+        '<th style="padding:4px 8px;">周中每天</th><th style="padding:4px 8px;">周末每天</th></tr></thead><tbody>';
+    modules.forEach(function(mt) {
+        var q = quotas[mt] || {};
+        var mod = (typeof getModuleById === 'function') ? getModuleById(mt) : null;
+        var name = (mod && mod.name) || mt;
+        html += '<tr><td style="padding:4px 8px;">' + escapeTeacherAttr(name) + '</td>' +
+            '<td style="padding:4px 8px;text-align:center;"><input type="number" class="taskQuotaWd" data-module="' +
+            escapeTeacherAttr(mt) + '" min="0" max="20" style="width:52px;" value="' +
+            (q.weekday_units != null ? q.weekday_units : 1) + '"></td>' +
+            '<td style="padding:4px 8px;text-align:center;"><input type="number" class="taskQuotaWe" data-module="' +
+            escapeTeacherAttr(mt) + '" min="0" max="20" style="width:52px;" value="' +
+            (q.weekend_units != null ? q.weekend_units : 1) + '"></td></tr>';
+    });
+    html += '</tbody></table>';
+    panel.innerHTML = html;
+    panel.querySelectorAll('.taskQuotaWd, .taskQuotaWe').forEach(function(el) {
+        el.addEventListener('change', function() {
+            rememberTaskModuleQuotasFromForm();
+            schedulePackPreviewRefresh();
+        });
+        el.addEventListener('input', function() {
+            rememberTaskModuleQuotasFromForm();
+            schedulePackPreviewRefresh();
+        });
+    });
+}
+
+function collectTaskModuleQuotasPayload() {
+    var out = [];
+    document.querySelectorAll('.taskQuotaWd').forEach(function(wdEl) {
+        var mt = wdEl.getAttribute('data-module');
+        if (!mt) return;
+        var weEl = document.querySelector('.taskQuotaWe[data-module="' + mt + '"]');
+        out.push({
+            module_type: mt,
+            weekday_units: Number(wdEl.value) || 0,
+            weekend_units: Number((weEl && weEl.value) || 0) || 0
+        });
+    });
+    return out;
+}
+
+function bindTaskScheduleModeInputs() {
+    /* 仅保留单元排程模式，无需绑定切换控件 */
+}
+
 function bindTaskDurationPreviewInputs() {
     ['taskWeekdayMinutes', 'taskWeekendMinutes', 'taskEffectiveFrom'].forEach(function(id) {
         var el = document.getElementById(id);
@@ -2182,6 +2570,72 @@ function bindTaskDurationPreviewInputs() {
         el.addEventListener('change', schedulePackPreviewRefresh);
         el.addEventListener('input', schedulePackPreviewRefresh);
     });
+}
+
+function weekdayLabelZh(ymd) {
+    if (!ymd) return '';
+    var parts = String(ymd).split('-');
+    if (parts.length < 3) return '';
+    var d = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+    if (isNaN(d.getTime())) return '';
+    return ['日', '一', '二', '三', '四', '五', '六'][d.getDay()];
+}
+
+function renderUnitsDayTasksHtml(items) {
+    if (!items || !items.length) {
+        return '<div style="color:#94a3b8;padding:2px 0 2px 8px;">无任务</div>';
+    }
+    var html = '';
+    items.forEach(function(it, i) {
+        var mod = (typeof getModuleById === 'function') ? getModuleById(it.module_type) : null;
+        var modName = (mod && mod.name) || it.module_type || '';
+        var prefix = it.item_type === 'test' ? '测' : '学';
+        html += '<div style="padding:2px 0 2px 8px;">' + (i + 1) + '. <span style="color:#64748b;">' +
+            escapeTeacherAttr(modName) + '</span> ' + prefix + ' · ' +
+            escapeTeacherAttr(it.title || '') + '</div>';
+    });
+    return html;
+}
+
+function renderUnitsScheduleHtml(data) {
+    var schedule = (data && data.schedule) || [];
+    if (!schedule.length && data && data.items && data.items.length) {
+        schedule = [{
+            task_date: data.task_date || '',
+            items: data.items,
+            units_total: data.units_total || data.items.length
+        }];
+    }
+    if (!schedule.length) {
+        return '<span style="color:#64748b;">暂无排程（请先在下方清单加入单元，并设置每科每天几个）</span>';
+    }
+    var today = taskFormatLocalYmd(new Date());
+    var html = '';
+    var shown = 0;
+    schedule.forEach(function(day) {
+        if (!day || !day.items || !day.items.length) return;
+        shown += 1;
+        if (shown > 14) return;
+        var ymd = day.task_date || '';
+        var isToday = ymd === today;
+        var wd = weekdayLabelZh(ymd);
+        html += '<div style="margin:0 0 10px;padding:8px;border:1px solid ' +
+            (isToday ? '#93c5fd' : '#e2e8f0') + ';border-radius:8px;background:' +
+            (isToday ? '#eff6ff' : '#f8fafc') + ';">';
+        html += '<div style="font-weight:600;margin-bottom:4px;color:#0f172a;">' +
+            escapeTeacherAttr(ymd) +
+            (wd ? '（周' + wd + '）' : '') +
+            (isToday ? ' · 今天' : '') +
+            (day.source === 'actual' ? ' · 学生实际' : '') +
+            ' <span style="font-weight:400;color:#64748b;">· ' +
+            (day.units_total || day.items.length) + ' 条</span></div>';
+        html += renderUnitsDayTasksHtml(day.items);
+        html += '</div>';
+    });
+    if (!shown) {
+        return '<span style="color:#64748b;">暂无排程（请先在下方清单加入单元，并设置每科每天几个）</span>';
+    }
+    return html;
 }
 
 function renderPackPreviewHtml(data, label) {
@@ -2473,10 +2927,15 @@ function renderTaskLivePlanList() {
         title.textContent = '当前生效清单（共 ' + _taskLiveItems.length + ' 项）';
     }
     var html = '';
+    var isUnits = readTaskPackMode() === 'units_per_day';
     html += '<p style="color:#64748b;font-size:12px;margin:0 0 8px;">这是<strong>完整学习队列</strong>（学 ' +
-        studyN + ' / 测 ' + testN + '），不是学生今天要做的全部。系统按每日预算从中逐日装箱，请看下方「装箱预览」。</p>';
+        studyN + ' / 测 ' + testN + '），不是学生今天要做的全部。' +
+        (isUnits
+            ? '系统按各科每日配额从中逐日释放，请看下方「每日任务排程」。'
+            : '系统按每日预算从中逐日装箱，请看下方「装箱预览」。') +
+        '</p>';
     if (_taskPendingPlanChange) {
-        html += '<p style="color:#b45309;margin:0 0 8px;">有待生效草稿/时长变更；到达生效日后将替换本列表。</p>';
+        html += '<p style="color:#b45309;margin:0 0 8px;">有待生效草稿/排程变更；到达生效日后将替换本列表。</p>';
     }
     var segments = groupTaskItemsByModuleSegments(_taskLiveItems);
     segments.forEach(function(seg) {
@@ -2729,6 +3188,13 @@ async function applyTeacherTaskPlanData(data) {
     });
     _taskDraftItems = normalizeStageTestOrderClient(_taskDraftItems);
     var tp = data.time_profile || {};
+    syncTaskModuleQuotasFromProfile(tp);
+    var pendingMode = tp.pending_pack_mode != null ? tp.pending_pack_mode : (tp.pack_mode || 'time_budget');
+    if (pendingMode !== 'units_per_day') {
+        pendingMode = 'units_per_day';
+    }
+    setTaskPackMode(pendingMode);
+    bindTaskScheduleModeInputs();
     var wd = document.getElementById('taskWeekdayMinutes');
     var we = document.getElementById('taskWeekendMinutes');
     if (wd) wd.value = tp.pending_weekday_minutes != null ? tp.pending_weekday_minutes : (tp.weekday_minutes || 40);
@@ -2739,13 +3205,15 @@ async function applyTeacherTaskPlanData(data) {
     setTaskEffectiveFromInput(effFrom);
     var hint = document.getElementById('taskPlanHint');
     if (hint) {
-        var base = '多科目会自动轮换装箱（各科交替练习），清单按科目分段加入即可，不必手动交错排序。';
+        var base = '各科按清单顺序逐日释放；周中/周末配额独立；多科同日合并展示。';
         var effLabel = taskEffectiveLabel(data.pending_effective_from || effFrom);
         hint.textContent = data.pending_plan_change
             ? base + ' 有待生效变更（' + effLabel + ' 起生效）；上面「当前生效」才是学生今日所见。'
             : base + ' 可选择生效日期；选「今天」保存后立即更新清单并重排今日任务。';
     }
+    toggleTaskScheduleModeUI();
     updateTaskPlanSectionTitles(data);
+    renderTaskPlanPauseBanner(data.plan_pause || null);
     renderTaskLivePlanList();
     renderTaskPlanList();
     renderTaskUnitLibrary();
@@ -2753,25 +3221,219 @@ async function applyTeacherTaskPlanData(data) {
     if (sel && sel.value) await loadTaskPackPreviews(sel.value);
 }
 
-async function saveTeacherTimeProfile() {
+async function saveTeacherScheduleProfile() {
     var sel = document.getElementById('taskPlanStudentSelect');
     if (!sel || !sel.value) return;
-    var wd = Number(document.getElementById('taskWeekdayMinutes').value);
-    var we = Number(document.getElementById('taskWeekendMinutes').value);
+    rememberTaskModuleQuotasFromForm();
+    // 配额改完默认今天生效，避免改了数字却因「明天」看起来无效
+    var eff = readTaskEffectiveFromInput() || taskFormatLocalYmd(new Date());
+    setTaskEffectiveFromInput(eff);
+    // 保存排程只写配额，勿整页重载计划（会把未保存的右侧清单清掉）
+    var preservedDraft = (_taskDraftItems || []).map(function(it) {
+        return {
+            item_type: it.item_type,
+            unit_id: it.unit_id,
+            module_type: it.module_type,
+            unit_title: it.unit_title,
+            test_title: it.test_title,
+            test_unit_ids: (it.test_unit_ids || []).slice(),
+            est_minutes: it.est_minutes,
+            status: it.status || 'pending',
+            study_completed: Number(it.study_completed) || 0,
+            test_passed: Number(it.test_passed) || 0
+        };
+    });
+    var payload = {
+        pack_mode: 'units_per_day',
+        module_quotas: collectTaskModuleQuotasPayload(),
+        effective_from: eff
+    };
+    if (!payload.module_quotas.length && _taskModuleQuotas) {
+        payload.module_quotas = Object.keys(_taskModuleQuotas).map(function(mt) {
+            return {
+                module_type: mt,
+                weekday_units: _taskModuleQuotas[mt].weekday_units,
+                weekend_units: _taskModuleQuotas[mt].weekend_units
+            };
+        });
+    }
     var result = await teacherApiPost(
         '/api/task/students/' + encodeURIComponent(sel.value) + '/time-profile',
-        {
-            weekday_minutes: wd,
-            weekend_minutes: we,
-            effective_from: readTaskEffectiveFromInput()
-        }
+        payload
     );
     if (result.error) {
         showToast((result.error && result.error.message) || '保存失败', 'error');
         return;
     }
-    showToast('时长已保存（' + taskEffectiveLabel(readTaskEffectiveFromInput()) + ' 起生效）', 'success');
-    if (result.data) {
-        await loadTeacherTaskPlan();
+    var toastMsg = '排程设置已保存（' + taskEffectiveLabel(readTaskEffectiveFromInput()) + ' 起生效）';
+    if (preservedDraft.length && !_taskHasDbDraft) {
+        toastMsg += '；右侧清单仍在编辑中，请点「保存清单草稿」';
     }
+    showToast(toastMsg, preservedDraft.length && !_taskHasDbDraft ? 'info' : 'success');
+    if (result.data) {
+        var tp = result.data;
+        syncTaskModuleQuotasFromProfile(tp);
+        var effFrom = tp.pending_effective_from || readTaskEffectiveFromInput() || eff;
+        setTaskEffectiveFromInput(effFrom);
+        _taskPendingEffectiveLabel = taskEffectiveLabel(effFrom);
+        if (preservedDraft.length && !_taskHasDbDraft) {
+            _taskDraftItems = preservedDraft;
+        }
+        var hint = document.getElementById('taskPlanHint');
+        if (hint) {
+            var base = '各科按清单顺序逐日释放；周中/周末配额独立；多科同日合并展示。';
+            var effLabel = taskEffectiveLabel(effFrom);
+            var profilePending = tp.pending_effective_from != null;
+            hint.textContent = (_taskHasDbDraft || profilePending)
+                ? base + ' 有待生效变更（' + effLabel + ' 起生效）；上面「当前生效」才是学生今日所见。'
+                : base + ' 可选择生效日期；选「今天」保存后立即更新清单并重排今日任务。';
+        }
+        updateTaskPlanSectionTitles({
+            draft_pending: _taskHasDbDraft,
+            draft: _taskHasDbDraft ? preservedDraft : [],
+            pending_effective_from: tp.pending_effective_from,
+            draft_effective_from: effFrom
+        });
+        toggleTaskScheduleModeUI();
+        renderTaskPlanList();
+        await loadTaskPackPreviews(sel.value);
+    }
+}
+
+async function saveTeacherTimeProfile() {
+    return saveTeacherScheduleProfile();
+}
+
+async function clearTeacherDailySchedule() {
+    var sel = document.getElementById('taskPlanStudentSelect');
+    if (!sel || !sel.value) {
+        showToast('请先选择学生', 'error');
+        return;
+    }
+    if (!confirm('清空该生的任务清单、草稿与已生成的每日任务？此操作不可撤销。')) return;
+    var result = await teacherApiPost(
+        '/api/task/students/' + encodeURIComponent(sel.value) + '/clear-daily-schedule',
+        {}
+    );
+    if (result.error) {
+        showToast((result.error && result.error.message) || '清除失败', 'error');
+        return;
+    }
+    var d = result.data || {};
+    showToast(
+        '已清空：清单 ' + (d.cleared_plan_items || 0) +
+        ' 项，每日任务 ' + (d.deleted || 0) + ' 条',
+        'success'
+    );
+    _taskDraftItems = [];
+    _taskLiveItems = [];
+    _taskModuleQuotas = {};
+    _taskPlanPause = null;
+    await loadTeacherTaskPlan();
+}
+
+function renderTaskPlanPauseBanner(pause) {
+    _taskPlanPause = pause || null;
+    var box = document.getElementById('taskPlanPauseBanner');
+    var resumeBtn = document.getElementById('taskPlanResumeBtn');
+    if (resumeBtn) {
+        resumeBtn.style.display = pause ? 'inline-block' : 'none';
+    }
+    if (!box) return;
+    if (!pause) {
+        box.style.display = 'none';
+        box.innerHTML = '';
+        return;
+    }
+    box.style.display = 'block';
+    if (pause.active) {
+        box.innerHTML = '<strong>计划已暂停</strong>：' +
+            escapeTeacherAttr(pause.pause_from) + ' 起，至 ' +
+            escapeTeacherAttr(pause.resume_on) + ' 恢复。原因：' +
+            escapeTeacherAttr(pause.reason || '') +
+            '。暂停期内不新发每日任务。';
+    } else {
+        box.innerHTML = '<strong>计划将暂停</strong>：' +
+            escapeTeacherAttr(pause.pause_from) + ' 起暂停，' +
+            escapeTeacherAttr(pause.resume_on) + ' 恢复。原因：' +
+            escapeTeacherAttr(pause.reason || '') + '。';
+    }
+}
+
+function openPlanPauseModal() {
+    var sel = document.getElementById('taskPlanStudentSelect');
+    if (!sel || !sel.value) {
+        showToast('请先选择学生', 'error');
+        return;
+    }
+    if (!_taskLiveItems || !_taskLiveItems.length) {
+        showToast('该生尚无生效清单，无法暂停', 'error');
+        return;
+    }
+    var today = taskFormatLocalYmd(new Date());
+    var fromEl = document.getElementById('taskPauseFrom');
+    var toEl = document.getElementById('taskPauseResumeOn');
+    var reasonEl = document.getElementById('taskPauseReason');
+    if (fromEl) {
+        fromEl.value = (_taskPlanPause && _taskPlanPause.pause_from) || today;
+        fromEl.min = today;
+    }
+    if (toEl) {
+        var defResume = (_taskPlanPause && _taskPlanPause.resume_on) || '';
+        if (!defResume) {
+            var d = new Date();
+            d.setDate(d.getDate() + 3);
+            defResume = taskFormatLocalYmd(d);
+        }
+        toEl.value = defResume;
+        toEl.min = today;
+    }
+    if (reasonEl) reasonEl.value = (_taskPlanPause && _taskPlanPause.reason) || '';
+    showModal('taskPlanPauseModal');
+}
+
+async function confirmTeacherPlanPause() {
+    var sel = document.getElementById('taskPlanStudentSelect');
+    if (!sel || !sel.value) return;
+    var fromEl = document.getElementById('taskPauseFrom');
+    var toEl = document.getElementById('taskPauseResumeOn');
+    var reasonEl = document.getElementById('taskPauseReason');
+    var pauseFrom = fromEl && fromEl.value;
+    var resumeOn = toEl && toEl.value;
+    var reason = reasonEl ? String(reasonEl.value || '').trim() : '';
+    if (!pauseFrom || !resumeOn) {
+        showToast('请填写暂停起始日与恢复日期', 'error');
+        return;
+    }
+    if (!reason) {
+        showToast('请填写暂停原因', 'error');
+        return;
+    }
+    var result = await teacherApiPost(
+        '/api/task/students/' + encodeURIComponent(sel.value) + '/plan-pause',
+        { pause_from: pauseFrom, resume_on: resumeOn, reason: reason }
+    );
+    if (result.error) {
+        showToast((result.error && result.error.message) || '暂停失败', 'error');
+        return;
+    }
+    closeModal('taskPlanPauseModal');
+    showToast('计划已设为暂停', 'success');
+    await loadTeacherTaskPlan();
+}
+
+async function clearTeacherPlanPause() {
+    var sel = document.getElementById('taskPlanStudentSelect');
+    if (!sel || !sel.value) return;
+    if (!confirm('确定提前恢复该生计划？恢复后将按清单继续排每日任务。')) return;
+    var result = await teacherApiPost(
+        '/api/task/students/' + encodeURIComponent(sel.value) + '/plan-pause/clear',
+        {}
+    );
+    if (result.error) {
+        showToast((result.error && result.error.message) || '恢复失败', 'error');
+        return;
+    }
+    showToast('已提前恢复计划', 'success');
+    await loadTeacherTaskPlan();
 }

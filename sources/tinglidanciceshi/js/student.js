@@ -102,8 +102,10 @@ function renderTaskItemTimeCompare(est, actual) {
 async function loadTodayTasks() {
     const panel = document.getElementById('taskTodayPanel');
     const planPanel = document.getElementById('taskPlanProgressPanel');
+    const upcomingPanel = document.getElementById('taskUpcomingPanel');
     if (!panel) return;
     panel.innerHTML = '<p style="color:#666;">加载今日任务…</p>';
+    if (upcomingPanel) upcomingPanel.innerHTML = '';
     const result = await apiFetch('/api/task/me/today');
     if (result.error) {
         panel.innerHTML = '<p style="color:#c00;">加载失败：' +
@@ -119,22 +121,30 @@ async function loadTodayTasks() {
     const estTotal = Number(data.est_total_minutes) || 0;
     const actualTotal = Number(data.actual_total_minutes) || 0;
     const budgetMin = Number(data.budget_minutes) || 0;
+    const packMode = data.pack_mode || 'time_budget';
     const budgetPct = budgetMin > 0 ? Math.min(100, Math.round(actualTotal / budgetMin * 100)) : 0;
     let actualColor = '#334155';
     if (actualTotal > budgetMin && budgetMin > 0) actualColor = '#b45309';
     else if (actualTotal > estTotal && estTotal > 0) actualColor = '#b45309';
     else if (actualTotal > 0) actualColor = '#16a34a';
     html += '<div style="text-align:right;min-width:200px;">';
-    html += '<div style="color:#64748b;font-size:0.9rem;">预计 ' + formatTaskMinutes(estTotal) +
-        '′ · 已练 <span style="color:' + actualColor + ';font-weight:600;">' +
-        formatTaskMinutes(actualTotal) + '′</span> · 预算 ' + formatTaskMinutes(budgetMin) + '′</div>';
-    if (budgetMin > 0) {
-        html += '<div style="margin-top:6px;height:6px;background:#e2e8f0;border-radius:999px;overflow:hidden;">';
-        html += '<div style="height:100%;width:' + budgetPct + '%;background:' +
-            (budgetPct > 100 ? '#f59e0b' : '#667eea') + ';border-radius:999px;"></div></div>';
+    if (packMode === 'units_per_day') {
+        html += '<div style="color:#64748b;font-size:0.9rem;">单元排程 · 今日 ' +
+            (data.units_total || items.length) + ' 条 · 预计 ' + formatTaskMinutes(estTotal) +
+            '′ · 已练 <span style="color:' + actualColor + ';font-weight:600;">' +
+            formatTaskMinutes(actualTotal) + '′</span></div>';
+    } else {
+        html += '<div style="color:#64748b;font-size:0.9rem;">预计 ' + formatTaskMinutes(estTotal) +
+            '′ · 已练 <span style="color:' + actualColor + ';font-weight:600;">' +
+            formatTaskMinutes(actualTotal) + '′</span> · 预算 ' + formatTaskMinutes(budgetMin) + '′</div>';
+        if (budgetMin > 0) {
+            html += '<div style="margin-top:6px;height:6px;background:#e2e8f0;border-radius:999px;overflow:hidden;">';
+            html += '<div style="height:100%;width:' + budgetPct + '%;background:' +
+                (budgetPct > 100 ? '#f59e0b' : '#667eea') + ';border-radius:999px;"></div></div>';
+        }
     }
     html += '</div></div>';
-    if (actualTotal > budgetMin && budgetMin > 0 && items.length) {
+    if (packMode !== 'units_per_day' && actualTotal > budgetMin && budgetMin > 0 && items.length) {
         html += '<p style="color:#b45309;margin:8px 0 0;font-size:0.85rem;">' +
             '已练时长超过今日预算，仍可继续完成任务。</p>';
     }
@@ -206,9 +216,13 @@ async function loadTodayTasks() {
     html += '</div>';
     panel.innerHTML = html;
 
+    if (upcomingPanel) {
+        upcomingPanel.innerHTML = renderStudentUpcomingHtml(data);
+    }
+
     if (planPanel) {
         let phtml = '<div style="border:1px solid #e2e8f0;border-radius:12px;padding:14px;">';
-        phtml += '<h3 style="margin:0 0 10px;">② 我的计划进度</h3>';
+        phtml += '<h3 style="margin:0 0 10px;">③ 我的计划进度</h3>';
         const keys = Object.keys(progress);
         if (!keys.length) {
             phtml += '<p style="color:#64748b;margin:0;">暂无已排科目</p>';
@@ -226,6 +240,63 @@ async function loadTodayTasks() {
         planPanel.innerHTML = phtml;
     }
     window._todayTaskItems = items;
+}
+
+function studentTaskWeekdayLabel(ymd) {
+    try {
+        var d = new Date(ymd + 'T12:00:00');
+        var names = ['日', '一', '二', '三', '四', '五', '六'];
+        return '周' + names[d.getDay()];
+    } catch (e) {
+        return '';
+    }
+}
+
+function renderStudentUpcomingHtml(data) {
+    var schedule = data.upcoming_schedule || [];
+    var remaining = data.remaining_plan || [];
+    var html = '<div style="border:1px solid #e2e8f0;border-radius:12px;padding:14px;">';
+    html += '<h3 style="margin:0 0 6px;">② 后续安排</h3>';
+    html += '<p style="margin:0 0 12px;color:#64748b;font-size:0.85rem;">按当前清单与配额试算（假设每日完成）；未完成会积压到次日，实际以当天为准。</p>';
+
+    if (schedule.length) {
+        html += '<div style="font-weight:600;margin:0 0 8px;">按日排程</div>';
+        schedule.forEach(function(day) {
+            var ymd = day.task_date || '';
+            html += '<div style="margin-bottom:10px;padding:10px;background:#f8fafc;border-radius:8px;border:1px solid #eef2f7;">';
+            html += '<div style="font-weight:600;margin-bottom:6px;">' + escapeHtml(ymd) +
+                '（' + studentTaskWeekdayLabel(ymd) + '） · ' +
+                (day.units_total || (day.items || []).length) + ' 条</div>';
+            (day.items || []).forEach(function(it, idx) {
+                html += '<div style="padding:3px 0;font-size:0.92rem;color:#334155;">' +
+                    (idx + 1) + '. <span style="color:#64748b;">' +
+                    (it.item_type === 'test' ? '测' : '学') + '</span> ' +
+                    escapeHtml(it.title || '') + '</div>';
+            });
+            html += '</div>';
+        });
+    } else {
+        html += '<p style="color:#64748b;margin:0 0 12px;">暂无后续按日排程</p>';
+    }
+
+    html += '<div style="font-weight:600;margin:14px 0 8px;">全部待完成（共 ' +
+        remaining.length + ' 项）</div>';
+    if (!remaining.length) {
+        html += '<p style="color:#64748b;margin:0;">清单已全部完成，或助教尚未排任务</p>';
+    } else {
+        html += '<div style="max-height:280px;overflow:auto;">';
+        remaining.forEach(function(it, idx) {
+            var mod = (typeof getModuleById === 'function') ? getModuleById(it.module_type) : null;
+            var modName = (mod && mod.name) || it.module_type || '';
+            html += '<div style="padding:5px 0;border-bottom:1px solid #f1f5f9;font-size:0.92rem;">' +
+                (idx + 1) + '. <span style="color:#64748b;">' +
+                escapeHtml(modName) + ' · ' + (it.item_type === 'test' ? '测' : '学') +
+                '</span> ' + escapeHtml(it.title || '') + '</div>';
+        });
+        html += '</div>';
+    }
+    html += '</div>';
+    return html;
 }
 
 function escapeHtml(s) {

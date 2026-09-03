@@ -14,12 +14,18 @@ if str(SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPTS_DIR))
 
 from task_api import (  # noqa: E402
+    PACK_MODE_TIME_BUDGET,
+    PACK_MODE_UNITS_PER_DAY,
     SHANGHAI,
     _interleave_by_module,
     apply_draft_to_live,
+    backlog_plan_item_ids,
     build_daily_tasks,
     china_ymd,
+    class_overview,
+    clear_plan_pause,
     complete_study,
+    ensure_module_quota,
     ensure_task_tables,
     get_plan,
     get_today,
@@ -27,6 +33,7 @@ from task_api import (  # noqa: E402
     normalize_stage_test_positions,
     preview_daily_pack_items,
     put_plan_draft,
+    put_plan_pause,
     put_time_profile,
     seed_mvp_units,
     submit_stage_test,
@@ -103,19 +110,41 @@ def _connect() -> sqlite3.Connection:
 class TaskApiTests(unittest.TestCase):
     def test_seed_counts(self) -> None:
         conn = _connect()
-        n_read = conn.execute(
-            "SELECT COUNT(*) AS c FROM task_units WHERE module_type='reading_synonym'"
-        ).fetchone()["c"]
-        n_dict = conn.execute(
-            "SELECT COUNT(*) AS c FROM task_units WHERE module_type='dictation'"
-        ).fetchone()["c"]
-        self.assertEqual(n_read, 23)
-        self.assertEqual(n_dict, 50)
+        expected = {
+            "reading_synonym": 23,
+            "dictation": 50,
+            "listening_basic": 41,
+            "listening_synonym": 24,
+            "sentence": 12,
+            "writing_phrase": 14,
+            "writing_translate": 23,
+            "listening_p4_speed": 1,
+            "speaking_complex": 17,
+            "speaking_p1": 24,
+            "speaking_p2_material": 8,
+            "speaking_p2_apply": 12,
+        }
+        for mt, n in expected.items():
+            got = conn.execute(
+                "SELECT COUNT(*) AS c FROM task_units WHERE module_type=?", (mt,)
+            ).fetchone()["c"]
+            self.assertEqual(got, n, mt)
+        self.assertEqual(
+            conn.execute(
+                "SELECT COUNT(*) AS c FROM task_units WHERE module_type='writing_correction'"
+            ).fetchone()["c"],
+            0,
+        )
         u23 = conn.execute(
             "SELECT content_ref FROM task_units WHERE unit_id='reading_synonym_u23'"
         ).fetchone()
         self.assertIn('"scope_total": 5', u23["content_ref"])
-
+        self.assertEqual(
+            conn.execute(
+                "SELECT parent_module FROM task_units WHERE unit_id='speaking_p1_u01'"
+            ).fetchone()["parent_module"],
+            "speaking",
+        )
     def test_plan_progress_xy(self) -> None:
         conn = _connect()
         put_plan_draft(
@@ -645,6 +674,622 @@ class TaskApiTests(unittest.TestCase):
         today = get_today(conn, "2025001")
         self.assertEqual(today["budget_minutes"], 120)
         self.assertGreater(len(daily120), len(daily40))
+
+    def _apply_reading_plan(self, conn: sqlite3.Connection, count: int) -> None:
+        items = [
+            {"item_type": "study", "unit_id": f"reading_synonym_u{i:02d}"}
+            for i in range(1, count + 1)
+        ]
+        put_plan_draft(conn, "2025001", items)
+        apply_draft_to_live(conn, "2025001")
+
+    def _enable_units_mode(
+        self,
+        conn: sqlite3.Connection,
+        *,
+        weekday_units: int = 1,
+        weekend_units: int = 1,
+        module_type: str = "reading_synonym",
+        effective: str = "today",
+    ) -> None:
+        put_time_profile(
+            conn,
+            "2025001",
+            {
+                "pack_mode": PACK_MODE_UNITS_PER_DAY,
+                "module_quotas": [
+                    {
+                        "module_type": module_type,
+                        "weekday_units": weekday_units,
+                        "weekend_units": weekend_units,
+                    }
+                ],
+                "effective": effective,
+            },
+        )
+
+    def test_units_mode_two_per_day(self) -> None:
+        conn = _connect()
+        self._apply_reading_plan(conn, 5)
+        self._enable_units_mode(conn, weekday_units=2, weekend_units=2)
+        day1 = "2026-08-26"
+        daily1 = build_daily_tasks(conn, "2025001", day1)
+        self.assertEqual(len(daily1), 2)
+        day2 = "2026-08-27"
+        daily2 = build_daily_tasks(conn, "2025001", day2)
+        self.assertEqual(len(daily2), 2)
+
+    def test_units_mode_multi_subject_same_day(self) -> None:
+        conn = _connect()
+        put_plan_draft(
+            conn,
+            "2025001",
+            [
+                {"item_type": "study", "unit_id": "reading_synonym_u01"},
+                {"item_type": "study", "unit_id": "reading_synonym_u02"},
+                {"item_type": "study", "unit_id": "dictation_u01"},
+            ],
+        )
+        apply_draft_to_live(conn, "2025001")
+        put_time_profile(
+            conn,
+            "2025001",
+            {
+                "pack_mode": PACK_MODE_UNITS_PER_DAY,
+                "module_quotas": [
+                    {
+                        "module_type": "reading_synonym",
+                        "weekday_units": 2,
+                        "weekend_units": 1,
+                    },
+                    {
+                        "module_type": "dictation",
+                        "weekday_units": 1,
+                        "weekend_units": 1,
+                    },
+                ],
+                "effective": "today",
+            },
+        )
+        day = "2026-08-26"
+        daily = build_daily_tasks(conn, "2025001", day)
+        self.assertEqual(len(daily), 3)
+        modules = [d["module_type"] for d in daily]
+        self.assertEqual(modules.count("reading_synonym"), 2)
+        self.assertEqual(modules.count("dictation"), 1)
+
+    def test_units_mode_backlog_capped_by_quota(self) -> None:
+        """Unfinished weekend/heavy day must not dump all onto a smaller weekday."""
+        conn = _connect()
+        self._apply_reading_plan(conn, 5)
+        self._enable_units_mode(conn, weekday_units=3, weekend_units=3)
+        day1 = "2026-08-25"
+        build_daily_tasks(conn, "2025001", day1)
+        self._enable_units_mode(conn, weekday_units=2, weekend_units=2)
+        day2 = "2026-08-26"
+        daily2 = build_daily_tasks(conn, "2025001", day2)
+        self.assertEqual(len(daily2), 2)
+        self.assertTrue(all(d["priority_class"] == "carry_over" for d in daily2))
+        self.assertEqual(len(backlog_plan_item_ids(conn, "2025001")), 3)
+
+    def test_units_mode_weekend_backlog_weekday_cap(self) -> None:
+        """Weekend 6 unfinished → Monday shows weekday 3, rest stay in backlog."""
+        conn = _connect()
+        put_plan_draft(
+            conn,
+            "2025001",
+            (
+                [{"item_type": "study", "unit_id": f"reading_synonym_u{i:02d}"} for i in range(1, 5)]
+                + [{"item_type": "study", "unit_id": f"dictation_u{i:02d}"} for i in range(1, 5)]
+                + [
+                    {"item_type": "study", "unit_id": f"listening_synonym_u{i:02d}"}
+                    for i in range(1, 5)
+                ]
+            ),
+        )
+        apply_draft_to_live(conn, "2025001")
+        put_time_profile(
+            conn,
+            "2025001",
+            {
+                "pack_mode": PACK_MODE_UNITS_PER_DAY,
+                "module_quotas": [
+                    {"module_type": "reading_synonym", "weekday_units": 1, "weekend_units": 2},
+                    {"module_type": "dictation", "weekday_units": 1, "weekend_units": 2},
+                    {"module_type": "listening_synonym", "weekday_units": 1, "weekend_units": 2},
+                ],
+                "effective": "today",
+            },
+        )
+        weekend = build_daily_tasks(conn, "2025001", "2026-08-29")
+        self.assertEqual(len(weekend), 6)
+        monday = build_daily_tasks(conn, "2025001", "2026-08-31")
+        self.assertEqual(len(monday), 3)
+        self.assertTrue(all(d["priority_class"] == "carry_over" for d in monday))
+        self.assertEqual(len(backlog_plan_item_ids(conn, "2025001")), 6)
+
+    def test_units_mode_weekend_quota(self) -> None:
+        conn = _connect()
+        self._apply_reading_plan(conn, 4)
+        self._enable_units_mode(conn, weekday_units=2, weekend_units=1)
+        weekend = build_daily_tasks(conn, "2025001", "2026-08-29")
+        self.assertEqual(len(weekend), 1)
+        conn.execute("DELETE FROM daily_tasks WHERE student_id='2025001'")
+        conn.commit()
+        weekday = build_daily_tasks(conn, "2025001", "2026-08-26")
+        self.assertEqual(len(weekday), 2)
+
+    def test_units_mode_pending_quota_future(self) -> None:
+        conn = _connect()
+        self._apply_reading_plan(conn, 4)
+        future = (datetime.now(SHANGHAI) + timedelta(days=2)).strftime("%Y-%m-%d")
+        put_time_profile(
+            conn,
+            "2025001",
+            {
+                "pack_mode": PACK_MODE_UNITS_PER_DAY,
+                "module_quotas": [
+                    {
+                        "module_type": "reading_synonym",
+                        "weekday_units": 1,
+                        "weekend_units": 1,
+                    }
+                ],
+                "effective": "today",
+            },
+        )
+        put_time_profile(
+            conn,
+            "2025001",
+            {
+                "module_quotas": [
+                    {
+                        "module_type": "reading_synonym",
+                        "weekday_units": 3,
+                        "weekend_units": 3,
+                    }
+                ],
+                "effective_from": future,
+            },
+        )
+        today = china_ymd()
+        daily_today = build_daily_tasks(conn, "2025001", today)
+        self.assertEqual(len(daily_today), 1)
+        conn.execute("DELETE FROM daily_tasks WHERE student_id='2025001'")
+        conn.commit()
+        daily_future = build_daily_tasks(conn, "2025001", future)
+        self.assertEqual(len(daily_future), 3)
+
+    def test_pack_mode_defaults_time_budget(self) -> None:
+        conn = _connect()
+        profile = get_plan(conn, "2025001")["time_profile"]
+        self.assertEqual(profile.get("pack_mode"), PACK_MODE_TIME_BUDGET)
+
+    def test_units_preview_includes_schedule(self) -> None:
+        conn = _connect()
+        items = [
+            {"item_type": "study", "unit_id": f"reading_synonym_u{i:02d}"}
+            for i in range(1, 6)
+        ]
+        preview = preview_daily_pack_items(
+            conn,
+            "2025001",
+            items,
+            pack_mode=PACK_MODE_UNITS_PER_DAY,
+            module_quotas=[
+                {
+                    "module_type": "reading_synonym",
+                    "weekday_units": 2,
+                    "weekend_units": 2,
+                }
+            ],
+        )
+        self.assertEqual(preview["pack_mode"], PACK_MODE_UNITS_PER_DAY)
+        self.assertEqual(preview["units_total"], 2)
+        self.assertGreaterEqual(len(preview.get("schedule") or []), 2)
+
+    def test_units_schedule_advances_each_day(self) -> None:
+        conn = _connect()
+        items = (
+            [{"item_type": "study", "unit_id": f"dictation_u{i:02d}"} for i in range(1, 4)]
+            + [
+                {"item_type": "study", "unit_id": f"reading_synonym_u{i:02d}"}
+                for i in range(1, 4)
+            ]
+        )
+        preview = preview_daily_pack_items(
+            conn,
+            "2025001",
+            items,
+            pack_mode=PACK_MODE_UNITS_PER_DAY,
+            module_quotas=[
+                {"module_type": "dictation", "weekday_units": 1, "weekend_units": 2},
+                {
+                    "module_type": "reading_synonym",
+                    "weekday_units": 1,
+                    "weekend_units": 2,
+                },
+            ],
+        )
+        schedule = preview.get("schedule") or []
+        self.assertGreaterEqual(len(schedule), 3)
+        day0 = {x["title"] for x in schedule[0]["items"]}
+        day1 = {x["title"] for x in schedule[1]["items"]}
+        day2 = {x["title"] for x in schedule[2]["items"]}
+        self.assertEqual(len(day0), 2)
+        self.assertEqual(len(day1), 2)
+        self.assertFalse(day0 & day1)
+        self.assertFalse(day0 & day2)
+        self.assertFalse(day1 & day2)
+
+    def test_class_overview_empty_plan_is_none(self) -> None:
+        conn = _connect()
+        noon = datetime(2026, 9, 2, 12, 0, tzinfo=SHANGHAI)
+        data = class_overview(conn, task_date="2026-09-02", now=noon)
+        self.assertEqual(data["stats"]["total"], 1)
+        row = data["students"][0]
+        self.assertEqual(row["student_id"], "2025001")
+        self.assertEqual(row["plan_status"], "none")
+        self.assertEqual(row["row_status"], "none")
+        self.assertEqual(row["today_total"], 0)
+
+    def test_class_overview_today_counts_and_done_fail(self) -> None:
+        conn = _connect()
+        put_plan_draft(
+            conn,
+            "2025001",
+            [
+                {"item_type": "study", "unit_id": "reading_synonym_u01"},
+                {"item_type": "study", "unit_id": "reading_synonym_u02"},
+                {
+                    "item_type": "test",
+                    "module_type": "reading_synonym",
+                    "test_unit_ids": ["reading_synonym_u01"],
+                    "test_title": "阶段测",
+                },
+            ],
+        )
+        apply_draft_to_live(conn, "2025001")
+        items = conn.execute(
+            "SELECT id, item_type FROM plan_items WHERE student_id='2025001' ORDER BY sort_order"
+        ).fetchall()
+        day = "2026-09-02"
+        for i, it in enumerate(items):
+            state = "todo"
+            if it["item_type"] == "study" and i == 0:
+                state = "done_study"
+            elif it["item_type"] == "test":
+                state = "done_fail"
+            conn.execute(
+                """
+                INSERT INTO daily_tasks
+                (student_id, task_date, plan_item_id, priority_class, sort_in_day, state, locked, forced)
+                VALUES (?, ?, ?, 'fresh', ?, ?, 1, 0)
+                """,
+                ("2025001", day, it["id"], i, state),
+            )
+        conn.commit()
+        noon = datetime(2026, 9, 2, 12, 0, tzinfo=SHANGHAI)
+        before_daily = conn.execute(
+            "SELECT COUNT(*) AS c FROM daily_tasks WHERE student_id='2025001'"
+        ).fetchone()["c"]
+        data = class_overview(conn, task_date=day, now=noon)
+        after_daily = conn.execute(
+            "SELECT COUNT(*) AS c FROM daily_tasks WHERE student_id='2025001'"
+        ).fetchone()["c"]
+        self.assertEqual(before_daily, after_daily)
+        row = data["students"][0]
+        self.assertEqual(row["today_total"], 3)
+        # done_fail does not count as done
+        self.assertEqual(row["today_done"], 1)
+        self.assertEqual(row["test_fail"], 1)
+        self.assertTrue(any(b["label"] == "阅" for b in row["plan_progress_brief"]))
+
+    def test_class_overview_backlog_red(self) -> None:
+        conn = _connect()
+        items = [
+            {"item_type": "study", "unit_id": f"reading_synonym_u{i:02d}"} for i in range(1, 5)
+        ]
+        put_plan_draft(conn, "2025001", items)
+        apply_draft_to_live(conn, "2025001")
+        rows = conn.execute(
+            "SELECT id FROM plan_items WHERE student_id='2025001' ORDER BY sort_order"
+        ).fetchall()
+        yesterday = "2026-09-01"
+        for i, r in enumerate(rows[:3]):
+            conn.execute(
+                """
+                INSERT INTO daily_tasks
+                (student_id, task_date, plan_item_id, priority_class, sort_in_day, state, locked, forced)
+                VALUES (?, ?, ?, 'fresh', ?, 'todo', 1, 0)
+                """,
+                ("2025001", yesterday, r["id"], i),
+            )
+        conn.commit()
+        noon = datetime(2026, 9, 2, 12, 0, tzinfo=SHANGHAI)
+        data = class_overview(conn, task_date="2026-09-02", now=noon)
+        row = data["students"][0]
+        self.assertGreaterEqual(row["backlog"], 3)
+        self.assertEqual(row["row_status"], "red")
+
+    def test_class_overview_yesterday_incomplete(self) -> None:
+        conn = _connect()
+        put_plan_draft(
+            conn,
+            "2025001",
+            [
+                {"item_type": "study", "unit_id": "reading_synonym_u01"},
+                {"item_type": "study", "unit_id": "reading_synonym_u02"},
+            ],
+        )
+        apply_draft_to_live(conn, "2025001")
+        rows = conn.execute(
+            "SELECT id FROM plan_items WHERE student_id='2025001' ORDER BY sort_order"
+        ).fetchall()
+        yesterday = "2026-09-01"
+        conn.execute(
+            """
+            INSERT INTO daily_tasks
+            (student_id, task_date, plan_item_id, priority_class, sort_in_day, state, locked, forced)
+            VALUES (?, ?, ?, 'fresh', 0, 'done_study', 1, 0)
+            """,
+            ("2025001", yesterday, rows[0]["id"]),
+        )
+        conn.execute(
+            """
+            INSERT INTO daily_tasks
+            (student_id, task_date, plan_item_id, priority_class, sort_in_day, state, locked, forced)
+            VALUES (?, ?, ?, 'fresh', 1, 'todo', 1, 0)
+            """,
+            ("2025001", yesterday, rows[1]["id"]),
+        )
+        conn.commit()
+        noon = datetime(2026, 9, 2, 12, 0, tzinfo=SHANGHAI)
+        data = class_overview(conn, task_date="2026-09-02", now=noon)
+        row = data["students"][0]
+        self.assertEqual(row["yesterday_done"], 1)
+        self.assertEqual(row["yesterday_total"], 2)
+        self.assertTrue(row["yesterday_incomplete"])
+        self.assertEqual(data["stats"]["yesterday_incomplete"], 1)
+
+    def test_get_today_includes_upcoming_schedule(self) -> None:
+        conn = _connect()
+        put_time_profile(
+            conn,
+            "2025001",
+            {
+                "pack_mode": PACK_MODE_UNITS_PER_DAY,
+                "module_quotas": [
+                    {
+                        "module_type": "reading_synonym",
+                        "weekday_units": 1,
+                        "weekend_units": 1,
+                    }
+                ],
+                "effective_from": china_ymd(),
+            },
+        )
+        put_plan_draft(
+            conn,
+            "2025001",
+            [
+                {"item_type": "study", "unit_id": f"reading_synonym_u{i:02d}"}
+                for i in range(1, 5)
+            ],
+            effective_from=china_ymd(),
+        )
+        apply_draft_to_live(conn, "2025001")
+        today = get_today(conn, "2025001")
+        self.assertIn("upcoming_schedule", today)
+        self.assertIn("remaining_plan", today)
+        self.assertGreaterEqual(len(today["remaining_plan"]), 3)
+        # upcoming starts tomorrow; should advance beyond today's release
+        sched = today["upcoming_schedule"] or []
+        self.assertTrue(len(sched) >= 1)
+        titles0 = {x["title"] for x in (sched[0].get("items") or [])}
+        self.assertTrue(titles0)
+        # read-only: no future daily_tasks rows materialized
+        future_n = conn.execute(
+            "SELECT COUNT(*) AS c FROM daily_tasks WHERE student_id=? AND task_date>?",
+            ("2025001", china_ymd()),
+        ).fetchone()["c"]
+        self.assertEqual(future_n, 0)
+
+    def test_teacher_schedule_matches_student_today_and_upcoming(self) -> None:
+        """Teacher units schedule day0/day1 must match student today / upcoming day0."""
+        conn = _connect()
+        put_time_profile(
+            conn,
+            "2025001",
+            {
+                "pack_mode": PACK_MODE_UNITS_PER_DAY,
+                "module_quotas": [
+                    {
+                        "module_type": "reading_synonym",
+                        "weekday_units": 1,
+                        "weekend_units": 1,
+                    }
+                ],
+                "effective_from": china_ymd(),
+            },
+        )
+        draft_items = [
+            {"item_type": "study", "unit_id": f"reading_synonym_u{i:02d}"}
+            for i in range(1, 6)
+        ]
+        put_plan_draft(conn, "2025001", draft_items, effective_from=china_ymd())
+        apply_draft_to_live(conn, "2025001")
+        student_today = get_today(conn, "2025001")
+        teacher = preview_daily_pack_items(
+            conn,
+            "2025001",
+            draft_items,
+            pack_mode=PACK_MODE_UNITS_PER_DAY,
+            module_quotas=[
+                {
+                    "module_type": "reading_synonym",
+                    "weekday_units": 1,
+                    "weekend_units": 1,
+                }
+            ],
+        )
+        self.assertTrue(teacher.get("aligned"))
+        sched = teacher.get("schedule") or []
+        self.assertGreaterEqual(len(sched), 2)
+        today_titles = {x.get("title") for x in (student_today.get("items") or [])}
+        teacher_day0 = {x.get("title") for x in (sched[0].get("items") or [])}
+        self.assertEqual(today_titles, teacher_day0)
+        self.assertEqual(sched[0].get("source"), "actual")
+        upcoming0 = {
+            x.get("title")
+            for x in ((student_today.get("upcoming_schedule") or [{}])[0].get("items") or [])
+        }
+        teacher_day1 = {x.get("title") for x in (sched[1].get("items") or [])}
+        self.assertEqual(upcoming0, teacher_day1)
+        self.assertFalse(today_titles & upcoming0)
+
+    def test_upcoming_weekend_uses_pending_quota(self) -> None:
+        """After pending生效日, weekend days use pending_weekend_units (not live)."""
+        conn = _connect()
+        put_time_profile(
+            conn,
+            "2025001",
+            {
+                "pack_mode": PACK_MODE_UNITS_PER_DAY,
+                "module_quotas": [
+                    {
+                        "module_type": "reading_synonym",
+                        "weekday_units": 1,
+                        "weekend_units": 1,
+                    }
+                ],
+                "effective_from": china_ymd(),
+            },
+        )
+        tomorrow = (
+            datetime.strptime(china_ymd(), "%Y-%m-%d").date() + timedelta(days=1)
+        ).strftime("%Y-%m-%d")
+        put_time_profile(
+            conn,
+            "2025001",
+            {
+                "pack_mode": PACK_MODE_UNITS_PER_DAY,
+                "module_quotas": [
+                    {
+                        "module_type": "reading_synonym",
+                        "weekday_units": 1,
+                        "weekend_units": 2,
+                    }
+                ],
+                "effective_from": tomorrow,
+            },
+        )
+        put_plan_draft(
+            conn,
+            "2025001",
+            [
+                {"item_type": "study", "unit_id": f"reading_synonym_u{i:02d}"}
+                for i in range(1, 10)
+            ],
+            effective_from=china_ymd(),
+        )
+        apply_draft_to_live(conn, "2025001")
+        today = get_today(conn, "2025001")
+        self.assertEqual(len(today.get("items") or []), 1)
+        weekend_days = [
+            d
+            for d in (today.get("upcoming_schedule") or [])
+            if d.get("task_date")
+            and datetime.strptime(d["task_date"], "%Y-%m-%d").weekday() >= 5
+        ]
+        self.assertTrue(weekend_days)
+        self.assertEqual(len(weekend_days[0].get("items") or []), 2)
+
+    def test_plan_pause_requires_reason_and_blocks_daily(self) -> None:
+        conn = _connect()
+        put_plan_draft(
+            conn,
+            "2025001",
+            [{"item_type": "study", "unit_id": f"reading_synonym_u{i:02d}"} for i in range(1, 4)],
+        )
+        apply_draft_to_live(conn, "2025001")
+        put_time_profile(
+            conn,
+            "2025001",
+            {
+                "pack_mode": PACK_MODE_UNITS_PER_DAY,
+                "module_quotas": [
+                    {
+                        "module_type": "reading_synonym",
+                        "weekday_units": 1,
+                        "weekend_units": 1,
+                    }
+                ],
+                "effective": "today",
+            },
+        )
+        today = china_ymd()
+        tomorrow = (
+            datetime.strptime(today, "%Y-%m-%d").date() + timedelta(days=1)
+        ).strftime("%Y-%m-%d")
+        day_after = (
+            datetime.strptime(today, "%Y-%m-%d").date() + timedelta(days=3)
+        ).strftime("%Y-%m-%d")
+        with self.assertRaises(ValueError):
+            put_plan_pause(
+                conn,
+                "2025001",
+                {"pause_from": today, "resume_on": day_after, "reason": "  "},
+            )
+        plan = put_plan_pause(
+            conn,
+            "2025001",
+            {
+                "pause_from": today,
+                "resume_on": day_after,
+                "reason": "考试周请假",
+            },
+        )
+        self.assertEqual(plan["plan_status"], "all_paused")
+        self.assertTrue(plan["plan_pause"]["active"])
+        self.assertEqual(plan["plan_pause"]["reason"], "考试周请假")
+        daily = build_daily_tasks(conn, "2025001", today)
+        self.assertEqual(daily, [])
+        noon = datetime.strptime(today, "%Y-%m-%d").replace(
+            hour=12, tzinfo=SHANGHAI
+        )
+        overview = class_overview(conn, task_date=today, now=noon)
+        row = overview["students"][0]
+        self.assertEqual(row["row_status"], "none")
+        self.assertEqual(overview["stats"]["plan_paused"], 1)
+        # Early resume
+        clear_plan_pause(conn, "2025001")
+        daily2 = build_daily_tasks(conn, "2025001", tomorrow)
+        self.assertGreaterEqual(len(daily2), 1)
+
+    def test_plan_pause_auto_expires_on_resume_day(self) -> None:
+        conn = _connect()
+        put_plan_draft(
+            conn,
+            "2025001",
+            [{"item_type": "study", "unit_id": "reading_synonym_u01"}],
+        )
+        apply_draft_to_live(conn, "2025001")
+        today = china_ymd()
+        resume = (
+            datetime.strptime(today, "%Y-%m-%d").date() + timedelta(days=1)
+        ).strftime("%Y-%m-%d")
+        put_plan_pause(
+            conn,
+            "2025001",
+            {"pause_from": today, "resume_on": resume, "reason": "临时有事"},
+        )
+        # Simulate resume day via expire helper
+        from task_api import expire_plan_pause_if_due, get_plan_pause
+
+        cleared = expire_plan_pause_if_due(conn, "2025001", on_date=resume)
+        self.assertTrue(cleared)
+        self.assertIsNone(get_plan_pause(conn, "2025001", on_date=resume))
 
 
 if __name__ == "__main__":

@@ -82,6 +82,8 @@ from teacher_api import (  # noqa: E402
     update_standard,
 )
 from task_api import (  # noqa: E402
+    class_overview as task_class_overview,
+    clear_plan_pause as task_clear_plan_pause,
     complete_study as task_complete_study,
     ensure_task_tables,
     get_plan as task_get_plan,
@@ -93,7 +95,9 @@ from task_api import (  # noqa: E402
     preview_daily_pack as task_preview_daily_pack,
     preview_daily_pack_items as task_preview_daily_pack_items,
     put_plan_draft as task_put_plan_draft,
+    put_plan_pause as task_put_plan_pause,
     put_time_profile as task_put_time_profile,
+    clear_daily_schedule as task_clear_daily_schedule,
     seed_mvp_units,
     submit_stage_test as task_submit_stage_test,
     update_scope_progress as task_update_scope_progress,
@@ -838,11 +842,22 @@ class LocalHandler(SimpleHTTPRequestHandler):
         """MVP task plan / time-profile updates (also accepted via POST)."""
         parsed = urllib.parse.urlparse(self.path)
         path = parsed.path.rstrip("/")
+        if path.startswith("/api/task/students/") and path.endswith("/plan-pause"):
+            self.handle_task_plan_pause_put()
+            return
         if path.startswith("/api/task/students/") and path.endswith("/plan"):
             self.handle_task_student_plan_put()
             return
         if path.startswith("/api/task/students/") and path.endswith("/time-profile"):
             self.handle_task_student_time_profile_put()
+            return
+        self.send_json({"data": None, "error": {"message": "Not Found"}}, status=404)
+
+    def do_DELETE(self) -> None:
+        parsed = urllib.parse.urlparse(self.path)
+        path = parsed.path.rstrip("/")
+        if path.startswith("/api/task/students/") and path.endswith("/plan-pause"):
+            self.handle_task_plan_pause_delete()
             return
         self.send_json({"data": None, "error": {"message": "Not Found"}}, status=404)
 
@@ -1539,6 +1554,21 @@ class LocalHandler(SimpleHTTPRequestHandler):
 
     # ── Task system (MVP) ──────────────────────────────────────────────
 
+    def handle_task_class_overview(self) -> None:
+        if not self.require_teacher_session():
+            return
+        parsed = urllib.parse.urlparse(self.path)
+        qs = urllib.parse.parse_qs(parsed.query)
+        task_date = (qs.get("date") or [None])[0]
+        with closing(connect(self.db_path)) as conn:
+            ensure_task_tables(conn)
+            try:
+                data = task_class_overview(conn, task_date=task_date or None)
+            except ValueError as exc:
+                self.send_json({"data": None, "error": {"message": str(exc)}}, status=400)
+                return
+            self.send_json({"data": data, "error": None})
+
     def handle_task_units_get(self) -> None:
         if not self.require_logged_in_session():
             return
@@ -1702,6 +1732,14 @@ class LocalHandler(SimpleHTTPRequestHandler):
         except (TypeError, ValueError):
             self.send_json({"data": None, "error": {"message": "时长须为数字"}}, status=400)
             return
+        pack_mode = payload.get("pack_mode")
+        module_quotas = payload.get("module_quotas")
+        if pack_mode is not None and pack_mode not in ("time_budget", "units_per_day"):
+            self.send_json(
+                {"data": None, "error": {"message": "pack_mode 无效"}},
+                status=400,
+            )
+            return
         try:
             with closing(connect(self.db_path)) as conn:
                 ensure_task_tables(conn)
@@ -1712,6 +1750,9 @@ class LocalHandler(SimpleHTTPRequestHandler):
                     items,
                     weekday_minutes=wd,
                     weekend_minutes=we,
+                    pack_mode=pack_mode,
+                    module_quotas=module_quotas if isinstance(module_quotas, list) else None,
+                    effective_from=payload.get("effective_from"),
                 )
                 self.send_json({"data": data, "error": None})
         except ValueError as exc:
@@ -1768,6 +1809,53 @@ class LocalHandler(SimpleHTTPRequestHandler):
         with closing(connect(self.db_path)) as conn:
             ensure_task_tables(conn)
             data = task_put_time_profile(conn, student_id, payload)
+            self.send_json({"data": data, "error": None})
+
+    def handle_task_clear_daily_schedule(self) -> None:
+        if not self.require_teacher_session():
+            return
+        parsed = urllib.parse.urlparse(self.path)
+        parts = [p for p in parsed.path.split("/") if p]
+        if len(parts) < 5:
+            self.send_json({"data": None, "error": {"message": "缺少 student_id"}}, status=400)
+            return
+        student_id = parts[3]
+        with closing(connect(self.db_path)) as conn:
+            ensure_task_tables(conn)
+            data = task_clear_daily_schedule(conn, student_id)
+            self.send_json({"data": data, "error": None})
+
+    def handle_task_plan_pause_put(self) -> None:
+        if not self.require_teacher_session():
+            return
+        parsed = urllib.parse.urlparse(self.path)
+        parts = [p for p in parsed.path.split("/") if p]
+        if len(parts) < 5:
+            self.send_json({"data": None, "error": {"message": "缺少 student_id"}}, status=400)
+            return
+        student_id = parts[3]
+        payload = self.read_json_body()
+        try:
+            with closing(connect(self.db_path)) as conn:
+                ensure_task_tables(conn)
+                seed_mvp_units(conn)
+                data = task_put_plan_pause(conn, student_id, payload)
+                self.send_json({"data": data, "error": None})
+        except ValueError as exc:
+            self.send_json({"data": None, "error": {"message": str(exc)}}, status=400)
+
+    def handle_task_plan_pause_delete(self) -> None:
+        if not self.require_teacher_session():
+            return
+        parsed = urllib.parse.urlparse(self.path)
+        parts = [p for p in parsed.path.split("/") if p]
+        if len(parts) < 5:
+            self.send_json({"data": None, "error": {"message": "缺少 student_id"}}, status=400)
+            return
+        student_id = parts[3]
+        with closing(connect(self.db_path)) as conn:
+            ensure_task_tables(conn)
+            data = task_clear_plan_pause(conn, student_id)
             self.send_json({"data": data, "error": None})
 
     def handle_task_insert_stage_test(self) -> None:
@@ -1834,6 +1922,9 @@ class LocalHandler(SimpleHTTPRequestHandler):
             return
         if parsed.path.rstrip("/") == "/api/student/word-mastery":
             self.handle_student_word_mastery_get()
+            return
+        if parsed.path.rstrip("/") == "/api/task/class-overview":
+            self.handle_task_class_overview()
             return
         if parsed.path.rstrip("/") == "/api/task/units":
             self.handle_task_units_get()
@@ -1969,6 +2060,15 @@ class LocalHandler(SimpleHTTPRequestHandler):
             return
         if path.startswith("/api/task/students/") and path.endswith("/pack-preview"):
             self.handle_task_pack_preview_post()
+            return
+        if path.startswith("/api/task/students/") and path.endswith("/plan-pause"):
+            self.handle_task_plan_pause_put()
+            return
+        if path.startswith("/api/task/students/") and path.endswith("/plan-pause/clear"):
+            self.handle_task_plan_pause_delete()
+            return
+        if path.startswith("/api/task/students/") and path.endswith("/clear-daily-schedule"):
+            self.handle_task_clear_daily_schedule()
             return
         if path.startswith("/api/task/students/") and path.endswith("/plan"):
             self.handle_task_student_plan_put()
