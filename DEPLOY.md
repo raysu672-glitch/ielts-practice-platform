@@ -149,6 +149,7 @@ $env:GITHUB_TOKEN="你的 GitHub Token"
 | `IELTS_DEPLOY_DOMAIN` | 否 | 站点域名，默认 `training.oyenglish.com.cn` |
 | `IELTS_DEPLOY_DIR` | 否 | 服务器部署目录，默认 `/var/www/ielts` |
 | `IELTS_BACKUP_DIR` | 否 | 服务器备份目录，默认 `/root/ielts_backups` |
+| `IELTS_BACKUP_KEEP` | 否 | 整站 tar 备份保留份数，默认 `5`；`0` 表示不自动清理 |
 | `IELTS_SERVICE_PORT` | 否 | Python 服务端口，默认 `49182` |
 | `IELTS_P4_ASR_BASE` | 否 | P4 跟读评分上游地址，默认 `https://p4.oyenglish.com.cn` |
 | `IELTS_CERTBOT_EMAIL` | 仅首次 HTTPS | Let's Encrypt 邮箱 |
@@ -160,7 +161,7 @@ $env:GITHUB_TOKEN="你的 GitHub Token"
 | 步骤 | 动作 |
 |---|---|
 | 1 | SSH 连接目标服务器 |
-| 2 | 将当前 `/var/www/ielts` 打包备份到 `/root/ielts_backups/` |
+| 2 | 将当前 `/var/www/ielts` 打包备份到 `/root/ielts_backups/`，并只保留最新 `IELTS_BACKUP_KEEP` 份（默认 5；设为 0 表示不清理） |
 | 3 | 上传 `sources/`、`scripts/`、`logo.png`，但默认跳过 `mp3/wav/m4a/ogg` |
 | 4 | 覆盖服务器上的代码文件，但不覆盖 `data/ielts_local.db`，也不清空服务器本地音频目录 |
 | 5 | 重写并重启 `ielts` systemd 服务 |

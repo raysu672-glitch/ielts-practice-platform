@@ -48,6 +48,8 @@ SERVER_KEY = env("IELTS_DEPLOY_KEY")
 DOMAIN = env("IELTS_DEPLOY_DOMAIN", "training.oyenglish.com.cn")
 DEPLOY_DIR = env("IELTS_DEPLOY_DIR", "/var/www/ielts")
 BACKUP_DIR = env("IELTS_BACKUP_DIR", "/root/ielts_backups")
+# Keep only the newest N remote whole-site tar backups (0 = keep all).
+BACKUP_KEEP = int(env("IELTS_BACKUP_KEEP", "5") or "5")
 SERVICE_PORT = int(env("IELTS_SERVICE_PORT", "49182"))
 CERTBOT_EMAIL = env("IELTS_CERTBOT_EMAIL")
 
@@ -154,6 +156,33 @@ def add_existing(tar: tarfile.TarFile, paths: Iterable[tuple[Path, str]], includ
             tar.add(str(local_path), arcname=archive_name, filter=filter_func)
 
 
+def prune_remote_backups(ssh: paramiko.SSHClient) -> None:
+    """Delete old whole-site tar backups; keep the newest BACKUP_KEEP files."""
+    if BACKUP_KEEP <= 0:
+        log("Remote backup prune skipped (IELTS_BACKUP_KEEP<=0)")
+        return
+    command = (
+        "set -eu; "
+        f"dir={shell_quote(BACKUP_DIR)}; "
+        "mkdir -p \"$dir\"; "
+        "mapfile -t files < <(ls -1t \"$dir\"/ielts_*.tar.gz 2>/dev/null || true); "
+        f"keep={BACKUP_KEEP}; "
+        "total=${#files[@]}; "
+        "if [ \"$total\" -le \"$keep\" ]; then "
+        "echo \"prune: keep_all total=$total keep=$keep\"; "
+        "exit 0; "
+        "fi; "
+        "deleted=0; "
+        "for ((i=keep; i<total; i++)); do "
+        "rm -f -- \"${files[$i]}\"; "
+        "deleted=$((deleted+1)); "
+        "done; "
+        "echo \"prune: total=$total keep=$keep deleted=$deleted\""
+    )
+    out = run(ssh, command, check=False).strip()
+    log(f"Remote backup prune: {out or 'done'}")
+
+
 def backup_remote(ssh: paramiko.SSHClient) -> str:
     log("Backing up current remote deployment...")
     deploy_path = PurePosixPath(DEPLOY_DIR)
@@ -164,13 +193,16 @@ def backup_remote(ssh: paramiko.SSHClient) -> str:
         f"if [ -d {shell_quote(DEPLOY_DIR)} ]; then "
         f"mkdir -p {shell_quote(BACKUP_DIR)}; "
         f"backup={shell_quote(BACKUP_DIR)}/ielts_$(date +%Y%m%d_%H%M%S).tar.gz; "
-        f"tar -czf \"$backup\" -C {shell_quote(parent)} {shell_quote(base)}; "
+        # tar exits 1 if files change while reading (e.g. parallel deploy); still usable.
+        f"tar -czf \"$backup\" -C {shell_quote(parent)} {shell_quote(base)} || "
+        "{ ec=$?; if [ \"$ec\" -eq 1 ]; then echo \"$backup\"; exit 0; else exit \"$ec\"; fi; }; "
         "echo \"$backup\"; "
         "else echo 'no-existing-deploy-dir'; fi"
     )
     result = run(ssh, command, timeout=600).strip().splitlines()
     backup_path = result[-1] if result else ""
     log(f"Remote backup: {backup_path}")
+    prune_remote_backups(ssh)
     return backup_path
 
 
