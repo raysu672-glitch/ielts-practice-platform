@@ -2029,6 +2029,16 @@ function taskOverviewRowBg(st) {
     return '';
 }
 
+/** Minutes → "15h 48m" / "45m" / "0m" (no Chinese). */
+function formatMinutesHm(mins) {
+    mins = Math.max(0, Math.floor(Number(mins) || 0));
+    var h = Math.floor(mins / 60);
+    var m = mins % 60;
+    if (h > 0 && m > 0) return h + 'h ' + m + 'm';
+    if (h > 0) return h + 'h';
+    return m + 'm';
+}
+
 function renderTaskClassOverview() {
     var wrap = document.getElementById('taskOverviewTableWrap');
     var statsEl = document.getElementById('taskOverviewStats');
@@ -2097,7 +2107,7 @@ function renderTaskClassOverview() {
         var yMins = Number(r.yesterday_minutes) || 0;
         var tMins = Number(r.total_minutes) || 0;
         var timeCell = (yMins > 0 || tMins > 0)
-            ? (yMins + '/' + tMins + ' 分')
+            ? (formatMinutesHm(yMins) + ' / ' + formatMinutesHm(tMins))
             : '—';
         html += '<tr style="border-top:1px solid #f1f5f9;cursor:pointer;' +
             taskOverviewRowBg(r.row_status) + '" ' +
