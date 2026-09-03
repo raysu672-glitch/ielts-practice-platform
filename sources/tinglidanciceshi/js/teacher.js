@@ -2046,6 +2046,9 @@ function renderTaskClassOverview() {
     var data = _taskOverviewData || {};
     var all = data.students || [];
     var rows = filterTaskOverviewRows(all);
+    rows.sort(function(a, b) {
+        return String(b.student_id || '').localeCompare(String(a.student_id || ''), 'en');
+    });
     var st = data.stats || {};
     if (statsEl) {
         statsEl.textContent = '共 ' + (st.total != null ? st.total : all.length) +

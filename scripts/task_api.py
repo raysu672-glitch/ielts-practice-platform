@@ -3140,7 +3140,7 @@ def class_overview(
         """
         SELECT student_id, name FROM students
         WHERE COALESCE(status, 'active') = 'active'
-        ORDER BY student_id
+        ORDER BY student_id DESC
         """
     ).fetchall()
     rows = [
@@ -3149,20 +3149,7 @@ def class_overview(
         )
         for r in students
     ]
-    status_rank = {"red": 0, "yellow": 1, "none": 2, "green": 3}
-
-    def _sort_key(row: dict[str, Any]) -> tuple:
-        y_total = int(row.get("yesterday_total") or 0)
-        y_done = int(row.get("yesterday_done") or 0)
-        y_rate = (y_done / y_total) if y_total else 1.0
-        return (
-            status_rank.get(str(row.get("row_status")), 9),
-            0 if row.get("yesterday_incomplete") else 1,
-            y_rate,
-            str(row.get("student_id") or ""),
-        )
-
-    rows.sort(key=_sort_key)
+    rows.sort(key=lambda row: str(row.get("student_id") or ""), reverse=True)
     today_all_done = sum(
         1
         for r in rows
