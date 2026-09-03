@@ -363,8 +363,45 @@ def repair_tracking_data(ssh: paramiko.SSHClient) -> None:
     log("Tracking data repair complete")
 
 
+def build_static_audio_locations() -> str:
+    """Serve practice audio files directly from disk via nginx.
+
+    Keeps /api and dynamic pages on Python; only known audio URL prefixes bypass
+    the app server so concurrent listening does not contend with login/progress.
+    """
+    root = f"{DEPLOY_DIR}/sources"
+    common = f"""        root {root};
+        access_log off;
+        expires 7d;
+        add_header Cache-Control "public, max-age=604800";
+        add_header X-Audio-Source nginx always;
+        try_files $uri =404;"""
+    prefixes = (
+        "/tinglidanciceshi/audio/",
+        "/kouyulianxi/audio/",
+        "/kouyulianxi/complex-audio/",
+        "/daanjutingxie/A听力答案句/",
+    )
+    blocks = [
+        f"""    location ^~ {prefix} {{
+{common}
+    }}"""
+        for prefix in prefixes
+    ]
+    # P4 module has HTML/JS that must stay on Python; only audio files bypass.
+    blocks.append(
+        f"""    location ~* ^/P4gendu/.+\\.(mp3|wav|m4a|ogg)$ {{
+{common}
+    }}"""
+    )
+    return "\n\n".join(blocks)
+
+
 def build_nginx_conf(*, with_https: bool) -> str:
-    proxy = f"""    location / {{
+    static_audio = build_static_audio_locations()
+    proxy = f"""{static_audio}
+
+    location / {{
         proxy_pass http://127.0.0.1:{SERVICE_PORT};
         proxy_http_version 1.1;
         proxy_set_header Host $host;
