@@ -1431,6 +1431,41 @@ class TaskApiTests(unittest.TestCase):
         clear_gendu_assignment(conn, "2025001")
         self.assertIsNone(get_gendu_assignment(conn, "2025001"))
 
+    def test_gendu_sync_from_plan_draft(self) -> None:
+        """单元库保存清单后自动生成跟读作业；清单只保留当前起始课。"""
+        conn = _connect()
+        units = conn.execute(
+            """
+            SELECT unit_id FROM task_units
+            WHERE module_type=? ORDER BY unit_no LIMIT 3
+            """,
+            (GENDU_MODULE,),
+        ).fetchall()
+        self.assertGreaterEqual(len(units), 2)
+        u0, u1 = units[0]["unit_id"], units[1]["unit_id"]
+        put_plan_draft(
+            conn,
+            "2025001",
+            [
+                {"item_type": "study", "unit_id": u0},
+                {"item_type": "study", "unit_id": u1},
+            ],
+            effective_from=china_ymd(),
+        )
+        asg = get_gendu_assignment(conn, "2025001")
+        self.assertIsNotNone(asg)
+        self.assertEqual(asg["start_unit_id"], u0)
+        self.assertEqual(asg["current_unit_id"], u0)
+        pending = conn.execute(
+            """
+            SELECT unit_id FROM plan_items
+            WHERE student_id=? AND module_type=? AND status='pending'
+            ORDER BY sort_order
+            """,
+            ("2025001", GENDU_MODULE),
+        ).fetchall()
+        self.assertEqual([r["unit_id"] for r in pending], [u0])
+
 
 if __name__ == "__main__":
     unittest.main()

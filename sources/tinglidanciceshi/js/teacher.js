@@ -1631,7 +1631,7 @@ function taskLibraryModuleLabel(mt) {
 /** 清单里用的短科目名，避免「学 · 第2组」看不出科 */
 function taskModuleShortLabel(mt) {
     var aliases = {
-        reading_synonym: '阅读',
+        reading_synonym: '阅读同义',
         dictation: '听力千词',
         listening_basic: '听力基础',
         listening_synonym: '听力同义',
@@ -2698,8 +2698,7 @@ function renderTaskModuleQuotaTable() {
         '<th style="padding:4px 8px;">周中每天</th><th style="padding:4px 8px;">周末每天</th></tr></thead><tbody>';
     modules.forEach(function(mt) {
         var q = quotas[mt] || {};
-        var mod = (typeof getModuleById === 'function') ? getModuleById(mt) : null;
-        var name = (mod && mod.name) || mt;
+        var name = taskModuleShortLabel(mt);
         html += '<tr><td style="padding:4px 8px;">' + escapeTeacherAttr(name) + '</td>' +
             '<td style="padding:4px 8px;text-align:center;"><input type="number" class="taskQuotaWd" data-module="' +
             escapeTeacherAttr(mt) + '" min="0" max="20" style="width:52px;" value="' +
@@ -3202,6 +3201,12 @@ function addUnitToTaskDraft(unitId) {
     }
     var u = _taskUnitCatalog.find(function(x) { return x.unit_id === unitId; });
     if (!u) return;
+    // 听力跟读：清单里只保留一篇起始课；保存后按 30 天规则推进
+    if (u.module_type === 'listening_p4_speed') {
+        _taskDraftItems = _taskDraftItems.filter(function(it) {
+            return !(it.item_type === 'study' && it.module_type === 'listening_p4_speed' && it.status !== 'removed');
+        });
+    }
     var row = {
         item_type: 'study',
         unit_id: unitId,
@@ -3217,6 +3222,9 @@ function addUnitToTaskDraft(unitId) {
     renderTaskUnitLibrary();
     scrollTaskPlanSegmentIntoView(u.module_type);
     schedulePackPreviewRefresh();
+    if (u.module_type === 'listening_p4_speed') {
+        showToast('已设为跟读起始课：保存清单后生效（每日 3 次，≥70% 次日换篇，约 30 天）', 'success');
+    }
 }
 
 function moveTaskDraft(idx, delta) {
@@ -3384,7 +3392,7 @@ async function applyTeacherTaskPlanData(data) {
     setTaskEffectiveFromInput(effFrom);
     var hint = document.getElementById('taskPlanHint');
     if (hint) {
-        var base = '各科按清单顺序逐日释放；周中/周末配额独立；多科同日合并展示。';
+        var base = '各科按清单顺序逐日释放；周中/周末配额独立；多科同日合并展示。听力跟读在单元库加入起始课并保存清单即可（每日3次，≥70%次日换篇，约30天）。';
         var effLabel = taskEffectiveLabel(data.pending_effective_from || effFrom);
         hint.textContent = data.pending_plan_change
             ? base + ' 有待生效变更（' + effLabel + ' 起生效）；上面「当前生效」才是学生今日所见。'
@@ -3393,7 +3401,6 @@ async function applyTeacherTaskPlanData(data) {
     toggleTaskScheduleModeUI();
     updateTaskPlanSectionTitles(data);
     renderTaskPlanPauseBanner(data.plan_pause || null);
-    await renderTaskGenduPanel(data.gendu_assignment || null);
     renderTaskLivePlanList();
     renderTaskPlanList();
     renderTaskUnitLibrary();
@@ -3461,7 +3468,7 @@ async function saveTeacherScheduleProfile() {
         }
         var hint = document.getElementById('taskPlanHint');
         if (hint) {
-            var base = '各科按清单顺序逐日释放；周中/周末配额独立；多科同日合并展示。';
+            var base = '各科按清单顺序逐日释放；周中/周末配额独立；多科同日合并展示。听力跟读在单元库加入起始课并保存清单即可（每日3次，≥70%次日换篇，约30天）。';
             var effLabel = taskEffectiveLabel(effFrom);
             var profilePending = tp.pending_effective_from != null;
             hint.textContent = (_taskHasDbDraft || profilePending)
@@ -3538,100 +3545,6 @@ function renderTaskPlanPauseBanner(pause) {
             escapeTeacherAttr(pause.resume_on) + ' 恢复。原因：' +
             escapeTeacherAttr(pause.reason || '') + '。';
     }
-}
-
-var _taskGenduUnitsCache = null;
-
-async function ensureGenduUnitsCache() {
-    if (_taskGenduUnitsCache) return _taskGenduUnitsCache;
-    var res = await teacherApiGet('/api/task/units?module_type=listening_p4_speed');
-    _taskGenduUnitsCache = (res && res.data) || [];
-    if (!Array.isArray(_taskGenduUnitsCache)) _taskGenduUnitsCache = [];
-    return _taskGenduUnitsCache;
-}
-
-async function renderTaskGenduPanel(asg) {
-    var box = document.getElementById('taskGenduPanel');
-    if (!box) return;
-    box.style.display = 'block';
-    var units = await ensureGenduUnitsCache();
-    var opts = units.map(function(u) {
-        var sel = asg && asg.start_unit_id === u.unit_id ? ' selected' : '';
-        return '<option value="' + escapeTeacherAttr(u.unit_id) + '"' + sel + '>' +
-            escapeTeacherAttr((u.unit_no || '') + '. ' + (u.title || u.unit_id)) +
-            '</option>';
-    }).join('');
-    var statusHtml = '';
-    if (asg) {
-        statusHtml = '<div style="margin-top:8px;font-size:13px;color:#334155;">当前：' +
-            escapeTeacherAttr(asg.current_title || asg.current_unit_id) +
-            (asg.passed_current ? ' · 已达70%待次日换篇' : '') +
-            '<br>窗口：' + escapeTeacherAttr(asg.starts_on) + ' ~ ' +
-            escapeTeacherAttr(asg.ends_on) +
-            (asg.active ? '（进行中）' : (asg.expired ? '（已到期）' : '（未开始）')) +
-            ' · 每日需跟读 ' + (asg.daily_required || 3) + ' 次</div>';
-    } else {
-        statusHtml = '<div style="margin-top:8px;font-size:13px;color:#64748b;">尚未安排跟读作业。选择起始课后保存，将持续 30 天；同课日复一日，≥70% 次日自动下一篇；每日练满 3 次算完成。</div>';
-    }
-    box.innerHTML =
-        '<div style="font-weight:600;margin-bottom:8px;">听力跟读作业</div>' +
-        '<div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;">' +
-        '<label>起始课 <select id="taskGenduStartUnit" style="min-width:220px;">' +
-        '<option value="">请选择</option>' + opts + '</select></label>' +
-        '<label>开始日 <input type="date" id="taskGenduStartsOn" style="width:140px;"></label>' +
-        '<button type="button" class="btn btn-primary" onclick="saveTeacherGenduAssignment()">保存跟读安排</button>' +
-        (asg
-            ? '<button type="button" class="btn btn-secondary" onclick="clearTeacherGenduAssignment()">清除跟读安排</button>'
-            : '') +
-        '</div>' + statusHtml;
-    var startEl = document.getElementById('taskGenduStartsOn');
-    if (startEl) {
-        startEl.value = (asg && asg.starts_on) || taskFormatLocalYmd(new Date());
-    }
-}
-
-async function saveTeacherGenduAssignment() {
-    var sel = document.getElementById('taskPlanStudentSelect');
-    if (!sel || !sel.value) {
-        showToast('请先选择学生', 'error');
-        return;
-    }
-    var unitEl = document.getElementById('taskGenduStartUnit');
-    var startEl = document.getElementById('taskGenduStartsOn');
-    var unitId = unitEl && unitEl.value;
-    if (!unitId) {
-        showToast('请选择起始跟读课', 'error');
-        return;
-    }
-    var result = await teacherApiPost(
-        '/api/task/students/' + encodeURIComponent(sel.value) + '/gendu-assignment',
-        {
-            start_unit_id: unitId,
-            starts_on: (startEl && startEl.value) || undefined
-        }
-    );
-    if (result.error) {
-        showToast((result.error && result.error.message) || '保存失败', 'error');
-        return;
-    }
-    showToast('跟读作业已保存', 'success');
-    await loadTeacherTaskPlan();
-}
-
-async function clearTeacherGenduAssignment() {
-    var sel = document.getElementById('taskPlanStudentSelect');
-    if (!sel || !sel.value) return;
-    if (!window.confirm('确定清除该生的听力跟读作业？')) return;
-    var result = await teacherApiPost(
-        '/api/task/students/' + encodeURIComponent(sel.value) + '/gendu-assignment/clear',
-        {}
-    );
-    if (result.error) {
-        showToast((result.error && result.error.message) || '清除失败', 'error');
-        return;
-    }
-    showToast('已清除跟读安排', 'success');
-    await loadTeacherTaskPlan();
 }
 
 function openPlanPauseModal() {

@@ -1578,6 +1578,67 @@ def clear_gendu_assignment(conn: sqlite3.Connection, student_id: str) -> dict[st
     return {"gendu_assignment": None, "plan": get_plan(conn, student_id)}
 
 
+def _sync_gendu_from_live_plan(
+    conn: sqlite3.Connection,
+    student_id: str,
+    *,
+    starts_on: Optional[str] = None,
+) -> None:
+    """Derive 跟读作业 from live plan: first gendu study unit = start lesson.
+
+    If an active assignment already points at a unit still in the plan, keep progress.
+    Otherwise open/replace a 30-day assignment from the first listed gendu unit.
+    Does not commit; caller owns the transaction.
+    """
+    ensure_task_tables(conn)
+    rows = conn.execute(
+        """
+        SELECT unit_id FROM plan_items
+        WHERE student_id=? AND status='pending' AND item_type='study'
+          AND module_type=?
+        ORDER BY sort_order, id
+        """,
+        (student_id, GENDU_MODULE),
+    ).fetchall()
+    unit_ids = [str(r["unit_id"]) for r in rows if r["unit_id"]]
+    if not unit_ids:
+        conn.execute(
+            "DELETE FROM student_gendu_assignment WHERE student_id=?", (student_id,)
+        )
+        return
+    asg = _raw_gendu_assignment(conn, student_id)
+    today = china_ymd()
+    if asg:
+        cur = str(asg["current_unit_id"])
+        ends_on = str(asg["ends_on"])
+        if cur in unit_ids and today <= ends_on:
+            _ensure_gendu_plan_item(conn, student_id, cur)
+            return
+    start_unit_id = unit_ids[0]
+    _gendu_unit_or_raise(conn, start_unit_id)
+    start_ymd = starts_on or today
+    if starts_on:
+        start_ymd = _parse_ymd_strict(starts_on, field="开始日期")
+    ends_on = _ymd_plus_days(start_ymd, GENDU_ASSIGNMENT_DAYS - 1)
+    conn.execute(
+        """
+        INSERT INTO student_gendu_assignment (
+            student_id, start_unit_id, current_unit_id, starts_on, ends_on,
+            passed_current, updated_at
+        ) VALUES (?, ?, ?, ?, ?, 0, strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+        ON CONFLICT(student_id) DO UPDATE SET
+            start_unit_id=excluded.start_unit_id,
+            current_unit_id=excluded.current_unit_id,
+            starts_on=excluded.starts_on,
+            ends_on=excluded.ends_on,
+            passed_current=0,
+            updated_at=excluded.updated_at
+        """,
+        (student_id, start_unit_id, start_unit_id, start_ymd, ends_on),
+    )
+    _ensure_gendu_plan_item(conn, student_id, start_unit_id)
+
+
 def advance_gendu_if_needed(
     conn: sqlite3.Connection, student_id: str, task_date: str
 ) -> bool:
@@ -2033,6 +2094,7 @@ def apply_draft_to_live(conn: sqlite3.Connection, student_id: str) -> dict[str, 
         )
 
     conn.execute("DELETE FROM plan_items_draft WHERE student_id=?", (student_id,))
+    _sync_gendu_from_live_plan(conn, student_id)
     conn.commit()
     return get_plan(conn, student_id)
 
