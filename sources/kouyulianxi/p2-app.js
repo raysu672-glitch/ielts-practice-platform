@@ -387,13 +387,103 @@ class P2Practice {
 
     currentStepBody(m, stepIndex) {
         const step = m.steps[stepIndex];
-        if (!step) return { label: '', zh: '', en: '' };
+        const lib = (m && m.expandPatterns) || null;
+        if (!step) return { label: '', zh: '', en: '', zhOutline: [], hooks: [], expandPatterns: lib };
         // yumeng step1 (主体) uses variant
         if (stepIndex === 1 && m.variants && m.variants.length) {
             const v = m.variants.find(x => x.id === this.variantId) || m.variants[0];
-            return { label: step.label, zh: v.zh, en: v.en, variantLabel: v.label };
+            return {
+                label: step.label,
+                zh: v.zh,
+                en: v.en,
+                zhOutline: Array.isArray(v.zhOutline) ? v.zhOutline : (step.zhOutline || []),
+                hooks: Array.isArray(v.hooks) ? v.hooks : (step.hooks || []),
+                expandPatterns: lib,
+                variantLabel: v.label
+            };
         }
-        return { label: step.label, zh: step.zh, en: step.en };
+        return {
+            label: step.label,
+            zh: step.zh,
+            en: step.en,
+            zhOutline: Array.isArray(step.zhOutline) ? step.zhOutline : [],
+            hooks: Array.isArray(step.hooks) ? step.hooks : [],
+            expandPatterns: lib
+        };
+    }
+
+    resolveExpandPattern(hook, expandPatterns) {
+        const lib = expandPatterns || {};
+        const id = (hook && hook.pattern) || 'explain';
+        if (lib[id]) return lib[id];
+        const fallbacks = {
+            explain: { id: 'explain', slogan: '说白了 → 比如', q1: '说白了？', q2: '比如？' },
+            cause: { id: 'cause', slogan: '因为 → 所以', q1: '因为？', q2: '所以？' },
+            feel: { id: 'feel', slogan: '看见/听到 → 想到', q1: '看见/听到什么？', q2: '想到什么？' }
+        };
+        return fallbacks[id] || fallbacks.explain;
+    }
+
+    renderZhOutline(outline) {
+        const list = Array.isArray(outline) ? outline.filter(Boolean) : [];
+        if (!list.length) return '';
+        const items = list.map(line => `<li>${this.escapeHtml(line)}</li>`).join('');
+        return `<div class="p2-zh-outline"><div class="p2-zh-outline-title">中文思路（先背这条线）</div><ol>${items}</ol></div>`;
+    }
+
+    renderExpandHooks(hooks, expandPatterns) {
+        const list = Array.isArray(hooks) ? hooks.filter(h => h && h.hook) : [];
+        if (!list.length) return '';
+        const blocks = list.map((h, i) => {
+            if (h.s1 != null || h.s2 != null || h.pattern) {
+                const p = this.resolveExpandPattern(h, expandPatterns);
+                return `
+                    <div class="p2-hook-item">
+                        <div class="p2-hook-line"><span class="p2-hook-idx">${i + 1}</span>${this.escapeHtml(h.hook)}</div>
+                        <div class="p2-expand-tags"><span class="p2-expand-tag">${this.escapeHtml(p.slogan)}</span></div>
+                        <div class="p2-expand-pair"><span class="p2-expand-q">${this.escapeHtml(p.q1)}</span> ${this.escapeHtml(h.s1 || '')}</div>
+                        <div class="p2-expand-pair"><span class="p2-expand-q">${this.escapeHtml(p.q2)}</span> ${this.escapeHtml(h.s2 || '')}</div>
+                    </div>
+                `;
+            }
+            if (h.concrete || h.then) {
+                const p = (expandPatterns && expandPatterns.q1)
+                    ? expandPatterns
+                    : { q1: '①', q2: '②' };
+                return `
+                    <div class="p2-hook-item">
+                        <div class="p2-hook-line"><span class="p2-hook-idx">${i + 1}</span>${this.escapeHtml(h.hook)}</div>
+                        <div class="p2-expand-pair"><span class="p2-expand-q">${this.escapeHtml(p.q1)}</span> ${this.escapeHtml(h.concrete || '')}</div>
+                        <div class="p2-expand-pair"><span class="p2-expand-q">${this.escapeHtml(p.q2)}</span> ${this.escapeHtml(h.then || '')}</div>
+                    </div>
+                `;
+            }
+            return `
+                <div class="p2-hook-item">
+                    <div class="p2-hook-line"><span class="p2-hook-idx">${i + 1}</span>${this.escapeHtml(h.hook)}</div>
+                </div>
+            `;
+        }).join('');
+        return `
+            <div class="p2-expand-box">
+                <div class="p2-zh-outline-title">扩句：解释这句钩子</div>
+                <div class="p2-expand-note">每条钩子只拆两句：说白了？→ 比如？都是在把这句钩子讲清楚。</div>
+                ${blocks}
+            </div>
+        `;
+    }
+
+    expandByLabel(key) {
+        const map = {
+            contrast: '两边对比',
+            scene: '时间地点',
+            feeling: '身体/情绪',
+            other_action: '对方动作',
+            quote_gist: '原话大意',
+            result: '结果动作',
+            now_view: '现在看法'
+        };
+        return map[key] || key;
     }
 
     renderMaterialCard() {
@@ -457,7 +547,9 @@ class P2Practice {
                     <div class="step-number">${i + 1}</div>
                     <div class="step-title">${this.escapeHtml(body.label)}${body.variantLabel ? ` · ${this.escapeHtml(body.variantLabel)}` : ''}</div>
                 </div>
-                <div class="p2-step-zh">${this.escapeHtml(body.zh)}</div>
+                ${this.renderZhOutline(body.zhOutline)}
+                ${this.renderExpandHooks(body.hooks, body.expandPatterns)}
+                <div class="p2-step-zh"><span class="p2-zh-label">完整中文（示范）</span>${this.escapeHtml(body.zh)}</div>
                 <div class="p2-step-en${hidden ? ' is-hidden' : ''}" data-en-block="${i}">
                     ${hidden ? '<span class="p2-en-placeholder">英文已遮挡 · 试着自己说出来</span>' : this.escapeHtml(body.en)}
                 </div>
@@ -576,11 +668,16 @@ class P2Practice {
                 const label = n >= 10000 ? `${Math.round(n / 1000)}k` : String(n);
                 heat.push(`${label}人`);
             }
-            const heatLine = heat.length ? `<div class="p2-side-heat">${this.escapeHtml(heat.join(' · '))}</div>` : '';
+            const heatLine = heat.length
+                ? `<span class="p2-side-heat">${this.escapeHtml(heat.join(' · '))}</span>`
+                : '';
+            div.classList.add('p2-q-item');
             div.innerHTML = `
                 <div class="question-item-title">${idx + 1}. ${this.escapeHtml(q.title || q.q)}</div>
-                <div class="p2-side-type">${sideNote}</div>
-                ${heatLine}
+                <div class="p2-q-meta">
+                    <span class="p2-side-type">${sideNote}</span>
+                    ${heatLine}
+                </div>
             `;
             box.appendChild(div);
         });
@@ -642,18 +739,46 @@ class P2Practice {
 
         const matTag = primary ? primary.name : (selectedId || '');
 
-        const stepSummaries = (primary?.steps || []).map((s, i) => {
-            const body = primary ? this.currentStepBodyForApply(primary, i) : s;
-            const short = (body.zh || '').slice(0, 36);
-            return `<li><strong>${this.escapeHtml(s.label)}</strong>：${this.escapeHtml(short)}${(body.zh || '').length > 36 ? '…' : ''}</li>`;
-        }).join('');
+        // 本题答题线优先：避免把整篇素材提纲硬贴进不相关的题
+        const applyOutline = Array.isArray(q.applyOutline) ? q.applyOutline : null;
+        let stepSummaries = '';
+        let outlineLabel = '素材提纲（可直接串）';
+        if (applyOutline && applyOutline.length) {
+            outlineLabel = '本题答题线（按这条说，只借用素材里的人/物细节）';
+            stepSummaries = applyOutline.map((item) => {
+                if (typeof item === 'string') {
+                    return `<li>${this.escapeHtml(item)}</li>`;
+                }
+                const label = item.label || item.k || '';
+                const line = item.line || item.v || item.text || '';
+                if (label && line) {
+                    return `<li><strong>${this.escapeHtml(label)}</strong>：${this.escapeHtml(line)}</li>`;
+                }
+                return `<li>${this.escapeHtml(label || line)}</li>`;
+            }).join('');
+        } else {
+            stepSummaries = (primary?.steps || []).map((s, i) => {
+                const body = primary ? this.currentStepBodyForApply(primary, i) : s;
+                if (body.zhOutline && body.zhOutline.length) {
+                    return `<li><strong>${this.escapeHtml(s.label)}</strong>：${this.escapeHtml(body.zhOutline.join(' → '))}</li>`;
+                }
+                const short = (body.zh || '').slice(0, 36);
+                return `<li><strong>${this.escapeHtml(s.label)}</strong>：${this.escapeHtml(short)}${(body.zh || '').length > 36 ? '…' : ''}</li>`;
+            }).join('');
+        }
+        const endingNote = applyOutline && applyOutline.length
+            ? '收尾扣回本题感受即可；相关素材只借细节，不必整段重讲。'
+            : '不必另编故事，用素材第三步感受自然收住即可。';
+        const matTagLabel = applyOutline && applyOutline.length ? '可借用细节' : '套用素材';
 
         const fullSteps = (primary?.steps || []).map((s, i) => {
             const body = this.currentStepBodyForApply(primary, i);
             return `
                 <div class="p2-full-step">
                     <div class="p2-full-label">${i + 1}. ${this.escapeHtml(s.label)}</div>
-                    <div class="p2-step-zh">${this.escapeHtml(body.zh)}</div>
+                    ${this.renderZhOutline(body.zhOutline)}
+                    ${this.renderExpandHooks(body.hooks, body.expandPatterns)}
+                    <div class="p2-step-zh"><span class="p2-zh-label">完整中文（示范）</span>${this.escapeHtml(body.zh)}</div>
                     <div class="p2-step-en">${this.escapeHtml(body.en)}</div>
                 </div>
             `;
@@ -678,14 +803,15 @@ class P2Practice {
             <div class="step-item p2-apply-block">
                 <div class="step-header">
                     <div class="step-number">2</div>
-                    <div class="step-title">中间 · 套素材（约 1 分 30 秒）</div>
+                    <div class="step-title">${applyOutline && applyOutline.length ? '中间 · 答本题（约 1 分 30 秒）' : '中间 · 套素材（约 1 分 30 秒）'}</div>
                 </div>
                 ${switcher}
-                <div class="p2-material-tag">套用素材：【${this.escapeHtml(matTag)}】</div>
+                <div class="p2-material-tag">${matTagLabel}：【${this.escapeHtml(matTag)}】</div>
                 <div class="p2-material-hint">${this.escapeHtml(hint)}</div>
+                <div class="p2-outline-label">${this.escapeHtml(outlineLabel)}</div>
                 <ul class="p2-step-summary-list">${stepSummaries}</ul>
                 <div class="p2-step-actions">
-                    <button type="button" class="btn btn-sm btn-secondary" id="p2ExpandMat">${this.expandedMaterial ? '收起完整素材' : '展开完整素材'}</button>
+                    <button type="button" class="btn btn-sm btn-secondary" id="p2ExpandMat">${this.expandedMaterial ? '收起相关素材' : '展开相关素材（可选）'}</button>
                     <button type="button" class="btn btn-sm btn-primary" id="p2GoMemorize">去背这篇</button>
                 </div>
                 <div class="p2-full-material" id="p2FullMaterial" style="display:${this.expandedMaterial ? 'block' : 'none'}">
@@ -699,7 +825,7 @@ class P2Practice {
                     <div class="step-title">结尾 · 感受收尾（约 15 秒）</div>
                 </div>
                 <div class="p2-ending-tip">${this.escapeHtml(ending)}</div>
-                <p class="p2-ending-note">不必另编故事，用素材第三步感受自然收住即可。</p>
+                <p class="p2-ending-note">${this.escapeHtml(endingNote)}</p>
             </div>
         `;
 
@@ -773,12 +899,25 @@ class P2Practice {
     currentStepBodyForApply(m, stepIndex) {
         // In apply mode, always show default step (variant A for yumeng)
         const step = m.steps[stepIndex];
-        if (!step) return { zh: '', en: '' };
+        const lib = (m && m.expandPatterns) || null;
+        if (!step) return { zh: '', en: '', zhOutline: [], hooks: [], expandPatterns: lib };
         if (stepIndex === 1 && m.variants && m.variants.length) {
             const v = m.variants.find(x => x.id === 'a') || m.variants[0];
-            return { zh: v.zh, en: v.en };
+            return {
+                zh: v.zh,
+                en: v.en,
+                zhOutline: Array.isArray(v.zhOutline) ? v.zhOutline : (step.zhOutline || []),
+                hooks: Array.isArray(v.hooks) ? v.hooks : (step.hooks || []),
+                expandPatterns: lib
+            };
         }
-        return { zh: step.zh, en: step.en };
+        return {
+            zh: step.zh,
+            en: step.en,
+            zhOutline: Array.isArray(step.zhOutline) ? step.zhOutline : [],
+            hooks: Array.isArray(step.hooks) ? step.hooks : [],
+            expandPatterns: lib
+        };
     }
 }
 

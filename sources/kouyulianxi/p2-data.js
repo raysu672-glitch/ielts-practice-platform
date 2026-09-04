@@ -1,217 +1,867 @@
 // P2 data - 6 大素材 + 56 道答题思路（2026年5-8月现行题库，含参考答案）
 const P2_DATA = {
   materials: [
-    {
+            {
       id: "yumeng",
       name: "朋友·雨萌",
       type: "人物",
-      summary: "给出关键建议的挚友，两种主体段可按考题选用",
+      summary: "遇大事找她商量的挚友。扩句=解释钩子：说白了 → 比如（考研/选专业两版）",
+
+  expandPatterns: {
+    explain: { id: "explain", slogan: "说白了 → 比如", q1: "说白了？", q2: "比如？" }
+  },
+
       steps: [
         {
-          label: "背景介绍",
-          zh: "雨萌是我最重要的朋友之一。我们从小在同一个街区长大，上同一所学校。她非常聪明乐观，她的生活态度总是激励着我。无论是在学习还是个人生活中，她总是愿意倾听并支持我。",
-          en: "Yumeng is one of my most important friends. We grew up in the same neighborhood and went to the same school. She is really smart and optimistic, and her attitude towards life always inspires me. Whether in study or personal life, she is always willing to listen and support me."
+          label: "为什么是她",
+          zhOutline: [
+            "雨萌是我从小一起长大的朋友",
+            "她乐观，也特别肯听人说话",
+            "所以一遇到大事，我第一个会找她"
+          ],
+          hooks: [
+            {
+              hook: "雨萌是我从小一起长大的朋友",
+              pattern: "explain",
+              s1: "我们很熟，不是普通同学那种关系",
+              s2: "我们以前住得很近，后来又上了同一所学校"
+            },
+            {
+              hook: "她乐观，也特别肯听人说话",
+              pattern: "explain",
+              s1: "她不急着打断你，也不先下判断",
+              s2: "跟她说话我会更敢讲真心话"
+            },
+            {
+              hook: "所以一遇到大事，我第一个会找她",
+              pattern: "explain",
+              s1: "因为她靠得住，也听得进我说的话",
+              s2: "学习或生活里一有难事，我会先想到她"
+            }
+          ],
+          zh: "雨萌是我从小一起长大的朋友。我们很熟，不是普通同学那种关系，比如我们以前住得很近，后来又上了同一所学校。她乐观，也特别肯听人说话。说白了，她不急着打断你，也不先下判断，比如跟她说话我会更敢讲真心话。所以一遇到大事，我第一个会找她。说白了是她靠得住，也听得进我说的话，比如学习或生活里一有难事，我会先想到她。",
+          en: "Yumeng is a friend I grew up with. In plain words, we know each other well—not just ordinary classmates. For example, we lived close by and later went to the same school. She's optimistic and really listens. In plain words, she doesn't cut you off or judge too quickly—for example, I dare to tell her what I really think. So when something big happens, she's the first person I go to. That means she's reliable and actually listens—for example, I think of her first whenever study or life gets hard."
         },
         {
           label: "主体事件（默认情况A·大学考研；亦可选情况B·高考选专业，见 variants）",
-          zh: "在我大学三年级的时候，我面临着一个抉择：是继续攻读硕士学位，还是毕业后直接工作。我感到十分茫然，于是找雨萌聊了聊。那天我们在校园里边走边聊，她非常耐心地倾听。然后她建议说：「别担心找工作的压力。想想你未来一生想做什么。如果你确定想继续深造，那就全力以赴。我相信你最终会找到一份热爱的工作。」 最后，我决定申请硕士，并一步步朝着目标努力。",
-          en: "When I was in my third year at university, I faced a crossroads: whether to pursue further studies for a master's degree or to start working after graduation. I felt quite at a loss, so I talked with Yumeng about it. That day we walked around the campus, and she listened very patiently. Then she suggested, \"Don't worry about the pressure of finding a job. Think about what you want to do for the rest of your life. If you are sure you want to further your studies, just go for it. I believe you'll find a job you love eventually.\" In the end, I decided to apply for a master's program and worked toward that goal step by step."
+          zhOutline: [
+            "大三那年，我不知道该读研还是工作",
+            "我找雨萌在学校边走边说",
+            "她让我先想清楚自己更想做什么",
+            "后来我决定申请读研"
+          ],
+          hooks: [
+            {
+              hook: "大三那年，我不知道该读研还是工作",
+              pattern: "explain",
+              s1: "两边都有道理，我自己选不出来",
+              s2: "一边想继续上学，一边又有人劝我先找工作"
+            },
+            {
+              hook: "我找雨萌在学校边走边说",
+              pattern: "explain",
+              s1: "这件事一直压着我，心里很乱，想找人聊聊",
+              s2: "我们慢慢走，我把两边的担心都说了，她先听完"
+            },
+            {
+              hook: "她让我先想清楚自己更想做什么",
+              pattern: "explain",
+              s1: "别先被找工作吓到，先问自己想过什么样的生活",
+              s2: "如果确定想继续读，就认真去准备"
+            },
+            {
+              hook: "后来我决定申请读研",
+              pattern: "explain",
+              s1: "听完以后我清楚多了",
+              s2: "我开始准备申请，一步一步往前走"
+            }
+          ],
+          zh: "大三那年，我不知道该读研还是工作。说白了，两边都有道理，我自己选不出来，比如一边想继续上学，一边又有人劝我先找工作。我找雨萌在学校边走边说。说白了，这件事一直压着我，心里很乱，想找人聊聊，比如我们慢慢走，我把两边的担心都说了，她先听完。她让我先想清楚自己更想做什么。说白了，就是别先被找工作吓到，先问自己想过什么样的生活，比如如果确定想继续读，就认真去准备。后来我决定申请读研。说白了，听完以后我清楚多了，比如我开始准备申请，一步一步往前走。",
+          en: "In my third year, I didn't know whether to do a master's or get a job. In plain words, both sides made sense and I couldn't choose—for example, I wanted to keep studying, but some people told me to work first. I asked Yumeng to walk and talk on campus. In plain words, it kept weighing on me and I felt mixed up, so I needed to talk—for example, we walked slowly, I told her both sides, and she listened first. She told me to figure out what I really wanted. In plain words, don't let finding a job scare you first; ask what kind of life you want—for example, if you're sure about further study, prepare seriously. Later I decided to apply for a master's. In plain words, I felt much clearer after that talk—for example, I started getting the application ready step by step."
         },
         {
-          label: "感受与升华",
-          zh: "她的话给了我巨大的力量。直到今天我仍然感激她睿智的建议。",
-          en: "Her words gave me so much strength. I still appreciate her wise advice to this day."
+          label: "结果与感受",
+          zhOutline: [
+            "她的话让我有了方向",
+            "到现在我还很感激那次建议"
+          ],
+          hooks: [
+            {
+              hook: "她的话让我有了方向",
+              pattern: "explain",
+              s1: "不是给我一个标准答案，而是让我知道先问自己想要什么",
+              s2: "从那以后，我做选择不那么容易被别人的焦虑带着走"
+            },
+            {
+              hook: "到现在我还很感激那次建议",
+              pattern: "explain",
+              s1: "她说得很清楚，也很真心",
+              s2: "这也让我更明白，为什么大事我会先找她"
+            }
+          ],
+          zh: "她的话让我有了方向。说白了，不是给我一个标准答案，而是让我知道先问自己想要什么，比如从那以后，我做选择不那么容易被别人的焦虑带着走。到现在我还很感激那次建议。说白了，她说得很清楚，也很真心，比如这也让我更明白，为什么大事我会先找她。",
+          en: "Her words gave me direction. In plain words, it wasn't a perfect answer—it showed me I should first ask what I really want. For example, since then I'm less easily pushed around by other people's worry when I choose. Even now I'm still grateful for that advice. In plain words, she spoke clearly and sincerely—for example, that also helps me understand why I go to her first when something big happens."
         }
       ],
       variants: [
         {
           id: "a",
           label: "情况A·大学考研",
-          zh: "在我大学三年级的时候，我面临着一个抉择：是继续攻读硕士学位，还是毕业后直接工作。我感到十分茫然，于是找雨萌聊了聊。那天我们在校园里边走边聊，她非常耐心地倾听。然后她建议说：「别担心找工作的压力。想想你未来一生想做什么。如果你确定想继续深造，那就全力以赴。我相信你最终会找到一份热爱的工作。」 最后，我决定申请硕士，并一步步朝着目标努力。",
-          en: "When I was in my third year at university, I faced a crossroads: whether to pursue further studies for a master's degree or to start working after graduation. I felt quite at a loss, so I talked with Yumeng about it. That day we walked around the campus, and she listened very patiently. Then she suggested, \"Don't worry about the pressure of finding a job. Think about what you want to do for the rest of your life. If you are sure you want to further your studies, just go for it. I believe you'll find a job you love eventually.\" In the end, I decided to apply for a master's program and worked toward that goal step by step."
+          zhOutline: [
+            "大三那年，我不知道该读研还是工作",
+            "我找雨萌在学校边走边说",
+            "她让我先想清楚自己更想做什么",
+            "后来我决定申请读研"
+          ],
+          hooks: [
+            {
+              hook: "大三那年，我不知道该读研还是工作",
+              pattern: "explain",
+              s1: "两边都有道理，我自己选不出来",
+              s2: "一边想继续上学，一边又有人劝我先找工作"
+            },
+            {
+              hook: "我找雨萌在学校边走边说",
+              pattern: "explain",
+              s1: "这件事一直压着我，心里很乱，想找人聊聊",
+              s2: "我们慢慢走，我把两边的担心都说了，她先听完"
+            },
+            {
+              hook: "她让我先想清楚自己更想做什么",
+              pattern: "explain",
+              s1: "别先被找工作吓到，先问自己想过什么样的生活",
+              s2: "如果确定想继续读，就认真去准备"
+            },
+            {
+              hook: "后来我决定申请读研",
+              pattern: "explain",
+              s1: "听完以后我清楚多了",
+              s2: "我开始准备申请，一步一步往前走"
+            }
+          ],
+          zh: "大三那年，我不知道该读研还是工作。说白了，两边都有道理，我自己选不出来，比如一边想继续上学，一边又有人劝我先找工作。我找雨萌在学校边走边说。说白了，这件事一直压着我，心里很乱，想找人聊聊，比如我们慢慢走，我把两边的担心都说了，她先听完。她让我先想清楚自己更想做什么。说白了，就是别先被找工作吓到，先问自己想过什么样的生活，比如如果确定想继续读，就认真去准备。后来我决定申请读研。说白了，听完以后我清楚多了，比如我开始准备申请，一步一步往前走。",
+          en: "In my third year, I didn't know whether to do a master's or get a job. In plain words, both sides made sense and I couldn't choose—for example, I wanted to keep studying, but some people told me to work first. I asked Yumeng to walk and talk on campus. In plain words, it kept weighing on me and I felt mixed up, so I needed to talk—for example, we walked slowly, I told her both sides, and she listened first. She told me to figure out what I really wanted. In plain words, don't let finding a job scare you first; ask what kind of life you want—for example, if you're sure about further study, prepare seriously. Later I decided to apply for a master's. In plain words, I felt much clearer after that talk—for example, I started getting the application ready step by step."
         },
         {
           id: "b",
           label: "情况B·高考选专业",
-          zh: "高中毕业那年，我面临了人生中最艰难的选择。由于我在大学入学考试中没有发挥出最佳水平，我的计划被完全打乱了。我左右为难：一边是梦想的大学却配着一个我毫无兴趣的专业，另一边是梦想的专业却在一所相当普通的大学。我当时非常沮丧。那时，她告诉我：「你的热情是你最好的老师。尽管去做吧。」大学的排名什么也不是。我知道你未来一定会发光。",
-          en: "The year I graduated from high school, I faced the most difficult choice in my life. Because I didn't give my best performance in the university entrance exam, my plans were completely disrupted. I was torn between, on the one hand, my dream university with a major I wasn't interested in at all, and on the other hand, my dream major at a rather mediocre university. I was so depressed. At that time, she told me, \"Your passion is your best teacher. Just go for it. The ranking of a university means nothing. I know you're going to shine in the future.\""
+          zhOutline: [
+            "高中毕业后，我的计划全乱了",
+            "我在名校冷专业和普通学校热专业之间很难选",
+            "雨萌让我跟着自己真正喜欢的走",
+            "后来我选了喜欢的专业，也证明这样更好"
+          ],
+          hooks: [
+            {
+              hook: "高中毕业后，我的计划全乱了",
+              pattern: "explain",
+              s1: "高考没考好，原来想走的路走不通了",
+              s2: "我很着急，也很丧"
+            },
+            {
+              hook: "我在名校冷专业和普通学校热专业之间很难选",
+              pattern: "explain",
+              s1: "一边学校更好但我不喜欢，一边学校普通但我真想学",
+              s2: "怎么选都像在放弃一点东西"
+            },
+            {
+              hook: "雨萌让我跟着自己真正喜欢的走",
+              pattern: "explain",
+              s1: "喜欢比学校排名更重要",
+              s2: "她要我去做真正想做的事"
+            },
+            {
+              hook: "后来我选了喜欢的专业，也证明这样更好",
+              pattern: "explain",
+              s1: "我最后选了自己喜欢的专业",
+              s2: "后来上课更有劲，也说明这个决定是对的"
+            }
+          ],
+          zh: "高中毕业后，我的计划全乱了。说白了，高考没考好，原来想走的路走不通了，比如我很着急，也很丧。我在名校冷专业和普通学校热专业之间很难选。说白了，一边学校更好但我不喜欢，一边学校普通但我真想学，比如怎么选都像在放弃一点东西。雨萌让我跟着自己真正喜欢的走。说白了，喜欢比学校排名更重要，比如她要我去做真正想做的事。后来我选了喜欢的专业，也证明这样更好。说白了，我最后选了自己喜欢的专业，比如后来上课更有劲，也说明这个决定是对的。",
+          en: "After high school, my plan fell apart. In plain words, I didn't do well enough in the exam, so the path I wanted was gone—for example, I felt anxious and low. I had a hard choice between a better university with a major I didn't like and an ordinary university with a major I really wanted. In plain words, either way felt like giving something up. Yumeng told me to follow what I truly enjoy. In plain words, liking the subject matters more than the ranking—for example, she told me to do what I really want. Later I chose the major I liked, and it proved better. In plain words, I picked what I liked—for example, I studied with more energy later, and that showed the decision was right."
         }
       ],
-      endingTip: "她的话给了我巨大的力量，至今仍感激她睿智的建议"
+      endingTip: "她的话给了我方向，我现在还很感激"
     },
     {
       id: "sun",
       name: "明星·孙颖莎",
       type: "人物",
-      summary: "当下最受欢迎的乒乓球运动员，巴黎奥运混双夺金",
+      summary: "年轻顶尖的乒乓球选手。扩句=解释钩子：说白了 → 比如（身份→夺金→爆红与感受）",
+
+  expandPatterns: {
+    explain: { id: "explain", slogan: "说白了 → 比如", q1: "说白了？", q2: "比如？" }
+  },
+
       steps: [
         {
-          label: "背景介绍",
-          zh: "我想聊的人是著名的乒乓球运动员孙颖莎。我认为她很可能就是当下中国最受欢迎的乒乓球选手。她非常年轻但才华横溢，刚过20岁就已经几乎赢得了国内外所有顶级赛事的奖项。",
-          en: "Well, the person I want to talk about is the famous table tennis player Sun Yingsha, and I think she is probably the most popular one in China right now. She is very young but incredibly talented, and she's just over 20 but has already won almost all the top prizes in both domestic and international competitions."
+          label: "她是谁",
+          zhOutline: [
+            "我想说的人是乒乓球选手孙颖莎",
+            "她很年轻，但成绩已经很顶尖"
+          ],
+          hooks: [
+            {
+              hook: "我想说的人是乒乓球选手孙颖莎",
+              pattern: "explain",
+              s1: "中国队很出名的那个运动员",
+              s2: "很多人一提乒乓球就会想到她"
+            },
+            {
+              hook: "她很年轻，但成绩已经很顶尖",
+              pattern: "explain",
+              s1: "年纪不大，但已经赢过很多重要比赛",
+              s2: "国内外大赛里常能看到她打得很拼"
+            }
+          ],
+          zh: "我想说的人是乒乓球选手孙颖莎。说白了，就是中国队很出名的那个运动员，比如很多人一提乒乓球就会想到她。她很年轻，但成绩已经很顶尖。说白了，年纪不大，但已经赢过很多重要比赛，比如国内外大赛里常能看到她打得很拼。",
+          en: "The person I want to talk about is the table tennis player Sun Yingsha. In plain words, she's a well-known athlete on the Chinese team—for example, a lot of people think of her when table tennis comes up. She's still young, but her results are already top-level. In plain words, she isn't that old, yet she's already won many big matches—for example, you often see her fighting hard in major events."
         },
         {
-          label: "主体事件",
-          zh: "就在去年，她在巴黎奥运会上与王楚钦搭档混双，在巨大压力下发挥出最佳水平，击败强敌并赢得了金牌。",
-          en: "Just last year, she played mixed doubles with Wang Chuqin at the Paris Olympic Games and gave her best performance under enormous pressure to beat strong opponents and win the gold medal."
+          label: "高光时刻",
+          zhOutline: [
+            "去年巴黎奥运，她和王楚钦打混双",
+            "压力很大，但他们还是拿下了金牌"
+          ],
+          hooks: [
+            {
+              hook: "去年巴黎奥运，她和王楚钦打混双",
+              pattern: "explain",
+              s1: "那是很大的舞台，混双又特别需要两个人配合",
+              s2: "我看的时候也很紧张，觉得每一分都很关键"
+            },
+            {
+              hook: "压力很大，但他们还是拿下了金牌",
+              pattern: "explain",
+              s1: "中间也有不好打的时候，但关键分他们打得很稳",
+              s2: "最后赢了强队，拿到金牌"
+            }
+          ],
+          zh: "最让我记得的，是去年巴黎奥运。她和王楚钦打混双。说白了，那是很大的舞台，混双又特别需要两个人配合，比如我看的时候也很紧张，觉得每一分都很关键。压力很大，但他们还是拿下了金牌。说白了，中间也有不好打的时候，但关键分他们打得很稳，比如最后赢了强队，拿到金牌。",
+          en: "What I remember most is last year's Paris Olympics, when she played mixed doubles with Wang Chuqin. In plain words, it was a huge stage and mixed doubles needs real teamwork—for example, I was nervous watching and every point felt important. The pressure was high, but they still won gold. In plain words, there were hard moments, but they stayed steady on the key points—for example, they beat a strong team and took the gold medal."
         },
         {
-          label: "社会影响与感受",
-          zh: "此后，她在中国变得极其受欢迎，人们如此着迷于她可爱的酒窝和肉肉的脸颊，甚至用她的形象制作了许多贴纸。有些贴纸是她的脸配上可爱装饰，而另一些则是她和搭档的可爱情侣虚拟形象。人们经常在社交媒体上使用它们来活跃对话气氛。",
-          en: "After that, she became extremely popular in China, and people are so fascinated by her adorable dimples and chubby cheeks that they've even made lots of stickers out of her image. Some stickers feature her face with cute additions, while others portray her and her partner as a lovely couple, and people often use them on social media to lighten the mood in a conversation."
+          label: "爆红之后与我的感受",
+          zhOutline: [
+            "夺金之后，她一下子更红了",
+            "大家特别喜欢她的酒窝，还做成贴纸",
+            "我更佩服她抗压拿金的能力"
+          ],
+          hooks: [
+            {
+              hook: "夺金之后，她一下子更红了",
+              pattern: "explain",
+              s1: "关注她的人变多了，不只是球迷",
+              s2: "手机上、街上到处都能看到她"
+            },
+            {
+              hook: "大家特别喜欢她的酒窝，还做成贴纸",
+              pattern: "explain",
+              s1: "大家喜欢她可爱、好亲近的一面",
+              s2: "聊天软件里常有她的贴纸，气氛一下子轻松"
+            },
+            {
+              hook: "我更佩服她抗压拿金的能力",
+              pattern: "explain",
+              s1: "贴纸很好玩，但我更看重她高压下还能打好",
+              s2: "我考试或当众说话紧张时，也会想起要把该做的做好"
+            }
+          ],
+          zh: "夺金之后，她一下子更红了。说白了，关注她的人变多了，不只是球迷，比如手机上、街上到处都能看到她。大家特别喜欢她的酒窝，还做成贴纸。说白了，大家喜欢她可爱、好亲近的一面，比如聊天软件里常有她的贴纸，气氛一下子轻松。我更佩服她抗压拿金的能力。说白了，贴纸很好玩，但我更看重她高压下还能打好，比如我考试或当众说话紧张时，也会想起要把该做的做好。",
+          en: "After the gold medal, she became even more popular. In plain words, more people followed her, not only sports fans—for example, you could see her everywhere on phones and in the streets. People especially like her dimples and made stickers of her. In plain words, they like how cute and approachable she feels—for example, her stickers in chat apps lighten the mood fast. I admire more how she won gold under pressure. In plain words, stickers are fun, but what matters more is that she could still play well under pressure—for example, when I get nervous before an exam or speaking in public, I also remind myself to do what I need to do."
         }
       ],
-      endingTip: "她在中国极其受欢迎，人们着迷于她可爱的酒窝和贴纸形象"
+      endingTip: "夺金后更红；我更佩服她压力下还能打好"
     },
     {
       id: "movie",
       name: "影视·夏洛特烦恼",
       type: "影视",
-      summary: "沈腾马丽主演的时间旅行喜剧，领悟爱的珍贵",
+      summary: "沈腾马丽的时间旅行喜剧。扩句=解释钩子：说白了 → 比如",
+
+  expandPatterns: {
+    explain: { id: "explain", slogan: "说白了 → 比如", q1: "说白了？", q2: "比如？" }
+  },
+
       steps: [
         {
-          label: "背景介绍",
-          zh: "《夏洛特烦恼》是一部关于时间旅行的中国电影，由沈腾和马丽这两位中国最著名的喜剧演员主演，他们这对极其有趣的搭档让我非常喜欢这部电影。",
-          en: "Xialuotefannao is a Chinese movie about a man who can travel in time. This movie stars China's most famous comedians, Shen Teng and Ma Li, who are the funniest couple, so I am really a big fan of this film."
+          label: "这是什么电影",
+          zhOutline: [
+            "我想说的是电影《夏洛特烦恼》",
+            "沈腾和马丽演的，特别好笑"
+          ],
+          hooks: [
+            {
+              hook: "我想说的是电影《夏洛特烦恼》",
+              pattern: "explain",
+              s1: "一部中国喜剧，讲的是时间旅行",
+              s2: "主角能回到高中，重新选人生"
+            },
+            {
+              hook: "沈腾和马丽演的，特别好笑",
+              pattern: "explain",
+              s1: "他们是很有名的喜剧搭档",
+              s2: "两个人一搭档，很多桥段我都想笑"
+            }
+          ],
+          zh: "我想说的是电影《夏洛特烦恼》。说白了，一部中国喜剧，讲的是时间旅行，比如主角能回到高中，重新选人生。沈腾和马丽演的，特别好笑。说白了，他们是很有名的喜剧搭档，比如两个人一搭档，很多桥段我都想笑。",
+          en: "I'd like to talk about the movie Xialuotefannao. In plain words, it's a Chinese comedy about time travel—for example, the main character can go back to high school and choose life again. It stars Shen Teng and Ma Li, and it's really funny. In plain words, they're a famous comedy pair—for example, once they team up, a lot of scenes make me want to laugh."
         },
         {
-          label: "主体情节",
-          zh: "在故事中，夏洛发现自己能穿越回高中时代，并选择了一条不同的人生道路去追求他梦想的女孩秋雅，而不是他真正的妻子马丽。十年后，他成为著名音乐家并与秋雅结婚，梦想成真，却随后接到医生通知说他已处于癌症二期。",
-          en: "In the story, Xialuo found he could travel in time and went back to his high school days, and he chose a different life path to pursue his dream girl, Qiuya, instead of his real wife, Ma Li. After 10 years, he became a famous musician and married Qiuya. All of his dreams came true until he got a note from his doctor saying that he was already in the second stage of cancer."
+          label: "主要情节",
+          zhOutline: [
+            "夏洛穿越回高中，去追梦中女孩秋雅",
+            "十年后他成功了，却查出得了重病"
+          ],
+          hooks: [
+            {
+              hook: "夏洛穿越回高中，去追梦中女孩秋雅",
+              pattern: "explain",
+              s1: "他没再选现在的妻子马丽，而是换了一条路",
+              s2: "他想弥补年轻时的遗憾，把梦想女孩追到手"
+            },
+            {
+              hook: "十年后他成功了，却查出得了重病",
+              pattern: "explain",
+              s1: "表面上看，名利爱情都有了",
+              s2: "医生告诉他已经病得很重，好运一下子翻了"
+            }
+          ],
+          zh: "夏洛穿越回高中，去追梦中女孩秋雅。说白了，他没再选现在的妻子马丽，而是换了一条路，比如他想弥补年轻时的遗憾，把梦想女孩追到手。十年后他成功了，却查出得了重病。说白了，表面上看名利爱情都有了，比如医生告诉他已经病得很重，好运一下子翻了。",
+          en: "Xialuo goes back to high school and chases his dream girl, Qiuya. In plain words, he doesn't choose his real wife Ma Li again—he takes another path. For example, he wants to fix young regrets and win the girl he dreamed of. Ten years later he succeeds, but then finds out he's seriously ill. In plain words, it looks like he has fame, money and love—for example, the doctor says he's already very sick, and his luck turns over at once."
         },
         {
-          label: "感受与反转",
-          zh: "在这段艰难时期，秋雅不仅离开了他，还骗走了他所有的钱；然而，马丽却出现并照顾他，这让他意识到爱才是生命中最宝贵的东西。最终，他发现这一切不过是一场长长的梦。",
-          en: "In this critical period, to his surprise, Qiuya gave up on him and even tricked him out of all his money. However, Ma Li showed up to take care of him, and he realized that love was the most valuable thing in his life. In the end, he found that all of this was a long dream."
+          label: "结局与感受",
+          zhOutline: [
+            "秋雅离开他，马丽却来照顾他",
+            "他明白爱最重要，最后发现是一场梦"
+          ],
+          hooks: [
+            {
+              hook: "秋雅离开他，马丽却来照顾他",
+              pattern: "explain",
+              s1: "困难时刻，谁真的在身边就看出来了",
+              s2: "秋雅不只离开，还骗走他的钱；马丽反而出现帮忙"
+            },
+            {
+              hook: "他明白爱最重要，最后发现是一场梦",
+              pattern: "explain",
+              s1: "他终于懂了，真正宝贵的不是名气",
+              s2: "梦醒之后，这份感悟还留着，我也觉得很触动"
+            }
+          ],
+          zh: "秋雅离开他，马丽却来照顾他。说白了，困难时刻谁真的在身边就看出来了，比如秋雅不只离开，还骗走他的钱，马丽反而出现帮忙。他明白爱最重要，最后发现是一场梦。说白了，他终于懂了真正宝贵的不是名气，比如梦醒之后这份感悟还留着，我也觉得很触动。",
+          en: "Qiuya leaves him, but Ma Li comes to take care of him. In plain words, hard times show who really stays—for example, Qiuya not only leaves but also tricks him out of his money, while Ma Li shows up to help. He realizes love matters most, and in the end it was all a dream. In plain words, he finally understands fame isn't the real treasure—for example, after he wakes up, that feeling stays, and I find it touching too."
         }
       ],
-      endingTip: "领悟到爱才是生命中最宝贵的东西"
+      endingTip: "他明白爱最重要；梦醒后这份感悟还在"
     },
     {
       id: "badminton",
       name: "事件·羽毛球",
       type: "事件",
-      summary: "缓解申请压力、结交球友、改善心理健康的运动",
+      summary: "压力大开始打球：交友、变外向、暂时忘掉学业压力。扩句=说白了→比如",
+
+  expandPatterns: {
+    explain: { id: "explain", slogan: "说白了 → 比如", q1: "说白了？", q2: "比如？" }
+  },
+
       steps: [
         {
-          label: "起因背景",
-          zh: "最近，我忙于申请硕士项目和学英语，所以总是很累，有时无法专注学习；朋友建议我锻炼身体，于是我开始打羽毛球。",
-          en: "Recently, I have been occupied with applying for master's programs and studying English, so I always get tired and sometimes can't focus on my studies. My friends advised me to do some exercise, so I started to play badminton."
+          label: "为什么开始打",
+          zhOutline: [
+            "那段时间申请和学英语把我累坏了",
+            "朋友建议我运动，我就开始打羽毛球"
+          ],
+          hooks: [
+            {
+              hook: "那段时间申请和学英语把我累坏了",
+              pattern: "explain",
+              s1: "事情太多，人又累又难集中",
+              s2: "有时坐在书桌前，脑子转不动"
+            },
+            {
+              hook: "朋友建议我运动，我就开始打羽毛球",
+              pattern: "explain",
+              s1: "他们觉得我该出门出出汗",
+              s2: "我听了建议，约场去打球"
+            }
+          ],
+          zh: "那段时间申请和学英语把我累坏了。说白了，事情太多，人又累又难集中，比如有时坐在书桌前，脑子转不动。朋友建议我运动，我就开始打羽毛球。说白了，他们觉得我该出门出出汗，比如我听了建议，约场去打球。",
+          en: "For a while, applying for programs and studying English wore me out. In plain words, there was too much to do—I was tired and couldn't focus. For example, sometimes I sat at my desk and my mind just wouldn't work. Friends suggested exercise, so I started playing badminton. In plain words, they thought I should go out and sweat a bit—for example, I took the advice and booked a court."
         },
         {
-          label: "主体益处·社交",
-          zh: "羽毛球对我有很多积极影响。首先，众所周知，羽毛球是一项需要搭档的运动，所以我常在球场和陌生人组队。很快，我与一些同样热爱运动的人成为了朋友，我们开始每周末约着一起打球，我也发现自己变得越来越外向。",
-          en: "Badminton has had a lot of positive impacts on me. First, as you know, badminton is a sport that requires a partner, so I often team up with strangers at the court. Soon, I made friends with some people who shared the same passion for sports, and we started meeting up every weekend to play together. I also found myself becoming more and more outgoing."
+          label: "打球带来的变化",
+          zhOutline: [
+            "羽毛球常要找搭档，我认识了新朋友",
+            "我也变得更外向了"
+          ],
+          hooks: [
+            {
+              hook: "羽毛球常要找搭档，我认识了新朋友",
+              pattern: "explain",
+              s1: "球场上经常和不太熟的人一组",
+              s2: "后来我们周末常约着一起打"
+            },
+            {
+              hook: "我也变得更外向了",
+              pattern: "explain",
+              s1: "以前我不太主动跟人说话",
+              s2: "打球之后更敢打招呼、更敢约人了"
+            }
+          ],
+          zh: "羽毛球常要找搭档，我认识了新朋友。说白了，球场上经常和不太熟的人一组，比如后来我们周末常约着一起打。我也变得更外向了。说白了，以前我不太主动跟人说话，比如打球之后更敢打招呼、更敢约人了。",
+          en: "Badminton often needs a partner, so I met new friends. In plain words, I often team up with people I don't know well at the court—for example, later we started meeting on weekends to play. I also became more outgoing. In plain words, I used to be slow to talk to people—for example, after playing I dare to say hi and make plans more."
         },
         {
-          label: "感受升华·心理健康",
-          zh: "其次，它对心理健康也极有益处。当我挥动球拍时，耳边只有球拍与风声，这让我能全神贯注于身心，暂时忘却学业压力。",
-          en: "Second, it's been great for my mental health too. When I swing my racket, all I hear is its sound and the wind, allowing me to focus solely on my mind and body and forget the pressure from my studies for a while."
+          label: "对我心情的帮助",
+          zhOutline: [
+            "打球时我能暂时忘掉学习压力",
+            "挥拍的时候脑子会清一点"
+          ],
+          hooks: [
+            {
+              hook: "打球时我能暂时忘掉学习压力",
+              pattern: "explain",
+              s1: "那一会儿我只管眼前的球",
+              s2: "申请和英语的烦心事先放一边"
+            },
+            {
+              hook: "挥拍的时候脑子会清一点",
+              pattern: "explain",
+              s1: "耳朵里差不多只有球拍和风声",
+              s2: "打完再回去学，状态会好一些"
+            }
+          ],
+          zh: "打球时我能暂时忘掉学习压力。说白了，那一会儿我只管眼前的球，比如申请和英语的烦心事先放一边。挥拍的时候脑子会清一点。说白了，耳朵里差不多只有球拍和风声，比如打完再回去学，状态会好一些。",
+          en: "When I play, I can forget study pressure for a while. In plain words, for that moment I only watch the shuttle—for example, worries about applications and English are put aside. When I swing the racket, my mind feels clearer. In plain words, I mostly hear the racket and the wind—for example, when I go back to study after that, I feel better."
         }
       ],
-      endingTip: "全神贯注于身心，暂时忘却学业压力"
+      endingTip: "打球时能暂时忘掉压力，脑子也会清一点"
     },
     {
       id: "bear",
       name: "物品·小熊玩偶（女生向）",
       type: "物品",
       audience: "girl",
-      summary: "Jellycat 泰迪熊，高考压力下带来平静的老朋友；女生优先",
+      summary: "好友送的小熊：软、可爱，高考压力时能让人平静。扩句=说白了→比如",
+
+  expandPatterns: {
+    explain: { id: "explain", slogan: "说白了 → 比如", q1: "说白了？", q2: "比如？" }
+  },
+
       steps: [
         {
-          label: "来源与外观",
-          zh: "当我上小学时，我最好的朋友送了我一只 Jellycat 的毛绒泰迪熊作为生日礼物。她知道我特别喜欢柔软可爱的东西，所以特地为我精心挑选了这只小熊。这只泰迪熊是棕色的，小小的，毛非常柔软，脖子上还系着一个红色蝴蝶结。",
-          en: "When I was in primary school, my best friend gave me a stuffed teddy bear from Jellycat for my birthday. She knew I was crazy about soft and cute things, so she picked this bear carefully just for me. The teddy bear is small and brown, with very soft fur and a red ribbon around its neck."
+          label: "它怎么来的",
+          zhOutline: [
+            "小学时好友送给我一只小熊",
+            "它小小的，毛很软，还系着红蝴蝶结"
+          ],
+          hooks: [
+            {
+              hook: "小学时好友送给我一只小熊",
+              pattern: "explain",
+              s1: "生日礼物，她知道我喜欢软软可爱的东西",
+              s2: "是 Jellycat 的泰迪熊，她特意挑的"
+            },
+            {
+              hook: "它小小的，毛很软，还系着红蝴蝶结",
+              pattern: "explain",
+              s1: "看起来很治愈，抱着也舒服",
+              s2: "棕色的身子，脖子上那条红丝带特别好看"
+            }
+          ],
+          zh: "小学时好友送给我一只小熊。说白了，生日礼物，她知道我喜欢软软可爱的东西，比如是 Jellycat 的泰迪熊，她特意挑的。它小小的，毛很软，还系着红蝴蝶结。说白了，看起来很治愈，抱着也舒服，比如棕色的身子，脖子上那条红丝带特别好看。",
+          en: "In primary school, my best friend gave me a little bear. In plain words, it was a birthday gift—she knew I loved soft cute things. For example, it was a Jellycat teddy she picked carefully. It's small, with very soft fur and a red bow. In plain words, it looks comforting and feels nice to hold—for example, it's brown, and the red ribbon around its neck looks lovely."
         },
         {
-          label: "主体事件·缓解压力",
-          zh: "我记得在高考前，我压力大到睡不着觉。抱着它，就感觉平静了些，也能睡得更好一些了。",
-          en: "I still remember before the college entrance exam, I was so stressed that I couldn't fall asleep. I held the bear in my arms, and somehow I felt calmer and managed to sleep better."
+          label: "它怎么帮到我",
+          zhOutline: [
+            "高考前我压力大到睡不着",
+            "抱着它，会平静一些，也更容易睡着"
+          ],
+          hooks: [
+            {
+              hook: "高考前我压力大到睡不着",
+              pattern: "explain",
+              s1: "白天学，晚上脑子还在转",
+              s2: "躺下很久也进不了睡眠"
+            },
+            {
+              hook: "抱着它，会平静一些，也更容易睡着",
+              pattern: "explain",
+              s1: "手上有个软东西，心会定一点",
+              s2: "那几周它几乎天天陪我入睡"
+            }
+          ],
+          zh: "高考前我压力大到睡不着。说白了，白天学，晚上脑子还在转，比如躺下很久也进不了睡眠。抱着它，会平静一些，也更容易睡着。说白了，手上有个软东西，心会定一点，比如那几周它几乎天天陪我入睡。",
+          en: "Before the college entrance exam, I was so stressed I couldn't sleep. In plain words, I studied all day and my mind kept running at night—for example, I'd lie down for a long time and still not fall asleep. Holding the bear made me calmer and helped me sleep. In plain words, having something soft in my arms settled me a bit—for example, for those weeks it almost went to bed with me every night."
         },
         {
-          label: "长远意义与感受",
-          zh: "从那时起，每当我感到紧张或难过，我都会抱着它一会儿。它陪伴我度过了很多重要时刻，真的就像一个老朋友一样。",
-          en: "Since then, whenever I feel nervous or upset, I would hug it for a while. It has been with me during many important moments, so it really feels like an old friend."
+          label: "它现在对我意味着什么",
+          zhOutline: [
+            "后来一紧张或难过，我还会抱一抱它",
+            "它像一个老朋友，陪我过了很多重要时刻"
+          ],
+          hooks: [
+            {
+              hook: "后来一紧张或难过，我还会抱一抱它",
+              pattern: "explain",
+              s1: "不一定解决问题，但能让我缓一下",
+              s2: "考试前、心情差的时候我会拿出来"
+            },
+            {
+              hook: "它像一个老朋友，陪我过了很多重要时刻",
+              pattern: "explain",
+              s1: "从小学到现在，它一直在",
+              s2: "所以它对我不只是玩具，更像陪伴"
+            }
+          ],
+          zh: "后来一紧张或难过，我还会抱一抱它。说白了，不一定解决问题，但能让我缓一下，比如考试前、心情差的时候我会拿出来。它像一个老朋友，陪我过了很多重要时刻。说白了，从小学到现在它一直在，比如所以它对我不只是玩具，更像陪伴。",
+          en: "Later, whenever I feel nervous or upset, I still hug it for a while. In plain words, it may not fix the problem, but it helps me slow down—for example, before exams or on low days I take it out. It feels like an old friend that has been with me through many important moments. In plain words, it's been there since primary school—for example, so to me it isn't just a toy; it's company."
         }
       ],
-      endingTip: "它真的就像一个老朋友一样"
+      endingTip: "它像老朋友，陪我过了很多重要时刻"
     },
     {
       id: "basketball",
       name: "物品·篮球（男生向）",
       type: "物品",
       audience: "boy",
-      summary: "父亲送的篮球，与小熊并列；男生优先选用，结构情感线一致",
+      summary: "父亲送的篮球：高考压力时投篮能让人清醒。扩句=说白了→比如",
+
+  expandPatterns: {
+    explain: { id: "explain", slogan: "说白了 → 比如", q1: "说白了？", q2: "比如？" }
+  },
+
       steps: [
         {
-          label: "来源与外观",
-          zh: "当我上初中时，父亲送给我一个篮球作为生日礼物。他知道我特别喜欢运动，所以特地为我挑选了这个球。这个篮球是橙色的，手感很好，上面还有清晰的黑色线条，看起来既结实又专业。",
-          en: "When I was in middle school, my father gave me a basketball for my birthday. He knew I was crazy about sports, so he picked this ball carefully just for me. The basketball is orange, with a really nice grip and clear black lines on it. It looks both solid and professional."
+          label: "它怎么来的",
+          zhOutline: [
+            "初中时父亲送给我一个篮球",
+            "球是橙色的，手感很好，看起来很专业"
+          ],
+          hooks: [
+            {
+              hook: "初中时父亲送给我一个篮球",
+              pattern: "explain",
+              s1: "生日礼物，他知道我喜欢运动",
+              s2: "他特意挑了这个球送给我"
+            },
+            {
+              hook: "球是橙色的，手感很好，看起来很专业",
+              pattern: "explain",
+              s1: "摸着结实，线条也很清楚",
+              s2: "拿到手里就想下场投两下"
+            }
+          ],
+          zh: "初中时父亲送给我一个篮球。说白了，生日礼物，他知道我喜欢运动，比如他特意挑了这个球送给我。球是橙色的，手感很好，看起来很专业。说白了，摸着结实，线条也很清楚，比如拿到手里就想下场投两下。",
+          en: "In middle school, my father gave me a basketball. In plain words, it was a birthday gift—he knew I loved sports. For example, he picked this ball carefully for me. It's orange, feels good in the hand, and looks professional. In plain words, it feels solid and the lines are clear—for example, once I hold it I want to go shoot a few."
         },
         {
-          label: "主体事件·缓解压力",
-          zh: "我记得在高考前，我压力大到坐在书桌前根本学不进去。于是我下楼到空地上投篮。每当球进筐的那一刻，我就感觉平静了些，脑子也清醒了不少。",
-          en: "I still remember before the college entrance exam, I was so stressed that I couldn't focus at my desk at all. So I went downstairs and shot some hoops in an open area. Every time the ball went through the hoop, I somehow felt calmer and my mind became much clearer."
+          label: "它怎么帮到我",
+          zhOutline: [
+            "高考前我压力大到学不进去",
+            "下楼投篮后，我会平静一些，脑子也更清醒"
+          ],
+          hooks: [
+            {
+              hook: "高考前我压力大到学不进去",
+              pattern: "explain",
+              s1: "坐在书桌前，眼睛看着书，心不在焉",
+              s2: "越急越看不进去"
+            },
+            {
+              hook: "下楼投篮后，我会平静一些，脑子也更清醒",
+              pattern: "explain",
+              s1: "球进筐的那一下，烦心事会轻一点",
+              s2: "活动一会儿再回去，状态会好很多"
+            }
+          ],
+          zh: "高考前我压力大到学不进去。说白了，坐在书桌前眼睛看着书，心不在焉，比如越急越看不进去。下楼投篮后，我会平静一些，脑子也更清醒。说白了，球进筐的那一下烦心事会轻一点，比如活动一会儿再回去，状态会好很多。",
+          en: "Before the college entrance exam, I was so stressed I couldn't study. In plain words, I sat at my desk looking at the book but my mind wasn't there—for example, the more anxious I got, the less I could take in. After I went downstairs to shoot, I felt calmer and clearer. In plain words, when the ball went through the hoop, the worry felt lighter—for example, after moving a bit I studied in a better state."
         },
         {
-          label: "长远意义与感受",
-          zh: "从那时起，每当我感到紧张或烦躁，我都会拿着它出去投一会儿篮。它陪伴我度过了很多重要时刻，真的就像一个老朋友一样。",
-          en: "Since then, whenever I feel nervous or upset, I would take it outside and shoot for a while. It has been with me during many important moments, so it really feels like an old friend."
+          label: "它现在对我意味着什么",
+          zhOutline: [
+            "后来一紧张或烦躁，我还会拿它去投一会儿",
+            "它像一个老朋友，陪我过了很多重要时刻"
+          ],
+          hooks: [
+            {
+              hook: "后来一紧张或烦躁，我还会拿它去投一会儿",
+              pattern: "explain",
+              s1: "不一定马上解决问题，但能让我换口气",
+              s2: "空地或球场投十几分钟，人会松一点"
+            },
+            {
+              hook: "它像一个老朋友，陪我过了很多重要时刻",
+              pattern: "explain",
+              s1: "从初中到现在，这个球一直在",
+              s2: "所以它对我不只是器材，更像陪伴"
+            }
+          ],
+          zh: "后来一紧张或烦躁，我还会拿它去投一会儿。说白了，不一定马上解决问题，但能让我换口气，比如空地或球场投十几分钟，人会松一点。它像一个老朋友，陪我过了很多重要时刻。说白了，从初中到现在这个球一直在，比如所以它对我不只是器材，更像陪伴。",
+          en: "Later, whenever I feel nervous or restless, I still take it out and shoot for a while. In plain words, it may not fix things at once, but it lets me breathe—for example, ten-odd minutes on an open court and I loosen up. It feels like an old friend that has been with me through many important moments. In plain words, the ball has been there since middle school—for example, so to me it isn't just gear; it's company."
         }
       ],
-      endingTip: "它真的就像一个老朋友一样"
+      endingTip: "它像老朋友，陪我过了很多重要时刻"
     },
     {
       id: "tianchi",
       name: "地点·长白山天池",
       type: "地点",
-      summary: "东北未经雕琢的自然风光，登顶天池的震撼之旅",
+      summary: "东北长白山天池：爬很长的阶梯，登顶看到湖面很震撼。扩句=说白了→比如",
+
+  expandPatterns: {
+    explain: { id: "explain", slogan: "说白了 → 比如", q1: "说白了？", q2: "比如？" }
+  },
+
       steps: [
         {
-          label: "地点简介",
-          zh: "长白山是中国东北部的一个偏远地区，以未经雕琢的自然风光和一座位于山顶的「天池」而闻名。",
-          en: "It's a remote area in the northeast part of China which is famous for its untouched nature and a lake located at the peak of a hill called \"天池\", it means the pond of heaven."
+          label: "这是什么地方",
+          zhOutline: [
+            "我想说的是长白山的天池",
+            "在东北，自然风景很原始，湖在山顶"
+          ],
+          hooks: [
+            {
+              hook: "我想说的是长白山的天池",
+              pattern: "explain",
+              s1: "中国东北很有名的景点",
+              s2: "很多人专门跑去看那个山顶上的湖"
+            },
+            {
+              hook: "在东北，自然风景很原始，湖在山顶",
+              pattern: "explain",
+              s1: "不是城市公园那种修得很整齐的感觉",
+              s2: "天池的意思差不多就是“天上的池子”"
+            }
+          ],
+          zh: "我想说的是长白山的天池。说白了，中国东北很有名的景点，比如很多人专门跑去看那个山顶上的湖。在东北，自然风景很原始，湖在山顶。说白了，不是城市公园那种修得很整齐的感觉，比如天池的意思差不多就是“天上的池子”。",
+          en: "I'd like to talk about Tianchi on Changbai Mountain. In plain words, it's a famous place in northeast China—for example, many people travel just to see that lake on the mountain top. It's in the northeast, the nature feels raw, and the lake sits up high. In plain words, it isn't a neat city park—for example, Tianchi basically means “the pond of heaven.”"
         },
         {
-          label: "攀登过程",
-          zh: "首先是一段通往山顶的极长阶梯，我们必须爬上去，但至少景色确实令人叹为观止。你可以俯瞰整片山脉，看到前所未见的湛蓝天空，而且空气也格外清新。",
-          en: "First there was an extremely long staircase which leads to the hilltop, we had to go up it, but at least the scenery was truly breathtaking. You can overlook the entire mountain and see the clearest blue sky you've ever seen, also, the air was extremely fresh."
+          label: "怎么上去的",
+          zhOutline: [
+            "要先爬很长很长的阶梯",
+            "路上风景很好，空气也很新"
+          ],
+          hooks: [
+            {
+              hook: "要先爬很长很长的阶梯",
+              pattern: "explain",
+              s1: "腿会酸，人也容易喘",
+              s2: "我们一边爬一边停，花了不少时间"
+            },
+            {
+              hook: "路上风景很好，空气也很新",
+              pattern: "explain",
+              s1: "往下看是山，往上看是很蓝的天",
+              s2: "就算累，也不太想抱怨"
+            }
+          ],
+          zh: "要先爬很长很长的阶梯。说白了，腿会酸，人也容易喘，比如我们一边爬一边停，花了不少时间。路上风景很好，空气也很新。说白了，往下看是山，往上看是很蓝的天，比如就算累，也不太想抱怨。",
+          en: "First you have to climb a very long staircase. In plain words, your legs get sore and you get out of breath—for example, we climbed and stopped again and again, and it took a long time. The views on the way are great, and the air feels fresh. In plain words, you look down at mountains and up at a very blue sky—for example, even when you're tired, you don't really want to complain."
         },
         {
-          label: "登顶震撼与感受",
-          zh: "当我们终于到达山顶，我们看到了那个真正的「天池」。这个湖巨大无比，纯净如碧玉。在阳光下像一颗巨大的钻石一样闪耀，我的天啊，一看到它，攀登时流的所有汗水都值得了。",
-          en: "When we finally reached the top, we saw the very \"天池\". The lake is huge and pure jade. Shining like a huge diamond under the sunlight, oh my god, as soon as I saw it, all the sweat from the climbing was all worth it."
+          label: "登顶之后",
+          zhOutline: [
+            "到山顶终于看到天池",
+            "湖又大又干净，一看就觉得值了"
+          ],
+          hooks: [
+            {
+              hook: "到山顶终于看到天池",
+              pattern: "explain",
+              s1: "那一刻前面的累突然有了回报",
+              s2: "大家都会停下来盯着看一会儿"
+            },
+            {
+              hook: "湖又大又干净，一看就觉得值了",
+              pattern: "explain",
+              s1: "阳光下亮得像一块大宝石",
+              s2: "爬阶梯流的汗，我觉得都值了"
+            }
+          ],
+          zh: "到山顶终于看到天池。说白了，那一刻前面的累突然有了回报，比如大家都会停下来盯着看一会儿。湖又大又干净，一看就觉得值了。说白了，阳光下亮得像一块大宝石，比如爬阶梯流的汗，我觉得都值了。",
+          en: "At the top we finally saw Tianchi. In plain words, at that moment all the tiredness suddenly felt worth it—for example, everyone stops and stares for a while. The lake is huge and clean, and one look makes it feel worth the climb. In plain words, under the sun it shines like a big jewel—for example, I felt all the sweat from the stairs was worth it."
         }
       ],
-      endingTip: "一看到天池，攀登的所有汗水都值得了"
+      endingTip: "一看到天池，爬阶梯的汗都值了"
     },
     {
       id: "robot",
       name: "物品·扫地机器人",
       type: "物品",
-      summary: "（补充素材）养猫家庭省时省力的清洁帮手",
+      summary: "（补充）养猫后买扫地机：连手机、省时间。扩句=说白了→比如",
       optional: true,
+
+  expandPatterns: {
+    explain: { id: "explain", slogan: "说白了 → 比如", q1: "说白了？", q2: "比如？" }
+  },
+
       steps: [
         {
-          label: "购买背景",
-          zh: "我想聊聊扫地机器人。几年前我买了它，主要是因为家里养了两只猫，到处都是猫毛，而那时我又忙于学业没时间收拾。",
-          en: "I'd like to talk about a robot vacuum cleaner. I bought it several years ago, and the main reason was that I have two cats at home. As you can imagine, there's cat fur all over my home all the time. Meanwhile, I was always busy with my studies back then and didn't have time to tidy my home. That's the time when I decided to get one."
+          label: "为什么买",
+          zhOutline: [
+            "我想说的是家里的扫地机器人",
+            "因为养了两只猫，猫毛太多，我又忙"
+          ],
+          hooks: [
+            {
+              hook: "我想说的是家里的扫地机器人",
+              pattern: "explain",
+              s1: "几年前买的，专门帮打扫",
+              s2: "现在几乎每天都会用到"
+            },
+            {
+              hook: "因为养了两只猫，猫毛太多，我又忙",
+              pattern: "explain",
+              s1: "地上老是一层毛，自己扫很累",
+              s2: "那时学业也紧，没时间天天收拾"
+            }
+          ],
+          zh: "我想说的是家里的扫地机器人。说白了，几年前买的，专门帮打扫，比如现在几乎每天都会用到。因为养了两只猫，猫毛太多，我又忙。说白了，地上老是一层毛，自己扫很累，比如那时学业也紧，没时间天天收拾。",
+          en: "I'd like to talk about our robot vacuum. In plain words, I bought it a few years ago to help with cleaning—for example, we use it almost every day now. I got it because we have two cats, there's too much fur, and I was busy. In plain words, the floor was always covered in fur and sweeping by hand was tiring—for example, I was also busy with study and had no time to tidy every day."
         },
         {
-          label: "功能与便利",
-          zh: "这个小设备极其方便。以前我得自己处理猫毛和灰尘，非常累；现在只需在手机上连上应用，点几下就能搞定。它有多种模式，可以设日常清扫，也可以切换扫地模式；而且它能清洁到人手够不到的角落，打扫完还能自清洁。",
-          en: "This little device is extremely handy. In the past, I had to deal with all the fur and dust, which was quite tiring/a lot of work. But now, I just need to connect it to an app on my phone, and get everything done with just a few clicks. It offers different modes. For example, I can set it for regular cleaning on a daily basis, or switch to sweep mode when I need it to mop the floor. And what's really impressive is that it can reach corners that it's impossible for me to clean by hand. After it finishes cleaning, it can even self-clean."
+          label: "它怎么好用",
+          zhOutline: [
+            "连上手机点几下就能扫",
+            "还能扫到边角，扫完会自己回充"
+          ],
+          hooks: [
+            {
+              hook: "连上手机点几下就能扫",
+              pattern: "explain",
+              s1: "不用自己拖着机器满屋跑",
+              s2: "可以设每天定时，也可以临时开一下"
+            },
+            {
+              hook: "还能扫到边角，扫完会自己回充",
+              pattern: "explain",
+              s1: "有些地方人手不好够，它能进去",
+              s2: "弄完自己回底座，我几乎不用管"
+            }
+          ],
+          zh: "连上手机点几下就能扫。说白了，不用自己拖着机器满屋跑，比如可以设每天定时，也可以临时开一下。还能扫到边角，扫完会自己回充。说白了，有些地方人手不好够，它能进去，比如弄完自己回底座，我几乎不用管。",
+          en: "I connect it to my phone and start cleaning with a few taps. In plain words, I don't have to drag a machine around the house—for example, I can set a daily schedule or start it when I need. It can also reach corners and goes back to charge by itself. In plain words, it gets into places that are hard to clean by hand—for example, when it's done it returns to the base and I barely need to watch it."
         },
         {
-          label: "感受",
-          zh: "多亏了扫地机器人，打扫不再是问题，它帮我节省大量时间，也让家里保持整洁。",
-          en: "Thanks to this robot vacuum, cleaning is no longer an issue for me. It saves me so much time and keeps my home clean."
+          label: "用完什么感受",
+          zhOutline: [
+            "打扫不再是大事",
+            "它帮我省了很多时间，家里也更整洁"
+          ],
+          hooks: [
+            {
+              hook: "打扫不再是大事",
+              pattern: "explain",
+              s1: "以前猫毛一多我就头疼",
+              s2: "现在基本交给它就行"
+            },
+            {
+              hook: "它帮我省了很多时间，家里也更整洁",
+              pattern: "explain",
+              s1: "省下的时间能用来学习或休息",
+              s2: "进门也不容易看到到处是毛"
+            }
+          ],
+          zh: "打扫不再是大事。说白了，以前猫毛一多我就头疼，比如现在基本交给它就行。它帮我省了很多时间，家里也更整洁。说白了，省下的时间能用来学习或休息，比如进门也不容易看到到处是毛。",
+          en: "Cleaning is no longer a big deal. In plain words, too much cat fur used to give me a headache—for example, now I mostly leave it to the robot. It saves me a lot of time and keeps the home cleaner. In plain words, the time saved can go to study or rest—for example, when I walk in I'm less likely to see fur everywhere."
         }
       ],
-      endingTip: "它帮我节省大量时间，打扫不再是问题"
+      endingTip: "打扫不再是大事，它帮我省时间"
+    },
+    {
+      id: "linlin",
+      name: "人物·表妹琳琳",
+      type: "人物",
+      summary: "（补充）想当护士的表妹：医院志愿后动念，耐心适合照顾人。扩句=说白了→比如",
+      optional: true,
+      expandPatterns: {
+        explain: { id: "explain", slogan: "说白了 → 比如", q1: "说白了？", q2: "比如？" }
+      },
+      steps: [
+        {
+          label: "她是谁",
+          zhOutline: [
+            "我想说的是表妹琳琳",
+            "我们从小亲戚聚会就熟",
+            "她性格耐心，也愿意照顾人"
+          ],
+          hooks: [
+            {
+              hook: "我想说的是表妹琳琳",
+              pattern: "explain",
+              s1: "她比我小几岁，是家里最小的一辈之一",
+              s2: "过年过节总能见到，后来也常视频"
+            },
+            {
+              hook: "她性格耐心，也愿意照顾人",
+              pattern: "explain",
+              s1: "别人讲麻烦事她不急着打断",
+              s2: "家里有人生病，她也爱跟着跑前跑后"
+            }
+          ],
+          zh: "我想说的是表妹琳琳。说白了，她比我小几岁，是家里最小的一辈之一，比如过年过节总能见到，后来也常视频。我们从小亲戚聚会就熟。她性格耐心，也愿意照顾人。说白了，别人讲麻烦事她不急着打断，比如家里有人生病，她也爱跟着跑前跑后。",
+          en: "I'd like to talk about my cousin Linlin. In plain words, she's a few years younger and one of the youngest in the family—for example, we always meet at festivals and later often video-call. We've known each other since family gatherings as kids. She's patient and willing to look after people. In plain words, she doesn't rush to interrupt when someone talks about troubles—for example, when someone at home is ill she likes to help."
+        },
+        {
+          label: "为什么想学医/护理",
+          zhOutline: [
+            "高中时她去医院做志愿者",
+            "看到护士把病人照料好，她觉得很有意义",
+            "从那时起她想正式走护理方向"
+          ],
+          hooks: [
+            {
+              hook: "高中时她去医院做志愿者",
+              pattern: "explain",
+              s1: "学校组织的短期志愿",
+              s2: "她负责指路、陪老人聊天这类小事"
+            },
+            {
+              hook: "从那时起她想正式走护理方向",
+              pattern: "explain",
+              s1: "不是一时冲动，回家后还查专业和学校",
+              s2: "跟父母说以后想考护理相关专业"
+            }
+          ],
+          zh: "高中时她去医院做志愿者。说白了，那是学校组织的短期志愿，比如她负责指路、陪老人聊天这类小事。看到护士把病人照料好，她觉得很有意义。从那时起她想正式走护理方向。说白了，不是一时冲动，回家后还查专业和学校，比如跟父母说以后想考护理相关专业。",
+          en: "In high school she volunteered at a hospital. In plain words, it was a short school programme—for example, she helped with directions and chatting with elderly patients. Seeing nurses look after patients well made her feel the work was meaningful. From then on she wanted to pursue nursing properly. In plain words, it wasn't a sudden whim—she researched programmes at home—for example, she told her parents she wanted to apply for nursing-related studies."
+        },
+        {
+          label: "计划和我的看法",
+          zhOutline: [
+            "她计划先读护理，再进病房工作",
+            "以后再决定要不要深造",
+            "我支持她，觉得她真的适合"
+          ],
+          hooks: [
+            {
+              hook: "她计划先读护理，再进病房工作",
+              pattern: "explain",
+              s1: "先把基础技能学扎实",
+              s2: "想从最贴近病人的岗位做起"
+            },
+            {
+              hook: "我支持她，觉得她真的适合",
+              pattern: "explain",
+              s1: "她不怕琐碎，也有耐心",
+              s2: "看到别人被照顾好，她会特别有成就感"
+            }
+          ],
+          zh: "她计划先读护理，再进病房工作。说白了，先把基础技能学扎实，比如想从最贴近病人的岗位做起。以后再决定要不要深造。我支持她，觉得她真的适合。说白了，她不怕琐碎，也有耐心，比如看到别人被照顾好，她会特别有成就感。",
+          en: "She plans to study nursing first, then work on a ward. In plain words, she wants solid basic skills—for example, starting in a role closest to patients. Later she can decide whether to study further. I support her and think she truly fits. In plain words, she isn't afraid of small tasks and has patience—for example, she feels proud when people are well looked after."
+        }
+      ],
+      endingTip: "我支持她：耐心、适合照顾人"
     }
   ],
-  questions: [
+
+  questions:       [
     {
       "id": 1,
       "title": "近期改变",
@@ -251,10 +901,28 @@ const P2_DATA = {
       "openingEn": "I still remember how proud I felt when my cousin turned his stress into a healthier lifestyle last year.",
       "openingZh": "我仍记得去年表弟把压力变成更健康生活方式时，我有多骄傲。",
       "materialId": "badminton",
-      "materialHint": "主体换成表弟：他学习压力大后开始打羽毛球，组队交友、变得外向，挥拍忘压；你为他的坚持自豪。",
-      "endingTip": "全神贯注于身心，暂时忘却学业压力",
+      "materialHint": "主体换成表弟：压力大→开始打球→交友变外向。你的骄傲来自他的坚持，不要用「我忘却学业压力」收尾。",
+      "endingTip": "看到他用运动把自己拉出低谷，我真的为他骄傲。",
       "sampleEn": "I still remember how proud I felt when my cousin turned his stress into a healthier lifestyle last year. He is two years younger than me, and around last spring he was occupied with applying for master's programs and studying English. He always got tired and sometimes couldn't focus, so the whole family was worried. What he did next really impressed me: following a friend's advice, he started to play badminton twice a week. Because badminton requires a partner, he often teams up with strangers at the court, and soon he made friends who shared the same passion for sports. They began meeting every weekend, and I found him becoming more and more outgoing. When he swings his racket, he says all he hears is its sound and the wind, which helps him forget the pressure from his studies for a while. I felt proud not only because his mood improved, but also because he chose a positive way to handle difficulty instead of complaining. Watching that change in a family member made me respect him even more.",
-      "sampleZh": "表弟去年因申请压力大，后来坚持打羽毛球、与陌生人组队、变得外向；我为他用积极方式面对困难而骄傲。"
+      "sampleZh": "表弟去年因申请压力大，后来坚持打羽毛球、与陌生人组队、变得外向；我为他用积极方式面对困难而骄傲。",
+      "applyOutline": [
+        {
+          "label": "何时",
+          "line": "去年备考最难的阶段"
+        },
+        {
+          "label": "是谁",
+          "line": "表弟，比我小几岁"
+        },
+        {
+          "label": "他做了什么",
+          "line": "主动约球、跟陌生人组队，把羽毛球坚持下来"
+        },
+        {
+          "label": "为何骄傲",
+          "line": "他没有被压力压垮，还变得更开朗，全家都松了口气"
+        }
+      ]
     },
     {
       "id": 3,
@@ -270,13 +938,31 @@ const P2_DATA = {
       "recentCount": 3178,
       "heatRank": 3,
       "heatLevel": "star2",
-      "openingEn": "There's a friend of mine who picks up languages faster than anyone I know, and her name is Yumeng.",
-      "openingZh": "我有个学语言比谁都快的朋友，叫雨萌。",
+      "openingEn": "The person I want to talk about is Yumeng — she picks up new languages really fast, especially English.",
+      "openingZh": "我想说的人是雨萌：她学新语言特别快，尤其是英语。",
       "materialId": "yumeng",
-      "materialHint": "雨萌为读硕士认真学英语：同街区长大、校园边走边聊；用热情驱动学习，收尾感激她的建议。",
-      "endingTip": "她的话给了我巨大的力量，至今仍感激她睿智的建议",
-      "sampleEn": "There's a friend of mine who picks up languages faster than anyone I know, and her name is Yumeng. Yumeng is one of my most important friends. We grew up in the same neighborhood and went to the same school, so I've watched her learning style for years. She is really smart and optimistic, and English is the language she works on most because she wants to pursue a master's degree abroad. The way she learns is practical: she listens to podcasts while walking, talks to international students, and reviews vocabulary every night. When I was in my third year at university and felt lost about whether to pursue a master's degree or start working, we walked around the campus and she listened very patiently. She even practiced explaining her study plan in English to me, which showed how serious she was. She can speak fluent Mandarin and English, and she is starting basic Japanese for fun. Her words like \"Your passion is your best teacher. Just go for it.\" gave me so much strength, and I still appreciate how language learning and life advice come together in her.",
-      "sampleZh": "雨萌是同街区长大的挚友，为读硕士认真学英语；校园散步时她耐心倾听并用热情鼓励我，我很佩服她。"
+      "materialHint": "人用雨萌（发小、乐观肯听）。本题主线是她怎么学语言，不要整段讲考研建议。",
+      "endingTip": "我佩服她学语言的劲头，也喜欢她那种不慌不忙的耐心。",
+      "sampleEn": "There's a friend of mine who picks up languages faster than anyone I know, and her name is Yumeng. We grew up in the same neighbourhood and still talk often. When she prepared graduate applications she practised English every day — podcasts, shadowing, and forcing herself to explain ideas in English. Her mother tongue is Chinese, and her English is already smooth enough for study and daily life. What I admire is not magic talent but her patience: she keeps practising and she isn't afraid to open her mouth.",
+      "sampleZh": "雨萌从小一起长大；为读研每天练英语；佩服她敢开口、肯坚持。",
+      "applyOutline": [
+        {
+          "label": "怎么认识",
+          "line": "我们从小一起长大，现在仍常聊天"
+        },
+        {
+          "label": "怎么学语言",
+          "line": "为了读研申请，她每天练英语：听播客、跟读、逼自己用英语解释想法"
+        },
+        {
+          "label": "会说什么",
+          "line": "中文母语，英语已经能比较顺地讨论学习和生活"
+        },
+        {
+          "label": "我的感受",
+          "line": "她学得快，是因为肯练、也敢开口；跟她聊天我会更敢说英语"
+        }
+      ]
     },
     {
       "id": 4,
@@ -339,10 +1025,28 @@ const P2_DATA = {
       "openingEn": "One environmental law I really support is the scenic-area protection rule that bans littering and unauthorized building inside national nature reserves, and I first understood why after visiting Changbai Mountain.",
       "openingZh": "我很支持禁止在国家级自然保护区乱扔垃圾与私搭乱建的景区保护法，去长白山后才真正明白原因。",
       "materialId": "tianchi",
-      "materialHint": "用长白山天池景点禁扔垃圾、禁私搭乱建等具体保护区规定切入；串未开发自然、极长阶梯与清澈湖水，说明法律如何保护游客与生态，感受落在登顶值得。",
-      "endingTip": "一看到天池，攀登的所有汗水都值得了",
+      "materialHint": "法律是「保护区禁乱扔/禁私搭」。天池经历用来解释你为何在意，爬山细节点到为止。",
+      "endingTip": "有了这类规定，像天池这样的地方才更能留给后来的人。",
       "sampleEn": "One environmental law I really support is the scenic-area protection rule that bans littering and unauthorized building inside national nature reserves, and I first understood why after visiting Changbai Mountain. In practice, visitors must carry trash out, stay on marked paths, and cannot open shops or hotels beside protected lakes. I learned about these rules when park guides explained them before we entered a remote area in the northeast part of China which is famous for its untouched nature and a lake called \"Tianchi\", the pond of heaven. First there was an extremely long staircase which leads to the hilltop; we had to go up it, but the scenery was truly breathtaking. You can overlook the entire mountain, see the clearest blue sky you've ever seen, and breathe extremely fresh air. When we finally reached the top, we saw the very Tianchi—huge and pure like jade, shining like a huge diamond under the sunlight. Locals, future visitors, and wildlife all benefit, because without the littering ban and construction limits the jade-blue water could be spoiled by plastic bottles and noisy hotels. As soon as I saw Tianchi, all the sweat from the climbing was worth it, and that feeling made me respect this concrete protection law even more.",
-      "sampleZh": "我支持景区禁扔垃圾与禁私搭乱建的保护法；在长白山听讲解后更理解天池之美，登顶时一切汗水都值得。"
+      "sampleZh": "我支持景区禁扔垃圾与禁私搭乱建的保护法；在长白山听讲解后更理解天池之美，登顶时一切汗水都值得。",
+      "applyOutline": [
+        {
+          "label": "什么法",
+          "line": "国家级自然保护区里禁乱扔垃圾、禁私搭乱建一类的景区保护规定"
+        },
+        {
+          "label": "怎么知道",
+          "line": "去长白山天池时入口和步道反复看到警示与罚款提示"
+        },
+        {
+          "label": "谁受益",
+          "line": "游客能看到更干净的湖景，生态也不被一点点啃坏"
+        },
+        {
+          "label": "我的感受",
+          "line": "爬那么久才看到湖，更觉得这些规矩不是扫兴，是在护住那份震撼"
+        }
+      ]
     },
     {
       "id": 7,
@@ -358,13 +1062,31 @@ const P2_DATA = {
       "recentCount": 2324,
       "heatRank": 7,
       "heatLevel": "star2",
-      "openingEn": "The children's book I want to mention is a gentle adventure about a teddy bear, and I read it because it came with a real gift from my best friend.",
-      "openingZh": "我想提的童书是关于泰迪熊的温暖冒险，我读它是因为最好的朋友把它连同礼物一起送给我。",
+      "openingEn": "I'd like to talk about a children's storybook about a little bear — a friend gave it to me together with a gift.",
+      "openingZh": "我想谈的是一本关于小熊的儿童故事书，朋友把书连同礼物一起送给我。",
       "materialId": "bear",
-      "materialHint": "朋友送Jellycat泰迪熊时附赠熊主角图画书；软毛红丝带、高考压力时抱熊平静；书与玩偶互相呼应。",
-      "endingTip": "它真的就像一个老朋友一样",
-      "sampleEn": "The children's book I want to mention is a gentle adventure about a teddy bear, and I read it because it came with a real gift from my best friend. When I was in primary school, my best friend gave me a stuffed teddy bear from Jellycat for my birthday, and she also slipped a small picture book into the box. The bear in the story looks almost the same: small and brown, with soft fur and a red ribbon around its neck, traveling through forests to comfort a lonely child. I read it again and again before bed, especially later when stress grew. I still remember before the college entrance exam, I was so stressed that I couldn't fall asleep; I held the bear in my arms, thought of the story's calm ending, and somehow felt calmer and managed to sleep better. Since then, whenever I feel nervous or upset, I hug the bear and reread a few pages. The book is simple, but it has been with me during many important moments, so both the story and the toy really feel like an old friend.",
-      "sampleZh": "好友送Jellycat并附赠熊冒险图画书；高考前抱熊读故事更平静，它像老朋友一样陪伴我。"
+      "materialHint": "主线是「书」：熊是主角。小熊玩偶只作送礼场景里的关联细节，不要把玩偶软毛当故事本身。",
+      "endingTip": "这本书现在仍会让我想起那份友情，也觉得故事很暖。",
+      "sampleEn": "I'd like to talk about a children's storybook about a little bear that a friend gave me together with a gift. The main animal is a talking teddy who helps a nervous child through a hard time by teaching slow breathing and saying fears out loud. I read it often before the college entrance exam because it came with a Jellycat bear from my best friend. The plot is simple but warm — it feels like someone gently tapping your shoulder and saying you'll be fine.",
+      "sampleZh": "谈熊主角童书；好友送礼时附上；高考前常翻，故事很暖。",
+      "applyOutline": [
+        {
+          "label": "什么动物",
+          "line": "主角是一只会说话的小熊"
+        },
+        {
+          "label": "故事讲什么",
+          "line": "小熊陪一个紧张的孩子度过难关，教他慢慢呼吸、把害怕说出来"
+        },
+        {
+          "label": "为什么读",
+          "line": "好友送Jellycat小熊时附上这本书，高考前我常翻几页"
+        },
+        {
+          "label": "我觉得怎样",
+          "line": "情节简单但很暖，像有人轻轻拍拍你说没事的"
+        }
+      ]
     },
     {
       "id": 8,
@@ -380,13 +1102,31 @@ const P2_DATA = {
       "recentCount": 2093,
       "heatRank": 8,
       "heatLevel": "star2",
-      "openingEn": "A few months ago I sent Yumeng a long message about my future plans and then waited far longer than I expected for a reply.",
-      "openingZh": "几个月前我给雨萌发了一条关于未来计划的长消息，结果等回复比预想久得多。",
+      "openingEn": "A few months ago I sent Yumeng a long message, and then I waited much longer than I expected for her reply.",
+      "openingZh": "几个月前我给雨萌发了一条很长的消息，结果等她回复等了好久。",
       "materialId": "yumeng",
-      "materialHint": "消息内容是考研/工作纠结；她后来解释在忙申请；见面时校园倾听并给出建议；收尾感激。",
-      "endingTip": "她的话给了我巨大的力量，至今仍感激她睿智的建议",
-      "sampleEn": "A few months ago I sent Yumeng a long message about my future plans and then waited far longer than I expected for a reply. Yumeng is one of my most important friends. We grew up in the same neighborhood, so I usually get answers quickly, which made the silence feel strange. The message was about a crossroads in my third year at university: whether to pursue a master's degree or start working after graduation. I felt quite at a loss and poured everything into that text. For nearly a week there was no reply, and I started worrying that I had bothered her. Finally she called and explained she had been buried in her own applications; then we met and walked around the campus, and she listened very patiently. She said, \"Don't worry about the pressure of finding a job. Think about what you want to do for the rest of your life,\" and \"Your passion is your best teacher. Just go for it.\" I did receive a warm reply in the end, and although the wait was uncomfortable, her words gave me so much strength. I still appreciate her wise advice to this day.",
-      "sampleZh": "给雨萌发长消息久等未回；见面后她倾听并鼓励我；等待难受但最终感激她的建议。"
+      "materialHint": "主线必须是「发消息→久等→终于回复→当下感受」。雨萌身份可借；校园长谈/考研建议最多一句带过，别喧宾夺主。",
+      "endingTip": "等回复的那几天我挺焦虑，但后来明白她不是冷落我，只是真的忙。",
+      "sampleEn": "A few months ago I sent Yumeng a long message, and then I waited much longer than I expected for her reply. Yumeng is my childhood friend, so I usually hear back quickly, which made the silence feel strange. The message was about whether I should do a master's after graduation or start working — I poured everything into that text. For several days there was no reply, and I started overthinking. Finally she messaged that she had been buried in her own applications and barely checked her phone; she suggested we talk at the weekend. When we met I felt relieved. The wait was uncomfortable, but I realised she wasn't ignoring me — she was simply busy, and I learned not to stare at 'read' receipts when something matters.",
+      "sampleZh": "给雨萌发长消息久等未回；她忙申请后解释并约见面；等待焦虑但后来释然。",
+      "applyOutline": [
+        {
+          "label": "发给谁",
+          "line": "发给雨萌——从小一起长大的朋友"
+        },
+        {
+          "label": "消息说什么",
+          "line": "我纠结毕业后读研还是工作，把心里话写成一条很长的消息"
+        },
+        {
+          "label": "有没有回复",
+          "line": "她隔了好几天才回：正在赶申请材料，手机几乎没看；约我周末当面说"
+        },
+        {
+          "label": "我的感受",
+          "line": "等的时候会胡思乱想，见面后释然；也学到急事别只盯已读不回"
+        }
+      ]
     },
     {
       "id": 9,
@@ -425,14 +1165,14 @@ const P2_DATA = {
       "recentCount": 1869,
       "heatRank": 10,
       "heatLevel": "star1",
-      "openingEn": "The successful business owner I know best is my aunt, who runs a small boutique that sells carefully chosen soft toys and gifts.",
-      "openingZh": "我最熟悉的成功生意人是姨妈，她经营一家精选毛绒玩具与礼品的小店。",
+      "openingEn": "The most successful businessperson I know well is my aunt — she runs a small shop selling selected plush toys and gifts.",
+      "openingZh": "我最熟悉的成功生意人是姨妈：她开了一家卖精选毛绒玩具和礼物的小店。",
       "materialId": "bear",
       "materialIds": [
         "bear",
         "basketball"
       ],
-      "materialHint": "姨妈开礼品店主打Jellycat泰迪熊；软毛红丝带与高考季安慰属性带来回头客。男生版可改体育用品店。",
+      "materialHint": "主线是姨妈的店怎么开、为何成功。Jellycat小熊是店里明星货，不是把「我抱熊减压」讲成生意故事。男生版可换成体育用品店卖篮球。",
       "materialHintById": {
         "bear": "姨妈开礼品店主打Jellycat泰迪熊；软毛红丝带、高考季安慰属性带来回头客，说明生意成功。",
         "basketball": "叔叔开体育用品店，主打手感好的篮球；高考前学生来买球投篮减压，口碑带来成功。"
@@ -447,9 +1187,9 @@ const P2_DATA = {
           "zh": "我最熟悉的成功生意人是叔叔，他经营一家卖优质球类与训练装备的小体育店。"
         }
       },
-      "endingTip": "它真的就像一个老朋友一样",
-      "sampleEn": "The successful business owner I know best is my aunt, who runs a small boutique that sells carefully chosen soft toys and gifts. I got to know the shop simply because she is family, and I often helped her unpack boxes during school holidays. She started the business after noticing how many young people wanted comforting gifts during stressful exam seasons. Her best-selling item is a stuffed teddy bear from Jellycat: small and brown, with very soft fur and a red ribbon around its neck. Customers tell her that before the college entrance exam they feel calmer when they hold it, and that it really feels like an old friend, which creates loyal repeat buyers. I think the business is successful because she understands emotion, not only price: the shop is tidy, advice is patient, and people leave smiling with a gift that actually matters. That mix of warmth and professionalism keeps the boutique busy every weekend.",
-      "sampleZh": "姨妈开礼品店主打Jellycat小熊，高考季安慰属性带来回头客，生意成功。",
+      "endingTip": "我觉得她成功，是因为货靠谱，也懂客人真正想要什么安慰感。",
+      "sampleEn": "The successful businessperson I know best is my aunt, who runs a small shop selling selected plush toys and gifts. She's a relative, and I often help in the shop at weekends. She started online, noticed strong demand for comforting gifts during exam season, then rented a mall counter. The shop does well because quality is reliable and she understands what comfort customers want — popular bears sell out in peak months and people come back.",
+      "sampleZh": "姨妈开毛绒礼品店；网上试卖后开柜；考季安慰礼物回头客多。",
       "sampleEnById": {
         "bear": "The successful business owner I know best is my aunt, who runs a small boutique that sells carefully chosen soft toys and gifts. I got to know the shop simply because she is family, and I often helped her unpack boxes during school holidays. She started the business after noticing how many young people wanted comforting gifts during stressful exam seasons. Her best-selling item is a stuffed teddy bear from Jellycat: small and brown, with very soft fur and a red ribbon around its neck. Customers tell her that before the college entrance exam they feel calmer when they hold it, and that it really feels like an old friend, which creates loyal repeat buyers. I think the business is successful because she understands emotion, not only price: the shop is tidy, advice is patient, and people leave smiling with a gift that actually matters. That mix of warmth and professionalism keeps the boutique busy every weekend.",
         "basketball": "The successful business owner I know best is my uncle, who runs a compact sports shop that sells quality balls and training gear. I got to know the place because he is family, and I used to sweep the floor there after school. He started the business when he saw students nearby needing a healthy way to release pressure. His signature product is a solid orange basketball with a nice grip, similar to the one my father gave me years ago. Many customers say that before the college entrance exam they shot some hoops and felt calmer and their minds became much clearer, so the ball feels like an old friend. I think the business succeeds because he recommends gear patiently, prices fairly, and builds a community of regular players who keep coming back. Weekend evenings the shop is always lively with people comparing bounce and grip."
@@ -461,6 +1201,24 @@ const P2_DATA = {
       "materialOptions": [
         "bear",
         "basketball"
+      ],
+      "applyOutline": [
+        {
+          "label": "是谁",
+          "line": "姨妈，家里亲戚，我周末常去店里帮忙"
+        },
+        {
+          "label": "做什么生意",
+          "line": "商场里一间毛绒礼品店，主打质量好的泰迪熊（含Jellycat）"
+        },
+        {
+          "label": "怎么起步",
+          "line": "她先在网上试卖，发现高考季「安慰礼物」需求大，才敢租柜台"
+        },
+        {
+          "label": "为何算成功",
+          "line": "回头客多，考季常卖断货；她把服务做细，客人愿意复购"
+        }
       ]
     },
     {
@@ -502,10 +1260,28 @@ const P2_DATA = {
       "openingEn": "The most boring place I visited recently was a quiet library corner where I tried to force myself to study all weekend.",
       "openingZh": "我最近去过最无聊的地方，是周末硬逼自己待着的安静图书馆角落。",
       "materialId": "badminton",
-      "materialHint": "对比：图书馆枯燥闷坐 vs 后来去球场打羽毛球；组队、挥拍忘压反衬无聊。",
-      "endingTip": "全神贯注于身心，暂时忘却学业压力",
+      "materialHint": "主体是无聊的图书馆角落：做什么、为何闷。羽毛球只作对比一句，别把打球经历讲成主线。",
+      "endingTip": "正因为太闷，我后来才更珍惜能真正活动起来的地方。",
       "sampleEn": "The most boring place I visited recently was a quiet library corner where I tried to force myself to study all weekend. I went there with a classmate because we were occupied with applying for master's programs and studying English, and we thought sitting still for ten hours would help. What we did was stare at the same pages, check phones secretly, and whisper complaints. Nothing moved, nothing changed, and I felt my brain freeze. That boredom actually pushed me to leave and start to play badminton later that afternoon. At the court I could team up with strangers, hear the sound of the racket and the wind, and suddenly feel alive again. Compared with swinging my racket and becoming more outgoing with sports friends, that library corner was painfully dull. I call it boring not because libraries are bad, but because forcing focus without movement made the pressure worse instead of helping me forget it for a while.",
-      "sampleZh": "周末图书馆硬坐学习极无聊；后来去打羽毛球组队、挥拍，才感到清醒，反衬那个角落多么沉闷。"
+      "sampleZh": "周末图书馆硬坐学习极无聊；后来去打羽毛球组队、挥拍，才感到清醒，反衬那个角落多么沉闷。",
+      "applyOutline": [
+        {
+          "label": "在哪",
+          "line": "学校图书馆最里侧靠窗的角落"
+        },
+        {
+          "label": "和谁",
+          "line": "多半自己一人，有时室友也闷坐旁边"
+        },
+        {
+          "label": "做什么",
+          "line": "假装复习，实际刷题刷不进去，只听得到翻书声"
+        },
+        {
+          "label": "为何无聊",
+          "line": "空气沉、不能大声说话，越坐越困；后来去打球才觉得人活过来了"
+        }
+      ]
     },
     {
       "id": 13,
@@ -543,13 +1319,31 @@ const P2_DATA = {
       "recentCount": 1568,
       "heatRank": 14,
       "heatLevel": "star1",
-      "openingEn": "The person closest to a future medical career in my life is my friend Yumeng, who has always been the one who cares for others first.",
-      "openingZh": "我身边最接近未来医疗职业的人是雨萌，她总是最先关心别人。",
-      "materialId": "yumeng",
-      "materialHint": "雨萌聪明乐观、愿意倾听支持；把她对他人的耐心与“想一生做什么”的志向连到护理/医学方向。",
-      "endingTip": "她的话给了我巨大的力量，至今仍感激她睿智的建议",
-      "sampleEn": "The person closest to a future medical career in my life is my friend Yumeng, who has always been the one who cares for others first. Yumeng is one of my most important friends. We grew up in the same neighborhood and went to the same school, so I have known her for most of my life. She started thinking seriously about nursing during our third year at university, when many of us faced crossroads about master's degrees or jobs. She is really smart and optimistic, and whether in study or personal life she is always willing to listen and support people. I still remember we walked around the campus while she listened very patiently to my worries, then told me to think about what I want to do for the rest of my life. That same empathy is why she wants to become a nurse: she believes calm words and careful care can give patients strength the way her advice gave me strength. Her passion feels genuine, and I still appreciate how wisely she connects caring with a real career path.",
-      "sampleZh": "雨萌从小同街区长大，大学时认真考虑护理；她总是耐心倾听支持他人，这份共情让她想用专业照顾病人。"
+      "openingEn": "I'd like to talk about my cousin Linlin — she's clear she wants a career in the medical field, as a nurse or something related.",
+      "openingZh": "我想说的是表妹琳琳：她很明确想走医疗方向，以后做护士或相关工作。",
+      "materialId": "linlin",
+      "materialHint": "主线就是表妹琳琳想当护士。去背补充素材「琳琳」即可；不要再套雨萌考研故事。",
+      "endingTip": "我支持她：她真的适合照顾人，也愿意为这事长期投入。",
+      "sampleEn": "I'd like to talk about my cousin Linlin, who is clear she wants a career in the medical field as a nurse. We've known each other since family gatherings when we were kids. After high-school volunteering at a hospital she said she wanted to study nursing properly. Her plan is to enter a nursing programme first, work on a ward, and later decide whether to study further. I support her because she is patient with small tasks and feels proud when patients are well looked after.",
+      "sampleZh": "表妹琳琳想当护士；高中医院志愿后动念；耐心适合照顾人。",
+      "applyOutline": [
+        {
+          "label": "何时认识",
+          "line": "她是表妹，从小亲戚聚会就熟"
+        },
+        {
+          "label": "何时动念",
+          "line": "高中志愿者去医院帮忙后，她说想正式学护理"
+        },
+        {
+          "label": "想做什么",
+          "line": "先考护理相关专业，以后做病房护士，再慢慢看要不要深造"
+        },
+        {
+          "label": "为什么",
+          "line": "她耐心、不怕琐碎，看到病人被好好照顾会特别有成就感"
+        }
+      ]
     },
     {
       "id": 15,
@@ -568,10 +1362,28 @@ const P2_DATA = {
       "openingEn": "The tall building I like most is not a glass tower in a city center, but the observation structure near Tianchi on Changbai Mountain.",
       "openingZh": "我最喜欢的高建筑不是市中心玻璃楼，而是长白山天池附近的观景建筑。",
       "materialId": "tianchi",
-      "materialHint": "把山顶观景台/高阶梯建筑当作tall building；登顶后俯瞰山脉与天池，解释为何喜欢。",
-      "endingTip": "一看到天池，攀登的所有汗水都值得了",
+      "materialHint": "把天池附近观景台/高阶建筑当作 tall building：用途、外观、为何喜欢。不要只讲爬山不讲建筑。",
+      "endingTip": "站在那座观景建筑往下看，山脉和天池一起进来，我反而喜欢这种「高」。",
       "sampleEn": "The tall building I like most is not a glass tower in a city center, but the observation structure near Tianchi on Changbai Mountain. It is used for visitors to rest and look out after climbing, and it sits in a remote area in the northeast part of China famous for untouched nature. From below it looks simple, almost plain, but reaching it means walking an extremely long staircase that leads toward the hilltop. When I finally stood there, the scenery was truly breathtaking: I could overlook the entire mountain, see the clearest blue sky, and feel extremely fresh air. Beyond the platform, Tianchi appeared like pure jade, shining like a huge diamond under the sunlight. I like this tall building because its height serves nature rather than blocking it, and as soon as I saw the pond of heaven, all the sweat from the climbing was worth it.",
-      "sampleZh": "喜欢天池附近观景高台：需爬极长阶梯，俯瞰山脉与碧玉般天池；高度服务于自然，登顶汗水都值得。"
+      "sampleZh": "喜欢天池附近观景高台：需爬极长阶梯，俯瞰山脉与碧玉般天池；高度服务于自然，登顶汗水都值得。",
+      "applyOutline": [
+        {
+          "label": "用途",
+          "line": "观景与休息，方便游客登高看天池方向"
+        },
+        {
+          "label": "在哪",
+          "line": "长白山景区靠近天池一侧的观景建筑"
+        },
+        {
+          "label": "长什么样",
+          "line": "挑高、大玻璃或开阔平台，风很大，阶梯连着上去"
+        },
+        {
+          "label": "为何喜欢",
+          "line": "高度带来视野，让未开发的山湖一眼看清，比城里玻璃楼有意思"
+        }
+      ]
     },
     {
       "id": 16,
@@ -631,13 +1443,31 @@ const P2_DATA = {
       "recentCount": 1484,
       "heatRank": 18,
       "heatLevel": "star1",
-      "openingEn": "My uncle is the plant lover in our family, and his hobby grew even stronger after a trip to Changbai Mountain.",
-      "openingZh": "叔叔是家里的植物爱好者，去长白山之后这份爱好更强了。",
+      "openingEn": "My uncle is the biggest plant lover in our family — his balcony and yard are almost fully occupied by what he grows.",
+      "openingZh": "叔叔是家里最爱种植物的人，阳台和院子几乎被他占满了。",
       "materialId": "tianchi",
-      "materialHint": "叔叔爱自然：阳台种菜养花；灵感来自天池未开发自然与清新空气；种植是把自然感带回家。",
-      "endingTip": "一看到天池，攀登的所有汗水都值得了",
+      "materialHint": "主线是叔叔种菜养花。长白山天池只作「他为何更爱自然」的一次触发，不要整段爬山阶梯当主体。",
+      "endingTip": "看他侍弄植物很安心，也让我觉得把一点自然带回家很值得。",
       "sampleEn": "My uncle is the plant lover in our family, and his hobby grew even stronger after a trip to Changbai Mountain. He grows herbs, tomatoes, and a few wildflowers on the balcony, watering them every morning and talking to them as if they were quiet friends. The way he grows plants is careful and patient: he checks sunlight, mixes soil himself, and refuses chemical sprays. Why does he love it? After visiting a remote area in the northeast famous for untouched nature and Tianchi, the pond of heaven, he said city air felt heavy. He still remembers the extremely long staircase, the breathtaking clear blue sky, and the lake shining like a huge diamond. Growing plants is his way of keeping a piece of that fresh world at home. Whenever the seedlings turn green, he smiles the same way he did when he said all the sweat from the climbing was worth it.",
-      "sampleZh": "叔叔阳台种菜养花，灵感来自长白山未开发自然与天池清新空气；种植是把那份自然感带回家。"
+      "sampleZh": "叔叔阳台种菜养花，灵感来自长白山未开发自然与天池清新空气；种植是把那份自然感带回家。",
+      "applyOutline": [
+        {
+          "label": "是谁",
+          "line": "叔叔，退休后时间更多，整天围着花草转"
+        },
+        {
+          "label": "种什么",
+          "line": "阳台番茄、香菜，院子里月季和一点小葱"
+        },
+        {
+          "label": "怎么种",
+          "line": "自己配土、看天气预报浇水，还用手机记浇水周期"
+        },
+        {
+          "label": "为何热爱",
+          "line": "去长白山看过未开发的自然后更上瘾；种植是把那份清新感带回家"
+        }
+      ]
     },
     {
       "id": 19,
@@ -653,13 +1483,31 @@ const P2_DATA = {
       "recentCount": 1309,
       "heatRank": 19,
       "heatLevel": "star1",
-      "openingEn": "The special-occasion food I think of first is homemade birthday cake, especially the one we shared when I received my Jellycat bear.",
-      "openingZh": "我首先想到的特别场合食物是自制生日蛋糕，尤其是收到Jellycat小熊那天一起吃的那块。",
+      "openingEn": "The special-occasion food that comes to mind is birthday cake — we almost always have it for birthdays at home.",
+      "openingZh": "我想到的特别场合食物是生日蛋糕——家里过生日几乎必有。",
       "materialId": "bear",
-      "materialHint": "生日场合吃蛋糕；当天好友送Jellycat泰迪熊；软毛红丝带与蛋糕一起成为珍贵回忆。",
-      "endingTip": "它真的就像一个老朋友一样",
-      "sampleEn": "The special-occasion food I think of first is homemade birthday cake, especially the one we shared when I received my Jellycat bear. In my family we eat this soft cream cake on birthdays and a few graduation days. My mother bakes a simple sponge, whips cream, and lets us decorate the top with fruit. That particular birthday stands out because my best friend gave me a stuffed teddy bear from Jellycat along with the cake: it was small and brown, with soft fur and a red ribbon around its neck. We cut the cake, laughed, and I hugged the bear between bites. People eat cake on birthdays to mark care and celebration, and for me the sweetness is tied to that gift. Years later, before the college entrance exam when I felt calmer holding the bear, I still remembered the cake-and-bear birthday. The toy feels like an old friend, and the cake is the taste of that beginning.",
-      "sampleZh": "生日吃自制蛋糕；那天好友还送了Jellycat小熊。蛋糕的甜蜜与这只像老朋友的熊连在一起。"
+      "materialHint": "主线是生日蛋糕（场合、怎么来的、为什么吃）。小熊只是「某次生日顺带收到的礼物」，别把玩偶讲成食物。",
+      "endingTip": "蛋糕本身不复杂，但切开分享的那一刻，场合就有了仪式感。",
+      "sampleEn": "The special-occasion food that comes to mind is birthday cake — we almost always have it for birthdays at home. It is usually a cream cake with strawberry or chocolate. Mum orders it or decorates a simple one; on one birthday a friend also brought a small bear as a gift. We eat it then because candles, wishes and sharing slices mark growing another year together.",
+      "sampleZh": "特别场合吃生日蛋糕；蜡烛许愿一起分；礼物可带过一句。",
+      "applyOutline": [
+        {
+          "label": "是什么",
+          "line": "奶油生日蛋糕，通常是草莓或巧克力口味"
+        },
+        {
+          "label": "什么场合",
+          "line": "家人过生日，尤其是我高考前夕那次"
+        },
+        {
+          "label": "怎么来的",
+          "line": "妈妈预订或自己简单裱花；好友那天还带来礼物（一只小熊）"
+        },
+        {
+          "label": "为何这时吃",
+          "line": "蜡烛、许愿、一起分着吃，是我们标记「又长大一岁」的方式"
+        }
+      ]
     },
     {
       "id": 20,
@@ -723,10 +1571,28 @@ const P2_DATA = {
       "openingEn": "The city trip I enjoyed most was a short stay in Yanji as the gateway before climbing Changbai Mountain.",
       "openingZh": "我最喜欢的城市之旅，是登长白山前在延吉作门户的短暂停留。",
       "materialId": "tianchi",
-      "materialHint": "延吉/长春作门户城市：停留一两天，再去天池；城市本身因通往未开发自然而难忘。",
-      "endingTip": "一看到天池，攀登的所有汗水都值得了",
+      "materialHint": "城市主线（延吉/长春门户）：住几天、吃什么、再出发。天池是行程高潮，但题面要先把城市说够。",
+      "endingTip": "这座城本身不夸张，但作为去天池的门户，它留给我很清晰的旅行记忆。",
       "sampleEn": "The city trip I enjoyed most was a short stay in Yanji as the gateway before climbing Changbai Mountain. Yanji sits in the northeast, and I visited last summer for two nights with friends. We tried local food, walked lively streets, and prepared gear for the mountain the next day. What made the city special was the contrast: busy lights at night, then a journey into a remote area famous for untouched nature and Tianchi, the pond of heaven. From the city we headed to an extremely long staircase, breathed fresh air under a clear blue sky, and finally saw the lake shining like a huge diamond. I enjoyed Yanji because it was warm and practical, and it led to a view where all the sweat from the climbing was worth it. Without that city stop, the mountain adventure would have felt rushed.",
-      "sampleZh": "喜欢延吉作门户城市：停留两晚尝美食，再去天池；城市因通往未开发自然而更难忘。"
+      "sampleZh": "喜欢延吉作门户城市：停留两晚尝美食，再去天池；城市因通往未开发自然而更难忘。",
+      "applyOutline": [
+        {
+          "label": "在哪",
+          "line": "东北，去长白山前停留的门户城市（如延吉）"
+        },
+        {
+          "label": "何时多久",
+          "line": "秋天去，城里住一到两晚再进山"
+        },
+        {
+          "label": "做了什么",
+          "line": "吃当地餐、逛不太商业的街区，为爬山养足精神"
+        },
+        {
+          "label": "为何喜欢",
+          "line": "节奏慢、离自然近；它让整个天池行程不那么赶"
+        }
+      ]
     },
     {
       "id": 23,
@@ -767,10 +1633,28 @@ const P2_DATA = {
       "openingEn": "There is a mountain lodge near Changbai Mountain that I love to visit for a weekend but would never choose as a permanent home.",
       "openingZh": "长白山附近有一座山间小屋，我喜欢周末去，但绝不想长期住在那里。",
       "materialId": "tianchi",
-      "materialHint": "山间小屋：拜访可看天池未开发自然；不想住因偏远、阶梯辛苦、生活不便。",
-      "endingTip": "一看到天池，攀登的所有汗水都值得了",
+      "materialHint": "主线是「山间小屋」：什么样、为何爱拜访、为何不想住。天池风景是加分项，不是把整段登山当住房描述。",
+      "endingTip": "拜访很爽，但长期住太偏、生活不便，我还是更适合城里。",
       "sampleEn": "There is a mountain lodge near Changbai Mountain that I love to visit for a weekend but would never choose as a permanent home. It sits in a remote area in the northeast part of China, close to untouched nature and the path toward Tianchi, the pond of heaven. The lodge is wooden, quiet, and filled with fresh air; from the window you can see mist over the hills. I like to visit because after an extremely long staircase climb, the scenery is breathtaking, the sky is clear blue, and the lake shines like a huge diamond. As soon as I see Tianchi, all the sweat is worth it, and returning to the lodge for hot soup feels perfect. Still, I would not live there: shops are far, winters are harsh, and daily commuting would be exhausting. It is a wonderful guest house for nature, not a practical forever home.",
-      "sampleZh": "喜欢拜访天池附近山间小屋看未开发自然，但不想住：太偏远、冬天难熬，只适合周末充电。"
+      "sampleZh": "喜欢拜访天池附近山间小屋看未开发自然，但不想住：太偏远、冬天难熬，只适合周末充电。",
+      "applyOutline": [
+        {
+          "label": "在哪",
+          "line": "长白山附近一间亲戚能借用的山间小屋"
+        },
+        {
+          "label": "什么样",
+          "line": "木结构、窗景好，晚上很静，离景区车程不远"
+        },
+        {
+          "label": "为何爱去",
+          "line": "周末能喘气，清晨出门就能靠近未开发的自然"
+        },
+        {
+          "label": "为何不想住",
+          "line": "买菜就医不方便，冬天更难；适合短住不适适合家"
+        }
+      ]
     },
     {
       "id": 25,
@@ -923,9 +1807,27 @@ const P2_DATA = {
       "openingZh": "如果能颁布新法，我会要求对脆弱山地保护区实行更严格的限流与乱扔垃圾罚款。",
       "materialId": "tianchi",
       "materialHint": "灵感来自天池：未开发自然易被破坏；法律限流禁垃圾；登顶震撼说明为何值得保护。",
-      "endingTip": "一看到天池，攀登的所有汗水都值得了",
+      "endingTip": "我希望新法能少争议、多执行，别等景致坏了再补救。",
       "sampleEn": "If I could introduce a new law, it would require stronger visitor limits and litter fines in fragile mountain reserves. The law would change daily quotas, ban disposable plastics on trails, and fund clean-up teams. I think young travelers would support it, though some tour companies might complain at first. I came up with it after visiting Changbai Mountain, a remote area in the northeast famous for untouched nature and Tianchi, the pond of heaven. Climbing the extremely long staircase, I saw breathtaking views and a clear blue sky, but also tissues left by careless hikers. When the lake finally appeared like pure jade shining as a huge diamond, I realized places like this need legal teeth, not only slogans. I feel strongly positive about this law because as soon as I saw Tianchi, all the sweat was worth it, and that beauty should remain for the next generation.",
-      "sampleZh": "想立山地保护区限流与反 litter 法；灵感来自天池未开发自然，登顶震撼让我更坚信该立法。"
+      "sampleZh": "想立山地保护区限流与反 litter 法；灵感来自天池未开发自然，登顶震撼让我更坚信该立法。",
+      "applyOutline": [
+        {
+          "label": "什么法",
+          "line": "对脆弱山地保护区更严的限流 + 乱扔垃圾重罚"
+        },
+        {
+          "label": "带来什么变化",
+          "line": "高峰少拥挤，步道更干净，生态压力下降"
+        },
+        {
+          "label": "会不会受欢迎",
+          "line": "当地商户可能嫌限流，但多数游客其实吃过「人挤人」的亏"
+        },
+        {
+          "label": "灵感与感受",
+          "line": "灵感来自登天池：那么美更该护住；我觉得严一点是值得的"
+        }
+      ]
     },
     {
       "id": 32,
@@ -986,13 +1888,31 @@ const P2_DATA = {
       "recentCount": 798,
       "heatRank": 34,
       "heatLevel": "star0",
-      "openingEn": "My little cousin is a child who can draw for an hour without looking up, and her favorite subject is Sun Yingsha.",
-      "openingZh": "我表妹是个能画一小时不抬头的孩子，最爱画的主题是孙颖莎。",
+      "openingEn": "The child I want to talk about is my younger cousin — she loves drawing and can stay focused for a whole hour.",
+      "openingZh": "我想说的孩子是表妹，她超爱画画，能安静画上一小时。",
       "materialId": "sun",
-      "materialHint": "表妹着迷孙颖莎酒窝与贴纸形象，天天画卡通版并做成贴纸；解释她爱画因偶像与创作乐趣。",
-      "endingTip": "她在中国极其受欢迎，人们着迷于她可爱的酒窝和贴纸形象",
-      "sampleEn": "My little cousin is a child who can draw for an hour without looking up, and her favorite subject is Sun Yingsha. I know her well because she is family, and every Spring Festival she shows me a new sketchbook. She draws almost every evening after homework. Why does she love it? She is fascinated by the famous table tennis player who is probably the most popular one in China right now. After watching Olympic highlights of Sun Yingsha winning gold in mixed doubles with Wang Chuqin under pressure, my cousin started sketching her adorable dimples and chubby cheeks again and again. She even cuts her drawings into stickers, just like fans who use stickers on social media to lighten the mood. Drawing lets her copy what she admires and invent cute outfits for her hero. That mix of idol energy and creative play keeps her pencils busy.",
-      "sampleZh": "表妹天天画孙颖莎：酒窝、脸颊和贴纸风卡通；偶像热爱加上创作乐趣让她停不下来。"
+      "materialHint": "主线是「爱画画的孩子」。孙颖莎只是她常画的主题之一，不要把奥运夺金故事当成主体。",
+      "endingTip": "我喜欢看她画：认真、开心，画完还主动送我一张。",
+      "sampleEn": "The child I want to talk about is my younger cousin — she loves drawing and can stay focused for a whole hour. We meet at Spring Festival and she often shows new drawings on video calls. After school she draws almost every day; her desk drawer is full of pencils and stickers. She loves it because finishing a picture of someone she likes feels satisfying — lately she often draws smiling faces of table-tennis star Sun Yingsha in a sticker style.",
+      "sampleZh": "表妹爱画画；几乎每天画；常画孙颖莎笑脸贴纸风。",
+      "applyOutline": [
+        {
+          "label": "是谁",
+          "line": "表妹，小学中年级，亲戚里最小的"
+        },
+        {
+          "label": "怎么认识",
+          "line": "每年过年见面，后来视频里也常展示新画"
+        },
+        {
+          "label": "画得有多勤",
+          "line": "放学后几乎每天画；书桌抽屉里塞满彩铅和贴纸"
+        },
+        {
+          "label": "为何爱画",
+          "line": "她觉得把喜欢的人画出来很满足，最近常画乒乓球运动员孙颖莎的笑脸和贴纸风"
+        }
+      ]
     },
     {
       "id": 35,
@@ -1012,10 +1932,28 @@ const P2_DATA = {
       "openingEn": "The person who looks after nature most carefully in my life is a volunteer guide I met on the way to Tianchi.",
       "openingZh": "我生命中最认真爱护自然的人，是去天池路上遇到的一位志愿者向导。",
       "materialId": "tianchi",
-      "materialHint": "向导在长白山捡垃圾、提醒勿破坏；每周志愿；你因天池之美而敬佩他。",
-      "endingTip": "一看到天池，攀登的所有汗水都值得了",
+      "materialHint": "人物是天池路上的志愿者向导：做什么、多频繁。景色只用来解释你为何敬佩他。",
+      "endingTip": "有他这种人在，景点才不只是打卡，而是真的被照看。",
       "sampleEn": "The person who looks after nature most carefully in my life is a volunteer guide I met on the way to Tianchi. He works in a remote area in the northeast famous for untouched nature and the pond of heaven. What he does is simple but tough: he picks up litter on the extremely long staircase, reminds tourists not to feed wildlife, and explains why the clear blue sky and fresh air depend on small habits. He does this almost every weekend. I feel deep respect for him because without people like him, the lake that looks like pure jade and shines like a huge diamond would be spoiled. When I finally saw Tianchi and felt that all the sweat was worth it, I also understood his quiet mission. Caring for nature is how he protects that feeling for strangers like me.",
-      "sampleZh": "天池志愿者向导周末捡垃圾、劝游客；正因有他，碧玉般天池才能让攀登的汗水值得。"
+      "sampleZh": "天池志愿者向导周末捡垃圾、劝游客；正因有他，碧玉般天池才能让攀登的汗水值得。",
+      "applyOutline": [
+        {
+          "label": "是谁",
+          "line": "去天池路上遇到的志愿者向导"
+        },
+        {
+          "label": "做什么",
+          "line": "捡垃圾、提醒别抄近路踩植被、给游客讲保护规矩"
+        },
+        {
+          "label": "怎么做/多常",
+          "line": "穿志愿马甲、边走边劝；他说几乎每周末都来"
+        },
+        {
+          "label": "我的感受",
+          "line": "辛苦却不抱怨，让我觉得爱护自然是具体行动，不是口号"
+        }
+      ]
     },
     {
       "id": 36,
@@ -1122,10 +2060,28 @@ const P2_DATA = {
       "openingEn": "The short-term overseas job I want is a research assistant role in the UK linked to my master's plan.",
       "openingZh": "我想要的短期海外工作，是与读硕计划相关的英国科研助理岗位。",
       "materialId": "yumeng",
-      "materialHint": "岗位来自雨萌鼓励读硕之后的规划；海外短工会练英语并验证热情。",
-      "endingTip": "她的话给了我巨大的力量，至今仍感激她睿智的建议",
+      "materialHint": "主线是海外短工本身（地点、岗位、为何想做）。雨萌建议读研只作「你如何知道这个方向」的一句背景。",
+      "endingTip": "我想用短期海外工作练英语、验证自己是不是真喜欢这个方向。",
       "sampleEn": "The short-term overseas job I want is a research assistant role in the UK linked to my master's plan. I know of it through university notices and through conversations with Yumeng, one of my most important friends. We grew up in the same neighborhood, and when I was lost in my third year about studying further or working, we walked around the campus and she listened very patiently. She told me not to worry only about finding a job and to think about what I want for the rest of my life, adding that passion is the best teacher. That advice pushed me toward graduate study abroad, and a short research post would let me practice English, test the field, and earn a bit of experience. I want it because it turns her wise encouragement into a concrete next step. Her words still give me strength whenever applications feel heavy.",
-      "sampleZh": "想做英国短期科研助理；灵感来自雨萌鼓励读硕与追随热情，用以练英语并验证方向。"
+      "sampleZh": "想做英国短期科研助理；灵感来自雨萌鼓励读硕与追随热情，用以练英语并验证方向。",
+      "applyOutline": [
+        {
+          "label": "在哪",
+          "line": "英国（或英语国家）高校/实验室的短期科研助理"
+        },
+        {
+          "label": "怎么知道",
+          "line": "和雨萌聊读研方向时搜到相关项目，她鼓励我先短试"
+        },
+        {
+          "label": "工作内容",
+          "line": "帮忙整理数据、参与组会、用英语写简单报告"
+        },
+        {
+          "label": "为何想做",
+          "line": "短、能练英语，也检验热情是不是真的，再决定要不要长读"
+        }
+      ]
     },
     {
       "id": 41,
@@ -1220,9 +2176,27 @@ const P2_DATA = {
       "openingZh": "我想推动的环保法，是针对国家山地公园的严格反 litter 与步道保护规则。",
       "materialId": "tianchi",
       "materialHint": "与天池体验挂钩：未开发自然需法律保护；限流罚款；登顶感受收尾。",
-      "endingTip": "一看到天池，攀登的所有汗水都值得了",
+      "endingTip": "规则严一点没关系，关键是山和湖还在。",
       "sampleEn": "The environmental law I want introduced is a strict anti-litter and trail-protection rule for national mountain parks. People should follow it because untouched places disappear quickly once trash and illegal shortcuts arrive. I believe most hikers would find it popular, though a minority may call it inconvenient. My feeling comes from climbing toward Tianchi in a remote northeast area famous for untouched nature. On the extremely long staircase the air was fresh and the sky breathtakingly clear, yet I still saw bottles left behind. When the pond of heaven appeared like pure jade shining as a huge diamond, I knew beauty alone cannot protect itself. As soon as I saw Tianchi, all the sweat was worth it, and that is exactly why I want a law with real penalties and education, not only posters.",
-      "sampleZh": "想立山地公园反 litter 保护法；天池未开发之美需要法律牙齿，登顶震撼让我更坚持。"
+      "sampleZh": "想立山地公园反 litter 保护法；天池未开发之美需要法律牙齿，登顶震撼让我更坚持。",
+      "applyOutline": [
+        {
+          "label": "什么法",
+          "line": "国家山地公园反 litter + 步道保护的专门环保规则"
+        },
+        {
+          "label": "为何遵守",
+          "line": "垃圾和抄近道会一点点毁掉未开发自然"
+        },
+        {
+          "label": "是否受欢迎",
+          "line": "年轻人多半支持；关键是罚款要执行、标识要清楚"
+        },
+        {
+          "label": "感受",
+          "line": "登过天池后更坚定：美景配得上被认真保护"
+        }
+      ]
     },
     {
       "id": 44,
@@ -1260,13 +2234,31 @@ const P2_DATA = {
       "recentCount": 616,
       "heatRank": 45,
       "heatLevel": "star0",
-      "openingEn": "Last spring I found myself giving advice to Yumeng for once, reversing our usual roles.",
-      "openingZh": "去年春天我难得反过来给雨萌提建议，角色对调了一次。",
+      "openingEn": "Last spring the roles were reversed for once — Yumeng was stuck, and I was the one who gave her advice.",
+      "openingZh": "去年春天有一次角色对调：雨萌卡住了，反而是我给她提了建议。",
       "materialId": "yumeng",
-      "materialHint": "角色互换：雨萌纠结时你把“热情是最好的老师”送给她；仍用你们的友情与校园场景。",
-      "endingTip": "她的话给了我巨大的力量，至今仍感激她睿智的建议",
-      "sampleEn": "Last spring I found myself giving advice to Yumeng for once, reversing our usual roles. Yumeng is one of my most important friends. We grew up in the same neighborhood and went to the same school, and she usually listens to my problems with endless patience, but that week she was the one torn between a safe internship and a harder master's track. We walked around the campus as always; this time I listened first, then borrowed the wisdom she had once given me when I faced the same crossroads in my third year. I told her, \"Don't worry about the pressure of finding a job. Think about what you want to do for the rest of your life,\" and \"Your passion is your best teacher. Just go for it.\" I gave the advice because I had lived through that fear and knew it can disguise itself as practicality. She later said my words gave her strength—the same strength her wise advice still gives me today whenever I doubt a big choice.",
-      "sampleZh": "雨萌纠结实习与读硕时，我把她曾给我的话送回：想一生想做什么，热情是最好的老师。"
+      "materialHint": "主线是「你建议她」。场景仍可用校园散步；内容可借用「先想清楚自己真正想要什么」，但主语必须是你在帮她。",
+      "endingTip": "能帮到她我挺高兴，也更明白倾听本身就是一种帮助。",
+      "sampleEn": "Last spring the roles were reversed for once — Yumeng was stuck, and I gave her advice. We walked around campus in our third year. Usually she listens to me, but that day she couldn't choose an internship city. I asked her to write down what she wanted to become in a year, then work backwards to pick the city. I gave that advice because too many opinions had made her messy; I simply returned a method she often used on me. Helping her felt good, and I realised listening and clarifying can be help too.",
+      "sampleZh": "角色对调：你帮雨萌选实习城市；先定一年目标再倒推；高兴能帮到她。",
+      "applyOutline": [
+        {
+          "label": "何时",
+          "line": "大三下学期，春暖时我们在校园边走边聊"
+        },
+        {
+          "label": "建议给谁",
+          "line": "给雨萌——平时总是她听我讲"
+        },
+        {
+          "label": "建议是什么",
+          "line": "她纠结实习城市；我让她先列「一年后想变成什么样」，再倒推选哪座城"
+        },
+        {
+          "label": "为何提这建议",
+          "line": "她听别人太多反而乱；我用她常对我说的办法还给她，帮她抓重点"
+        }
+      ]
     },
     {
       "id": 46,
@@ -1381,10 +2373,28 @@ const P2_DATA = {
       "openingEn": "Honestly I usually like music, but a karaoke night after badminton left me wishing I had gone straight home.",
       "openingZh": "平时我挺喜欢音乐，但有一次打球后的KTV让我直想回家。",
       "materialId": "badminton",
-      "materialHint": "球友拉去KTV：嘈杂跑调；对比球场挥拍专注忘压，反衬音乐活动不适。",
-      "endingTip": "全神贯注于身心，暂时忘却学业压力",
+      "materialHint": "主体是不喜欢的KTV/音乐活动。羽毛球局只是「为何会去」的前因，别把打球讲成主线。",
+      "endingTip": "那晚的音乐让我更确认：我放松的方式是挥拍，不是硬嗨。",
       "sampleEn": "Honestly I usually like music, but a karaoke night after badminton left me wishing I had gone straight home. It was a weekend gathering with the people I often team up with at the court after I started to play badminton to escape application stress. I decided to go because they had become friends and I was becoming more outgoing; saying no felt rude. The music, however, was painfully loud and off-key, and the room was packed with smoke and shouted choruses. I could not hear myself think, let alone relax. What I missed was the opposite feeling I get when I swing my racket: only its sound and the wind, focusing on mind and body, forgetting study pressure for a while. That night taught me that not every social plan fits me, even with good people.",
-      "sampleZh": "球友拉去KTV又吵又跑调；远不如球场挥拍时能专注身心、暂时忘却压力。"
+      "sampleZh": "球友拉去KTV又吵又跑调；远不如球场挥拍时能专注身心、暂时忘却压力。",
+      "applyOutline": [
+        {
+          "label": "什么活动",
+          "line": "打球结束后队友拉去的KTV"
+        },
+        {
+          "label": "和谁去",
+          "line": "球友几人，我不太好意思拒绝"
+        },
+        {
+          "label": "为何去",
+          "line": "大家说庆祝打得开心，顺路聚一下"
+        },
+        {
+          "label": "为何不喜欢",
+          "line": "歌单吵、跑调起哄，我听着更累；对比球场专注，这里完全放松不了"
+        }
+      ]
     },
     {
       "id": 50,

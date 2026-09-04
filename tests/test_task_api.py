@@ -7,6 +7,7 @@ import sys
 import unittest
 from datetime import datetime, timedelta
 from pathlib import Path
+from unittest import mock
 from zoneinfo import ZoneInfo
 
 SCRIPTS_DIR = Path(__file__).resolve().parents[1] / "scripts"
@@ -897,20 +898,22 @@ class TaskApiTests(unittest.TestCase):
                 for i in range(1, 4)
             ]
         )
-        preview = preview_daily_pack_items(
-            conn,
-            "2025001",
-            items,
-            pack_mode=PACK_MODE_UNITS_PER_DAY,
-            module_quotas=[
-                {"module_type": "dictation", "weekday_units": 1, "weekend_units": 2},
-                {
-                    "module_type": "reading_synonym",
-                    "weekday_units": 1,
-                    "weekend_units": 2,
-                },
-            ],
-        )
+        # Pin to a Monday so weekend quotas don't compress the 3-day layout.
+        with mock.patch("task_api.china_ymd", return_value="2026-09-07"):
+            preview = preview_daily_pack_items(
+                conn,
+                "2025001",
+                items,
+                pack_mode=PACK_MODE_UNITS_PER_DAY,
+                module_quotas=[
+                    {"module_type": "dictation", "weekday_units": 1, "weekend_units": 2},
+                    {
+                        "module_type": "reading_synonym",
+                        "weekday_units": 1,
+                        "weekend_units": 2,
+                    },
+                ],
+            )
         schedule = preview.get("schedule") or []
         self.assertGreaterEqual(len(schedule), 3)
         day0 = {x["title"] for x in schedule[0]["items"]}
