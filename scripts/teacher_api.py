@@ -116,6 +116,47 @@ def create_student(
     return public_student_row(dict(row)), None, initial_password
 
 
+def update_student(
+    conn: Any,
+    *,
+    student_id: str,
+    name: str,
+    target_score: float = 6.5,
+) -> tuple[Optional[dict[str, Any]], Optional[str]]:
+    sid = str(student_id or "").strip()
+    name = str(name or "").strip()
+    if not sid:
+        return None, "缺少学号"
+    if not name:
+        return None, "请输入姓名"
+    try:
+        target = float(target_score)
+    except (TypeError, ValueError):
+        return None, "目标分无效"
+    if target not in (6, 6.5, 7):
+        return None, "目标分仅支持 6 / 6.5 / 7"
+    row = conn.execute(
+        "SELECT student_id FROM students WHERE student_id = ?",
+        (sid,),
+    ).fetchone()
+    if not row:
+        return None, "学生不存在"
+    conn.execute(
+        """
+        UPDATE students
+        SET name = ?, target_score = ?, updated_at = ?
+        WHERE student_id = ?
+        """,
+        (name, target, utc_now(), sid),
+    )
+    conn.commit()
+    updated = conn.execute(
+        "SELECT * FROM students WHERE student_id = ?",
+        (sid,),
+    ).fetchone()
+    return public_student_row(dict(updated)), None
+
+
 def create_students_batch(
     conn: Any,
     items: list[dict[str, Any]],
@@ -383,6 +424,44 @@ def create_teacher(
         (tid,),
     ).fetchone()
     return public_teacher_row(dict(row)), None, initial_password
+
+
+def update_teacher(
+    conn: Any,
+    *,
+    teacher_id: str,
+    name: str,
+    position: str = "",
+    subjects: str = "",
+) -> tuple[Optional[dict[str, Any]], Optional[str]]:
+    tid = str(teacher_id or "").strip().lower()
+    name = str(name or "").strip()
+    if not tid:
+        return None, "缺少教师账号"
+    if tid == "admin":
+        return None, "不能修改管理员账号"
+    if not name:
+        return None, "请输入姓名"
+    row = conn.execute(
+        "SELECT teacher_id FROM teachers WHERE teacher_id = ?",
+        (tid,),
+    ).fetchone()
+    if not row:
+        return None, "教师不存在"
+    conn.execute(
+        """
+        UPDATE teachers
+        SET name = ?, position = ?, subjects = ?, updated_at = ?
+        WHERE teacher_id = ?
+        """,
+        (name, position or "", subjects or "", utc_now(), tid),
+    )
+    conn.commit()
+    updated = conn.execute(
+        "SELECT * FROM teachers WHERE teacher_id = ?",
+        (tid,),
+    ).fetchone()
+    return public_teacher_row(dict(updated)), None
 
 
 def reset_teacher_password(conn: Any, teacher_id: str) -> tuple[Optional[str], Optional[str]]:

@@ -80,6 +80,8 @@ from teacher_api import (  # noqa: E402
     toggle_student_status,
     toggle_teacher_status,
     update_standard,
+    update_student,
+    update_teacher,
 )
 from task_api import (  # noqa: E402
     class_overview as task_class_overview,
@@ -1252,6 +1254,23 @@ class LocalHandler(SimpleHTTPRequestHandler):
                 return
             self.send_json({"data": row, "error": None})
 
+    def handle_teacher_students_update(self) -> None:
+        session = self.require_teacher_session()
+        if not session:
+            return
+        payload = self.read_json_body()
+        with closing(connect(self.db_path)) as conn:
+            row, err = update_student(
+                conn,
+                student_id=payload.get("student_id") or "",
+                name=payload.get("name") or "",
+                target_score=payload.get("target_score", payload.get("targetScore", 6.5)),
+            )
+            if err:
+                self.send_json({"data": None, "error": {"message": err}}, status=400)
+                return
+            self.send_json({"data": row, "error": None})
+
     def handle_teacher_test_records_get(self) -> None:
         session = self.require_teacher_session()
         if not session:
@@ -1357,6 +1376,24 @@ class LocalHandler(SimpleHTTPRequestHandler):
         payload = self.read_json_body()
         with closing(connect(self.db_path)) as conn:
             row, err = toggle_teacher_status(conn, payload.get("teacher_id") or "")
+            if err:
+                self.send_json({"data": None, "error": {"message": err}}, status=400)
+                return
+            self.send_json({"data": row, "error": None})
+
+    def handle_teacher_teachers_update(self) -> None:
+        session = self.require_admin_session()
+        if not session:
+            return
+        payload = self.read_json_body()
+        with closing(connect(self.db_path)) as conn:
+            row, err = update_teacher(
+                conn,
+                teacher_id=payload.get("teacher_id") or payload.get("account") or "",
+                name=payload.get("name") or "",
+                position=payload.get("position") or "",
+                subjects=payload.get("subjects") or "",
+            )
             if err:
                 self.send_json({"data": None, "error": {"message": err}}, status=400)
                 return
@@ -2088,6 +2125,9 @@ class LocalHandler(SimpleHTTPRequestHandler):
         if path == "/api/teacher/students/toggle-status":
             self.handle_teacher_students_toggle_status()
             return
+        if path == "/api/teacher/students/update":
+            self.handle_teacher_students_update()
+            return
         if path == "/api/teacher/standards/update":
             self.handle_teacher_standards_update()
             return
@@ -2099,6 +2139,9 @@ class LocalHandler(SimpleHTTPRequestHandler):
             return
         if path == "/api/teacher/teachers/toggle-status":
             self.handle_teacher_teachers_toggle_status()
+            return
+        if path == "/api/teacher/teachers/update":
+            self.handle_teacher_teachers_update()
             return
         if parsed.path.startswith("/api/db"):
             # P2: generic /api/db is closed; use role-scoped APIs.

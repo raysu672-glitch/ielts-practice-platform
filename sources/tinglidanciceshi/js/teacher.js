@@ -151,8 +151,13 @@ async function loadStudents() {
     for (let i = 0; i < students.length; i++) {
         const s = students[i];
         const statusBadge = s.status === 'active' ? 'badge-success">正常' : 'badge-danger">禁用';
-        const toggleBtn = s.status === 'active' ? 'btn-danger">禁用' : 'btn-success">启用';
-        html += '<tr><td>' + escapeHtml(s.student_id) + '</td><td>' + studentNameLinkHtml(s.student_id, s.name) + '</td><td>' + s.target_score + '分</td><td><span class="badge ' + statusBadge + '</span></td><td><div class="student-actions"><button class="btn btn-sm btn-secondary" onclick="resetPassword(\'' + escapeJsString(s.student_id) + '\')">重置密码</button><button class="btn btn-sm ' + toggleBtn + '</button></div></td></tr>';
+        const toggleLabel = s.status === 'active' ? '禁用' : '启用';
+        const toggleClass = s.status === 'active' ? 'btn-danger' : 'btn-success';
+        html += '<tr><td>' + escapeHtml(s.student_id) + '</td><td>' + studentNameLinkHtml(s.student_id, s.name) + '</td><td>' + s.target_score + '分</td><td><span class="badge ' + statusBadge + '</span></td><td><div class="student-actions">';
+        html += '<button class="btn btn-sm btn-secondary" onclick="showEditStudentModal(\'' + escapeJsString(s.student_id) + '\',\'' + escapeJsString(s.name) + '\',\'' + escapeJsString(String(s.target_score)) + '\')">修改</button>';
+        html += '<button class="btn btn-sm btn-secondary" onclick="resetPassword(\'' + escapeJsString(s.student_id) + '\')">重置密码</button>';
+        html += '<button class="btn btn-sm ' + toggleClass + '" onclick="toggleStatus(\'' + escapeJsString(s.student_id) + '\',\'' + escapeJsString(s.status) + '\')">' + toggleLabel + '</button>';
+        html += '</div></td></tr>';
     }
     html += '</tbody></table>';
     container.innerHTML = html;
@@ -1182,34 +1187,132 @@ function switchTeacherTab(tab, evt, options) {
     }
 }
 
-function showAddStudentModal() { showModal('addStudentModal'); }
+function showAddStudentModal() {
+    window._editingStudentId = '';
+    var title = document.getElementById('studentModalTitle');
+    if (title) title.textContent = '添加学生';
+    var idGroup = document.getElementById('editStudentIdGroup');
+    if (idGroup) idGroup.style.display = 'none';
+    var hint = document.getElementById('studentModalHint');
+    if (hint) hint.textContent = '学号将自动生成，初始密码为 123456';
+    var saveBtn = document.getElementById('studentModalSaveBtn');
+    if (saveBtn) saveBtn.textContent = '添加';
+    document.getElementById('newStudentName').value = '';
+    document.getElementById('newStudentTarget').value = '6.5';
+    showModal('addStudentModal');
+}
+
+function showEditStudentModal(studentId, name, targetScore) {
+    window._editingStudentId = studentId || '';
+    var title = document.getElementById('studentModalTitle');
+    if (title) title.textContent = '修改学生';
+    var idGroup = document.getElementById('editStudentIdGroup');
+    if (idGroup) idGroup.style.display = '';
+    var idInput = document.getElementById('editStudentId');
+    if (idInput) idInput.value = studentId || '';
+    var hint = document.getElementById('studentModalHint');
+    if (hint) hint.textContent = '学号不可改。改姓名或目标分数后点保存。';
+    var saveBtn = document.getElementById('studentModalSaveBtn');
+    if (saveBtn) saveBtn.textContent = '保存';
+    document.getElementById('newStudentName').value = name || '';
+    var target = String(targetScore == null ? '6.5' : targetScore);
+    if (target === '6.0') target = '6';
+    document.getElementById('newStudentTarget').value = target;
+    showModal('addStudentModal');
+}
 
 function showAddTeacherModal() {
     if (!isAdminTeacher()) {
         showToast('仅管理员可添加教师', 'error');
         return;
     }
+    window._editingTeacherId = '';
+    var title = document.getElementById('teacherModalTitle');
+    if (title) title.textContent = '添加教师';
+    var account = document.getElementById('newTeacherAccount');
+    if (account) {
+        account.value = '';
+        account.disabled = false;
+    }
+    var hint = document.getElementById('teacherModalHint');
+    if (hint) hint.textContent = '初始密码为 123456，教师可用账号密码登录教师后台';
+    var saveBtn = document.getElementById('teacherModalSaveBtn');
+    if (saveBtn) saveBtn.textContent = '添加';
+    document.getElementById('newTeacherName').value = '';
+    document.getElementById('newTeacherPosition').value = '';
+    document.getElementById('newTeacherSubjects').value = '';
+    showModal('addTeacherModal');
+}
+
+function showEditTeacherModal(teacherId, name, position, subjects) {
+    if (!isAdminTeacher()) {
+        showToast('仅管理员可修改教师', 'error');
+        return;
+    }
+    window._editingTeacherId = teacherId || '';
+    var title = document.getElementById('teacherModalTitle');
+    if (title) title.textContent = '修改教师';
+    var account = document.getElementById('newTeacherAccount');
+    if (account) {
+        account.value = teacherId || '';
+        account.disabled = true;
+    }
+    var hint = document.getElementById('teacherModalHint');
+    if (hint) hint.textContent = '登录账号不可改。可改姓名、职位、科目。';
+    var saveBtn = document.getElementById('teacherModalSaveBtn');
+    if (saveBtn) saveBtn.textContent = '保存';
+    document.getElementById('newTeacherName').value = name || '';
+    document.getElementById('newTeacherPosition').value = position || '';
+    document.getElementById('newTeacherSubjects').value = subjects || '';
     showModal('addTeacherModal');
 }
 
 async function addStudent() {
+    return saveStudent();
+}
+
+async function saveStudent() {
+    if (window._savingStudent) return;
     const name = document.getElementById('newStudentName').value.trim();
     const targetScore = parseFloat(document.getElementById('newStudentTarget').value);
     if (!name) { showToast('请输入姓名', 'error'); return; }
-    const insertResult = await teacherApiPost('/api/teacher/students', {
-        name: name,
-        target_score: targetScore
-    });
-    if (insertResult.error) {
-        showToast('添加失败：' + ((insertResult.error && insertResult.error.message) || '未知错误'), 'error');
-        return;
+    const editingId = window._editingStudentId || '';
+    window._savingStudent = true;
+    try {
+        if (editingId) {
+            const result = await teacherApiPost('/api/teacher/students/update', {
+                student_id: editingId,
+                name: name,
+                target_score: targetScore
+            });
+            if (result.error) {
+                showToast('保存失败：' + ((result.error && result.error.message) || '未知错误'), 'error');
+                return;
+            }
+            window._editingStudentId = '';
+            document.getElementById('newStudentName').value = '';
+            closeModal('addStudentModal');
+            showToast('学生信息已保存', 'success');
+            loadStudents();
+            return;
+        }
+        const insertResult = await teacherApiPost('/api/teacher/students', {
+            name: name,
+            target_score: targetScore
+        });
+        if (insertResult.error) {
+            showToast('添加失败：' + ((insertResult.error && insertResult.error.message) || '未知错误'), 'error');
+            return;
+        }
+        const newId = insertResult.data && insertResult.data.student_id;
+        const initialPassword = insertResult.data && insertResult.data.password;
+        closeModal('addStudentModal');
+        document.getElementById('newStudentName').value = '';
+        showToast('添加成功！学号：' + newId + '，初始密码：' + initialPassword, 'success');
+        loadStudents();
+    } finally {
+        window._savingStudent = false;
     }
-    const newId = insertResult.data && insertResult.data.student_id;
-    const initialPassword = insertResult.data && insertResult.data.password;
-    closeModal('addStudentModal');
-    document.getElementById('newStudentName').value = '';
-    showToast('添加成功！学号：' + newId + '，初始密码：' + initialPassword, 'success');
-    loadStudents();
 }
 
 
@@ -1232,6 +1335,7 @@ async function loadTeachers() {
         const toggleClass = t.status === 'active' ? 'btn-danger' : 'btn-success';
         let actions = '';
         if (!isAdminRow) {
+            actions += '<button class="btn btn-sm btn-secondary" onclick="showEditTeacherModal(\'' + escapeJsString(t.teacher_id) + '\',\'' + escapeJsString(t.name) + '\',\'' + escapeJsString(t.position || '') + '\',\'' + escapeJsString(t.subjects || '') + '\')">修改</button>';
             actions += '<button class="btn btn-sm btn-secondary" onclick="resetTeacherPassword(\'' + escapeJsString(t.teacher_id) + '\')">重置密码</button>';
             actions += '<button class="btn btn-sm ' + toggleClass + '" onclick="toggleTeacherStatus(\'' + escapeJsString(t.teacher_id) + '\', \'' + escapeJsString(t.status) + '\')">' + toggleLabel + '</button>';
         } else {
@@ -1244,9 +1348,15 @@ async function loadTeachers() {
 }
 
 async function addTeacher() {
-    if (!isAdminTeacher()) { showToast('仅管理员可添加教师', 'error'); return; }
+    return saveTeacher();
+}
+
+async function saveTeacher() {
+    if (!isAdminTeacher()) { showToast('仅管理员可操作教师账号', 'error'); return; }
+    if (window._savingTeacher) return;
     const name = document.getElementById('newTeacherName').value.trim();
-    const account = document.getElementById('newTeacherAccount').value.trim().toLowerCase();
+    const accountInput = document.getElementById('newTeacherAccount');
+    const account = (window._editingTeacherId || (accountInput && accountInput.value) || '').trim().toLowerCase();
     const position = document.getElementById('newTeacherPosition').value.trim();
     const subjects = document.getElementById('newTeacherSubjects').value.trim();
     if (!name) { showToast('请输入姓名', 'error'); return; }
@@ -1259,24 +1369,51 @@ async function addTeacher() {
         showToast('不能使用保留账号 admin', 'error');
         return;
     }
-    const insertResult = await teacherApiPost('/api/teacher/teachers', {
-        teacher_id: account,
-        name: name,
-        position: position,
-        subjects: subjects
-    });
-    if (insertResult.error) {
-        showToast('添加失败：' + ((insertResult.error && insertResult.error.message) || '未知错误'), 'error');
-        return;
+    const editingId = window._editingTeacherId || '';
+    window._savingTeacher = true;
+    try {
+        if (editingId) {
+            const result = await teacherApiPost('/api/teacher/teachers/update', {
+                teacher_id: editingId,
+                name: name,
+                position: position,
+                subjects: subjects
+            });
+            if (result.error) {
+                showToast('保存失败：' + ((result.error && result.error.message) || '未知错误'), 'error');
+                return;
+            }
+            window._editingTeacherId = '';
+            if (accountInput) accountInput.disabled = false;
+            document.getElementById('newTeacherName').value = '';
+            document.getElementById('newTeacherPosition').value = '';
+            document.getElementById('newTeacherSubjects').value = '';
+            closeModal('addTeacherModal');
+            showToast('教师信息已保存', 'success');
+            loadTeachers();
+            return;
+        }
+        const insertResult = await teacherApiPost('/api/teacher/teachers', {
+            teacher_id: account,
+            name: name,
+            position: position,
+            subjects: subjects
+        });
+        if (insertResult.error) {
+            showToast('添加失败：' + ((insertResult.error && insertResult.error.message) || '未知错误'), 'error');
+            return;
+        }
+        const initialPassword = (insertResult.data && insertResult.data.password) || '';
+        closeModal('addTeacherModal');
+        document.getElementById('newTeacherName').value = '';
+        document.getElementById('newTeacherAccount').value = '';
+        document.getElementById('newTeacherPosition').value = '';
+        document.getElementById('newTeacherSubjects').value = '';
+        showToast('添加成功！账号：' + account + '，初始密码：' + initialPassword, 'success');
+        loadTeachers();
+    } finally {
+        window._savingTeacher = false;
     }
-    const initialPassword = (insertResult.data && insertResult.data.password) || '';
-    closeModal('addTeacherModal');
-    document.getElementById('newTeacherName').value = '';
-    document.getElementById('newTeacherAccount').value = '';
-    document.getElementById('newTeacherPosition').value = '';
-    document.getElementById('newTeacherSubjects').value = '';
-    showToast('添加成功！账号：' + account + '，初始密码：' + initialPassword, 'success');
-    loadTeachers();
 }
 
 async function resetTeacherPassword(teacherId) {
