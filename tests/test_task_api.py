@@ -18,25 +18,32 @@ from task_api import (  # noqa: E402
     PACK_MODE_TIME_BUDGET,
     PACK_MODE_UNITS_PER_DAY,
     SHANGHAI,
+    GENDU_DAILY_PRACTICES,
+    GENDU_MODULE,
+    GENDU_PASS_SCORE,
     _interleave_by_module,
     apply_draft_to_live,
     backlog_plan_item_ids,
     build_daily_tasks,
     china_ymd,
     class_overview,
+    clear_gendu_assignment,
     clear_plan_pause,
     complete_study,
     ensure_module_quota,
     ensure_task_tables,
+    get_gendu_assignment,
     get_plan,
     get_today,
     insert_stage_test,
     LISTENING_GENDU_LESSONS,
     normalize_stage_test_positions,
     preview_daily_pack_items,
+    put_gendu_assignment,
     put_plan_draft,
     put_plan_pause,
     put_time_profile,
+    report_gendu_practice,
     seed_mvp_units,
     submit_stage_test,
     update_scope_progress,
@@ -1314,6 +1321,115 @@ class TaskApiTests(unittest.TestCase):
         cleared = expire_plan_pause_if_due(conn, "2025001", on_date=resume)
         self.assertTrue(cleared)
         self.assertIsNone(get_plan_pause(conn, "2025001", on_date=resume))
+
+    def test_gendu_assignment_daily_three_and_advance(self) -> None:
+        conn = _connect()
+        put_time_profile(
+            conn,
+            "2025001",
+            {"pack_mode": PACK_MODE_UNITS_PER_DAY, "effective_from": china_ymd()},
+        )
+        start_unit = conn.execute(
+            """
+            SELECT unit_id FROM task_units
+            WHERE module_type=? AND is_active=1
+            ORDER BY unit_no LIMIT 1
+            """,
+            (GENDU_MODULE,),
+        ).fetchone()["unit_id"]
+        next_unit = conn.execute(
+            """
+            SELECT unit_id FROM task_units
+            WHERE module_type=? AND is_active=1 AND unit_no>1
+            ORDER BY unit_no LIMIT 1
+            """,
+            (GENDU_MODULE,),
+        ).fetchone()["unit_id"]
+        today = china_ymd()
+        put_gendu_assignment(
+            conn, "2025001", {"start_unit_id": start_unit, "starts_on": today}
+        )
+        asg = get_gendu_assignment(conn, "2025001", on_date=today)
+        self.assertTrue(asg["active"])
+        self.assertEqual(asg["current_unit_id"], start_unit)
+        ends = (
+            datetime.strptime(today, "%Y-%m-%d").date() + timedelta(days=29)
+        ).strftime("%Y-%m-%d")
+        self.assertEqual(asg["ends_on"], ends)
+
+        daily = build_daily_tasks(conn, "2025001", today)
+        gendu = [x for x in daily if x["module_type"] == GENDU_MODULE]
+        self.assertEqual(len(gendu), 1)
+        self.assertEqual(gendu[0]["unit_id"], start_unit)
+        pid = gendu[0]["plan_item_id"]
+
+        with self.assertRaises(ValueError):
+            complete_study(conn, "2025001", pid, "1")
+
+        r1 = report_gendu_practice(conn, "2025001", plan_item_id=pid, score=50)
+        self.assertEqual(r1["practice_count"], 1)
+        self.assertFalse(r1["day_complete"])
+        self.assertFalse(r1["passed_lesson"])
+
+        report_gendu_practice(conn, "2025001", plan_item_id=pid, score=60)
+        r3 = report_gendu_practice(conn, "2025001", plan_item_id=pid, score=75)
+        self.assertEqual(r3["practice_count"], GENDU_DAILY_PRACTICES)
+        self.assertTrue(r3["day_complete"])
+        self.assertTrue(r3["passed_lesson"])
+        self.assertGreaterEqual(r3["best_score"], GENDU_PASS_SCORE)
+
+        daily2 = build_daily_tasks(conn, "2025001", today)
+        g2 = [x for x in daily2 if x["module_type"] == GENDU_MODULE][0]
+        self.assertEqual(g2["state"], "done_study")
+        self.assertEqual(g2["unit_id"], start_unit)
+
+        tomorrow = (
+            datetime.strptime(today, "%Y-%m-%d").date() + timedelta(days=1)
+        ).strftime("%Y-%m-%d")
+        daily3 = build_daily_tasks(conn, "2025001", tomorrow)
+        g3 = [x for x in daily3 if x["module_type"] == GENDU_MODULE]
+        self.assertEqual(len(g3), 1)
+        self.assertEqual(g3[0]["unit_id"], next_unit)
+        asg2 = get_gendu_assignment(conn, "2025001", on_date=tomorrow)
+        self.assertEqual(asg2["current_unit_id"], next_unit)
+        self.assertFalse(asg2["passed_current"])
+
+    def test_gendu_assignment_expires_stops_pack(self) -> None:
+        conn = _connect()
+        put_time_profile(
+            conn,
+            "2025001",
+            {"pack_mode": PACK_MODE_UNITS_PER_DAY, "effective_from": china_ymd()},
+        )
+        start_unit = conn.execute(
+            """
+            SELECT unit_id FROM task_units
+            WHERE module_type=? ORDER BY unit_no LIMIT 1
+            """,
+            (GENDU_MODULE,),
+        ).fetchone()["unit_id"]
+        start = "2026-01-01"
+        put_gendu_assignment(
+            conn, "2025001", {"start_unit_id": start_unit, "starts_on": start}
+        )
+        after = "2026-02-01"  # day 32, outside 30-day window
+        daily = build_daily_tasks(conn, "2025001", after)
+        self.assertFalse(any(x["module_type"] == GENDU_MODULE for x in daily))
+        asg = get_gendu_assignment(conn, "2025001", on_date=after)
+        self.assertTrue(asg["expired"])
+
+    def test_gendu_clear_assignment(self) -> None:
+        conn = _connect()
+        start_unit = conn.execute(
+            """
+            SELECT unit_id FROM task_units
+            WHERE module_type=? ORDER BY unit_no LIMIT 1
+            """,
+            (GENDU_MODULE,),
+        ).fetchone()["unit_id"]
+        put_gendu_assignment(conn, "2025001", {"start_unit_id": start_unit})
+        clear_gendu_assignment(conn, "2025001")
+        self.assertIsNone(get_gendu_assignment(conn, "2025001"))
 
 
 if __name__ == "__main__":

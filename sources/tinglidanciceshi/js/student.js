@@ -205,9 +205,14 @@ async function loadTodayTasks() {
                     (it.item_type === 'test' ? '测' : '学') + '</span> ' +
                     escapeHtml(it.title || '') +
                     renderTaskItemTimeCompare(it.est_minutes, it.actual_minutes) +
-                    (it.scope_total ? (' <span style="color:#94a3b8;font-size:0.85rem;">本单元 ' +
+                    (it.scope_total ? (' <span style="color:#94a3b8;font-size:0.85rem;">' +
+                        (it.scope_label || '本单元') + ' ' +
                         (it.scope_done || 0) + '/' + it.scope_total + (it.scope_unit || '') +
                         '</span>') : '') +
+                    (it.module_type === 'listening_p4_speed' && it.gendu_best_score != null
+                        ? (' <span style="color:#64748b;font-size:0.8rem;">最佳 ' +
+                            Math.round(Number(it.gendu_best_score)) + '%</span>')
+                        : '') +
                     '</div><div>' + btn + '</div></div>';
             });
             html += '</div>';
@@ -2533,6 +2538,32 @@ window.addEventListener('message', async function(event) {
             if (result.error) {
                 console.warn('scope progress failed', result.error);
             }
+        });
+        return;
+    }
+    if (data.type === 'genduPractice') {
+        if (event.origin && event.origin !== window.location.origin) return;
+        const ctx = window._currentTaskContext || {};
+        const planItemId = data.plan_item_id || ctx.plan_item_id;
+        if (!planItemId) return;
+        const score = data.scorePercent != null ? data.scorePercent : data.score;
+        apiFetch('/api/task/me/gendu-practice', {
+            method: 'POST',
+            body: JSON.stringify({
+                plan_item_id: Number(planItemId),
+                score: Number(score) || 0
+            })
+        }).then(function(result) {
+            if (result.error) {
+                showToast((result.error && result.error.message) || '跟读进度上报失败', 'error');
+                return;
+            }
+            const d = result.data || {};
+            const msg = '跟读 ' + (d.practice_count || 0) + '/' + (d.required || 3) +
+                (d.day_complete ? ' · 今日已完成' : '') +
+                (d.passed_lesson ? ' · 已达70%，次日换篇' : '');
+            showToast(msg, d.day_complete ? 'success' : 'info');
+            loadTodayTasks();
         });
         return;
     }

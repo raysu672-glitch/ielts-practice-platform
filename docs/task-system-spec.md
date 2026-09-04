@@ -348,13 +348,16 @@ function planStatus(student_id, parent_module):
 - 打勾：单元内题全部完成一遍  
 - `est_minutes`：**15**
 
-### 5.8 听力 P4 跟读 `listening_p4_speed`
+### 5.8 听力跟读 `listening_p4_speed`
 
-- 切法：1 篇课文 = 1 单元；后续篇目入库即增单元  
-- 打勾：**跟读流程完成且识别率 ≥ 70%**（本模块例外，带质量门槛）  
-- ≥70% 后允许进入下一篇（产品规则；清单释放仍由计划决定，但模块内导航可解锁下一课）  
-- `content_ref`：`{ "lessonId": 1 }`  
+- 切法：1 篇课文 = 1 单元（种子 24 课，按 `unit_no` 顺序）
+- **助教开作业**：只选**起始课**；系统写入 `student_gendu_assignment`，窗口默认 **30 个自然日**（`starts_on`…`starts_on+29`）
+- **每日装箱**：窗口内每天只放**当前课**；到期后不再排跟读
+- **当日完成**：有效跟读满 **3 次**（不要求每次 ≥70%）；进度展示 `n/3`
+- **换篇**：任一有效跟读识别率 **≥70%** 后，从**次日**起自动切到下一篇；最后一篇过关后窗口内仍可日练该篇
+- 学习页：任务模式打开 `P4genduceshi`，每次出分上报 `genduPractice` → `/api/task/me/gendu-practice`
 - `est_minutes`：**15**
+- `completion_rule`：`asr_ge_70`（换篇门槛）；当日完成靠练习次数，不靠单次 `complete-study` 直接过关
 
 ### 5.9 口语子块（均 `parent_module=speaking`）
 

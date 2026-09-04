@@ -640,6 +640,15 @@
                         lessonTitle: currentLesson.title
                     }
                 }, '*');
+                if (isTaskMode()) {
+                    window.parent.postMessage({
+                        type: 'genduPractice',
+                        plan_item_id: getQueryParam('plan_item_id'),
+                        unit_id: getQueryParam('unit_id'),
+                        scorePercent: Number(score) || 0,
+                        lessonId: currentLesson.code || currentLesson.id
+                    }, '*');
+                }
             } catch (e) {
                 console.error('上报测试结果失败:', e);
             }

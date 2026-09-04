@@ -22,6 +22,10 @@ PACK_MODE_TIME_BUDGET = "time_budget"
 PACK_MODE_UNITS_PER_DAY = "units_per_day"
 PACK_MODES = (PACK_MODE_TIME_BUDGET, PACK_MODE_UNITS_PER_DAY)
 UNITS_PREVIEW_DAYS = 14
+GENDU_MODULE = "listening_p4_speed"
+GENDU_PASS_SCORE = 70
+GENDU_DAILY_PRACTICES = 3
+GENDU_ASSIGNMENT_DAYS = 30  # starts_on .. starts_on+29 inclusive
 
 READING_SETS = [
     (1, "入门基础篇"),
@@ -315,6 +319,29 @@ def ensure_task_tables(conn: sqlite3.Connection) -> None:
             created_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
             updated_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
         );
+
+        CREATE TABLE IF NOT EXISTS student_gendu_assignment (
+            student_id TEXT PRIMARY KEY REFERENCES students(student_id),
+            start_unit_id TEXT NOT NULL,
+            current_unit_id TEXT NOT NULL,
+            starts_on TEXT NOT NULL,
+            ends_on TEXT NOT NULL,
+            passed_current INTEGER NOT NULL DEFAULT 0,
+            created_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+            updated_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+        );
+
+        CREATE TABLE IF NOT EXISTS gendu_practice_events (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            student_id TEXT NOT NULL,
+            unit_id TEXT NOT NULL,
+            plan_item_id INTEGER,
+            task_date TEXT NOT NULL,
+            score REAL NOT NULL,
+            created_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+        );
+        CREATE INDEX IF NOT EXISTS idx_gendu_practice_student_date
+            ON gendu_practice_events(student_id, task_date);
         """
     )
     _migrate_task_effective_columns(conn)
@@ -381,6 +408,53 @@ def _migrate_task_effective_columns(conn: sqlite3.Connection) -> None:
             )
             """
         )
+    if "student_gendu_assignment" not in tables:
+        conn.execute(
+            """
+            CREATE TABLE student_gendu_assignment (
+                student_id TEXT PRIMARY KEY REFERENCES students(student_id),
+                start_unit_id TEXT NOT NULL,
+                current_unit_id TEXT NOT NULL,
+                starts_on TEXT NOT NULL,
+                ends_on TEXT NOT NULL,
+                passed_current INTEGER NOT NULL DEFAULT 0,
+                created_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+                updated_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+            )
+            """
+        )
+    if "gendu_practice_events" not in tables:
+        conn.execute(
+            """
+            CREATE TABLE gendu_practice_events (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                student_id TEXT NOT NULL,
+                unit_id TEXT NOT NULL,
+                plan_item_id INTEGER,
+                task_date TEXT NOT NULL,
+                score REAL NOT NULL,
+                created_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+            )
+            """
+        )
+        conn.execute(
+            """
+            CREATE INDEX IF NOT EXISTS idx_gendu_practice_student_date
+                ON gendu_practice_events(student_id, task_date)
+            """
+        )
+    if "daily_tasks" in tables:
+        dt_cols = {
+            r[1] for r in conn.execute("PRAGMA table_info(daily_tasks)").fetchall()
+        }
+        if "gendu_practice_count" not in dt_cols:
+            conn.execute(
+                "ALTER TABLE daily_tasks ADD COLUMN gendu_practice_count INTEGER NOT NULL DEFAULT 0"
+            )
+        if "gendu_best_score" not in dt_cols:
+            conn.execute(
+                "ALTER TABLE daily_tasks ADD COLUMN gendu_best_score REAL"
+            )
 
 
 def _draft_meta_effective_from(meta: Optional[dict[str, Any]], today: str) -> Optional[str]:
@@ -1290,6 +1364,429 @@ def clear_plan_pause(conn: sqlite3.Connection, student_id: str) -> dict[str, Any
     return get_plan(conn, student_id)
 
 
+# --- Listening gendu (跟读) assignment ---------------------------------------
+
+def _ymd_plus_days(ymd: str, days: int) -> str:
+    return (
+        datetime.strptime(ymd, "%Y-%m-%d").date() + timedelta(days=days)
+    ).strftime("%Y-%m-%d")
+
+
+def _gendu_unit_or_raise(conn: sqlite3.Connection, unit_id: str) -> dict[str, Any]:
+    row = conn.execute(
+        "SELECT * FROM task_units WHERE unit_id=? AND is_active=1", (unit_id,)
+    ).fetchone()
+    if not row:
+        raise ValueError("跟读单元不存在")
+    if str(row["module_type"]) != GENDU_MODULE:
+        raise ValueError("请选择听力跟读单元")
+    return dict(row)
+
+
+def _next_gendu_unit_id(
+    conn: sqlite3.Connection, current_unit_id: str
+) -> Optional[str]:
+    cur = conn.execute(
+        "SELECT unit_no FROM task_units WHERE unit_id=? AND module_type=?",
+        (current_unit_id, GENDU_MODULE),
+    ).fetchone()
+    if not cur:
+        return None
+    nxt = conn.execute(
+        """
+        SELECT unit_id FROM task_units
+        WHERE module_type=? AND is_active=1 AND unit_no>?
+        ORDER BY unit_no LIMIT 1
+        """,
+        (GENDU_MODULE, int(cur["unit_no"])),
+    ).fetchone()
+    return str(nxt["unit_id"]) if nxt else None
+
+
+def _ensure_gendu_plan_item(
+    conn: sqlite3.Connection, student_id: str, unit_id: str
+) -> int:
+    """Ensure one pending live plan_item for the current gendu unit; soft-remove others."""
+    unit = _gendu_unit_or_raise(conn, unit_id)
+    conn.execute(
+        """
+        UPDATE plan_items SET status='removed',
+            updated_at=strftime('%Y-%m-%dT%H:%M:%fZ','now')
+        WHERE student_id=? AND module_type=? AND item_type='study'
+          AND status='pending' AND unit_id!=?
+        """,
+        (student_id, GENDU_MODULE, unit_id),
+    )
+    existing = conn.execute(
+        """
+        SELECT id FROM plan_items
+        WHERE student_id=? AND unit_id=? AND item_type='study' AND status='pending'
+        ORDER BY id DESC LIMIT 1
+        """,
+        (student_id, unit_id),
+    ).fetchone()
+    if existing:
+        conn.execute(
+            """
+            UPDATE plan_items SET
+                study_completed=0,
+                study_completed_version=NULL,
+                need_refresh=0,
+                module_type=?,
+                est_minutes=?,
+                updated_at=strftime('%Y-%m-%dT%H:%M:%fZ','now')
+            WHERE id=?
+            """,
+            (GENDU_MODULE, int(unit.get("est_minutes") or 15), int(existing["id"])),
+        )
+        return int(existing["id"])
+    max_so = conn.execute(
+        "SELECT COALESCE(MAX(sort_order), -1) AS m FROM plan_items WHERE student_id=?",
+        (student_id,),
+    ).fetchone()["m"]
+    cur = conn.execute(
+        """
+        INSERT INTO plan_items (
+            student_id, sort_order, item_type, unit_id, module_type,
+            est_minutes, status, study_completed
+        ) VALUES (?, ?, 'study', ?, ?, ?, 'pending', 0)
+        """,
+        (
+            student_id,
+            int(max_so) + 1,
+            unit_id,
+            GENDU_MODULE,
+            int(unit.get("est_minutes") or 15),
+        ),
+    )
+    return int(cur.lastrowid)
+
+
+def _raw_gendu_assignment(
+    conn: sqlite3.Connection, student_id: str
+) -> Optional[dict[str, Any]]:
+    row = conn.execute(
+        "SELECT * FROM student_gendu_assignment WHERE student_id=?",
+        (student_id,),
+    ).fetchone()
+    return dict(row) if row else None
+
+
+def get_gendu_assignment(
+    conn: sqlite3.Connection,
+    student_id: str,
+    *,
+    on_date: Optional[str] = None,
+) -> Optional[dict[str, Any]]:
+    ensure_task_tables(conn)
+    row = _raw_gendu_assignment(conn, student_id)
+    if not row:
+        return None
+    day = on_date or china_ymd()
+    starts_on = str(row["starts_on"])
+    ends_on = str(row["ends_on"])
+    unit = conn.execute(
+        "SELECT title, unit_no FROM task_units WHERE unit_id=?",
+        (row["current_unit_id"],),
+    ).fetchone()
+    start_unit = conn.execute(
+        "SELECT title, unit_no FROM task_units WHERE unit_id=?",
+        (row["start_unit_id"],),
+    ).fetchone()
+    out = dict(row)
+    out["passed_current"] = bool(row.get("passed_current"))
+    out["active"] = starts_on <= day <= ends_on
+    out["upcoming"] = starts_on > day
+    out["expired"] = day > ends_on
+    out["current_title"] = (unit["title"] if unit else "") or row["current_unit_id"]
+    out["current_unit_no"] = int(unit["unit_no"]) if unit else None
+    out["start_title"] = (start_unit["title"] if start_unit else "") or row["start_unit_id"]
+    out["daily_required"] = GENDU_DAILY_PRACTICES
+    out["pass_score"] = GENDU_PASS_SCORE
+    return out
+
+
+def put_gendu_assignment(
+    conn: sqlite3.Connection, student_id: str, payload: dict[str, Any]
+) -> dict[str, Any]:
+    """Teacher starts / resets a 30-day gendu assignment from a chosen unit."""
+    ensure_task_tables(conn)
+    seed_mvp_units(conn)
+    start_unit_id = str(payload.get("start_unit_id") or "").strip()
+    if not start_unit_id:
+        raise ValueError("请选择起始跟读课")
+    _gendu_unit_or_raise(conn, start_unit_id)
+    today = china_ymd()
+    starts_on = payload.get("starts_on")
+    if starts_on:
+        starts_on = _parse_ymd_strict(starts_on, field="开始日期")
+    else:
+        starts_on = today
+    ends_on = _ymd_plus_days(starts_on, GENDU_ASSIGNMENT_DAYS - 1)
+    conn.execute(
+        """
+        INSERT INTO student_gendu_assignment (
+            student_id, start_unit_id, current_unit_id, starts_on, ends_on,
+            passed_current, updated_at
+        ) VALUES (?, ?, ?, ?, ?, 0, strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+        ON CONFLICT(student_id) DO UPDATE SET
+            start_unit_id=excluded.start_unit_id,
+            current_unit_id=excluded.current_unit_id,
+            starts_on=excluded.starts_on,
+            ends_on=excluded.ends_on,
+            passed_current=0,
+            updated_at=excluded.updated_at
+        """,
+        (student_id, start_unit_id, start_unit_id, starts_on, ends_on),
+    )
+    _ensure_gendu_plan_item(conn, student_id, start_unit_id)
+    # Rebuild today's pack if already materialized
+    conn.execute(
+        "DELETE FROM daily_tasks WHERE student_id=? AND task_date>=?",
+        (student_id, today),
+    )
+    conn.commit()
+    asg = get_gendu_assignment(conn, student_id)
+    return {"gendu_assignment": asg, "plan": get_plan(conn, student_id)}
+
+
+def clear_gendu_assignment(conn: sqlite3.Connection, student_id: str) -> dict[str, Any]:
+    ensure_task_tables(conn)
+    conn.execute(
+        "DELETE FROM student_gendu_assignment WHERE student_id=?", (student_id,)
+    )
+    conn.execute(
+        """
+        UPDATE plan_items SET status='removed',
+            updated_at=strftime('%Y-%m-%dT%H:%M:%fZ','now')
+        WHERE student_id=? AND module_type=? AND status='pending'
+        """,
+        (student_id, GENDU_MODULE),
+    )
+    today = china_ymd()
+    conn.execute(
+        """
+        DELETE FROM daily_tasks
+        WHERE student_id=? AND task_date>=?
+          AND plan_item_id IN (
+            SELECT id FROM plan_items WHERE student_id=? AND module_type=?
+          )
+        """,
+        (student_id, today, student_id, GENDU_MODULE),
+    )
+    conn.commit()
+    return {"gendu_assignment": None, "plan": get_plan(conn, student_id)}
+
+
+def advance_gendu_if_needed(
+    conn: sqlite3.Connection, student_id: str, task_date: str
+) -> bool:
+    """If current lesson passed (≥70%), advance pointer for this calendar day."""
+    asg = _raw_gendu_assignment(conn, student_id)
+    if not asg or not int(asg.get("passed_current") or 0):
+        return False
+    starts_on = str(asg["starts_on"])
+    ends_on = str(asg["ends_on"])
+    if task_date < starts_on or task_date > ends_on:
+        return False
+    # Advance only on a day after the pass was recorded (次日起).
+    # If daily tasks for today already exist for current unit, wait — but when
+    # building a new day, passed_current means yesterday (or earlier) hit 70%.
+    # Heuristic: if today already has a daily_task for current unit with practices,
+    # don't advance mid-day. Only advance when materializing a fresh day OR when
+    # no daily row yet for current unit today.
+    current_unit = str(asg["current_unit_id"])
+    today_row = conn.execute(
+        """
+        SELECT d.id, d.gendu_practice_count
+        FROM daily_tasks d
+        JOIN plan_items p ON p.id = d.plan_item_id
+        WHERE d.student_id=? AND d.task_date=? AND p.unit_id=?
+        LIMIT 1
+        """,
+        (student_id, task_date, current_unit),
+    ).fetchone()
+    if today_row and int(today_row["gendu_practice_count"] or 0) > 0:
+        return False
+    # If today already locked with this unit and count=0, still advance if passed
+    # (new day, not yet practiced). If locked mid-day from earlier materialize
+    # before pass, rematerialize is rare — delete today's gendu daily and advance.
+    next_id = _next_gendu_unit_id(conn, current_unit)
+    if not next_id:
+        # Last lesson: keep practicing until ends_on; clear flag so we don't loop.
+        conn.execute(
+            """
+            UPDATE student_gendu_assignment SET passed_current=0,
+                updated_at=strftime('%Y-%m-%dT%H:%M:%fZ','now')
+            WHERE student_id=?
+            """,
+            (student_id,),
+        )
+        conn.commit()
+        return False
+    # Complete old plan item(s) for current unit
+    conn.execute(
+        """
+        UPDATE plan_items SET study_completed=1,
+            last_completed_at=strftime('%Y-%m-%dT%H:%M:%fZ','now'),
+            updated_at=strftime('%Y-%m-%dT%H:%M:%fZ','now')
+        WHERE student_id=? AND unit_id=? AND item_type='study' AND status='pending'
+        """,
+        (student_id, current_unit),
+    )
+    conn.execute(
+        """
+        DELETE FROM daily_tasks
+        WHERE student_id=? AND task_date=?
+          AND plan_item_id IN (
+            SELECT id FROM plan_items WHERE student_id=? AND unit_id=?
+          )
+        """,
+        (student_id, task_date, student_id, current_unit),
+    )
+    conn.execute(
+        """
+        UPDATE student_gendu_assignment SET
+            current_unit_id=?, passed_current=0,
+            updated_at=strftime('%Y-%m-%dT%H:%M:%fZ','now')
+        WHERE student_id=?
+        """,
+        (next_id, student_id),
+    )
+    _ensure_gendu_plan_item(conn, student_id, next_id)
+    conn.commit()
+    return True
+
+
+def _gendu_aware_plan_items(
+    conn: sqlite3.Connection,
+    student_id: str,
+    task_date: str,
+    plan_items: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    """When assignment active, only current gendu unit; when expired/upcoming, drop gendu."""
+    advance_gendu_if_needed(conn, student_id, task_date)
+    asg = _raw_gendu_assignment(conn, student_id)
+    if not asg:
+        return plan_items
+    starts_on = str(asg["starts_on"])
+    ends_on = str(asg["ends_on"])
+    non_gendu = [
+        it for it in plan_items if str(it.get("module_type") or "") != GENDU_MODULE
+    ]
+    if task_date < starts_on or task_date > ends_on:
+        return non_gendu
+    current_unit = str(asg["current_unit_id"])
+    pid = _ensure_gendu_plan_item(conn, student_id, current_unit)
+    row = conn.execute(
+        """
+        SELECT p.*, u.title AS unit_title
+        FROM plan_items p
+        LEFT JOIN task_units u ON u.unit_id = p.unit_id
+        WHERE p.id=?
+        """,
+        (pid,),
+    ).fetchone()
+    if not row:
+        return non_gendu
+    item = dict(row)
+    # Keep current lesson packable until pointer advances
+    item["study_completed"] = 0
+    return non_gendu + [item]
+
+
+def report_gendu_practice(
+    conn: sqlite3.Connection,
+    student_id: str,
+    *,
+    plan_item_id: int,
+    score: float,
+    task_date: Optional[str] = None,
+) -> dict[str, Any]:
+    """Record one follow-read attempt; day done at 3; pass (≥70%) unlocks next-day advance."""
+    ensure_task_tables(conn)
+    task_date = task_date or china_ymd()
+    try:
+        score_f = float(score)
+    except (TypeError, ValueError) as exc:
+        raise ValueError("识别率无效") from exc
+    if score_f < 0 or score_f > 100:
+        raise ValueError("识别率须在 0–100")
+    asg = _raw_gendu_assignment(conn, student_id)
+    if not asg:
+        raise ValueError("尚未安排听力跟读作业")
+    if not (str(asg["starts_on"]) <= task_date <= str(asg["ends_on"])):
+        raise ValueError("跟读作业不在有效期内")
+    item = conn.execute(
+        "SELECT * FROM plan_items WHERE id=? AND student_id=?",
+        (plan_item_id, student_id),
+    ).fetchone()
+    if not item:
+        raise ValueError("计划条目不存在")
+    if str(item["module_type"]) != GENDU_MODULE:
+        raise ValueError("非听力跟读任务")
+    if str(item["unit_id"]) != str(asg["current_unit_id"]):
+        raise ValueError("请跟读当前指定课文")
+    # Ensure today's daily row exists
+    build_daily_tasks(conn, student_id, task_date)
+    daily = conn.execute(
+        """
+        SELECT * FROM daily_tasks
+        WHERE student_id=? AND task_date=? AND plan_item_id=?
+        """,
+        (student_id, task_date, plan_item_id),
+    ).fetchone()
+    if not daily:
+        raise ValueError("今日未安排该跟读任务")
+    conn.execute(
+        """
+        INSERT INTO gendu_practice_events
+            (student_id, unit_id, plan_item_id, task_date, score)
+        VALUES (?, ?, ?, ?, ?)
+        """,
+        (student_id, item["unit_id"], plan_item_id, task_date, score_f),
+    )
+    count = int(daily["gendu_practice_count"] or 0) + 1
+    best = daily["gendu_best_score"]
+    best_f = score_f if best is None else max(float(best), score_f)
+    new_state = daily["state"]
+    if count >= GENDU_DAILY_PRACTICES and new_state not in ("done_study", "done_pass"):
+        new_state = "done_study"
+    conn.execute(
+        """
+        UPDATE daily_tasks SET
+            gendu_practice_count=?,
+            gendu_best_score=?,
+            state=?
+        WHERE id=?
+        """,
+        (count, best_f, new_state, int(daily["id"])),
+    )
+    if score_f >= GENDU_PASS_SCORE:
+        conn.execute(
+            """
+            UPDATE student_gendu_assignment SET passed_current=1,
+                updated_at=strftime('%Y-%m-%dT%H:%M:%fZ','now')
+            WHERE student_id=?
+            """,
+            (student_id,),
+        )
+    conn.commit()
+    today_data = get_today(conn, student_id) if task_date == china_ymd() else {
+        "items": _enrich_daily(conn, student_id, task_date),
+        "gendu_assignment": get_gendu_assignment(conn, student_id, on_date=task_date),
+    }
+    return {
+        "practice_count": count,
+        "required": GENDU_DAILY_PRACTICES,
+        "best_score": best_f,
+        "day_complete": count >= GENDU_DAILY_PRACTICES,
+        "passed_lesson": score_f >= GENDU_PASS_SCORE
+        or bool(_raw_gendu_assignment(conn, student_id).get("passed_current")),
+        "today": today_data,
+    }
+
+
 def get_plan(conn: sqlite3.Connection, student_id: str) -> dict[str, Any]:
     maybe_apply_pending_for_today(conn, student_id, china_ymd())
     live = [
@@ -1358,6 +1855,7 @@ def get_plan(conn: sqlite3.Connection, student_id: str) -> dict[str, Any]:
         ),
         "draft_order_issues": draft_order_issues,
         "time_profile": tp,
+        "gendu_assignment": get_gendu_assignment(conn, student_id),
     }
 
 
@@ -1976,6 +2474,7 @@ def _aligned_units_schedule(
 ) -> list[dict[str, Any]]:
     """Schedule aligned with student: today uses locked daily_tasks when present."""
     today = china_ymd()
+    plan_items = _gendu_aware_plan_items(conn, student_id, start_date, list(plan_items))
     released = {pid for pid in _released_plan_item_ids(conn, student_id) if pid > 0}
     schedule: list[dict[str, Any]] = []
     cursor = start_date
@@ -2011,7 +2510,8 @@ def _aligned_units_schedule(
                 }
             )
             for item, _p, _f in picks:
-                released.add(int(item["id"]))
+                if _should_release_plan_item(item):
+                    released.add(int(item["id"]))
             left -= 1
             cursor = (
                 datetime.strptime(today, "%Y-%m-%d").date() + timedelta(days=1)
@@ -2556,6 +3056,11 @@ def _simulate_units_pack(
     }
 
 
+def _should_release_plan_item(item: dict[str, Any]) -> bool:
+    """Gendu current lesson repeats daily until pass — do not consume from released set."""
+    return str(item.get("module_type") or "") != GENDU_MODULE
+
+
 def _preview_units_schedule(
     conn: sqlite3.Connection,
     plan_items: list[dict[str, Any]],
@@ -2598,7 +3103,8 @@ def _preview_units_schedule(
         items = _units_pack_to_preview_items(conn, picks)
         schedule.append({"task_date": day, "items": items, "units_total": len(items)})
         for item, _prio, _forced in picks:
-            released.add(int(item["id"]))
+            if _should_release_plan_item(item):
+                released.add(int(item["id"]))
         if not picks and all(_item_done(it) or int(it["id"]) in released for it in plan_items):
             break
     return schedule
@@ -2736,12 +3242,80 @@ def _materialize_daily_picks(
         )
 
 
+def _ensure_gendu_in_existing_daily(
+    conn: sqlite3.Connection, student_id: str, task_date: str
+) -> None:
+    """If assignment active but today's locked pack lacks current gendu, append it."""
+    asg = get_gendu_assignment(conn, student_id, on_date=task_date)
+    if not asg or not asg.get("active"):
+        if asg and (asg.get("expired") or asg.get("upcoming")):
+            conn.execute(
+                """
+                DELETE FROM daily_tasks
+                WHERE student_id=? AND task_date=?
+                  AND plan_item_id IN (
+                    SELECT id FROM plan_items
+                    WHERE student_id=? AND module_type=?
+                  )
+                """,
+                (student_id, task_date, student_id, GENDU_MODULE),
+            )
+            conn.commit()
+        return
+    current_unit = str(asg["current_unit_id"])
+    pid = _ensure_gendu_plan_item(conn, student_id, current_unit)
+    has = conn.execute(
+        """
+        SELECT 1 FROM daily_tasks
+        WHERE student_id=? AND task_date=? AND plan_item_id=?
+        """,
+        (student_id, task_date, pid),
+    ).fetchone()
+    if has:
+        return
+    conn.execute(
+        """
+        DELETE FROM daily_tasks
+        WHERE student_id=? AND task_date=?
+          AND plan_item_id IN (
+            SELECT id FROM plan_items
+            WHERE student_id=? AND module_type=? AND id!=?
+          )
+        """,
+        (student_id, task_date, student_id, GENDU_MODULE, pid),
+    )
+    max_sort = conn.execute(
+        """
+        SELECT COALESCE(MAX(sort_in_day), -1) AS m FROM daily_tasks
+        WHERE student_id=? AND task_date=?
+        """,
+        (student_id, task_date),
+    ).fetchone()["m"]
+    conn.execute(
+        """
+        INSERT INTO daily_tasks (
+            student_id, task_date, plan_item_id, priority_class,
+            sort_in_day, state, locked, forced
+        ) VALUES (?, ?, ?, 'fresh', ?, 'todo', 1, 0)
+        """,
+        (student_id, task_date, pid, int(max_sort) + 1),
+    )
+    conn.commit()
+
+
 def _build_daily_tasks_units(
     conn: sqlite3.Connection,
     student_id: str,
     task_date: Optional[str] = None,
 ) -> list[dict[str, Any]]:
     task_date = task_date or china_ymd()
+    advanced = advance_gendu_if_needed(conn, student_id, task_date)
+    if advanced:
+        conn.execute(
+            "DELETE FROM daily_tasks WHERE student_id=? AND task_date=?",
+            (student_id, task_date),
+        )
+        conn.commit()
 
     existing = conn.execute(
         """
@@ -2751,6 +3325,7 @@ def _build_daily_tasks_units(
         (student_id, task_date),
     ).fetchall()
     if existing:
+        _ensure_gendu_in_existing_daily(conn, student_id, task_date)
         return _enrich_daily(conn, student_id, task_date)
 
     live = [
@@ -2766,9 +3341,13 @@ def _build_daily_tasks_units(
             (student_id,),
         ).fetchall()
     ]
+    live = _gendu_aware_plan_items(conn, student_id, task_date, live)
     backlog_ids = set(backlog_plan_item_ids(conn, student_id))
     released_ids = _released_plan_item_ids(conn, student_id)
     quota_map = _module_quota_map(conn, student_id, task_date, live)
+    asg = get_gendu_assignment(conn, student_id, on_date=task_date)
+    if asg and asg.get("active"):
+        quota_map[GENDU_MODULE] = max(1, int(quota_map.get(GENDU_MODULE) or 1))
     picks = _units_pack_picks(
         live,
         task_date=task_date,
@@ -2830,6 +3409,9 @@ def clear_daily_schedule(conn: sqlite3.Connection, student_id: str) -> dict[str,
     conn.execute("DELETE FROM plan_items_draft WHERE student_id=?", (student_id,))
     conn.execute("DELETE FROM plan_draft_meta WHERE student_id=?", (student_id,))
     conn.execute("DELETE FROM student_plan_pause WHERE student_id=?", (student_id,))
+    conn.execute(
+        "DELETE FROM student_gendu_assignment WHERE student_id=?", (student_id,)
+    )
     conn.commit()
     return {
         "student_id": student_id,
@@ -3270,8 +3852,8 @@ def _enrich_daily(
         title = item.get("unit_title") or item.get("test_title") or "任务"
         if item.get("need_refresh"):
             title = f"{title}（内容已更新）"
-        out.append(
-            {
+        gendu_count = int(item.get("gendu_practice_count") or 0)
+        entry = {
                 "daily_task_id": item["id"],
                 "plan_item_id": item["plan_item_id"],
                 "task_date": task_date,
@@ -3295,7 +3877,15 @@ def _enrich_daily(
                 "study_url": study_url,
                 "est_minutes": item.get("plan_est") or item.get("unit_est") or 15,
             }
-        )
+        if str(item.get("module_type") or "") == GENDU_MODULE:
+            entry["gendu_practice_count"] = gendu_count
+            entry["gendu_required"] = GENDU_DAILY_PRACTICES
+            entry["gendu_best_score"] = item.get("gendu_best_score")
+            entry["scope_done"] = gendu_count
+            entry["scope_total"] = GENDU_DAILY_PRACTICES
+            entry["scope_unit"] = "次"
+            entry["scope_label"] = "今日跟读"
+        out.append(entry)
     return out
 
 
@@ -3341,6 +3931,7 @@ def get_today(conn: sqlite3.Connection, student_id: str) -> dict[str, Any]:
         "progress": plan["progress"],
         "plan_status": status,
         "plan_pause": pause,
+        "gendu_assignment": get_gendu_assignment(conn, student_id, on_date=task_date),
         "pending_plan_change": plan["pending_plan_change"],
         "pending_effective_from": plan.get("pending_effective_from"),
         "empty_message": empty_msg,
@@ -3588,6 +4179,32 @@ def complete_study(
         done = int(prog["scope_done"]) if prog else 0
         if done < scope_total:
             raise ValueError(f"请先完成本单元全部 {scope_total} 组练习（当前 {done}/{scope_total}）")
+
+    # Gendu: day complete needs 3 practices; never mark plan study_completed here
+    # (lesson advance is driven by ≥70% + next-day pointer).
+    if unit and str(unit["module_type"]) == GENDU_MODULE:
+        today = china_ymd()
+        daily = conn.execute(
+            """
+            SELECT gendu_practice_count, state FROM daily_tasks
+            WHERE student_id=? AND task_date=? AND plan_item_id=?
+            """,
+            (student_id, today, plan_item_id),
+        ).fetchone()
+        count = int(daily["gendu_practice_count"] or 0) if daily else 0
+        if count < GENDU_DAILY_PRACTICES:
+            raise ValueError(
+                f"听力跟读当日需完成 {GENDU_DAILY_PRACTICES} 次（当前 {count}/{GENDU_DAILY_PRACTICES}）"
+            )
+        conn.execute(
+            """
+            UPDATE daily_tasks SET state='done_study'
+            WHERE student_id=? AND task_date=? AND plan_item_id=?
+            """,
+            (student_id, today, plan_item_id),
+        )
+        conn.commit()
+        return get_today(conn, student_id)
 
     conn.execute(
         """

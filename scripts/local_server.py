@@ -85,9 +85,11 @@ from teacher_api import (  # noqa: E402
 )
 from task_api import (  # noqa: E402
     class_overview as task_class_overview,
+    clear_gendu_assignment as task_clear_gendu_assignment,
     clear_plan_pause as task_clear_plan_pause,
     complete_study as task_complete_study,
     ensure_task_tables,
+    get_gendu_assignment as task_get_gendu_assignment,
     get_plan as task_get_plan,
     get_time_profile as task_get_time_profile,
     get_today as task_get_today,
@@ -96,10 +98,12 @@ from task_api import (  # noqa: E402
     normalize_stage_test_positions,
     preview_daily_pack as task_preview_daily_pack,
     preview_daily_pack_items as task_preview_daily_pack_items,
+    put_gendu_assignment as task_put_gendu_assignment,
     put_plan_draft as task_put_plan_draft,
     put_plan_pause as task_put_plan_pause,
     put_time_profile as task_put_time_profile,
     clear_daily_schedule as task_clear_daily_schedule,
+    report_gendu_practice as task_report_gendu_practice,
     seed_mvp_units,
     submit_stage_test as task_submit_stage_test,
     update_scope_progress as task_update_scope_progress,
@@ -847,6 +851,9 @@ class LocalHandler(SimpleHTTPRequestHandler):
         if path.startswith("/api/task/students/") and path.endswith("/plan-pause"):
             self.handle_task_plan_pause_put()
             return
+        if path.startswith("/api/task/students/") and path.endswith("/gendu-assignment"):
+            self.handle_task_gendu_assignment_put()
+            return
         if path.startswith("/api/task/students/") and path.endswith("/plan"):
             self.handle_task_student_plan_put()
             return
@@ -860,6 +867,9 @@ class LocalHandler(SimpleHTTPRequestHandler):
         path = parsed.path.rstrip("/")
         if path.startswith("/api/task/students/") and path.endswith("/plan-pause"):
             self.handle_task_plan_pause_delete()
+            return
+        if path.startswith("/api/task/students/") and path.endswith("/gendu-assignment"):
+            self.handle_task_gendu_assignment_delete()
             return
         self.send_json({"data": None, "error": {"message": "Not Found"}}, status=404)
 
@@ -1646,6 +1656,77 @@ class LocalHandler(SimpleHTTPRequestHandler):
         except ValueError as exc:
             self.send_json({"data": None, "error": {"message": str(exc)}}, status=400)
 
+    def handle_task_me_gendu_practice(self) -> None:
+        session = self.require_student_session()
+        if not session:
+            return
+        payload = self.read_json_body()
+        plan_item_id = payload.get("plan_item_id")
+        if plan_item_id is None:
+            self.send_json({"data": None, "error": {"message": "缺少 plan_item_id"}}, status=400)
+            return
+        try:
+            with closing(connect(self.db_path)) as conn:
+                ensure_task_tables(conn)
+                seed_mvp_units(conn)
+                data = task_report_gendu_practice(
+                    conn,
+                    session["id"],
+                    plan_item_id=int(plan_item_id),
+                    score=payload.get("score"),
+                )
+                self.send_json({"data": data, "error": None})
+        except ValueError as exc:
+            self.send_json({"data": None, "error": {"message": str(exc)}}, status=400)
+
+    def handle_task_gendu_assignment_get(self) -> None:
+        if not self.require_teacher_session():
+            return
+        parsed = urllib.parse.urlparse(self.path)
+        parts = [p for p in parsed.path.split("/") if p]
+        if len(parts) < 5:
+            self.send_json({"data": None, "error": {"message": "缺少 student_id"}}, status=400)
+            return
+        student_id = parts[3]
+        with closing(connect(self.db_path)) as conn:
+            ensure_task_tables(conn)
+            seed_mvp_units(conn)
+            data = task_get_gendu_assignment(conn, student_id)
+            self.send_json({"data": data, "error": None})
+
+    def handle_task_gendu_assignment_put(self) -> None:
+        if not self.require_teacher_session():
+            return
+        parsed = urllib.parse.urlparse(self.path)
+        parts = [p for p in parsed.path.split("/") if p]
+        if len(parts) < 5:
+            self.send_json({"data": None, "error": {"message": "缺少 student_id"}}, status=400)
+            return
+        student_id = parts[3]
+        payload = self.read_json_body()
+        try:
+            with closing(connect(self.db_path)) as conn:
+                ensure_task_tables(conn)
+                seed_mvp_units(conn)
+                data = task_put_gendu_assignment(conn, student_id, payload)
+                self.send_json({"data": data, "error": None})
+        except ValueError as exc:
+            self.send_json({"data": None, "error": {"message": str(exc)}}, status=400)
+
+    def handle_task_gendu_assignment_delete(self) -> None:
+        if not self.require_teacher_session():
+            return
+        parsed = urllib.parse.urlparse(self.path)
+        parts = [p for p in parsed.path.split("/") if p]
+        if len(parts) < 5:
+            self.send_json({"data": None, "error": {"message": "缺少 student_id"}}, status=400)
+            return
+        student_id = parts[3]
+        with closing(connect(self.db_path)) as conn:
+            ensure_task_tables(conn)
+            data = task_clear_gendu_assignment(conn, student_id)
+            self.send_json({"data": data, "error": None})
+
     def handle_task_me_scope_progress(self) -> None:
         session = self.require_student_session()
         if not session:
@@ -1970,6 +2051,11 @@ class LocalHandler(SimpleHTTPRequestHandler):
             self.handle_task_me_today()
             return
         if parsed.path.startswith("/api/task/students/") and parsed.path.rstrip("/").endswith(
+            "/gendu-assignment"
+        ):
+            self.handle_task_gendu_assignment_get()
+            return
+        if parsed.path.startswith("/api/task/students/") and parsed.path.rstrip("/").endswith(
             "/pack-preview"
         ):
             self.handle_task_pack_preview_get()
@@ -2086,6 +2172,9 @@ class LocalHandler(SimpleHTTPRequestHandler):
         if path == "/api/task/me/complete-study":
             self.handle_task_me_complete_study()
             return
+        if path == "/api/task/me/gendu-practice":
+            self.handle_task_me_gendu_practice()
+            return
         if path == "/api/task/me/scope-progress":
             self.handle_task_me_scope_progress()
             return
@@ -2097,6 +2186,12 @@ class LocalHandler(SimpleHTTPRequestHandler):
             return
         if path.startswith("/api/task/students/") and path.endswith("/pack-preview"):
             self.handle_task_pack_preview_post()
+            return
+        if path.startswith("/api/task/students/") and path.endswith("/gendu-assignment/clear"):
+            self.handle_task_gendu_assignment_delete()
+            return
+        if path.startswith("/api/task/students/") and path.endswith("/gendu-assignment"):
+            self.handle_task_gendu_assignment_put()
             return
         if path.startswith("/api/task/students/") and path.endswith("/plan-pause"):
             self.handle_task_plan_pause_put()

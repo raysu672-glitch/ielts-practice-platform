@@ -55,7 +55,14 @@
 
 生效日与清单相同：默认明天；选「今天」保存后立即重排今日 `daily_tasks`。
 
+## 听力跟读特例
+
+`listening_p4_speed` 走独立作业表 `student_gendu_assignment`（助教选起点课，默认 30 天窗口）：
+
+- 窗口内每日只释放**当前课**；日练满 3 次记当日完成；识别率 ≥70% 则次日切下一篇。
+- API：`PUT/GET .../gendu-assignment`、`POST .../gendu-assignment/clear`、学生 `POST /api/task/me/gendu-practice`。
+
 ## 实现入口
 
 - 分支：[`scripts/task_api.py`](../scripts/task_api.py) `build_daily_tasks` → `_build_daily_tasks_units`
-- 测试：[`tests/test_task_api.py`](../tests/test_task_api.py) `test_units_mode_*`
+- 测试：[`tests/test_task_api.py`](../tests/test_task_api.py) `test_units_mode_*`、`test_gendu_*`
