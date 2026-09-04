@@ -87,6 +87,32 @@ SPEAKING_P2_MATERIALS = [
     ("tianchi", "地点·天池"),
     ("robot", "科技·机器人"),
 ]
+LISTENING_GENDU_LESSONS = [
+    ("p1", "C4T1S1", "学校出行"),
+    ("p1", "C4T2S1", "学生住宿"),
+    ("p1", "C4T3S1", "合租搬家"),
+    ("p1", "C4T4S1", "假期安排"),
+    ("p1", "C5T1S1", "旅行咨询"),
+    ("p1", "C5T2S1", "大学图书馆"),
+    ("p1", "C5T3S1", "旅馆咨询"),
+    ("p1", "C5T4S1", "住宿登记"),
+    ("p1", "C6T1S1", "体育中心"),
+    ("p1", "C6T2S1", "博物馆参观"),
+    ("p1", "C6T3S1", "开银行账户"),
+    ("p1", "C6T4S1", "会议预订"),
+    ("p4", "C4T1S4", "城市景观"),
+    ("p4", "C4T2S4", "儿童语言"),
+    ("p4", "C4T3S4", "鲨鱼"),
+    ("p4", "C4T4S4", "斯特拉迪瓦里小提琴"),
+    ("p4", "C5T1S4", "职业态度"),
+    ("p4", "C5T2S4", "绿色产品"),
+    ("p4", "C5T3S4", "电影研究"),
+    ("p4", "C5T4S4", "南极"),
+    ("p4", "C6T1S4", "气候与冰"),
+    ("p4", "C6T2S4", "伊卡洛斯与飞行"),
+    ("p4", "C6T3S4", "地图史"),
+    ("p4", "C6T4S4", "亚洲狮"),
+]
 _REPO_ROOT = Path(__file__).resolve().parents[1]
 
 EXPECTED_TASK_UNIT_COUNTS = {
@@ -97,7 +123,7 @@ EXPECTED_TASK_UNIT_COUNTS = {
     "sentence": 12,
     "writing_phrase": 14,
     "writing_translate": 23,
-    "listening_p4_speed": 1,
+    "listening_p4_speed": 24,
     "speaking_complex": 17,
     "speaking_p1": 24,
     "speaking_p2_material": 8,
@@ -656,18 +682,20 @@ def seed_mvp_units(conn: sqlite3.Connection) -> None:
                 ),
             )
 
-    _upsert_task_unit(
-        conn,
-        unit_id="listening_p4_u01",
-        module_type="listening_p4_speed",
-        parent_module="listening_p4_speed",
-        unit_no=1,
-        title="第1课 · Urban Landscape",
-        content_ref={"lessonId": 1, "scope_total": 1},
-        est_minutes=15,
-        completion_rule="asr_ge_70",
-        study_url="../P4gendu/index.html?lessonId=1",
-    )
+    for idx, (part, code, topic) in enumerate(LISTENING_GENDU_LESSONS, start=1):
+        unit_id = "listening_p4_u01" if code == "C4T1S4" else f"listening_gendu_{code.lower()}"
+        _upsert_task_unit(
+            conn,
+            unit_id=unit_id,
+            module_type="listening_p4_speed",
+            parent_module="listening_p4_speed",
+            unit_no=idx,
+            title=f"{'P1' if part == 'p1' else 'P4'} · {code} · {topic}",
+            content_ref={"lessonId": code, "part": part, "scope_total": 1},
+            est_minutes=15,
+            completion_rule="asr_ge_70",
+            study_url=f"../P4genduceshi/index.html?lessonId={code}&part={part}",
+        )
 
     c_no = 0
     for pid in SPEAKING_COMPLEX_PATTERNS:
@@ -2821,7 +2849,7 @@ _MODULE_BRIEF_LABELS = {
     "sentence": "长难",
     "writing_phrase": "词伙",
     "writing_translate": "翻译",
-    "listening_p4_speed": "P4",
+    "listening_p4_speed": "跟读",
 }
 
 _SPEAKING_PREFIX = "speaking_"

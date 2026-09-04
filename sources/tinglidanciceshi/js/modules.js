@@ -425,17 +425,17 @@ var MODULES = [
     { id: 'writing_translate', name: '写作句子翻译', target_type: 'dynamic', targets: { 6: 50, 6.5: 70, 7: 90 }, unit: '%', url: '../juzifanyixin/index.html', test_url: '../juzifanyixinceshi/index.html?v=20260827c', icon: 'translate' },
     { id: 'writing_correction', name: '作文批改', target_type: 'dynamic', targets: { 6: 1, 6.5: 1, 7: 1 }, unit: '次', url: '../xiezuopigai/ielts-student-practice.html', test_url: '', icon: 'edit' },
     
-    // 二、听力P4跟读：只练倍速，主站不开放测试和历史
-    { id: 'listening_p4_speed', name: '听力P4跟读倍速', target_type: 'dynamic', targets: { 6: 70, 6.5: 80, 7: 90 }, unit: '%', url: '../P4gendu/index.html', test_url: '', study_only: true, icon: 'mic' },
+    // 二、听力跟读：练习含 P1/P4；测试只计 P4 讲座识别率
+    { id: 'listening_p4_speed', name: '听力跟读', target_type: 'dynamic', targets: { 6: 70, 6.5: 80, 7: 90 }, unit: '%', url: '../P4gendu/index.html', test_url: '../P4gendu/index.html?part=p4', icon: 'mic' },
     
     // 三、每项需要答对个数
-    { id: 'reading_p1', name: '第一篇阅读', target_type: 'dynamic', targets: { 6: 9, 6.5: 11, 7: 12 }, unit: '个', url: '', icon: 'eye' },
-    { id: 'reading_p2', name: '第二篇阅读', target_type: 'dynamic', targets: { 6: 8, 6.5: 10, 7: 10 }, unit: '个', url: '', icon: 'eye' },
-    { id: 'reading_p3', name: '第三篇阅读', target_type: 'dynamic', targets: { 6: 6, 6.5: 6, 7: 8 }, unit: '个', url: '', icon: 'eye' },
-    { id: 'listening_p1', name: '听力P1', target_type: 'dynamic', targets: { 6: 8, 6.5: 9, 7: 9 }, unit: '个', url: '', icon: 'headphones' },
-    { id: 'listening_p2', name: '听力P2', target_type: 'dynamic', targets: { 6: 7, 6.5: 8, 7: 9 }, unit: '个', url: '', icon: 'headphones' },
-    { id: 'listening_p3', name: '听力P3', target_type: 'dynamic', targets: { 6: 4, 6.5: 4, 7: 5 }, unit: '个', url: '', icon: 'headphones' },
-    { id: 'listening_p4', name: '听力P4', target_type: 'dynamic', targets: { 6: 4, 6.5: 6, 7: 7 }, unit: '个', url: '', icon: 'headphones' },
+    { id: 'reading_p1', name: '阅读Part1', target_type: 'dynamic', targets: { 6: 9, 6.5: 11, 7: 12 }, unit: '个', url: '/jianyazhenti/student?embed=1&subject=reading&part=1', test_url: '/jianyazhenti/student?embed=1&subject=reading&part=1', icon: 'eye' },
+    { id: 'reading_p2', name: '阅读Part2', target_type: 'dynamic', targets: { 6: 8, 6.5: 10, 7: 10 }, unit: '个', url: '/jianyazhenti/student?embed=1&subject=reading&part=2', test_url: '/jianyazhenti/student?embed=1&subject=reading&part=2', icon: 'eye' },
+    { id: 'reading_p3', name: '阅读Part3', target_type: 'dynamic', targets: { 6: 6, 6.5: 6, 7: 8 }, unit: '个', url: '/jianyazhenti/student?embed=1&subject=reading&part=3', test_url: '/jianyazhenti/student?embed=1&subject=reading&part=3', icon: 'eye' },
+    { id: 'listening_p1', name: '听力Part1', target_type: 'dynamic', targets: { 6: 8, 6.5: 9, 7: 9 }, unit: '个', url: '/jianyazhenti/student?embed=1&subject=listening&part=1', test_url: '/jianyazhenti/student?embed=1&subject=listening&part=1', icon: 'headphones' },
+    { id: 'listening_p2', name: '听力Part2', target_type: 'dynamic', targets: { 6: 7, 6.5: 8, 7: 9 }, unit: '个', url: '/jianyazhenti/student?embed=1&subject=listening&part=2', test_url: '/jianyazhenti/student?embed=1&subject=listening&part=2', icon: 'headphones' },
+    { id: 'listening_p3', name: '听力Part3', target_type: 'dynamic', targets: { 6: 4, 6.5: 4, 7: 5 }, unit: '个', url: '/jianyazhenti/student?embed=1&subject=listening&part=3', test_url: '/jianyazhenti/student?embed=1&subject=listening&part=3', icon: 'headphones' },
+    { id: 'listening_p4', name: '听力Part4', target_type: 'dynamic', targets: { 6: 4, 6.5: 6, 7: 7 }, unit: '个', url: '/jianyazhenti/student?embed=1&subject=listening&part=4', test_url: '/jianyazhenti/student?embed=1&subject=listening&part=4', icon: 'headphones' },
     
     // 四、雅思单项目标分数
     { id: 'speaking', name: '口语练习', target_type: 'dynamic', targets: { 6: 5.5, 6.5: 6, 7: 6.5 }, unit: '分', url: '/kouyulianxi/index.html?build=20260827d', test_url: '/kouyulianxi/index.html?build=20260827d', icon: 'message' },
@@ -482,7 +482,8 @@ var WRONG_BOOK_TEST_SIZE = {
 
 function hasWrongBook(m) {
     if (!m || isStudyOnlyModule(m)) return false;
-    if (m.id === 'writing_correction' || m.id === 'speaking') return false;
+    if (m.id === 'writing_correction' || m.id === 'speaking' || m.id === 'listening_p4_speed') return false;
+    if (/^(reading_p[123]|listening_p[1234])$/.test(m.id)) return false;
     return isBuiltinDictationModule(m.id) || !!m.test_url;
 }
 

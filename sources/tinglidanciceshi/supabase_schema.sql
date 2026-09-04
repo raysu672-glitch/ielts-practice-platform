@@ -237,7 +237,7 @@ INSERT INTO pass_standards (module_type, module_name, score_6, score_6_5, score_
 ('sentence', '长难句分析', 60, 80, 80),
 ('listening_synonym', '听力同义替换', 70, 80, 90),
 ('writing_translate', '写作句子翻译', 50, 70, 90),
-('listening_p4_speed', '听力P4跟读倍速', 70, 80, 90),
+('listening_p4_speed', '听力跟读', 70, 80, 90),
 ('dictation_learn', '听力单词学习', 70, 80, 90)
 ON CONFLICT (module_type) DO UPDATE SET
     module_name = EXCLUDED.module_name,

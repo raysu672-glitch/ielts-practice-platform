@@ -399,11 +399,29 @@ function switchStudentTab(tab) {
     if (tasksEl) tasksEl.style.display = tab === 'tasks' ? 'block' : 'none';
     document.getElementById('studentTabProgress').style.display = tab === 'progress' ? 'block' : 'none';
     document.getElementById('studentTabHistory').style.display = tab === 'history' ? 'block' : 'none';
+    var jianyaEl = document.getElementById('studentTabJianya');
+    if (jianyaEl) jianyaEl.style.display = tab === 'jianya' ? 'block' : 'none';
+    document.body.classList.toggle('student-jianya-wide', tab === 'jianya');
     if (tab === 'history') {
         loadStudentHistory();
     }
     if (tab === 'tasks') {
         loadTodayTasks();
+    }
+    if (tab === 'jianya') {
+        loadJianyaStudentFrame();
+    }
+}
+
+function loadJianyaStudentFrame() {
+    var frame = document.getElementById('jianyaStudentIframe');
+    if (!frame) return;
+    var sid = (currentStudent && currentStudent.student_id) ? encodeURIComponent(currentStudent.student_id) : '';
+    var next = '/jianyazhenti/student?embed=1';
+    if (sid) next += '&student_id=' + sid;
+    if (frame.getAttribute('data-src') !== next) {
+        frame.src = next;
+        frame.setAttribute('data-src', next);
     }
 }
 
@@ -468,7 +486,9 @@ async function loadProgressTable() {
 
     for (let i = 0; i < availableModules.length; i++) {
         const m = availableModules[i];
-        const moduleTarget = getModuleTarget(m);
+        const moduleTarget = m.id === 'listening_p4_speed'
+            ? await getPassThreshold(m.id, currentStudent)
+            : getModuleTarget(m);
         const moduleRecords = getModuleRecords(records, m.id);
         const modSessions = getModuleStudySessions(sessions, m.id);
         const modSeconds = window.TrackingUtils.sumPracticeSeconds(allSessions, records, { moduleId: m.id });
@@ -496,7 +516,7 @@ async function loadProgressTable() {
         } else if (moduleRecords.length > 0) {
             scoreDisplay = formatTargetValue(bestScore, m.unit);
         } else {
-            scoreDisplay = modSeconds > 0 ? '学习中' : (m.unit === '分' ? '0分' : '0%');
+            scoreDisplay = modSeconds > 0 ? '学习中' : formatTargetValue(0, m.unit);
         }
         html += '<tr style="border-bottom:1px solid #dee2e6;">';
         html += '<td style="padding:15px 12px;"><strong>' + m.name + '</strong></td>';
@@ -869,6 +889,12 @@ async function startWrongWordsTestFromHistory(wordListStr, moduleId) {
 
 function studentLogout() {
     currentStudent = null;
+    document.body.classList.remove('student-jianya-wide');
+    var jianyaFrame = document.getElementById('jianyaStudentIframe');
+    if (jianyaFrame) {
+        jianyaFrame.src = '';
+        jianyaFrame.removeAttribute('data-src');
+    }
     clearStudentSession();
     authLogout('student').finally(function() {
         showScreen('studentLoginScreen');
@@ -2319,7 +2345,7 @@ function openPhraseIframe() {
 }
 
 // 打开任意配置了 url 的模块（通用 iframe）
-function openGenericIframe(moduleId, moduleName, url, mode) {
+async function openGenericIframe(moduleId, moduleName, url, mode) {
     const finalMode = mode || 'study';
     const normalizedModuleId = normalizeModuleType(moduleId);
     const ctx = window._currentTaskContext || {};
@@ -2333,17 +2359,21 @@ function openGenericIframe(moduleId, moduleName, url, mode) {
         unit_id: ctx.unit_id
     };
     startPracticeClock();
+    document.body.classList.toggle('student-jianya-wide', /^(reading_p[123]|listening_p[1234])$/.test(normalizedModuleId));
     const paramObj = {
         student_id: currentStudent && currentStudent.student_id,
         student_name: currentStudent && currentStudent.name,
         module_type: normalizedModuleId,
         module_name: moduleName,
         mode: finalMode,
-        v: '20260827d'
+        v: '20260904i'
     };
     if (ctx.plan_item_id != null) paramObj.plan_item_id = ctx.plan_item_id;
     if (ctx.unit_id) paramObj.unit_id = ctx.unit_id;
     if (ctx.content_version) paramObj.content_version = ctx.content_version;
+    if (typeof getPassThreshold === 'function') {
+        paramObj.pass_threshold = await getPassThreshold(normalizedModuleId, currentStudent);
+    }
     const finalUrl = appendModuleParams(url, paramObj);
     showScreen('genericScreen');
     document.getElementById('genericScreenTitle').textContent = moduleName + (finalMode === 'test' ? '测试' : '学习');
@@ -2378,6 +2408,7 @@ async function saveCurrentModuleFallback() {
 function finishGenericIframeClose() {
     stopPracticeClock();
     window._currentModule = null;
+    document.body.classList.remove('student-jianya-wide');
     try { document.getElementById('genericIframe').src = ''; } catch(e) {}
     const returnId = window._wrongBookReturn;
     window._wrongBookReturn = null;
@@ -2572,17 +2603,26 @@ window.addEventListener('message', async function(event) {
                 : (reportedSeconds > 0 ? Math.min(reportedSeconds, elapsedSeconds + 5) : elapsedSeconds);
             const endedAt = data.endedAt || data.ended_at || new Date().toISOString();
             const startedAt = data.startedAt || data.started_at || new Date(new Date(endedAt).getTime() - durationSeconds * 1000).toISOString();
+            const scorePercent = data.scorePercent != null ? data.scorePercent : data.score;
+            let passThreshold = data.passThreshold != null ? data.passThreshold : data.pass_threshold;
+            let isPassed = data.isPassed != null ? data.isPassed : data.is_passed;
+            if (moduleType === 'listening_p4_speed') {
+                passThreshold = await getPassThreshold(moduleType, currentStudent);
+                isPassed = Number(scorePercent) >= Number(passThreshold);
+            }
             const result = await saveModuleTestRecord({
                 student_id: currentStudent.student_id,
                 module_type: moduleType,
                 module_name: current.name || (module ? module.name : moduleType),
                 test_type: data.testType || data.test_type || 'module_test',
-                score_percent: data.scorePercent != null ? data.scorePercent : data.score,
+                score_percent: scorePercent,
                 correct_count: data.correctCount || data.correct_count || data.rightCount || 0,
                 total_count: data.totalCount || data.total_count || 0,
                 duration_seconds: durationSeconds,
                 started_at: startedAt,
                 ended_at: endedAt,
+                pass_threshold: passThreshold,
+                is_passed: isPassed,
                 details: data.details || []
             });
             if (!result.error) current.reported = true;

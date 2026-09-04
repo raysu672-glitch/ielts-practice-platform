@@ -1058,7 +1058,7 @@ async function showStudentDetailProgress(studentId, studentName, filterModuleId)
             html += '<div style="flex:1; background:#e9ecef; border-radius:10px; height:8px; overflow:hidden;">';
             html += '<div style="width:' + progressPercent + '%; background:' + progressColor + '; height:100%; transition:width 0.3s;"></div>';
             html += '</div>';
-            html += '<span style="min-width:50px; text-align:right;">' + (moduleRecords.length > 0 ? bestScore + '%' : '0%') + '</span>';
+            html += '<span style="min-width:50px; text-align:right;">' + (moduleRecords.length > 0 ? formatTargetValue(bestScore, m.unit) : formatTargetValue(0, m.unit)) + '</span>';
             html += '</div>';
         }
         html += '</td>';
@@ -1111,18 +1111,38 @@ async function loadTeacherStudentProgress() {
 async function loadStandards() {
     const result = await teacherApiGet('/api/teacher/standards');
     const container = document.getElementById('standardsList');
-    // 达标标准也只展示学生端已开放模块，其余先隐藏
-    const availableIds = {};
-    MODULES.filter(isModuleAvailable).forEach(function(m) { availableIds[m.id] = true; });
-    const standards = (result.data || []).filter(function(s) { return availableIds[s.module_type]; });
-    if (!standards || standards.length === 0) {
+    const byType = {};
+    (result.data || []).forEach(function(s) {
+        if (s && s.module_type) byType[s.module_type] = s;
+    });
+    const modules = MODULES.filter(isModuleAvailable);
+    if (!modules.length) {
         container.innerHTML = '<p style="text-align:center;color:#666;padding:20px;">暂无模块配置</p>';
         return;
     }
     let html = '';
-    for (let i = 0; i < standards.length; i++) {
-        const s = standards[i];
-        html += '<div style="padding:20px;background:#f8f9fa;border-radius:10px;margin-bottom:15px;"><h4 style="margin-bottom:15px;">' + s.module_name + '</h4><div style="display:grid;grid-template-columns:repeat(3,1fr);gap:15px;"><div class="input-group"><label>6分达标线</label><input type="number" id="std6_' + s.module_type + '" value="' + s.score_6 + '" onchange="updateStandard(\'' + s.module_type + '\', \'score_6\', this.value)"></div><div class="input-group"><label>6.5分达标线</label><input type="number" id="std65_' + s.module_type + '" value="' + s.score_6_5 + '" onchange="updateStandard(\'' + s.module_type + '\', \'score_6_5\', this.value)"></div><div class="input-group"><label>7分达标线</label><input type="number" id="std7_' + s.module_type + '" value="' + s.score_7 + '" onchange="updateStandard(\'' + s.module_type + '\', \'score_7\', this.value)"></div></div></div>';
+    for (let i = 0; i < modules.length; i++) {
+        const m = modules[i];
+        const s = byType[m.id] || {};
+        const unit = m.unit || '%';
+        const unitHint = unit === '个'
+            ? '答对题数（个），不是百分比'
+            : (unit === '%' ? '正确率（%）' : ('单位：' + unit));
+        const step = unit === '分' ? '0.5' : '1';
+        const score6 = s.score_6 != null ? s.score_6 : (m.targets ? m.targets[6] : '');
+        const score65 = s.score_6_5 != null ? s.score_6_5 : (m.targets ? m.targets[6.5] : '');
+        const score7 = s.score_7 != null ? s.score_7 : (m.targets ? m.targets[7] : '');
+        html += '<div style="padding:20px;background:#f8f9fa;border-radius:10px;margin-bottom:15px;">';
+        html += '<h4 style="margin-bottom:6px;">' + escapeHtml(m.name) + '</h4>';
+        html += '<p style="color:#666;font-size:0.85rem;margin:0 0 12px;">' + escapeHtml(unitHint) + '</p>';
+        html += '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:15px;">';
+        html += '<div class="input-group"><label>6分达标线（' + escapeHtml(unit) + '）</label>';
+        html += '<input type="number" min="0" step="' + step + '" id="std6_' + m.id + '" value="' + score6 + '" onchange="updateStandard(\'' + m.id + '\', \'score_6\', this.value)"></div>';
+        html += '<div class="input-group"><label>6.5分达标线（' + escapeHtml(unit) + '）</label>';
+        html += '<input type="number" min="0" step="' + step + '" id="std65_' + m.id + '" value="' + score65 + '" onchange="updateStandard(\'' + m.id + '\', \'score_6_5\', this.value)"></div>';
+        html += '<div class="input-group"><label>7分达标线（' + escapeHtml(unit) + '）</label>';
+        html += '<input type="number" min="0" step="' + step + '" id="std7_' + m.id + '" value="' + score7 + '" onchange="updateStandard(\'' + m.id + '\', \'score_7\', this.value)"></div>';
+        html += '</div></div>';
     }
     container.innerHTML = html;
 }
@@ -1154,10 +1174,12 @@ function switchTeacherTab(tab, evt, options) {
     var tabActive = document.getElementById('tabActive');
     if (tabActive) tabActive.style.display = tab === 'active' ? 'block' : 'none';
     document.getElementById('tabWriting').style.display = tab === 'writing' ? 'block' : 'none';
+    var tabJianya = document.getElementById('tabJianya');
+    if (tabJianya) tabJianya.style.display = tab === 'jianya' ? 'block' : 'none';
     document.getElementById('tabStandards').style.display = tab === 'standards' ? 'block' : 'none';
     var tabTeachers = document.getElementById('tabTeachers');
     if (tabTeachers) tabTeachers.style.display = (tab === 'teachers' && isAdminTeacher()) ? 'block' : 'none';
-    document.body.classList.toggle('teacher-writing-wide', tab === 'writing');
+    document.body.classList.toggle('teacher-writing-wide', tab === 'writing' || tab === 'jianya');
     if (tab === 'tasks') {
         initTeacherTaskPlanTab();
     }
@@ -1175,6 +1197,13 @@ function switchTeacherTab(tab, evt, options) {
         if (frame) {
             frame.src = '../xiezuopigai/ielts-writing-backend/teacher.html?v=12&_=' + Date.now();
             frame.setAttribute('data-loaded', '1');
+        }
+    }
+    if (tab === 'jianya') {
+        var jianyaFrame = document.getElementById('jianyaTeacherIframe');
+        if (jianyaFrame && jianyaFrame.getAttribute('data-src') !== '/jianyazhenti/teacher?embed=1') {
+            jianyaFrame.src = '/jianyazhenti/teacher?embed=1';
+            jianyaFrame.setAttribute('data-src', '/jianyazhenti/teacher?embed=1');
         }
     }
     if (tab === 'teachers') {
@@ -1609,7 +1638,7 @@ function taskModuleShortLabel(mt) {
         sentence: '长难句',
         writing_phrase: '写作词伙',
         writing_translate: '写作翻译',
-        listening_p4_speed: 'P4跟读',
+        listening_p4_speed: '听力跟读',
         speaking_complex: '口语复合句',
         speaking_p1: '口语P1',
         speaking_p2_material: '口语P2素材',

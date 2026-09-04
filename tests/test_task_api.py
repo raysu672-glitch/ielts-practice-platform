@@ -31,6 +31,7 @@ from task_api import (  # noqa: E402
     get_plan,
     get_today,
     insert_stage_test,
+    LISTENING_GENDU_LESSONS,
     normalize_stage_test_positions,
     preview_daily_pack_items,
     put_plan_draft,
@@ -119,7 +120,7 @@ class TaskApiTests(unittest.TestCase):
             "sentence": 12,
             "writing_phrase": 14,
             "writing_translate": 23,
-            "listening_p4_speed": 1,
+            "listening_p4_speed": 24,
             "speaking_complex": 17,
             "speaking_p1": 24,
             "speaking_p2_material": 8,
@@ -130,6 +131,26 @@ class TaskApiTests(unittest.TestCase):
                 "SELECT COUNT(*) AS c FROM task_units WHERE module_type=?", (mt,)
             ).fetchone()["c"]
             self.assertEqual(got, n, mt)
+        self.assertEqual(len(LISTENING_GENDU_LESSONS), 24)
+        codes = [code for _, code, _ in LISTENING_GENDU_LESSONS]
+        self.assertEqual(len(set(codes)), 24)
+        lessons_js = (Path(__file__).resolve().parents[1] / "sources" / "P4gendu" / "lessons-data.js").read_text(encoding="utf-8")
+        for code in codes:
+            self.assertIn(f'"code": "{code}"', lessons_js)
+        modules_js = (Path(__file__).resolve().parents[1] / "sources" / "tinglidanciceshi" / "js" / "modules.js").read_text(encoding="utf-8")
+        self.assertIn("id: 'listening_p4_speed'", modules_js)
+        self.assertIn("test_url: '../P4gendu/index.html?part=p4'", modules_js)
+        self.assertIn("targets: { 6: 70, 6.5: 80, 7: 90 }", modules_js)
+        self.assertNotRegex(
+            modules_js,
+            r"id: 'listening_p4_speed'[\s\S]{0,280}study_only:\s*true",
+        )
+        self.assertEqual(
+            conn.execute(
+                "SELECT study_url FROM task_units WHERE unit_id='listening_p4_u01'"
+            ).fetchone()["study_url"],
+            "../P4genduceshi/index.html?lessonId=C4T1S4&part=p4",
+        )
         self.assertEqual(
             conn.execute(
                 "SELECT COUNT(*) AS c FROM task_units WHERE module_type='writing_correction'"

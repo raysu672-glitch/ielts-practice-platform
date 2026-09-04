@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>P4 跟读测试</title>
+    <title>听力跟读测试</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
@@ -71,6 +71,35 @@
             color: var(--text-muted);
             font-size: 0.95rem;
             margin-top: 8px;
+        }
+
+        .score-pass-hint {
+            margin-top: 12px;
+            font-size: 1.05rem;
+            font-weight: 600;
+        }
+
+        .score-pass-hint.passed {
+            color: #16a34a;
+        }
+
+        .score-pass-hint.failed {
+            color: #dc2626;
+        }
+
+        .back-row {
+            text-align: left;
+            margin-bottom: 12px;
+        }
+
+        .back-link {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 0.95rem;
+        }
+
+        .back-link:hover {
+            color: var(--accent-light);
         }
 
         /* Section cards */
@@ -390,9 +419,10 @@
 <body>
     <div class="container">
         <header>
-            <h1>P4 跟读测试</h1>
-            <p class="subtitle">Shadow Reading Test</p>
-            <p class="lesson-title" id="lessonTitle">C4T1S4 - Urban Landscape</p>
+            <p class="back-row"><a id="backToCatalog" class="back-link" href="../P4gendu/index.html">← 返回目录</a></p>
+            <h1>听力跟读</h1>
+            <p class="subtitle" id="pageSubtitle">跟读测试</p>
+            <p class="lesson-title" id="lessonTitle"></p>
         </header>
 
         <main>
@@ -400,7 +430,7 @@
             <section>
                 <h2>📋 评分标准</h2>
                 <div class="standard-box">
-                    <strong>测试流程：</strong>点击「开始测试」后，系统会同时播放原音频并开始录制你的跟读；音频播放结束后自动停止录音，并将录音上传到后端进行识别打分。<br>
+                    <strong>测试流程：</strong>点击「开始测试」后，系统会同时播放原音频并开始录制你的跟读；原文播放结束后会再多录约 3 秒，方便把落后的跟读说完，然后自动停止录音并上传打分。<br>
                     <strong>评分方式：</strong>后端使用 Whisper 模型将录音转成文字，再与原文进行逐词比对，使用最长公共子序列（LCS）算法计算匹配度。<br>
                     <strong>得分公式：</strong>得分 = 匹配单词数 ÷ 原文总单词数 × 100<br>
                     <strong>💡 小提示：</strong>建议佩戴耳机测试，避免原音频被麦克风收进去；后端识别需要一些时间，请耐心等待。
@@ -442,6 +472,7 @@
                     <div class="score-number" id="scoreNumber">0%</div>
                     <div class="score-label">跟读得分</div>
                     <div class="score-detail" id="scoreDetail">匹配 0 / 0 词</div>
+                    <div class="score-pass-hint" id="scorePassHint"></div>
                 </div>
                 <div class="playback-area">
                     <audio id="playbackAudio" controls></audio>
@@ -463,20 +494,94 @@
         </main>
     </div>
 
+    <script src="../P4gendu/lessons-data.js?v=20260904g"></script>
     <script src="config.js"></script>
     <script>
         // ==================== 配置 ====================
         const API_BASE = (window.API_CONFIG && window.API_CONFIG.API_BASE) || 'http://localhost:8000';
 
         // ==================== 课程数据 ====================
-        const currentLesson = {
+        let currentLesson = {
             id: 1,
-            title: "C4T1S4 - Urban Landscape",
-            text: "Good day, ladies and gentlemen. I have been asked today to talk to you about the urban landscape. There are two major areas that I will focus on in my talk: how vegetation can have a significant effect on urban climate, and how we can better plan our cities using trees to provide a more comfortable environment for us to live in. Trees can have a significant impact on our cities. They can make a city, as a whole, a bit less windy or a bit more windy, if that's what you want. They can make it a bit cooler if it's a hot summer day in an Australian city, or they can make it a bit more humid if it's a dry inland city. On the local scale - that is, in particular areas within the city - trees can make the local area more shady, cooler, more humid and much less windy. In fact trees and planting of various kinds can be used to make city streets actually less dangerous in particular areas. How do trees do all that, you ask? Well, the main difference between a tree and a building is a tree has got an internal mechanism to keep the temperature regulated. It evaporates water through its leaves and that means that the temperature of the leaves is never very far from our own body temperature. The temperature of a building surface on a hot sunny day can easily be twenty degrees more than our temperature. Trees, on the other hand, remain cooler than buildings because they sweat. This means that they can humidify the air and cool it - a property which can be exploited to improve the local climate. Trees can also help break the force of winds. The reason that high buildings make it windier at ground level is that, as the wind goes higher and higher, it goes faster and faster. When the wind hits the building, it has to go somewhere. Some of it goes over the top and some goes around the sides of the building, forcing those high level winds down to ground level. That doesn't happen when you have trees. Trees filter the wind and considerably reduce it, preventing those very large strong gusts that you so often find around tall buildings. Another problem in built-up areas is that traffic noise is intensified by tall buildings. By planting a belt of trees at the side of the road, you can make things a little quieter, but much of the vehicle noise still goes through the trees. Trees can also help reduce the amount of noise in the surroundings, although the effect is not as large as people like to think. Low-frequency noise, in particular, just goes through the trees as though they aren't there. Although trees can significantly improve the local climate, they do however take up a lot of space. There are root systems to consider and branches blocking windows and so on. It may therefore be difficult to fit trees into the local landscape. There is not a great deal you can do if you have what we call a street canyon - a whole set of high-rises enclosed in a narrow street. Trees need water to grow. They also need some sunlight to grow and you need room to put them. If you have the chance of knocking buildings down and replacing them, then suddenly you can start looking at different ways to design the streets and to introduce.",
-            // 音频与学习模块共用；部署默认不上传 mp3，服务器上文件在 P4gendu/
-            audioUrl: "../P4gendu/C4T1S4.mp3",
-            duration: "4:08"
+            code: 'C4T1S4',
+            title: 'C4T1S4 · 城市景观',
+            text: '',
+            audioUrl: '../P4gendu/audio/C4T1S4.mp3',
+            duration: '4:08'
         };
+
+        function findLesson(raw) {
+            const lessons = Array.isArray(window.GENDU_LESSONS) ? window.GENDU_LESSONS : [];
+            if (raw == null || raw === '') return null;
+            const value = String(raw).trim();
+            if (value === '1') {
+                return lessons.find(function(item) { return item.code === 'C4T1S4'; }) || lessons[0] || null;
+            }
+            return lessons.find(function(item) {
+                return item.code === value || String(item.id) === value;
+            }) || null;
+        }
+
+        function resolveAudioUrl(lesson) {
+            const raw = (lesson && lesson.audioUrl) || '';
+            if (!raw) return '../P4gendu/audio/C4T1S4.mp3';
+            if (/^https?:/i.test(raw)) return raw;
+            return '../P4gendu/' + String(raw).replace(/^\.\//, '');
+        }
+
+        function catalogUrl() {
+            const url = new URL('../P4gendu/index.html', window.location.href);
+            try {
+                const params = new URLSearchParams(window.location.search);
+                params.delete('lessonId');
+                params.forEach(function(value, key) {
+                    if (key === 'v') return;
+                    url.searchParams.set(key, value);
+                });
+            } catch (e) {}
+            url.searchParams.set('v', '20260904g');
+            return url.href;
+        }
+
+        function isTaskMode() {
+            return !!(getQueryParam('plan_item_id') || getQueryParam('unit_id'));
+        }
+
+        function isOfficialModuleTest() {
+            return (getQueryParam('mode') || '') === 'test';
+        }
+
+        function passThreshold() {
+            const raw = Number(getQueryParam('pass_threshold'));
+            return isFinite(raw) && raw > 0 ? raw : 70;
+        }
+
+        function selectLesson() {
+            const lessons = Array.isArray(window.GENDU_LESSONS) ? window.GENDU_LESSONS : [];
+            let found = findLesson(getQueryParam('lessonId') || getQueryParam('code'));
+            if (isOfficialModuleTest()) {
+                if (!found || found.part !== 'p4') {
+                    found = lessons.find(function(item) { return item.code === 'C4T1S4'; })
+                        || lessons.find(function(item) { return item.part === 'p4'; })
+                        || null;
+                }
+            } else {
+                found = found
+                    || lessons.find(function(item) { return item.code === 'C4T1S4'; })
+                    || lessons[0];
+            }
+            if (found) {
+                currentLesson = {
+                    id: found.id || found.code,
+                    code: found.code,
+                    title: found.title,
+                    text: found.text || '',
+                    audioUrl: resolveAudioUrl(found),
+                    duration: found.duration || '',
+                    part: found.part
+                };
+            }
+        }
 
         // ==================== 全局状态 ====================
         const state = {
@@ -490,8 +595,13 @@
             audioDuration: 0,
             testStartTime: 0,
             // 只有正常结束跟读时才上传；reset/取消时禁止 onstop 误传空文件
-            uploadOnStop: false
+            uploadOnStop: false,
+            trailTimer: null,
+            trailTick: null
         };
+
+        // 跟读会落后原文，原文结束后继续录几秒再收录音
+        const TRAIL_AFTER_AUDIO_MS = 3000;
 
         function getQueryParam(name) {
             try {
@@ -503,6 +613,7 @@
 
         function sendTestComplete(score, matched, total, recognizedText, elapsedSeconds) {
             try {
+                if (isOfficialModuleTest() && currentLesson.part !== 'p4') return;
                 if (!(window.parent && window.parent !== window && window.parent.postMessage)) return;
                 const durationSeconds = state.testStartTime
                     ? Math.max(0, Math.round((Date.now() - state.testStartTime) / 1000))
@@ -510,7 +621,7 @@
                 window.parent.postMessage({
                     type: 'genericTestComplete',
                     moduleType: getQueryParam('module_type') || 'listening_p4_speed',
-                    moduleName: getQueryParam('module_name') || '听力P4跟读倍速',
+                    moduleName: getQueryParam('module_name') || '听力跟读',
                     student_id: getQueryParam('student_id'),
                     testType: 'module_test',
                     scorePercent: Number(score) || 0,
@@ -518,12 +629,14 @@
                     totalCount: Number(total) || 0,
                     durationSeconds: durationSeconds,
                     completed: true,
+                    passThreshold: passThreshold(),
+                    isPassed: Number(score) >= passThreshold(),
                     details: {
                         matched: Number(matched) || 0,
                         total: Number(total) || 0,
                         recognizedText: recognizedText || '',
                         elapsedSeconds: Number(elapsedSeconds) || 0,
-                        lessonId: currentLesson.id,
+                        lessonId: currentLesson.code || currentLesson.id,
                         lessonTitle: currentLesson.title
                     }
                 }, '*');
@@ -547,7 +660,8 @@
             playbackAudio: document.getElementById('playbackAudio'),
             downloadRecording: document.getElementById('downloadRecording'),
             recognizedText: document.getElementById('recognizedText'),
-            historyList: document.getElementById('historyList')
+            historyList: document.getElementById('historyList'),
+            scorePassHint: document.getElementById('scorePassHint')
         };
 
         // ==================== 工具函数 ====================
@@ -604,11 +718,13 @@
         }
 
         // ==================== 历史记录 ====================
-        const HISTORY_KEY = 'p4ShadowReadingTestHistory';
+        function historyKey() {
+            return 'p4ShadowReadingTestHistory:' + (currentLesson.code || currentLesson.id || 'default');
+        }
 
         function loadHistory() {
             try {
-                const saved = localStorage.getItem(HISTORY_KEY);
+                const saved = localStorage.getItem(historyKey());
                 return saved ? JSON.parse(saved) : [];
             } catch (e) {
                 console.error('加载历史记录失败:', e);
@@ -618,7 +734,7 @@
 
         function saveHistory(history) {
             try {
-                localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+                localStorage.setItem(historyKey(), JSON.stringify(history));
             } catch (e) {
                 console.error('保存历史记录失败:', e);
             }
@@ -674,7 +790,7 @@
                 state.audioDuration = state.audioPlayer.duration;
             });
             state.audioPlayer.addEventListener('error', () => {
-                showError('原文音频加载失败。请确认服务器存在 P4gendu/C4T1S4.mp3（测试页已改为引用学习模块音频）');
+                showError('原文音频加载失败。请确认服务器存在 ' + (currentLesson.audioUrl || 'P4gendu/audio/*.mp3'));
                 resetUI();
             });
         }
@@ -720,17 +836,45 @@
             elements.progressTime.textContent = `${formatTime(current)} / ${formatTime(duration)}`;
         }
 
+        function clearTrailTimer() {
+            if (state.trailTimer) {
+                clearTimeout(state.trailTimer);
+                state.trailTimer = null;
+            }
+            if (state.trailTick) {
+                clearInterval(state.trailTick);
+                state.trailTick = null;
+            }
+        }
+
         function handleAudioEnded() {
             elements.progressFill.style.width = '100%';
             // 音频未真正播放完就 ended（常见于文件缺失），不要上传空录音
             var played = state.audioPlayer ? Number(state.audioPlayer.currentTime) || 0 : 0;
             var duration = state.audioDuration || (state.audioPlayer && state.audioPlayer.duration) || 0;
             if (!isFinite(duration) || duration < 1 || played < 1) {
-                showError('原文音频未能正常播放（常见原因：测试页缺少 C4T1S4.mp3）。请刷新后重试');
+                showError('原文音频未能正常播放（常见原因：缺少 ' + (currentLesson.code || '') + '.mp3）。请刷新后重试');
                 resetUI();
                 return;
             }
-            stopRecordingAndScore();
+            if (!state.isTesting || state.trailTimer) return;
+
+            var remainSec = Math.round(TRAIL_AFTER_AUDIO_MS / 1000);
+            function updateTrailStatus(sec) {
+                elements.statusText.textContent = '原文已结束，请把最后几句跟完（还剩 ' + sec + ' 秒）';
+                elements.statusText.className = 'status-text testing';
+                elements.progressTime.textContent = formatTime(duration) + ' / ' + formatTime(duration) + '  +' + sec + 's';
+            }
+            updateTrailStatus(remainSec);
+            state.trailTick = setInterval(function() {
+                remainSec -= 1;
+                if (remainSec <= 0) return;
+                updateTrailStatus(remainSec);
+            }, 1000);
+            state.trailTimer = setTimeout(function() {
+                clearTrailTimer();
+                stopRecordingAndScore();
+            }, TRAIL_AFTER_AUDIO_MS);
         }
 
         // ==================== 录音 ====================
@@ -855,6 +999,14 @@
 
             elements.scoreNumber.textContent = score + '%';
             elements.scoreDetail.textContent = `匹配 ${matched} / ${total} 词（耗时 ${elapsedSeconds} 秒）`;
+            const threshold = passThreshold();
+            const passed = Number(score) >= threshold;
+            if (elements.scorePassHint) {
+                elements.scorePassHint.textContent = passed
+                    ? ('达标（识别率 ' + score + '% ≥ ' + threshold + '%）')
+                    : ('未达标（识别率需达到 ' + threshold + '%）');
+                elements.scorePassHint.className = 'score-pass-hint ' + (passed ? 'passed' : 'failed');
+            }
             elements.recognizedText.textContent = recognizedText || '（未识别到文字）';
             elements.resultSection.classList.add('show');
 
@@ -888,6 +1040,7 @@
         }
 
         function resetUI() {
+            clearTrailTimer();
             state.isTesting = false;
             state.isScoring = false;
             state.uploadOnStop = false;
@@ -920,6 +1073,7 @@
         // ==================== 测试入口 ====================
         async function startTest() {
             hideError();
+            clearTrailTimer();
 
             state.userRecordingBlob = null;
             state.recordedChunks = [];
@@ -940,7 +1094,7 @@
                 await waitForAudioReady(state.audioPlayer, 15000);
                 state.audioDuration = state.audioPlayer.duration;
                 if (!(state.audioDuration > 1)) {
-                    throw new Error('原文音频时长异常，请确认 P4gendu/C4T1S4.mp3 可访问');
+                    throw new Error('原文音频时长异常，请确认 ' + (currentLesson.audioUrl || '') + ' 可访问');
                 }
                 await startRecording();
                 state.audioPlayer.currentTime = 0;
@@ -959,6 +1113,32 @@
 
         // ==================== 初始化 ====================
         function init() {
+            selectLesson();
+            const titleEl = document.getElementById('lessonTitle');
+            if (titleEl) titleEl.textContent = currentLesson.title || '';
+            const sub = document.getElementById('pageSubtitle');
+            if (sub) {
+                if (isOfficialModuleTest()) {
+                    sub.textContent = 'P4 跟读测试 · 识别率达标线 ' + passThreshold() + '%';
+                } else {
+                    sub.textContent = currentLesson.part === 'p1'
+                        ? 'P1 跟读练习'
+                        : (currentLesson.part === 'p4' ? 'P4 跟读练习' : '跟读');
+                }
+            }
+            document.title = (currentLesson.title || '听力跟读') + ' · 测试';
+            const back = document.getElementById('backToCatalog');
+            if (back) {
+                if (isTaskMode()) {
+                    const row = back.closest('.back-row');
+                    if (row) row.style.display = 'none';
+                } else {
+                    back.href = catalogUrl();
+                }
+            }
+            if (!currentLesson.text) {
+                showError('未找到该跟读课文，请返回目录重试');
+            }
             renderText();
             renderHistory();
 
