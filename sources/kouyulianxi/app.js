@@ -1688,6 +1688,8 @@ class P1Practice {
         const blocked = !!(examSignals && (
             examSignals.question_echo
             || examSignals.heavy_um_start
+            || examSignals.short_turn
+            || examSignals.very_short_turn
             || gs.svo_and_dominant
             || gs.fake_relative_count >= 2
             || ((examSignals.chinglish || []).length >= 2)
@@ -1714,7 +1716,8 @@ class P1Practice {
             && (fcPositive || (topic.level === 'on_topic' && wordCount >= 25 && (m.filler_per_min || 0) <= 3))) {
             fluency = 7;
         }
-        if (pronunciation === 6 && goodPronMetrics && goodFluencyMetrics
+        // Pron7 需要对齐 Chen Aiyu：FC 至少 6，节奏才撑得住
+        if (pronunciation === 6 && fluency >= 6 && goodPronMetrics && goodFluencyMetrics
             && (pronPositive || (topic.level === 'on_topic' && wordCount >= 20 && (m.suspicious_words || []).length === 0))) {
             pronunciation = 7;
         }
@@ -1926,7 +1929,8 @@ class P1Practice {
 - 词时长数据（异常拖长或吞音可能暗示发音问题）
 - 语速数据（过快可能影响清晰度，过慢可能不自信）
 - 套话/背稿感（开场复述题目、模板句堆砌、回答不像临场思考）会显得不自然
-- 发音可以是四项里的强项：无明显硬伤、表达较自然时，应敢于给 7（真实考官对 6.0 档考生常把 Pron 打到 7）
+- 发音可以是四项里的强项：无明显硬伤、表达较自然时，应敢于给 7（Chen Aiyu / Jiang：FC6–7 + Pron7 可达 6.0–6.5）
+- **FC 差会拖 Pron**：停顿/重启打断节奏时，即使单音清楚也可能 Pron5；FC≤5 时 Pron 通常 ≤FC+1，且不要轻易给 7
 - 只有在明显模板堆砌、开场复述题目、或听起来过度准备时，才把 Pron 压在 6
 - 下一阶段（冲更高）：对问题自然反应；把较长信息用轻微语调起伏串起来，体现对不同部分的态度（靠多练即兴作答即可）
 
@@ -1938,24 +1942,30 @@ class P1Practice {
 - 5分及以下：发音问题较多；听者需努力理解
 
 ## 真实考官校准（必须遵守）
-综合多份模考书面反馈（含无音频报告），按档位锚定：
+综合多份考官模考书面报告（含 Chen Aiyu / Chen Tianyi / Dong Jiaxin / Gao Mu Wei / Li Jingyi / Rong Lang / Si Bian / Xie Yaojia / Yan Ruoxi / Yang Taoyi 等），按档位锚定：
+
+**6.5 档 · Chen Aiyu**：FC7 LR6 GRA6 **Pron7** — 语速/流利多为 7，P2/P3 偶有自我修正；发音节奏与句重音能传达态度 → Pron7；LR 本可冲 7，但 paraphrase 卡壳（如 ecosystem）+ 不准词（mobile driving→autonomous driving）把 LR **压回 6**。冲 6.5 常见路径：FC 或 Pron（常两者）到 7，LR/GRA 仍可为 6。
 
 **6.0 档 · Jiang Yu Pei**：FC6 LR6 GRA6 **Pron7** — 发音可为强项；时态/情态/条件句小错仍 GRA6；跑题段比切题段更流利会被注意。
 
 **6.0 档 · Yi Ru**：FC6 **LR7** GRA6 Pron6 — LR7 来自话题精准词 + 地道/native 表达（P2/P3），但整体仍以 Band6 词汇为主；GRA 有嵌入从句、偶发主谓一致错误，Part1 也说长复杂句才可冲 GRA7。
 
-**6.0 档 · Yang Taoyi**：四项均 6 — 大量 um/uh 开场、Part2 偏短、重组/停顿正常；词形小错（complicate→complicated）不减 LR6；关系从句/嵌入从句是 GRA 强项，反身代词等基础错要清理。
+**6.0 档 · Yang Taoyi / Gao Mu Wei / Xie Yaojia（Weak 6）**：四项常均 6。um/uh 开场多、P2 偏短 → FC 难上 7；开场复述题目极不自然（Gao：挡 6.5+）；Xie：技术上够 6，但基础结构小错+填充词+句重音不稳 = Weak 6。词形小错（complicate→complicated）不减 LR6。
 
-**5.5 档 · Ji Peng Hao**：FC6 LR6 **GRA5** Pron6 — 「假关系从句」套话（He told me that / I remember clearly that / I wish that）会被识破；Part2 本可用定语从句却拆成两句简单句 → 典型 Band5 语法；偶发跑题一次不大幅扣 LR。
+**5.5 档 · Ji Peng Hao / Zhang Xin Yu**：FC6 LR6 **GRA5** Pron6 — 假关系从句套话；或几乎全是 SVO+and、错少因句太简单 → GRA5。
 
-**5.5 档 · Zhang Xin Yu**：FC6 LR6 **GRA5** Pron6 — Part1/2 几乎全是 SVO + 反复 and 连接，错误少是因为句子太简单 → GRA5；LR 因搭配自然、少 Chinglish 最接近 7（不是靠高级词）。
+**5.5 档 · Li Jingyi / Rong Lang / Chen Tianyi**：多为 **FC5** 拖总分（犹豫/重启/自我修正/短答），LR6 GRA6；Pron 常被 FC 连带压低（Chen Tianyi：音段控制尚可，但节奏撑不住 → Pron5；Li：FC 改善后 Pron 才亮）。Rong：Part1 应扩到 3–4 句；勿死磕开头 Well。
+
+**5.5 档 · Si Bian**：FC6 LR6 **GRA5** Pron6 — 时态/动词变形基础不稳 + 关系代词不准/滥用 → GRA5（与假关系从句不同的另一条 GRA5 路径）。
+
+**4.5 档 · Dong Jiaxin / Yan Ruoxi**：**FC4**（短答导致考官不停问 why；长轮中段长停顿/中断；开场 uh）→ 输出量不足连带 LR/GRA/Pron 多为 5。Yan：修好中段不停顿可先到 FC5 / 总分约 5.0。
 
 ### 分项规则（跨档位）
-1. **FC**：慢但可 FC6；um/uh 每轮开头多、Part2 明显偏短 → 维持 6 难上 7。但若切题、停顿少、填充词少、ASR 完整且连贯，**应给 FC7**，不要因「Part1 短答」一律 6。跑题/答非所问若流利度反而更好，必须点名并压住冲高。
-2. **LR**：用词顺眼/很好仍常 LR6。冲 LR7：精准话题词 + 自然搭配/习语贯穿全篇，少中式英语。2–3 处难懂中式表达 → LR5。词形小错若不影响理解，通常仍 LR6。
-3. **GRA**：**GRA5 强信号** — 假关系从句套话；大量 SVO+and 堆砌、几乎无 that/which/who/从句；该用定语从句却只用并列简单句。偶发时态/情态/条件句错误、结构多样且沟通清楚 → 仍可 GRA6。冲更高：第二条件句、情态动词、真关系从句/嵌入从句。
-4. **Pron**：清晰自然、识别完整时应给 **Pron7**（Jiang 模考：FC6 LR6 GRA6 Pron7 仍属 6.0 档）；只有明显平铺直叙、背稿感或复述题目时才维持 Pron6。
-5. **总分**：5.5 常见 GRA 拖后腿；6.0 常见四项均衡或 Pron/LR 单项突出。反馈：肯定档位 + 点明冲高必改项。
+1. **FC**：慢但可 FC6；um/uh 每轮开头多、Part2 明显偏短 → 维持 6 难上 7。切题、停顿少、填充词少、ASR 完整且连贯 → **应给 FC7**（Chen Aiyu）。犹豫+重启+自我修正主导 → FC5（Chen Tianyi/Li）；短答/中段长停顿/考官需追问 why → FC4（Dong/Yan）。单一衔接词（如 Well）过度重复要点名。跑题若更流利须点名并压冲高。
+2. **LR**：用词够用仍常 LR6。冲 LR7：精准话题词 + 自然搭配/习语贯穿。**单次 paraphrase 卡壳或不准术语**即可把本可 7 的 LR **压回 6**（Chen Aiyu）。2–3 处难懂中式表达 → LR5（Gao：一处长段听不懂未必掉到 5，多处会）。词形小错若不影响理解，通常仍 LR6；完全放弃英文、不尝试释义 → 更低。
+3. **GRA**：**GRA5 强信号** — 假关系从句；SVO+and 堆砌；该用定语从句却并列简单句；**或**时态/动词变形基础错 + 关系代词不准/滥用（Si Bian）。偶发复杂结构错、条件句/被动/真关系从句够用且沟通清楚 → GRA6。输出太少也会限制 GRA 证据（Dong）。
+4. **Pron**：清晰自然、识别完整、句重音能表态度 → **Pron7**（Chen Aiyu/Jiang）。**FC 差会拖 Pron**：节奏被停顿打断时，音段再清楚也可能 Pron5（Chen Tianyi/Yan）；FC≤5 时 Pron 通常不超过 FC+1，且慎给 7。复述题目/明显背稿/过度准备感 → Pron 封顶 6（Gao）。
+5. **总分**：4.5 常见 FC4；5.5 常见 FC5 或 GRA5；6.0 常见四项 6 或 Pron/LR 单项 7；6.5 常见 FC7+Pron7 且 LR/GRA 仍为 6。反馈：肯定档位 + 点明冲高必改项（尤其 6→6.5：去复述题目、去填充词、自然即兴、paraphrase 别卡死）。
 
 ## 反馈原则
 1. 用中文反馈，涉及英文表达时保留原文
@@ -1982,9 +1992,9 @@ class P1Practice {
 2. 每个错误必须标注：错误类型、原文、正确形式、中文解释
 3. 错误类型归类：tense / subject_verb_agreement / article / plural / preposition / word_form / sentence_structure / non_finite / subjunctive / comparative / other
 4. **优先盯**：时态与问题时间是否一致；情态动词是否犹豫/误用；条件句等复杂结构是否说完整
-5. **GRA5 必查**：假关系从句（He told me that / I remember clearly that / I wish that）；SVO+and 反复连接、缺少 that/which/who/从句；该合并为定语从句却用两句简单句
+5. **GRA5 必查**：假关系从句（He told me that / I remember clearly that / I wish that）；SVO+and 反复连接、缺少 that/which/who/从句；该合并为定语从句却用两句简单句；**以及**基础时态/动词变形错误 + 关系代词不准或滥用（Si Bian）
 6. 分析句式多样性（简单句/并列句/复合句、复杂结构、均长）
-7. 综合评估：水平、最大短板、最快提分方法（5.5→6 优先：真从句+第二条件句+情态动词；6→更高：时态+动词+自然语调）
+7. 综合评估：水平、最大短板、最快提分方法（4.5→5：先消灭中段长停顿与短答；5.5→6：真从句+时态清理或稳住 FC；6→6.5：去复述题目/填充词 + FC 或 Pron 冲 7 + paraphrase 别卡死）
 8. 有错误时 errors 不得为空；**错误少但结构过于简单仍可能是 GRA5**，不要因“错得少”就给 6`;
     }
 
@@ -2239,7 +2249,14 @@ class P1Practice {
             [/\bgave me some happy\b/i, 'gave me some happy'],
             [/\bopen the eyes?\b/i, 'open the eye(s)'],
             [/\blisten a\b/i, 'listen a（缺 to）'],
-            [/\bwith the development of\b/i, 'with the development of（套话）']
+            [/\bwith the development of\b/i, 'with the development of（套话）'],
+            [/\bfast[- ]spaced\b/i, 'fast-spaced（应为 fast-paced）'],
+            [/\bfor many times\b/i, 'for many times（应为 repeatedly）'],
+            [/\bhappy time\b/i, 'happy time（宜用 enjoyable time）'],
+            [/\bpick my call\b/i, 'pick my call（应为 pick up）'],
+            [/\bmobile driving\b/i, 'mobile driving（宜用 autonomous/self-driving）'],
+            [/\bi was really appreciate\b/i, 'I was really appreciate（词形错误）'],
+            [/\benough question\b/i, 'enough question（疑似 tough question）']
         ];
         chinglishPatterns.forEach(([re, label]) => {
             if (re.test(transcript || '')) chinglish.push(label);
@@ -2248,14 +2265,24 @@ class P1Practice {
         const grammar_structure = this.analyzeGrammarStructureSignals(transcript);
         const heavyUmStart = /^(um+|uh+|er+)\b/i.test(String(transcript || '').trim())
             || (String(transcript || '').match(/\b(um|uh|er)\b/gi) || []).length >= 5;
+        const wordCount = (String(transcript || '').trim().match(/[A-Za-z]+(?:'[A-Za-z]+)?/g) || []).length;
+        const wellCount = (String(transcript || '').match(/\bwell\b/gi) || []).length;
+        const well_overuse = wellCount >= 3 && wordCount > 0 && wellCount / Math.max(1, Math.ceil(wordCount / 12)) >= 0.45;
+        // 短答/展开不足（Dong/Rong/Yan）：按词数判断；单题练习不因“只有一句”误杀中等长度回答
+        const very_short_turn = wordCount > 0 && wordCount < 10;
+        const short_turn = wordCount > 0 && wordCount < 16;
 
-        let scoring_hint = '按实际表现评分；锚定：6.0 常见 FC/LR/GRA 6（Pron 或 LR 可单项到 7）；5.5 常见 GRA5';
+        let scoring_hint = '按实际表现评分；锚定：6.5≈FC7+Pron7+LR/GRA6；6.0 常见四项6或Pron/LR单项7；5.5常见FC5或GRA5；4.5常见FC4';
         if (topic_relevance.level === 'off_topic') {
             scoring_hint = '答非所问/严重跑题：即使英语流利、词数够，FC/LR 也不应超过 4–5，总分封顶约 4.0；必须列入主要问题';
         } else if (topic_relevance.level === 'weak_topic') {
             scoring_hint = '与题目关联很弱：FC/LR 倾向 5，总分不应超过 5.0；先扣题再谈流利与词汇';
         } else if (topic_relevance.level === 'partial') {
             scoring_hint = '仅部分扣题：FC/LR 难上 6，总分封顶约 5.5';
+        } else if (very_short_turn) {
+            scoring_hint = '回答过短（Dong/Yan 模考）：FC 倾向 4–5，考官会追问 why；LR/GRA 证据不足；总分常约 4.5';
+        } else if (short_turn) {
+            scoring_hint = '展开不足/偏短（Rong：Part1 宜 3–4 句）：FC 倾向 5；先把轮次说长再说复杂结构';
         } else if (grammar_structure.svo_and_dominant || grammar_structure.fake_relative_count >= 2) {
             scoring_hint = 'SVO+and 堆砌或假关系从句：GRA 倾向 5（Zhang/Ji 模考案例）；FC/LR 仍可 6';
         } else if (grammar_structure.fake_relative_count >= 1 || grammar_structure.simple_split) {
@@ -2263,18 +2290,21 @@ class P1Practice {
         } else if (question_echo && chinglish.length >= 2) {
             scoring_hint = '复述题目+多处中式表达：FC 可 6 但点名不自然；LR 倾向 5；Pron 因复述题目封顶 6';
         } else if (question_echo) {
-            scoring_hint = '开场复述题目：FC 可给 6，但必须指出这是冲 6.5 障碍；Pron 因不自然封顶 6';
+            scoring_hint = '开场复述题目（Gao 模考）：FC 可给 6，但必须指出这是冲 6.5 障碍；Pron 因不自然封顶 6';
         } else if (chinglish.length >= 2) {
-            scoring_hint = '多处疑似中式英语：LR 应给 5；Pron 仍可按清晰度给 6–7';
-        } else if (chinglish.length === 0 && !formulaic && (transcript || '').split(/\s+/).length >= 35) {
-            scoring_hint = '搭配较自然、少中式英语：LR 可冲 7（Yi Ru 模考路径），但勿因词多就抬分';
+            scoring_hint = '多处疑似中式英语：LR 应给 5；Pron 仍可按清晰度给 6–7（但若 FC≤5 则 Pron 常被拖低）';
+        } else if (chinglish.length === 0 && !formulaic && wordCount >= 35) {
+            scoring_hint = '搭配较自然、少中式英语：LR 可冲 7（Yi Ru），但 paraphrase 卡壳/不准术语可压回 6（Chen Aiyu）';
         } else if (formulaic && formulaic_hits.length >= 3) {
             scoring_hint = '模板感很强：Pron 倾向 6；反馈要求更自然/即兴、对问题即时反应';
         } else if (formulaic) {
-            scoring_hint = '略有模板痕迹：Pron 仍可给 7（若整体清晰自然）；提醒用真实细节与自然语调';
+            scoring_hint = '略有模板痕迹：Pron 仍可给 7（若整体清晰自然且 FC≥6）；提醒用真实细节与自然语调';
         }
         if (heavyUmStart) {
-            scoring_hint += '；大量 um/uh 开场（Yang 模考）：FC 维持 6，难上 7';
+            scoring_hint += '；大量 um/uh 开场（Yang/Xie）：FC 维持 6，难上 7；过多填充词考官甚至可能压到 FC5';
+        }
+        if (well_overuse) {
+            scoring_hint += '；开头 Well 等单一衔接词过度重复（Rong）：FC 要点名并避免死磕同一标记';
         }
 
         return {
@@ -2285,6 +2315,9 @@ class P1Practice {
             chinglish,
             grammar_structure,
             heavy_um_start: heavyUmStart,
+            well_overuse,
+            short_turn,
+            very_short_turn,
             topic_relevance,
             scoring_hint
         };
@@ -2326,8 +2359,8 @@ class P1Practice {
 重要：
 - FC/LR/GRA/Pron 的 band 必须是 1–9 的整数（禁止 0，禁止 0.5）
 - overall 可以是 0.5 间隔（四项平均后 .25进.5，.75进整）
-- 按真实考官多份模考校准（6.0：Jiang/Yi Ru/Yang；5.5：Ji Peng Hao/Zhang Xin Yu）：GRA5 强信号=假关系从句、SVO+and 堆砌、回避定语从句；LR7=自然搭配+话题精准词；Pron 可 7；um/uh 多 FC 难上 7
-- 语法错误必须列入 errors；错误少但结构过简仍可能是 GRA5；冲 5.5→6 优先：that/which/who、第二条件句、情态动词
+- 按真实考官多份模考校准：6.5≈FC7+Pron7+LR/GRA6（Chen Aiyu）；6.0 常见四项6或Pron/LR单项7；5.5常见FC5或GRA5（含时态+关系代词不准）；4.5常见FC4短答/中段停顿。FC差会拖Pron；复述题目挡6.5+；paraphrase卡壳可把LR从7压回6
+- 语法错误必须列入 errors；错误少但结构过简仍可能是 GRA5；冲 5.5→6 优先：that/which/who、第二条件句、情态动词、稳住 FC
 - 禁止照抄示例数字
 
 ## 考试题目
@@ -2344,6 +2377,8 @@ ${examSignals.echo_excerpt ? `  · 疑似复述片段: 「${examSignals.echo_exc
 ${examSignals.formulaic_hits.length ? `  · 信号: ${examSignals.formulaic_hits.join('；')}\n` : ''}- 疑似中式英语/怪搭配: ${examSignals.chinglish.length ? examSignals.chinglish.join('；') : '未检出'}
 - 语法结构预检: 假关系从句=${examSignals.grammar_structure && examSignals.grammar_structure.fake_relative_count ? examSignals.grammar_structure.fake_relative.join('；') : '无'}；SVO+and 堆砌=${examSignals.grammar_structure && examSignals.grammar_structure.svo_and_dominant ? '是（GRA 倾向 5）' : '否'}；真关系从句(which/who)=${examSignals.grammar_structure ? examSignals.grammar_structure.realRelative : 0}；第二条件句=${examSignals.grammar_structure && examSignals.grammar_structure.secondConditional ? '有' : '无'}
 ${examSignals.grammar_structure && examSignals.grammar_structure.simple_split ? `  · 简单句拆分（可合并为定语从句）: 「${examSignals.grammar_structure.simple_split_example}」\n` : ''}- um/uh 偏多: ${examSignals.heavy_um_start ? '是（FC 难上 7）' : '否'}
+- 展开不足/短答: ${examSignals.very_short_turn ? '严重偏短（FC 倾向 4–5）' : (examSignals.short_turn ? '偏短（FC 倾向 5）' : '否')}
+- Well 等单一衔接词过度: ${examSignals.well_overuse ? '是' : '否'}
 - 预检建议: ${examSignals.scoring_hint}
 
 ## 语音量化指标
@@ -2805,6 +2840,14 @@ FC 必须含 naturalness；LR 必须含 chinglish_flags；语法 errors 单独�
         if (examSignals.question_echo) fluency = Math.min(fluency, 6);
         // um/uh 偏多：FC 难上 7
         if (examSignals.heavy_um_start) fluency = Math.min(fluency, 6);
+        // 短答/展开不足（Dong/Rong/Yan）：压 FC，并连带限制可展示的 LR
+        if (examSignals.very_short_turn) {
+            fluency = Math.min(fluency, 4);
+            vocabulary = Math.min(vocabulary, 5);
+            grammar = Math.min(grammar, 5);
+        } else if (examSignals.short_turn) {
+            fluency = Math.min(fluency, 5);
+        }
         // 多处中式英语：LR 5（考官明确阈值）
         if (examSignals.chinglish.length >= 2) vocabulary = Math.min(vocabulary, 5);
         // 模板/背稿感：仅复述题目或模板信号很强时压 Pron；轻微模板不阻止 Pron7
@@ -2825,6 +2868,11 @@ FC 必须含 naturalness；LR 必须含 chinglish_flags；语法 errors 单独�
             detailed,
             reasons
         ));
+
+        // FC 差会拖 Pron（Chen Tianyi / Yan Ruoxi）：FC≤5 时 Pron ≤ FC+1 且不超过 6
+        if (fluency <= 5) {
+            pronunciation = Math.min(pronunciation, fluency + 1, 6);
+        }
 
         const capped = this.clampScoresForShortAnswer(transcript, {
             fluency, vocabulary, grammar, pronunciation
@@ -3784,7 +3832,7 @@ FC 必须含 naturalness；LR 必须含 chinglish_flags；语法 errors 单独�
                 <div class="score-item"><div class="score-label">Pron</div><div class="score-value ${getBandClass(p.pronunciation)}">${p.pronunciation}</div></div>
             </div>
             <div class="band-note" style="margin-top:12px;padding:12px;background:#e7efe9;border-radius:4px;font-size:14px;color:#243029;">
-                <strong>评分说明：</strong>FC/LR/GRA/Pron 为 1–9 整数；总分可 x.5。已按多份考官模考校准：5.5 常见 GRA5（假关系从句、SVO+and 堆砌）；6.0 常见四项 6，Pron 或 LR 可单项到 7。语法错误单独列表。
+                <strong>评分说明：</strong>FC/LR/GRA/Pron 为 1–9 整数；总分可 x.5。已按多份考官模考校准：4.5 常见 FC4（短答/中段长停顿）；5.5 常见 FC5 或 GRA5；6.0 常见四项 6，Pron/LR 可单项 7；6.5 常见 FC7+Pron7 而 LR/GRA 仍为 6。FC 差会拖累 Pron；开场复述题目挡 6.5+。语法错误单独列表。
             </div>
             <div class="feedback-section" style="margin-top:14px;">
                 <h4>📌 为什么是这个分数</h4>
