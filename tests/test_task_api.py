@@ -22,6 +22,7 @@ from task_api import (  # noqa: E402
     GENDU_MODULE,
     GENDU_PASS_SCORE,
     _interleave_by_module,
+    _plan_progress_brief,
     apply_draft_to_live,
     backlog_plan_item_ids,
     build_daily_tasks,
@@ -1039,6 +1040,23 @@ class TaskApiTests(unittest.TestCase):
         self.assertEqual(row["today_done"], 1)
         self.assertEqual(row["test_fail"], 1)
         self.assertTrue(any(b["label"] == "阅" for b in row["plan_progress_brief"]))
+
+    def test_plan_progress_brief_lists_all_modules(self) -> None:
+        brief = _plan_progress_brief(
+            {
+                "reading_synonym": {"study_x": 1, "study_y": 23},
+                "writing_translate": {"study_x": 0, "study_y": 22},
+                "writing_phrase": {"study_x": 0, "study_y": 14},
+                "sentence": {"study_x": 0, "study_y": 11},
+            }
+        )
+        self.assertEqual(len(brief), 4)
+        self.assertFalse(any(b.get("module_type") == "_more" for b in brief))
+        texts = [b["text"] for b in brief]
+        self.assertIn("阅1/23", texts)
+        self.assertIn("翻译0/22", texts)
+        self.assertIn("词伙0/14", texts)
+        self.assertIn("长难0/11", texts)
 
     def test_class_overview_backlog_red(self) -> None:
         conn = _connect()

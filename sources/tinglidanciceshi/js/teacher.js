@@ -2557,7 +2557,8 @@ function renderTaskClassOverview() {
             '<td style="padding:8px 6px;" title="昨日时长 / 累计总时长">' + timeCell + '</td>' +
             '<td style="padding:8px 6px;' + (r.backlog >= 3 ? 'color:#dc2626;font-weight:600;' : '') + '">' +
             (r.backlog > 0 ? r.backlog : '—') + '</td>' +
-            '<td style="padding:8px 6px;">' + escapeTeacherAttr(brief) + '</td>' +
+            '<td style="padding:8px 6px;white-space:normal;max-width:280px;line-height:1.35;word-break:break-word;">' +
+            escapeTeacherAttr(brief) + '</td>' +
             '</tr>';
     });
     html += '</tbody></table>';

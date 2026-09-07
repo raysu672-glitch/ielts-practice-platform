@@ -3522,7 +3522,7 @@ def _is_speaking_module(mt: str) -> bool:
 
 
 def _plan_progress_brief(progress: dict[str, dict[str, int]]) -> list[dict[str, Any]]:
-    """Compress plan-track study X/Y into at most 2 abbrevs + +N."""
+    """List all plan-track study X/Y abbrevs (no +N truncation)."""
     buckets: list[tuple[str, str, int, int]] = []
     speak_x = 0
     speak_y = 0
@@ -3541,21 +3541,16 @@ def _plan_progress_brief(progress: dict[str, dict[str, int]]) -> list[dict[str, 
         buckets.append(("speaking", "口", speak_x, speak_y))
     # Prefer modules with incomplete work, then higher remaining
     buckets.sort(key=lambda b: (0 if b[2] < b[3] else 1, -(b[3] - b[2]), b[1]))
-    brief: list[dict[str, Any]] = []
-    for mt, label, sx, sy in buckets[:2]:
-        brief.append(
-            {
-                "module_type": mt,
-                "label": label,
-                "study_x": sx,
-                "study_y": sy,
-                "text": f"{label}{sx}/{sy}",
-            }
-        )
-    extra = len(buckets) - len(brief)
-    if extra > 0:
-        brief.append({"module_type": "_more", "label": f"+{extra}", "text": f"+{extra}"})
-    return brief
+    return [
+        {
+            "module_type": mt,
+            "label": label,
+            "study_x": sx,
+            "study_y": sy,
+            "text": f"{label}{sx}/{sy}",
+        }
+        for mt, label, sx, sy in buckets
+    ]
 
 
 def _today_task_counts(
