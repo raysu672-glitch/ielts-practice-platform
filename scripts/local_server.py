@@ -32,7 +32,9 @@ _SCRIPTS_DIR = Path(__file__).resolve().parent
 if str(_SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(_SCRIPTS_DIR))
 
-from ai_config import ai_settings, load_ai_env  # noqa: E402
+from ai_config import ai_settings, load_ai_env, load_env_file  # noqa: E402
+from luboke_api import get_course, load_courses, public_course  # noqa: E402
+from oss_sign import oss_configured, oss_settings, sign_get_url  # noqa: E402
 from cors_utils import cors_headers_for_origin  # noqa: E402
 from password_utils import authenticate_row_password, hash_password, is_password_hashed  # noqa: E402
 from session_auth import (  # noqa: E402
@@ -110,8 +112,29 @@ from task_api import (  # noqa: E402
     update_scope_progress as task_update_scope_progress,
 )
 from jianya_api import (  # noqa: E402
+    add_recipients as jianya_add_recipients,
+    create_assignment as jianya_create_assignment,
+    create_pack as jianya_create_pack,
+    delete_assignment as jianya_delete_assignment,
+    delete_pack as jianya_delete_pack,
     ensure_jianya_tables,
+    get_assignment as jianya_get_assignment,
+    get_draft as jianya_get_draft,
+    get_roster as jianya_get_roster,
+    is_recipient as jianya_is_recipient,
+    list_all_packs as jianya_list_all_packs,
+    list_assignments as jianya_list_assignments,
+    list_student_assignments as jianya_list_student_assignments,
     list_student_submissions as jianya_list_student_submissions,
+    list_submissions as jianya_list_submissions,
+    normalize_pack_subject as jianya_normalize_pack_subject,
+    PACK_SUBJECTS as JIANYA_PACK_SUBJECTS,
+    DEFAULT_SUBJECT as JIANYA_DEFAULT_SUBJECT,
+    publish_from_packs as jianya_publish_from_packs,
+    save_draft as jianya_save_draft,
+    save_review as jianya_save_review,
+    save_submission as jianya_save_submission,
+    teacher_owns_assignment as jianya_teacher_owns_assignment,
 )
 DEFAULT_DB_PATH = ROOT / "data" / "ielts_local.db"
 DEFAULT_P4_ASR_BASE = "https://p4.oyenglish.com.cn"
@@ -282,6 +305,10 @@ def migrate_teachers_profile_columns(conn: sqlite3.Connection) -> None:
     if "is_password_changed" not in columns:
         alterations.append(
             "ALTER TABLE teachers ADD COLUMN is_password_changed INTEGER DEFAULT 0"
+        )
+    if "jianya_last_subject" not in columns:
+        alterations.append(
+            "ALTER TABLE teachers ADD COLUMN jianya_last_subject TEXT DEFAULT 'listening'"
         )
     for sql in alterations:
         conn.execute(sql)
@@ -499,6 +526,7 @@ def init_db(db_path: Path, *, bind_host: str = "127.0.0.1") -> None:
                 is_password_changed INTEGER DEFAULT 0,
                 position TEXT DEFAULT '',
                 subjects TEXT DEFAULT '',
+                jianya_last_subject TEXT DEFAULT 'listening',
                 status TEXT DEFAULT 'active' CHECK (status IN ('active', 'inactive')),
                 created_at TEXT DEFAULT ({now_sql()}),
                 updated_at TEXT DEFAULT ({now_sql()})
@@ -892,6 +920,15 @@ class LocalHandler(SimpleHTTPRequestHandler):
         """MVP task plan / time-profile updates (also accepted via POST)."""
         parsed = urllib.parse.urlparse(self.path)
         path = parsed.path.rstrip("/")
+        if path == "/api/jianya/drafts":
+            self.handle_jianya_draft_put()
+            return
+        if path == "/api/jianya/prefs":
+            self.handle_jianya_prefs_put()
+            return
+        if path.startswith("/api/jianya/assignments/") and path.endswith("/reviews"):
+            self.handle_jianya_review_put()
+            return
         if path.startswith("/api/task/students/") and path.endswith("/plan-pause"):
             self.handle_task_plan_pause_put()
             return
@@ -909,6 +946,12 @@ class LocalHandler(SimpleHTTPRequestHandler):
     def do_DELETE(self) -> None:
         parsed = urllib.parse.urlparse(self.path)
         path = parsed.path.rstrip("/")
+        if path.startswith("/api/jianya/packs/"):
+            self.handle_jianya_pack_delete()
+            return
+        if path.startswith("/api/jianya/assignments/"):
+            self.handle_jianya_assignment_delete()
+            return
         if path.startswith("/api/task/students/") and path.endswith("/plan-pause"):
             self.handle_task_plan_pause_delete()
             return
@@ -1016,6 +1059,63 @@ class LocalHandler(SimpleHTTPRequestHandler):
             self.send_json({"data": None, "error": {"message": "需要登录"}}, status=401)
             return None
         return session
+
+    def require_active_viewer(self) -> Optional[dict[str, Any]]:
+        session = self.require_logged_in_session()
+        if not session:
+            return None
+        with closing(connect(self.db_path)) as conn:
+            if session["role"] == "student":
+                row = conn.execute(
+                    "SELECT status FROM students WHERE student_id = ?",
+                    (session["id"],),
+                ).fetchone()
+            else:
+                row = conn.execute(
+                    "SELECT status FROM teachers WHERE teacher_id = ?",
+                    (session["id"],),
+                ).fetchone()
+        if not row or row["status"] != "active":
+            self.send_json({"data": None, "error": {"message": "会话已失效"}}, status=401)
+            return None
+        return session
+
+    def handle_luboke_courses(self) -> None:
+        if not self.require_active_viewer():
+            return
+        courses = [public_course(item) for item in load_courses()]
+        self.send_json({"data": {"courses": courses, "oss_ready": oss_configured()}, "error": None})
+
+    def handle_luboke_play_url(self, course_id: str) -> None:
+        session = self.require_active_viewer()
+        if not session:
+            return
+        course = get_course(load_courses(), course_id)
+        if not course:
+            self.send_json({"data": None, "error": {"message": "没有这节课"}}, status=404)
+            return
+        if not oss_configured():
+            self.send_json(
+                {"data": None, "error": {"message": "录播课尚未配置，请先填写 config/oss.env"}},
+                status=503,
+            )
+            return
+        try:
+            play_url = sign_get_url(course["oss_key"])
+        except ValueError:
+            self.send_json({"data": None, "error": {"message": "课程文件路径无效"}}, status=400)
+            return
+        self.send_json(
+            {
+                "data": {
+                    "course_id": course["id"],
+                    "title": course["title"],
+                    "play_url": play_url,
+                    "viewer": session.get("id") or "",
+                },
+                "error": None,
+            }
+        )
 
     def handle_public_config(self) -> None:
         settings = ai_settings()
@@ -1469,6 +1569,404 @@ class LocalHandler(SimpleHTTPRequestHandler):
             ensure_jianya_tables(conn)
             data = jianya_list_student_submissions(conn, str(session.get("id") or ""))
             self.send_json({"data": data, "error": None})
+
+    def _jianya_last_subject_from_row(self, row: Optional[sqlite3.Row]) -> str:
+        if not row:
+            return JIANYA_DEFAULT_SUBJECT
+        try:
+            value = str(row["jianya_last_subject"] or "")
+        except (KeyError, IndexError, TypeError):
+            value = ""
+        return value if value in JIANYA_PACK_SUBJECTS else JIANYA_DEFAULT_SUBJECT
+
+    def handle_jianya_prefs_put(self) -> None:
+        session = self.require_teacher_session()
+        if not session:
+            return
+        payload = self.read_json_body()
+        try:
+            subject = jianya_normalize_pack_subject(
+                str(payload.get("lastSubject") or payload.get("last_subject") or "")
+            )
+        except ValueError as exc:
+            self.send_json({"data": None, "error": {"message": str(exc)}}, status=400)
+            return
+        teacher_id = str(session.get("id") or "")
+        with closing(connect(self.db_path)) as conn:
+            conn.execute(
+                """
+                UPDATE teachers
+                SET jianya_last_subject = ?, updated_at = strftime('%Y-%m-%dT%H:%M:%fZ','now')
+                WHERE teacher_id = ?
+                """,
+                (subject, teacher_id),
+            )
+            conn.commit()
+            row = conn.execute(
+                "SELECT * FROM teachers WHERE teacher_id = ?",
+                (teacher_id,),
+            ).fetchone()
+        self.send_json({"data": {"lastSubject": self._jianya_last_subject_from_row(row)}, "error": None})
+
+    def handle_jianya_get(self) -> None:
+        parsed = urllib.parse.urlparse(self.path)
+        parts = [p for p in parsed.path.split("/") if p]
+        qs = urllib.parse.parse_qs(parsed.query or "")
+        rest = parts[2:] if len(parts) >= 2 else []
+        student = self.current_session("student")
+        teacher = self.current_session("teacher")
+        if not student and not teacher:
+            self.send_json({"data": None, "error": {"message": "需要登录"}}, status=401)
+            return
+        try:
+            with closing(connect(self.db_path)) as conn:
+                ensure_jianya_tables(conn)
+                if rest == ["packs"]:
+                    if not teacher:
+                        self.send_json({"data": None, "error": {"message": "需要教师登录"}}, status=401)
+                        return
+                    self.send_json(
+                        {
+                            "data": jianya_list_all_packs(
+                                conn, viewer_id=str(teacher.get("id") or "")
+                            ),
+                            "error": None,
+                        }
+                    )
+                    return
+                if rest == ["assignments"]:
+                    if not teacher:
+                        self.send_json({"data": None, "error": {"message": "需要教师登录"}}, status=401)
+                        return
+                    self.send_json(
+                        {
+                            "data": jianya_list_assignments(
+                                conn, created_by=str(teacher.get("id") or "")
+                            ),
+                            "error": None,
+                        }
+                    )
+                    return
+                if rest == ["me", "assignments"]:
+                    if not student:
+                        self.send_json({"data": None, "error": {"message": "需要学生登录"}}, status=401)
+                        return
+                    self.send_json(
+                        {
+                            "data": jianya_list_student_assignments(
+                                conn, str(student.get("id") or "")
+                            ),
+                            "error": None,
+                        }
+                    )
+                    return
+                if rest == ["me", "submissions"]:
+                    self.handle_jianya_me_submissions()
+                    return
+                if len(rest) == 2 and rest[0] == "assignments":
+                    assignment_id = rest[1]
+                    row = jianya_get_assignment(conn, assignment_id)
+                    if not row:
+                        self.send_json(
+                            {"data": None, "error": {"message": "作业不存在或已删除"}},
+                            status=404,
+                        )
+                        return
+                    student_id = str(student.get("id") or "") if student else ""
+                    if student_id and jianya_is_recipient(conn, assignment_id, student_id):
+                        self.send_json(
+                            {
+                                "data": jianya_get_assignment(
+                                    conn, assignment_id, student_id=student_id
+                                ),
+                                "error": None,
+                            }
+                        )
+                        return
+                    if teacher and jianya_teacher_owns_assignment(row, str(teacher.get("id") or "")):
+                        self.send_json({"data": row, "error": None})
+                        return
+                    self.send_json(
+                        {"data": None, "error": {"message": "作业不存在或已删除"}},
+                        status=404,
+                    )
+                    return
+                if len(rest) == 3 and rest[0] == "assignments" and rest[2] == "submissions":
+                    assignment_id = rest[1]
+                    row = jianya_get_assignment(conn, assignment_id)
+                    if not row:
+                        self.send_json(
+                            {"data": None, "error": {"message": "作业不存在或已删除"}},
+                            status=404,
+                        )
+                        return
+                    student_id = None
+                    if student and jianya_is_recipient(conn, assignment_id, str(student.get("id") or "")):
+                        student_id = str(student.get("id") or "")
+                    elif teacher and jianya_teacher_owns_assignment(row, str(teacher.get("id") or "")):
+                        asked = str((qs.get("student_id") or [""])[0] or "").strip()
+                        student_id = asked or None
+                    else:
+                        self.send_json({"data": None, "error": {"message": "需要登录"}}, status=401)
+                        return
+                    self.send_json(
+                        {
+                            "data": jianya_list_submissions(
+                                conn, assignment_id, student_id=student_id
+                            ),
+                            "error": None,
+                        }
+                    )
+                    return
+                if len(rest) == 3 and rest[0] == "assignments" and rest[2] == "roster":
+                    if not teacher:
+                        self.send_json({"data": None, "error": {"message": "需要教师登录"}}, status=401)
+                        return
+                    assignment_id = rest[1]
+                    row = jianya_get_assignment(conn, assignment_id)
+                    if not row or not jianya_teacher_owns_assignment(row, str(teacher.get("id") or "")):
+                        self.send_json(
+                            {"data": None, "error": {"message": "作业不存在或已删除"}},
+                            status=404,
+                        )
+                        return
+                    self.send_json({"data": jianya_get_roster(conn, assignment_id), "error": None})
+                    return
+                if rest == ["drafts"]:
+                    if not student:
+                        self.send_json({"data": None, "error": {"message": "需要学生登录"}}, status=401)
+                        return
+                    assignment_id = str((qs.get("assignment_id") or [""])[0] or "").strip()
+                    subject = str((qs.get("subject") or [""])[0] or "").strip()
+                    try:
+                        book_id = int((qs.get("book_id") or ["0"])[0])
+                        s_id = int((qs.get("s_id") or ["0"])[0])
+                    except ValueError:
+                        self.send_json({"data": None, "error": {"message": "参数无效"}}, status=400)
+                        return
+                    self.send_json(
+                        {
+                            "data": jianya_get_draft(
+                                conn,
+                                assignment_id,
+                                str(student.get("id") or ""),
+                                book_id,
+                                subject,
+                                s_id,
+                            ),
+                            "error": None,
+                        }
+                    )
+                    return
+        except ValueError as exc:
+            self.send_json({"data": None, "error": {"message": str(exc)}}, status=400)
+            return
+        self.send_json({"data": None, "error": {"message": "Not Found"}}, status=404)
+
+    def handle_jianya_post(self) -> None:
+        parsed = urllib.parse.urlparse(self.path)
+        parts = [p for p in parsed.path.split("/") if p]
+        rest = parts[2:] if len(parts) >= 2 else []
+        if rest == ["prefs"]:
+            self.handle_jianya_prefs_put()
+            return
+        payload = self.read_json_body()
+        try:
+            with closing(connect(self.db_path)) as conn:
+                ensure_jianya_tables(conn)
+                if rest == ["packs"]:
+                    session = self.require_teacher_session()
+                    if not session:
+                        return
+                    data = jianya_create_pack(
+                        conn,
+                        title=str(payload.get("title") or ""),
+                        subject=str(payload.get("subject") or ""),
+                        parts=payload.get("parts") or [],
+                        description=str(payload.get("description") or ""),
+                        created_by=str(session.get("id") or ""),
+                    )
+                    self.send_json({"data": data, "error": None})
+                    return
+                if rest == ["assignments"]:
+                    session = self.require_teacher_session()
+                    if not session:
+                        return
+                    data = jianya_create_assignment(
+                        conn,
+                        title=str(payload.get("title") or ""),
+                        subject=str(payload.get("subject") or ""),
+                        parts=payload.get("parts") or [],
+                        pack_id=payload.get("packId") or payload.get("pack_id"),
+                        created_by=str(session.get("id") or ""),
+                        student_ids=payload.get("studentIds") or payload.get("student_ids"),
+                    )
+                    self.send_json({"data": data, "error": None})
+                    return
+                if rest == ["assignments", "publish-packs"]:
+                    session = self.require_teacher_session()
+                    if not session:
+                        return
+                    pack_ids = payload.get("packIds") or payload.get("pack_ids") or []
+                    if not isinstance(pack_ids, list):
+                        self.send_json(
+                            {"data": None, "error": {"message": "packIds 必须是数组"}},
+                            status=400,
+                        )
+                        return
+                    data = jianya_publish_from_packs(
+                        conn,
+                        [str(x) for x in pack_ids],
+                        title_prefix=str(
+                            payload.get("titlePrefix") or payload.get("title_prefix") or ""
+                        ),
+                        created_by=str(session.get("id") or ""),
+                        student_ids=payload.get("studentIds") or payload.get("student_ids"),
+                    )
+                    self.send_json({"data": data, "error": None})
+                    return
+                if (
+                    len(rest) == 3
+                    and rest[0] == "assignments"
+                    and rest[2] == "recipients"
+                ):
+                    session = self.require_teacher_session()
+                    if not session:
+                        return
+                    assignment_id = rest[1]
+                    row = jianya_get_assignment(conn, assignment_id)
+                    if not row or not jianya_teacher_owns_assignment(
+                        row, str(session.get("id") or "")
+                    ):
+                        self.send_json(
+                            {"data": None, "error": {"message": "作业不存在或已删除"}},
+                            status=404,
+                        )
+                        return
+                    data = jianya_add_recipients(
+                        conn,
+                        assignment_id,
+                        payload.get("studentIds") or payload.get("student_ids"),
+                    )
+                    self.send_json({"data": data, "error": None})
+                    return
+                if rest == ["submissions"]:
+                    session = self.require_student_session()
+                    if not session:
+                        return
+                    graded = payload.get("graded") if isinstance(payload.get("graded"), dict) else {}
+                    correct = int(graded.get("correct") if graded else payload.get("correct") or 0)
+                    total = int(graded.get("total") if graded else payload.get("total") or 0)
+                    wrong = int(graded.get("wrong") if graded else payload.get("wrong") or 0)
+                    blank = int(graded.get("blank") if graded else payload.get("blank") or 0)
+                    pct = payload.get("pct")
+                    if pct is None:
+                        pct = round((correct / total) * 100) if total else 0
+                    data = jianya_save_submission(
+                        conn,
+                        assignment_id=str(
+                            payload.get("assignmentId") or payload.get("assignment_id") or ""
+                        ),
+                        student_id=str(session.get("id") or ""),
+                        book_id=int(payload.get("bookId") or payload.get("book_id") or 0),
+                        subject=str(payload.get("subject") or ""),
+                        s_id=int(payload.get("sId") or payload.get("s_id") or 0),
+                        answers=payload.get("answers") or {},
+                        correct=correct,
+                        total=total,
+                        wrong=wrong,
+                        blank=blank,
+                        pct=int(pct),
+                    )
+                    self.send_json({"data": data, "error": None})
+                    return
+        except ValueError as exc:
+            self.send_json({"data": None, "error": {"message": str(exc)}}, status=400)
+            return
+        self.send_json({"data": None, "error": {"message": "Not Found"}}, status=404)
+
+    def handle_jianya_draft_put(self) -> None:
+        session = self.require_student_session()
+        if not session:
+            return
+        payload = self.read_json_body()
+        try:
+            with closing(connect(self.db_path)) as conn:
+                ensure_jianya_tables(conn)
+                data = jianya_save_draft(
+                    conn,
+                    assignment_id=str(
+                        payload.get("assignmentId") or payload.get("assignment_id") or ""
+                    ),
+                    student_id=str(session.get("id") or ""),
+                    book_id=int(payload.get("bookId") or payload.get("book_id") or 0),
+                    subject=str(payload.get("subject") or ""),
+                    s_id=int(payload.get("sId") or payload.get("s_id") or 0),
+                    answers=payload.get("answers") or {},
+                )
+                self.send_json({"data": data, "error": None})
+        except ValueError as exc:
+            self.send_json({"data": None, "error": {"message": str(exc)}}, status=400)
+
+    def handle_jianya_review_put(self) -> None:
+        session = self.require_teacher_session()
+        if not session:
+            return
+        payload = self.read_json_body()
+        parts = [p for p in urllib.parse.urlparse(self.path).path.split("/") if p]
+        assignment_id = parts[3] if len(parts) >= 4 else ""
+        try:
+            with closing(connect(self.db_path)) as conn:
+                ensure_jianya_tables(conn)
+                row = jianya_get_assignment(conn, assignment_id)
+                if not row or not jianya_teacher_owns_assignment(
+                    row, str(session.get("id") or "")
+                ):
+                    self.send_json(
+                        {"data": None, "error": {"message": "作业不存在或已删除"}},
+                        status=404,
+                    )
+                    return
+                data = jianya_save_review(
+                    conn,
+                    assignment_id=assignment_id,
+                    student_id=str(payload.get("studentId") or payload.get("student_id") or ""),
+                    comment=str(payload.get("comment") or ""),
+                    created_by=str(session.get("id") or ""),
+                )
+                self.send_json({"data": data, "error": None})
+        except ValueError as exc:
+            self.send_json({"data": None, "error": {"message": str(exc)}}, status=400)
+
+    def handle_jianya_pack_delete(self) -> None:
+        session = self.require_teacher_session()
+        if not session:
+            return
+        parts = [p for p in urllib.parse.urlparse(self.path).path.split("/") if p]
+        pack_id = parts[-1] if parts else ""
+        try:
+            with closing(connect(self.db_path)) as conn:
+                ensure_jianya_tables(conn)
+                jianya_delete_pack(conn, pack_id, actor_id=str(session.get("id") or ""))
+                self.send_json({"data": {"ok": True}, "error": None})
+        except ValueError as exc:
+            self.send_json({"data": None, "error": {"message": str(exc)}}, status=400)
+
+    def handle_jianya_assignment_delete(self) -> None:
+        session = self.require_teacher_session()
+        if not session:
+            return
+        parts = [p for p in urllib.parse.urlparse(self.path).path.split("/") if p]
+        assignment_id = parts[-1] if parts else ""
+        try:
+            with closing(connect(self.db_path)) as conn:
+                ensure_jianya_tables(conn)
+                jianya_delete_assignment(
+                    conn, assignment_id, actor_id=str(session.get("id") or "")
+                )
+                self.send_json({"data": {"ok": True}, "error": None})
+        except ValueError as exc:
+            self.send_json({"data": None, "error": {"message": str(exc)}}, status=400)
 
     def handle_student_progress(self) -> None:
         session = self.require_student_session()
@@ -2141,8 +2639,18 @@ class LocalHandler(SimpleHTTPRequestHandler):
         if parsed.path.rstrip("/") == "/api/teacher/teachers":
             self.handle_teacher_teachers_get()
             return
-        if parsed.path.rstrip("/") == "/api/jianya/me/submissions":
-            self.handle_jianya_me_submissions()
+        if parsed.path.startswith("/api/jianya/"):
+            self.handle_jianya_get()
+            return
+        if parsed.path.rstrip("/") == "/api/luboke/courses":
+            self.handle_luboke_courses()
+            return
+        if parsed.path.startswith("/api/luboke/courses/") and parsed.path.rstrip("/").endswith(
+            "/play-url"
+        ):
+            parts = [p for p in parsed.path.split("/") if p]
+            course_id = parts[3] if len(parts) >= 5 else ""
+            self.handle_luboke_play_url(urllib.parse.unquote(course_id))
             return
         if parsed.path.startswith("/api/config"):
             self.handle_public_config()
@@ -2299,6 +2807,9 @@ class LocalHandler(SimpleHTTPRequestHandler):
             return
         if path == "/api/teacher/teachers/update":
             self.handle_teacher_teachers_update()
+            return
+        if parsed.path.startswith("/api/jianya/"):
+            self.handle_jianya_post()
             return
         if parsed.path.startswith("/api/db"):
             # P2: generic /api/db is closed; use role-scoped APIs.
@@ -2562,6 +3073,12 @@ def main(argv: list[str]) -> int:
         print(f"AI config loaded: {ai_env}")
     else:
         print(f"AI config missing: {ROOT / 'config' / 'ai.env'} (AI features may be disabled)")
+
+    oss_env_path = ROOT / "config" / "oss.env"
+    if load_env_file(oss_env_path):
+        print(f"OSS config loaded: {oss_env_path}")
+    else:
+        print(f"OSS config missing: {oss_env_path} (recorded courses disabled)")
 
     writing_api_base = str(args.writing_api_base).rstrip("/")
     writing_proc = maybe_start_writing_backend(

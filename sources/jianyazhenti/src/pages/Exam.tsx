@@ -185,10 +185,12 @@ export default function Exam() {
   const assignmentId = search.get('assignment') || ''
   const wantReview = search.get('review') === '1'
   const fromTeacher = search.get('from') === 'teacher'
+  const reviewStudentId = search.get('student') || ''
   const fromOverview = search.get('from') === 'overview'
   const fromHistory = search.get('from') === 'history'
   const hostMode = search.get('mode') || ''
   const homeworkMode = Boolean(assignmentId) && !fromTeacher
+  const teacherReviewing = fromTeacher && Boolean(assignmentId) && Boolean(reviewStudentId)
   const historyReview = fromHistory ? readHistoryReview(location.state) : null
   const startedAtRef = useRef(Date.now())
 
@@ -210,7 +212,11 @@ export default function Exam() {
     return q.toString()
   })()
   const backTo = assignmentId
-    ? `/assignment/${assignmentId}${fromTeacher ? '?from=teacher' : ''}`
+    ? `/assignment/${assignmentId}${
+        fromTeacher
+          ? `?from=teacher${reviewStudentId ? `&student=${encodeURIComponent(reviewStudentId)}` : ''}`
+          : ''
+      }`
     : fromHistory
       ? historyReview?.historyBack || `/student/history?${catalogQuery}`
       : fromOverview
@@ -249,7 +255,7 @@ export default function Exam() {
 
     ;(async () => {
       try {
-        if (homeworkMode) {
+        if (homeworkMode || teacherReviewing) {
           const asg = await getAssignment(assignmentId)
           if (cancelled) return
           if (!asg) {
@@ -257,9 +263,16 @@ export default function Exam() {
             return
           }
         }
-        const submitted = homeworkMode
-          ? await getSubmission(assignmentId, bookId, subject, id)
-          : null
+        const submitted =
+          homeworkMode || teacherReviewing
+            ? await getSubmission(
+                assignmentId,
+                bookId,
+                subject,
+                id,
+                teacherReviewing ? reviewStudentId : undefined,
+              )
+            : null
         const data = await loadPart(subject, id, bookId)
         if (cancelled) return
         setPart(data)
@@ -274,6 +287,9 @@ export default function Exam() {
           } catch {
             setReviewItems(undefined)
           }
+        } else if (teacherReviewing) {
+          setError('该生尚未提交此 Part')
+          return
         } else if (fromHistory && historyReview?.answers) {
           setAnswers(historyReview.answers)
           setLocked(true)
@@ -333,7 +349,7 @@ export default function Exam() {
     return () => {
       cancelled = true
     }
-  }, [subject, id, bookId, assignmentId, wantReview, homeworkMode, fromHistory])
+  }, [subject, id, bookId, assignmentId, wantReview, homeworkMode, teacherReviewing, reviewStudentId, fromHistory])
 
   useEffect(() => {
     if (!part || !ready || locked) return
@@ -385,6 +401,12 @@ export default function Exam() {
           answers,
           graded,
         })
+        if (window.parent !== window) {
+          window.parent.postMessage(
+            { type: 'jianyaAssignmentSubmitted', assignmentId },
+            window.location.origin,
+          )
+        }
         reportHostResult(hostMode, graded, startedAtRef.current, part, bookId, answers)
         await persistPartAttempt(
           hostMode,

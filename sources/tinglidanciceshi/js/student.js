@@ -80,6 +80,69 @@ function showStudentHome() {
     });
 }
 
+function jianyaHomeworkPending(item) {
+    if (!item) return false;
+    if (item.myStatus) return item.myStatus !== 'submitted';
+    var total = Number(item.myTotalParts || (item.parts && item.parts.length) || 0);
+    var done = Number(item.mySubmittedParts || 0);
+    return total > 0 && done < total;
+}
+
+function updateJianyaHomeworkBadge(count) {
+    var badge = document.getElementById('jianyaHomeworkBadge');
+    if (!badge) return;
+    var n = Number(count) || 0;
+    if (n <= 0) {
+        badge.hidden = true;
+        badge.textContent = '';
+        return;
+    }
+    badge.hidden = false;
+    badge.textContent = n > 99 ? '99+' : String(n);
+}
+
+async function refreshJianyaHomeworkState() {
+    window._jianyaPendingHomework = [];
+    updateJianyaHomeworkBadge(0);
+    if (!currentStudent || !currentStudent.student_id) return [];
+    try {
+        var result = await apiFetch('/api/jianya/me/assignments');
+        if (result.error) return [];
+        var pending = (result.data || []).filter(jianyaHomeworkPending);
+        window._jianyaPendingHomework = pending;
+        updateJianyaHomeworkBadge(pending.length);
+        return pending;
+    } catch (e) {
+        return [];
+    }
+}
+
+function renderJianyaHomeworkBanner(pending) {
+    if (!pending || !pending.length) return '';
+    var html = '<div style="margin-bottom:14px;background:#fff7ed;border:1px solid #fdba74;border-radius:12px;padding:16px;">';
+    html += '<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;">';
+    html += '<h3 style="margin:0;color:#9a3412;">老师布置的剑雅作业</h3>';
+    html += '<span style="color:#c2410c;font-weight:700;">未完成 ' + pending.length + ' 份</span></div>';
+    pending.forEach(function(a) {
+        var total = Number(a.myTotalParts || (a.parts && a.parts.length) || 0);
+        var done = Number(a.mySubmittedParts || 0);
+        var subj = a.subject === 'listening' ? '听力' : '阅读';
+        var aid = String(a.id || '').replace(/[^a-zA-Z0-9_-]/g, '');
+        html += '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:10px 0 0;border-top:1px solid #fed7aa;margin-top:10px;">';
+        html += '<div><strong>' + escapeHtml(a.title || '作业') + '</strong>';
+        html += '<div style="color:#9a3412;font-size:0.9rem;margin-top:2px;">' +
+            subj + ' · 已交 ' + done + '/' + total + ' Part</div></div>';
+        html += '<button class="btn btn-primary" type="button" onclick="openJianyaHomework(\'' +
+            aid + '\')">去完成</button></div>';
+    });
+    html += '</div>';
+    return html;
+}
+
+function openJianyaHomework(assignmentId) {
+    switchStudentTab('jianya', assignmentId ? { assignmentId: assignmentId } : null);
+}
+
 function formatTaskMinutes(m) {
     const n = Number(m) || 0;
     if (n <= 0) return '0';
@@ -106,16 +169,20 @@ async function loadTodayTasks() {
     if (!panel) return;
     panel.innerHTML = '<p style="color:#666;">加载今日任务…</p>';
     if (upcomingPanel) upcomingPanel.innerHTML = '';
+    const hwPromise = refreshJianyaHomeworkState();
     const result = await apiFetch('/api/task/me/today');
+    const pendingHomework = await hwPromise.catch(function() { return []; });
     if (result.error) {
-        panel.innerHTML = '<p style="color:#c00;">加载失败：' +
+        panel.innerHTML = renderJianyaHomeworkBanner(pendingHomework) +
+            '<p style="color:#c00;">加载失败：' +
             ((result.error && result.error.message) || '请稍后再试') + '</p>';
         return;
     }
     const data = result.data || {};
     const items = data.items || [];
     const progress = data.progress || {};
-    let html = '<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:16px;">';
+    let html = renderJianyaHomeworkBanner(pendingHomework);
+    html += '<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:16px;">';
     html += '<div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:10px;">';
     html += '<h3 style="margin:0;">① 今日任务</h3>';
     const estTotal = Number(data.est_total_minutes) || 0;
@@ -435,7 +502,7 @@ async function maybeCompleteTaskStudyOnLeave(opts) {
     }
 }
 
-function switchStudentTab(tab) {
+function switchStudentTab(tab, opts) {
     document.querySelectorAll('#studentHome [data-student-tab]').forEach(function(t) {
         t.classList.toggle('active', t.getAttribute('data-student-tab') === tab);
     });
@@ -447,7 +514,9 @@ function switchStudentTab(tab) {
     if (jianyaEl) jianyaEl.style.display = tab === 'jianya' ? 'block' : 'none';
     var mockEl = document.getElementById('studentTabMock');
     if (mockEl) mockEl.style.display = tab === 'mock' ? 'block' : 'none';
-    document.body.classList.toggle('student-jianya-wide', tab === 'jianya' || tab === 'mock');
+    var lubokeEl = document.getElementById('studentTabLuboke');
+    if (lubokeEl) lubokeEl.style.display = tab === 'luboke' ? 'block' : 'none';
+    document.body.classList.toggle('student-jianya-wide', tab === 'jianya' || tab === 'mock' || tab === 'luboke');
     if (tab === 'history') {
         loadStudentHistory();
     }
@@ -455,20 +524,27 @@ function switchStudentTab(tab) {
         loadTodayTasks();
     }
     if (tab === 'jianya') {
-        loadJianyaStudentFrame();
+        var homeworkPath = opts && opts.assignmentId
+            ? '/jianyazhenti/assignment/' + encodeURIComponent(opts.assignmentId) + '?embed=1'
+            : '';
+        loadJianyaStudentFrame(homeworkPath);
+        refreshJianyaHomeworkState();
     }
     if (tab === 'mock') {
         loadJianyaMockFrame();
     }
+    if (tab === 'luboke') {
+        loadLubokeStudentFrame();
+    }
 }
 
-function loadJianyaStudentFrame() {
+function loadJianyaStudentFrame(path) {
     var frame = document.getElementById('jianyaStudentIframe');
     if (!frame) return;
     var sid = (currentStudent && currentStudent.student_id) ? encodeURIComponent(currentStudent.student_id) : '';
-    var next = '/jianyazhenti/student?embed=1';
-    if (sid) next += '&student_id=' + sid;
-    if (frame.getAttribute('data-src') !== next) {
+    var next = path || '/jianyazhenti/student?embed=1';
+    if (sid) next += (next.indexOf('?') >= 0 ? '&' : '?') + 'student_id=' + sid;
+    if (path || frame.getAttribute('data-src') !== next) {
         frame.src = next;
         frame.setAttribute('data-src', next);
     }
@@ -480,6 +556,16 @@ function loadJianyaMockFrame() {
     var sid = (currentStudent && currentStudent.student_id) ? encodeURIComponent(currentStudent.student_id) : '';
     var next = '/jianyazhenti/student/mock?embed=1';
     if (sid) next += '&student_id=' + sid;
+    if (frame.getAttribute('data-src') !== next) {
+        frame.src = next;
+        frame.setAttribute('data-src', next);
+    }
+}
+
+function loadLubokeStudentFrame() {
+    var frame = document.getElementById('lubokeStudentIframe');
+    if (!frame) return;
+    var next = '/luboke/?embed=1';
     if (frame.getAttribute('data-src') !== next) {
         frame.src = next;
         frame.setAttribute('data-src', next);
@@ -963,6 +1049,8 @@ async function startWrongWordsTestFromHistory(wordListStr, moduleId) {
 function studentLogout() {
     currentStudent = null;
     document.body.classList.remove('student-jianya-wide');
+    updateJianyaHomeworkBadge(0);
+    window._jianyaPendingHomework = [];
     var jianyaFrame = document.getElementById('jianyaStudentIframe');
     if (jianyaFrame) {
         jianyaFrame.src = '';
@@ -2601,6 +2689,18 @@ function isTrustedModuleMessage(event, current) {
 window.addEventListener('message', async function(event) {
     const data = event.data;
     if (!data || !data.type) return;
+    if (data.type === 'jianyaAssignmentSubmitted') {
+        if (event.origin && event.origin !== window.location.origin) return;
+        refreshJianyaHomeworkState().then(function(pending) {
+            var tasksEl = document.getElementById('studentTabTasks');
+            if (tasksEl && tasksEl.style.display !== 'none') {
+                loadTodayTasks();
+            } else if (!pending || !pending.length) {
+                updateJianyaHomeworkBadge(0);
+            }
+        });
+        return;
+    }
     if (data.type === 'taskScopeProgress') {
         if (event.origin && event.origin !== window.location.origin) return;
         const ctx = window._currentTaskContext || {};

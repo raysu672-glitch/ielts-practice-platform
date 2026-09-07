@@ -1234,6 +1234,10 @@
 
 .pack-filters {
   margin-bottom: 1rem;
+  background: color-mix(in srgb, var(--panel) 70%, transparent);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 0.75rem 0.85rem 0.85rem;
 }
 
 .pack-filters .tabs,
@@ -1369,6 +1373,37 @@
   align-items: start;
 }
 
+.assign-home {
+  grid-template-columns: minmax(0, 1fr) 340px;
+  grid-template-areas:
+    'custom side'
+    'rest side';
+}
+
+.assign-custom {
+  grid-area: custom;
+  min-width: 0;
+}
+
+.assign-main {
+  grid-area: rest;
+  min-width: 0;
+}
+
+.assign-side {
+  grid-area: side;
+  align-self: start;
+  max-height: calc(100vh - 2rem);
+  overflow: auto;
+}
+
+.pack-grid-scroll {
+  max-height: min(52vh, 36rem);
+  overflow: auto;
+  padding-right: 0.2rem;
+  margin-bottom: 0;
+}
+
 .teacher-browser {
   background: var(--panel);
   border: 1px solid var(--line);
@@ -1398,6 +1433,14 @@
 .filter-hint {
   color: var(--ink-soft);
   font-size: 0.85rem;
+}
+
+.pack-hidden-hint {
+  margin: 0.35rem 0 0.85rem;
+}
+
+.pack-hidden-hint .btn-text {
+  margin-left: 0.35rem;
 }
 
 .teacher-filters .tabs {
@@ -1554,6 +1597,16 @@
   border-radius: 10px;
   padding: 0.65rem 0.75rem;
   background: #fff;
+}
+
+.field textarea {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 0.65rem 0.75rem;
+  background: #fff;
+  font: inherit;
+  resize: vertical;
+  min-height: 6rem;
 }
 
 .teacher-stats {
@@ -1816,8 +1869,25 @@
     grid-template-columns: 1fr;
   }
 
+  .assign-home {
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      'custom'
+      'side'
+      'rest';
+  }
+
+  .assign-side {
+    position: static;
+    max-height: none;
+  }
+
   .teacher-side {
     position: static;
+  }
+
+  .pack-grid-scroll {
+    max-height: min(55vh, 36rem);
   }
 }
 
@@ -1908,10 +1978,40 @@
   margin-bottom: 1.25rem;
 }
 
+.teacher-subject-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin: 0 0 1.25rem;
+}
+
+.pack-subject-tabs {
+  flex-wrap: wrap;
+}
+
 .teacher-home-links {
   display: flex;
   flex-wrap: wrap;
   gap: 0.75rem;
+  margin-bottom: 2rem;
+}
+
+.teacher-home-status {
+  margin-top: 0.5rem;
+  margin-bottom: 2.5rem;
+}
+
+.asg-list-card .status-line {
+  font-size: 0.88rem;
+}
+
+.asg-list-card .status-line.ok {
+  color: #0f6b63;
+}
+
+.asg-list-card .status-line.warn {
+  color: #9a3412;
 }
 
 .bank-meta {
@@ -2164,4 +2264,128 @@ html.embedded .exam-shell {
   .mock-hub-grid {
     grid-template-columns: 1fr;
   }
+}
+
+.pill.warn {
+  background: rgba(180, 83, 9, 0.14);
+  color: #9a3412;
+}
+
+.pack-publish-bar-students {
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.pack-publish-students h3 {
+  margin: 0 0 0.6rem;
+  font-size: 1rem;
+}
+
+.student-picker {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.student-picker-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.student-picker-toolbar input {
+  flex: 1;
+  min-width: 160px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 0.55rem 0.7rem;
+}
+
+.student-picker-toolbar span {
+  color: var(--ink-soft);
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.student-picker-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 220px;
+  overflow: auto;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #fff;
+}
+
+.student-picker-list li + li {
+  border-top: 1px solid var(--line);
+}
+
+.student-picker-list label {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.55rem 0.75rem;
+  cursor: pointer;
+}
+
+.student-picker-list span {
+  margin-left: auto;
+  color: var(--ink-soft);
+  font-size: 0.82rem;
+}
+
+.roster-list {
+  list-style: none;
+  margin: 0 0 0.5rem;
+  padding: 0;
+  display: grid;
+  gap: 0.45rem;
+}
+
+.roster-row {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--panel);
+  cursor: pointer;
+  text-align: left;
+}
+
+.roster-row div {
+  display: grid;
+  gap: 0.15rem;
+}
+
+.roster-row span {
+  color: var(--ink-soft);
+  font-size: 0.85rem;
+}
+
+.teacher-comment-card {
+  margin-bottom: 1.25rem;
+  padding: 1rem 1.1rem;
+  border-radius: 14px;
+  border: 1px solid #fcd34d;
+  background: #fffbeb;
+}
+
+.teacher-comment-card h2 {
+  margin: 0 0 0.4rem;
+  font-size: 1rem;
+}
+
+.teacher-comment-card p {
+  margin: 0;
+  white-space: pre-wrap;
+}
+
+.teacher-section .student-picker {
+  margin-bottom: 0.85rem;
 }

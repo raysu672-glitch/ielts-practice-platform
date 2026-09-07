@@ -157,4 +157,9 @@ def public_teacher(row: dict[str, Any]) -> dict[str, Any]:
         "created_at": row.get("created_at"),
         "updated_at": row.get("updated_at"),
         "is_admin": row.get("teacher_id") == "admin",
+        "jianya_last_subject": (
+            row.get("jianya_last_subject")
+            if row.get("jianya_last_subject") in ("listening", "reading", "writing", "speaking")
+            else "listening"
+        ),
     }

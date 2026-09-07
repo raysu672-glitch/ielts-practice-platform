@@ -14,6 +14,7 @@ if str(SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPTS_DIR))
 
 from jianya_api import (  # noqa: E402
+    add_recipients,
     create_assignment,
     create_pack,
     delete_assignment,
@@ -21,13 +22,16 @@ from jianya_api import (  # noqa: E402
     ensure_jianya_tables,
     get_assignment,
     get_draft,
+    get_roster,
     get_submission,
     list_all_packs,
     list_assignments,
+    list_student_assignments,
     list_student_submissions,
     list_submissions,
     publish_from_packs,
     save_draft,
+    save_review,
     save_submission,
 )
 
@@ -59,11 +63,14 @@ class JianyaApiTests(unittest.TestCase):
             subject="listening",
             parts=[PART],
             created_by="zhangxiaodong",
+            student_ids=["2025001"],
         )
         self.assertTrue(created["id"].startswith("a"))
         listed = list_assignments(conn)
         self.assertEqual(len(listed), 1)
         self.assertEqual(listed[0]["title"], "听力专项")
+        self.assertEqual(listed[0]["assignedCount"], 1)
+        self.assertEqual(listed[0]["studentIds"], ["2025001"])
         self.assertEqual(get_assignment(conn, created["id"])["parts"][0]["sId"], 2999)
         delete_assignment(conn, created["id"])
         self.assertEqual(list_assignments(conn), [])
@@ -77,7 +84,9 @@ class JianyaApiTests(unittest.TestCase):
 
     def test_submission_locked_after_first_save(self) -> None:
         conn = _conn()
-        asg = create_assignment(conn, title="t", subject="listening", parts=[PART])
+        asg = create_assignment(
+            conn, title="t", subject="listening", parts=[PART], student_ids=["2025001"]
+        )
         first = save_submission(
             conn,
             assignment_id=asg["id"],
@@ -115,7 +124,9 @@ class JianyaApiTests(unittest.TestCase):
 
     def test_list_student_submissions_includes_part(self) -> None:
         conn = _conn()
-        asg = create_assignment(conn, title="听力作业", subject="listening", parts=[PART])
+        asg = create_assignment(
+            conn, title="听力作业", subject="listening", parts=[PART], student_ids=["2025001"]
+        )
         save_submission(
             conn,
             assignment_id=asg["id"],
@@ -138,7 +149,9 @@ class JianyaApiTests(unittest.TestCase):
 
     def test_draft_then_submit(self) -> None:
         conn = _conn()
-        asg = create_assignment(conn, title="t", subject="listening", parts=[PART])
+        asg = create_assignment(
+            conn, title="t", subject="listening", parts=[PART], student_ids=["2025001"]
+        )
         save_draft(
             conn,
             assignment_id=asg["id"],
@@ -184,7 +197,13 @@ class JianyaApiTests(unittest.TestCase):
             parts=[PART],
             created_by="admin",
         )
-        created = publish_from_packs(conn, [pack["id"]], title_prefix="Week 1", created_by="admin")
+        created = publish_from_packs(
+            conn,
+            [pack["id"]],
+            title_prefix="Week 1",
+            created_by="admin",
+            student_ids=["2025001", "2025002"],
+        )
         self.assertEqual(len(created), 1)
         self.assertEqual(created[0]["title"], "Week 1 · 自建包")
         self.assertEqual(created[0]["packId"], pack["id"])
@@ -214,6 +233,148 @@ class JianyaApiTests(unittest.TestCase):
             packs = list_all_packs(conn, packs_path=path)
             self.assertEqual(packs[0]["id"], "c21-l-t1")
             self.assertTrue(packs[0]["builtin"])
+
+    def test_requires_students_and_hides_unassigned(self) -> None:
+        conn = _conn()
+        with self.assertRaisesRegex(ValueError, "至少选择一名学生"):
+            create_assignment(conn, title="x", subject="listening", parts=[PART], student_ids=[])
+        asg = create_assignment(
+            conn,
+            title="定向作业",
+            subject="listening",
+            parts=[PART],
+            student_ids=["2025001"],
+        )
+        self.assertEqual(list_student_assignments(conn, "2025001")[0]["id"], asg["id"])
+        self.assertEqual(list_student_assignments(conn, "2025002"), [])
+        with self.assertRaisesRegex(ValueError, "未布置给你"):
+            save_submission(
+                conn,
+                assignment_id=asg["id"],
+                student_id="2025002",
+                book_id=21,
+                subject="listening",
+                s_id=2999,
+                answers={"1": "x"},
+                correct=0,
+                total=10,
+                wrong=0,
+                blank=10,
+                pct=0,
+            )
+
+    def test_add_recipients_roster_and_review(self) -> None:
+        conn = _conn()
+        asg = create_assignment(
+            conn,
+            title="周练",
+            subject="listening",
+            parts=[PART],
+            student_ids=["2025001"],
+        )
+        roster = add_recipients(conn, asg["id"], ["2025002"])
+        self.assertEqual(roster["assignedCount"], 2)
+        self.assertEqual(roster["submittedCount"], 0)
+        missing_ids = [row["studentId"] for row in roster["students"] if row["status"] == "missing"]
+        self.assertEqual(missing_ids, ["2025001", "2025002"])
+        save_submission(
+            conn,
+            assignment_id=asg["id"],
+            student_id="2025001",
+            book_id=21,
+            subject="listening",
+            s_id=2999,
+            answers={"1": "club"},
+            correct=8,
+            total=10,
+            wrong=1,
+            blank=1,
+            pct=80,
+        )
+        roster = get_roster(conn, asg["id"])
+        self.assertEqual(roster["submittedCount"], 1)
+        by_id = {row["studentId"]: row for row in roster["students"]}
+        self.assertEqual(by_id["2025001"]["status"], "submitted")
+        self.assertEqual(by_id["2025002"]["status"], "missing")
+        review = save_review(
+            conn,
+            assignment_id=asg["id"],
+            student_id="2025001",
+            comment="Part 1 拼写要注意",
+            created_by="zhangxiaodong",
+        )
+        self.assertEqual(review["comment"], "Part 1 拼写要注意")
+        mine = list_student_assignments(conn, "2025001")
+        self.assertEqual(mine[0]["comment"], "Part 1 拼写要注意")
+        self.assertEqual(mine[0]["mySubmittedParts"], 1)
+        self.assertEqual(mine[0]["myStatus"], "submitted")
+        before = list_student_assignments(conn, "2025002")
+        self.assertEqual(before[0]["myStatus"], "missing")
+
+    def test_teacher_sees_own_and_admin_packs_only(self) -> None:
+        conn = _conn()
+        create_pack(
+            conn,
+            title="别人的包",
+            subject="listening",
+            parts=[PART],
+            created_by="lisi",
+        )
+        mine = create_pack(
+            conn,
+            title="我的包",
+            subject="listening",
+            parts=[PART],
+            created_by="zhangxiaodong",
+        )
+        admin_pack = create_pack(
+            conn,
+            title="管理员包",
+            subject="listening",
+            parts=[PART],
+            created_by="admin",
+        )
+        visible = [
+            p["title"]
+            for p in list_all_packs(conn, viewer_id="zhangxiaodong")
+            if not p.get("builtin")
+        ]
+        self.assertEqual(visible[0], "管理员包")
+        self.assertEqual(set(visible), {"管理员包", "我的包"})
+        with self.assertRaisesRegex(ValueError, "自己建立"):
+            delete_pack(conn, admin_pack["id"], actor_id="zhangxiaodong")
+        delete_pack(conn, mine["id"], actor_id="zhangxiaodong")
+        other_asg = create_assignment(
+            conn,
+            title="别人的作业",
+            subject="listening",
+            parts=[PART],
+            created_by="lisi",
+            student_ids=["2025001"],
+        )
+        mine_asg = create_assignment(
+            conn,
+            title="我的作业",
+            subject="listening",
+            parts=[PART],
+            created_by="zhangxiaodong",
+            student_ids=["2025001"],
+        )
+        listed = list_assignments(conn, created_by="zhangxiaodong")
+        self.assertEqual([row["id"] for row in listed], [mine_asg["id"]])
+        with self.assertRaisesRegex(ValueError, "自己布置"):
+            delete_assignment(conn, other_asg["id"], actor_id="zhangxiaodong")
+
+    def test_writing_speaking_packs_not_open(self) -> None:
+        conn = _conn()
+        with self.assertRaisesRegex(ValueError, "即将开放"):
+            create_pack(
+                conn,
+                title="写作包",
+                subject="writing",
+                parts=[],
+                created_by="admin",
+            )
 
 
 if __name__ == "__main__":

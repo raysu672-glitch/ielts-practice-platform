@@ -1,4 +1,6 @@
-export type Subject = 'listening' | 'reading'
+export type ExamSubject = 'listening' | 'reading'
+export type PackSubject = ExamSubject | 'writing' | 'speaking'
+export type Subject = ExamSubject
 
 export interface ManifestPart {
   sId: number

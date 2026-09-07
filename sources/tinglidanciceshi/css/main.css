@@ -696,6 +696,23 @@
         }
         .tab:hover { color: var(--brand); background: var(--brand-light); }
         .tab.active { border-bottom-color: var(--brand); color: var(--brand); font-weight: 700; }
+        .tab-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 1.15rem;
+            height: 1.15rem;
+            margin-left: 6px;
+            padding: 0 5px;
+            border-radius: 999px;
+            background: #ef4444;
+            color: #fff;
+            font-size: .72rem;
+            font-weight: 700;
+            line-height: 1;
+            vertical-align: text-top;
+        }
+        .tab-badge[hidden] { display: none !important; }
 
         /* === 弹窗 === */
         .modal {

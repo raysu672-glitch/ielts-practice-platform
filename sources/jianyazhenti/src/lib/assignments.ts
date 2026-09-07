@@ -1,4 +1,4 @@
-import type { Subject } from '../types'
+import type { PackSubject, Subject } from '../types'
 import type { GradeResult } from './grade'
 
 export const DEFAULT_STUDENT_ID = 'local'
@@ -16,20 +16,30 @@ export interface PartRef {
 export interface AssignmentPack {
   id: string
   title: string
-  subject: Subject
+  subject: PackSubject
   description?: string
   parts: PartRef[]
   builtin?: boolean
   createdAt?: string
+  createdBy?: string
+  fromAdmin?: boolean
 }
 
 export interface Assignment {
   id: string
   title: string
-  subject: Subject
+  subject: PackSubject
   parts: PartRef[]
   createdAt: string
   packId?: string
+  assignedCount?: number
+  submittedCount?: number
+  studentIds?: string[]
+  comment?: string
+  reviewedAt?: string
+  mySubmittedParts?: number
+  myTotalParts?: number
+  myStatus?: 'missing' | 'partial' | 'submitted'
 }
 
 export interface AssignmentSubmission {
@@ -87,7 +97,7 @@ export async function getPack(id: string): Promise<AssignmentPack | null> {
 
 export async function createPack(input: {
   title: string
-  subject: Subject
+  subject: PackSubject
   description?: string
   parts: PartRef[]
 }): Promise<AssignmentPack> {
@@ -109,6 +119,72 @@ export async function listAssignments(): Promise<Assignment[]> {
   return api<Assignment[]>('/api/jianya/assignments')
 }
 
+export async function listMyAssignments(): Promise<Assignment[]> {
+  return api<Assignment[]>('/api/jianya/me/assignments')
+}
+
+export interface TeacherStudent {
+  student_id: string
+  name: string
+  status?: string
+}
+
+export async function listTeacherStudents(): Promise<TeacherStudent[]> {
+  const rows = await api<TeacherStudent[]>('/api/teacher/students')
+  return (rows || []).filter((row) => (row.status || 'active') === 'active')
+}
+
+export interface RosterStudent {
+  studentId: string
+  name: string
+  status: 'submitted' | 'partial' | 'missing'
+  submittedParts: number
+  totalParts: number
+  submittedAt: string
+  comment: string
+  reviewedAt: string
+}
+
+export interface AssignmentRoster {
+  assignmentId: string
+  assignedCount: number
+  submittedCount: number
+  students: RosterStudent[]
+}
+
+export async function getRoster(assignmentId: string): Promise<AssignmentRoster> {
+  return api<AssignmentRoster>(
+    `/api/jianya/assignments/${encodeURIComponent(assignmentId)}/roster`,
+  )
+}
+
+export async function addRecipients(
+  assignmentId: string,
+  studentIds: string[],
+): Promise<AssignmentRoster> {
+  return api<AssignmentRoster>(
+    `/api/jianya/assignments/${encodeURIComponent(assignmentId)}/recipients`,
+    {
+      method: 'POST',
+      body: JSON.stringify({ studentIds }),
+    },
+  )
+}
+
+export async function saveReview(
+  assignmentId: string,
+  studentId: string,
+  comment: string,
+): Promise<{ comment: string; updatedAt: string }> {
+  return api<{ comment: string; updatedAt: string }>(
+    `/api/jianya/assignments/${encodeURIComponent(assignmentId)}/reviews`,
+    {
+      method: 'PUT',
+      body: JSON.stringify({ studentId, comment }),
+    },
+  )
+}
+
 export async function listMySubmissions(): Promise<
   (AssignmentSubmission & { assignmentTitle?: string; sPart?: number; label?: string })[]
 > {
@@ -117,7 +193,7 @@ export async function listMySubmissions(): Promise<
       (AssignmentSubmission & { assignmentTitle?: string; sPart?: number; label?: string })[]
     >('/api/jianya/me/submissions')
   } catch {
-    const assignments = await listAssignments().catch(() => [])
+    const assignments = await listMyAssignments().catch(() => [])
     const nested = await Promise.all(
       assignments.map(async (assignment) => {
         const rows = await listSubmissions(assignment.id).catch(() => [])
@@ -148,9 +224,10 @@ export async function getAssignment(id: string): Promise<Assignment | null> {
 
 export async function createAssignment(input: {
   title: string
-  subject: Subject
+  subject: PackSubject
   parts: PartRef[]
   packId?: string
+  studentIds: string[]
 }): Promise<Assignment> {
   return api<Assignment>('/api/jianya/assignments', {
     method: 'POST',
@@ -161,13 +238,16 @@ export async function createAssignment(input: {
 export async function publishFromPacks(
   packs: AssignmentPack[],
   titlePrefix = '',
+  studentIds: string[] = [],
 ): Promise<Assignment[]> {
   if (!packs.length) throw new Error('请至少选择一个作业包')
+  if (!studentIds.length) throw new Error('请至少选择一名学生')
   return api<Assignment[]>('/api/jianya/assignments/publish-packs', {
     method: 'POST',
     body: JSON.stringify({
       packIds: packs.map((p) => p.id),
       titlePrefix,
+      studentIds,
     }),
   })
 }
@@ -217,8 +297,9 @@ export async function getSubmission(
   bookId: number,
   subject: Subject,
   sId: number,
+  studentId?: string,
 ): Promise<AssignmentSubmission | null> {
-  const list = await listSubmissions(assignmentId)
+  const list = await listSubmissions(assignmentId, studentId)
   return (
     list.find(
       (s) => s.bookId === bookId && s.subject === subject && s.sId === sId,
@@ -274,9 +355,15 @@ export function assignmentPartPath(
   assignmentId: string,
   part: Pick<PartRef, 'bookId' | 'subject' | 'sId'>,
   review = false,
+  extra?: Record<string, string>,
 ) {
   const q = new URLSearchParams({ assignment: assignmentId })
   if (review) q.set('review', '1')
+  if (extra) {
+    for (const [key, value] of Object.entries(extra)) {
+      if (value) q.set(key, value)
+    }
+  }
   return `/exam/${part.bookId}/${part.subject}/${part.sId}?${q.toString()}`
 }
 

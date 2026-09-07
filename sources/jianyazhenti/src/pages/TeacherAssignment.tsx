@@ -7,12 +7,22 @@ import {
   deletePack,
   listAllPacks,
   listAssignments,
+  listTeacherStudents,
   packQuestionCount,
   publishFromPacks,
   type Assignment,
   type AssignmentPack,
   type PartRef,
+  type TeacherStudent,
 } from '../lib/assignments'
+import StudentPicker, { selectedIds } from '../components/StudentPicker'
+import SubjectTabs from '../components/SubjectTabs'
+import {
+  isExamSubject,
+  subjectLabel,
+  type PackSubject,
+} from '../lib/packSubjects'
+import { loadTeacherPackSubject, peekLocalPackSubject, saveTeacherPackSubject } from '../lib/teacherPrefs'
 import {
   groupByTest,
   loadCatalog,
@@ -26,10 +36,11 @@ function partId(bookId: number, sId: number) {
   return `${bookId}:${sId}`
 }
 
-function toRef(bookId: number, subject: Subject, p: ManifestPart): PartRef {
+function toRef(bookId: number, subject: PackSubject, p: ManifestPart): PartRef {
+  const examSubject: Subject = isExamSubject(subject) ? subject : 'listening'
   return {
     bookId,
-    subject,
+    subject: examSubject,
     sId: p.sId,
     testNo: parseTestNo(p.sName),
     sPart: p.sPart,
@@ -38,8 +49,62 @@ function toRef(bookId: number, subject: Subject, p: ManifestPart): PartRef {
   }
 }
 
-function subjectLabel(s: Subject) {
-  return s === 'listening' ? '听力' : '阅读'
+function packKindLabel(pack: AssignmentPack) {
+  if (pack.builtin) return '内置'
+  if (pack.fromAdmin || pack.createdBy === 'admin') return '管理员'
+  return '我的'
+}
+
+function packBooks(pack: AssignmentPack) {
+  return [...new Set(pack.parts.map((p) => p.bookId))].sort((a, b) => b - a)
+}
+
+function PackCard({
+  pack,
+  checked,
+  onToggle,
+  onDeleted,
+}: {
+  pack: AssignmentPack
+  checked: boolean
+  onToggle: () => void
+  onDeleted?: () => void
+}) {
+  const q = packQuestionCount(pack)
+  const books = packBooks(pack)
+  const kind = packKindLabel(pack)
+  return (
+    <label className={`pack-card ${checked ? 'selected' : ''}`}>
+      <input type="checkbox" checked={checked} onChange={onToggle} />
+      <div className="pack-card-body">
+        <div className="pack-card-top">
+          <strong>{pack.title}</strong>
+          <span className={`pill ${kind === '管理员' ? 'ok' : pack.builtin ? '' : 'ok'}`}>
+            {kind}
+          </span>
+        </div>
+        <p>
+          {subjectLabel(pack.subject)}
+          {books.length ? ` · ${books.map((id) => `C${id}`).join(' / ')}` : ''}
+          {` · ${pack.parts.length} Part · ${q} 题`}
+        </p>
+        {pack.description ? <p className="pack-desc">{pack.description}</p> : null}
+        {!pack.builtin && onDeleted ? (
+          <button
+            type="button"
+            className="btn-text pack-delete"
+            onClick={(e) => {
+              e.preventDefault()
+              if (!confirm(`删除作业包「${pack.title}」？`)) return
+              onDeleted()
+            }}
+          >
+            删除
+          </button>
+        ) : null}
+      </div>
+    </label>
+  )
 }
 
 /** 教师首页：从作业包选取布置 + 已布置列表 */
@@ -48,11 +113,14 @@ export function TeacherAssignmentList() {
   const [packs, setPacks] = useState<AssignmentPack[]>([])
   const [items, setItems] = useState<Assignment[]>([])
   const [loading, setLoading] = useState(true)
-  const [subjectFilter, setSubjectFilter] = useState<'all' | Subject>('all')
+  const [teacherId, setTeacherId] = useState('')
+  const [subject, setSubject] = useState<PackSubject>(peekLocalPackSubject)
   const [bookFilter, setBookFilter] = useState<'all' | number>('all')
   const [selected, setSelected] = useState<Record<string, boolean>>({})
   const [titlePrefix, setTitlePrefix] = useState('')
   const [publishing, setPublishing] = useState(false)
+  const [students, setStudents] = useState<TeacherStudent[]>([])
+  const [pickedStudents, setPickedStudents] = useState<Record<string, boolean>>({})
 
   const refreshPacks = () => {
     setLoading(true)
@@ -64,26 +132,53 @@ export function TeacherAssignmentList() {
   useEffect(() => {
     refreshPacks()
     listAssignments().then(setItems).catch(() => setItems([]))
+    listTeacherStudents().then(setStudents).catch(() => setStudents([]))
+    loadTeacherPackSubject().then((prefs) => {
+      setTeacherId(prefs.teacherId)
+      setSubject(prefs.subject)
+    })
   }, [])
+
+  const changeSubject = (next: PackSubject) => {
+    setSubject(next)
+    setBookFilter('all')
+    void saveTeacherPackSubject(teacherId, next)
+  }
+
+  const customPacks = useMemo(
+    () =>
+      packs.filter(
+        (p) => !p.builtin && p.subject === subject,
+      ),
+    [packs, subject],
+  )
+
+  const builtinPacks = useMemo(
+    () =>
+      packs.filter((p) => {
+        if (!p.builtin || p.subject !== subject) return false
+        if (bookFilter !== 'all') {
+          const hasBook = p.parts.some((x) => x.bookId === bookFilter)
+          if (!hasBook) return false
+        }
+        return true
+      }),
+    [packs, subject, bookFilter],
+  )
+
+  const visibleAssignments = useMemo(
+    () => items.filter((row) => row.subject === subject),
+    [items, subject],
+  )
 
   const bookOptions = useMemo(() => {
     const set = new Set<number>()
     for (const p of packs) {
+      if (!p.builtin || p.subject !== subject) continue
       for (const part of p.parts) set.add(part.bookId)
     }
     return [...set].sort((a, b) => b - a)
-  }, [packs])
-
-  const visible = useMemo(() => {
-    return packs.filter((p) => {
-      if (subjectFilter !== 'all' && p.subject !== subjectFilter) return false
-      if (bookFilter !== 'all') {
-        const hasBook = p.parts.some((x) => x.bookId === bookFilter)
-        if (!hasBook) return false
-      }
-      return true
-    })
-  }, [packs, subjectFilter, bookFilter])
+  }, [packs, subject])
 
   const pickedPacks = useMemo(
     () => packs.filter((p) => selected[p.id]),
@@ -96,18 +191,31 @@ export function TeacherAssignmentList() {
 
   const publish = async () => {
     if (!pickedPacks.length) return
+    const studentIds = selectedIds(pickedStudents)
+    if (!studentIds.length) {
+      alert('请选择要布置的学生')
+      return
+    }
     setPublishing(true)
     try {
-      const created = await publishFromPacks(pickedPacks, titlePrefix.trim())
+      const created = await publishFromPacks(pickedPacks, titlePrefix.trim(), studentIds)
       setSelected({})
       setItems(await listAssignments())
       if (created.length === 1) navigate(`/assignment/${created[0].id}?from=teacher`)
-      else alert(`已布置 ${created.length} 份作业`)
+      else alert(`已布置 ${created.length} 份作业（${studentIds.length} 名学生）`)
     } catch (e) {
       alert(e instanceof Error ? e.message : '布置失败')
     } finally {
       setPublishing(false)
     }
+  }
+
+  const removePack = (id: string) => {
+    setSelected((prev) => {
+      const next = { ...prev }
+      delete next[id]
+      return next
+    })
   }
 
   return (
@@ -118,198 +226,232 @@ export function TeacherAssignmentList() {
             ← 教师端
           </Link>
           <h1>作业包与布置</h1>
-          <p>先从预设作业包里勾选布置；也可自建作业包，或临时自由选题。</p>
+          <p>管理员建立的作业包所有老师都能看到，并排在最前面。每位老师只能看到自己布置的作业。</p>
         </div>
         <div className="teacher-header-actions">
           <Link className="btn ghost" to="/teacher/bank">
             浏览题库
           </Link>
-          <Link className="btn ghost" to="/teacher/packs/new">
-            新建作业包
-          </Link>
-          <Link className="btn ghost" to="/teacher/assignments/new">
-            自由选题
-          </Link>
+          {isExamSubject(subject) ? (
+            <>
+              <Link className="btn ghost" to="/teacher/packs/new">
+                新建作业包
+              </Link>
+              <Link className="btn ghost" to="/teacher/assignments/new">
+                自由选题
+              </Link>
+            </>
+          ) : null}
         </div>
       </header>
 
-      <section className="teacher-section">
-        <div className="teacher-section-head">
-          <h2>作业包库</h2>
-          <span>{visible.length} 个可布置</span>
+      <div className="teacher-subject-bar">
+        <span className="filter-label">科目</span>
+        <SubjectTabs value={subject} onChange={changeSubject} />
+      </div>
+
+      <div className="teacher-layout assign-home">
+        <section className="teacher-section assign-custom">
+            <div className="teacher-section-head">
+              <h2>作业包</h2>
+              <span>{customPacks.length} 个</span>
+            </div>
+            <p className="filter-hint">管理员共享的作业包在最前，后面是你自己建的包。</p>
+            {loading ? (
+              <p className="empty-hint">加载作业包…</p>
+            ) : customPacks.length === 0 ? (
+              <div className="teacher-empty">
+                <p>
+                  {isExamSubject(subject)
+                    ? '这个科目还没有管理员共享或你自建的作业包。'
+                    : '写作和口语作业包即将开放。'}
+                </p>
+                {isExamSubject(subject) ? (
+                  <Link className="btn" to="/teacher/packs/new">
+                    去新建
+                  </Link>
+                ) : null}
+              </div>
+            ) : (
+              <div className="pack-grid">
+                {customPacks.map((pack) => (
+                  <PackCard
+                    key={pack.id}
+                    pack={pack}
+                    checked={Boolean(selected[pack.id])}
+                    onToggle={() => toggle(pack.id)}
+                    onDeleted={
+                      pack.createdBy === teacherId
+                        ? () => {
+                            deletePack(pack.id)
+                              .then(() => {
+                                removePack(pack.id)
+                                refreshPacks()
+                              })
+                              .catch((err) => {
+                                alert(err instanceof Error ? err.message : '删除失败')
+                              })
+                          }
+                        : undefined
+                    }
+                  />
+                ))}
+              </div>
+            )}
+        </section>
+
+        <div className="assign-main">
+          <section className="teacher-section">
+            <div className="teacher-section-head">
+              <h2>内置作业包</h2>
+              <span>{builtinPacks.length} 个</span>
+            </div>
+            <div className="teacher-filters pack-filters">
+              {isExamSubject(subject) ? (
+                <div className="filter-row">
+                  <span className="filter-label">册号</span>
+                  <div className="book-switch">
+                    <button
+                      type="button"
+                      className={`book-chip ${bookFilter === 'all' ? 'active' : ''}`}
+                      onClick={() => setBookFilter('all')}
+                    >
+                      全部
+                    </button>
+                    {bookOptions.map((id) => (
+                      <button
+                        key={id}
+                        type="button"
+                        className={`book-chip ${bookFilter === id ? 'active' : ''}`}
+                        onClick={() => setBookFilter(id)}
+                      >
+                        C{id}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <p className="filter-hint">写作和口语暂无内置作业包。</p>
+              )}
+            </div>
+            {loading ? (
+              <p className="empty-hint">加载作业包…</p>
+            ) : builtinPacks.length === 0 ? (
+              <p className="empty-hint">没有匹配的内置作业包。</p>
+            ) : (
+              <div className="pack-grid pack-grid-scroll">
+                {builtinPacks.map((pack) => (
+                  <PackCard
+                    key={pack.id}
+                    pack={pack}
+                    checked={Boolean(selected[pack.id])}
+                    onToggle={() => toggle(pack.id)}
+                  />
+                ))}
+              </div>
+            )}
+          </section>
+
+          <section className="teacher-section">
+            <div className="teacher-section-head">
+              <h2>已布置</h2>
+              <span>{visibleAssignments.length} 份</span>
+            </div>
+            {visibleAssignments.length === 0 ? (
+              <p className="empty-hint">这个科目还没有你布置的作业。勾选作业包并在右侧选择学生后即可发布。</p>
+            ) : (
+              <ul className="asg-list">
+                {visibleAssignments.map((a) => (
+                  <li key={a.id}>
+                    <Link to={`/assignment/${a.id}?from=teacher`} className="asg-list-card">
+                      <div>
+                        <strong>{a.title}</strong>
+                        <span>
+                          {subjectLabel(a.subject)} · {a.parts.length} Part · 已布置{' '}
+                          {a.assignedCount || 0} 人 / 已交 {a.submittedCount || 0} 人
+                        </span>
+                      </div>
+                      <span className="asg-id">#{a.id}</span>
+                    </Link>
+                    <button
+                      type="button"
+                      className="btn-text"
+                      onClick={() => {
+                        if (!confirm(`删除作业「${a.title}」？`)) return
+                        deleteAssignment(a.id)
+                          .then(() => listAssignments())
+                          .then(setItems)
+                          .catch((err) => alert(err instanceof Error ? err.message : '删除失败'))
+                      }}
+                    >
+                      删除
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
         </div>
 
-        <div className="teacher-filters pack-filters">
-          <div className="filter-row">
-            <span className="filter-label">科目</span>
-            <div className="tabs" role="tablist">
-              {(
-                [
-                  ['all', '全部'],
-                  ['listening', '听力'],
-                  ['reading', '阅读'],
-                ] as const
-              ).map(([k, label]) => (
-                <button
-                  key={k}
-                  type="button"
-                  className={`tab ${subjectFilter === k ? 'active' : ''}`}
-                  onClick={() => setSubjectFilter(k)}
-                >
-                  {label}
-                </button>
-              ))}
+        <aside className="teacher-side assign-side">
+          <div className="teacher-panel">
+            <div className="teacher-panel-head">
+              <h2>已选作业包</h2>
+              <span>{pickedPacks.length} 个</span>
             </div>
+            {pickedPacks.length === 0 ? (
+              <p className="empty-hint">从左侧勾选自建或内置作业包。</p>
+            ) : (
+              <ul className="picked-list">
+                {pickedPacks.map((p) => (
+                  <li key={p.id}>
+                    <div>
+                      <strong>{p.title}</strong>
+                      <span>{packKindLabel(p)}</span>
+                    </div>
+                    <button type="button" className="btn-text" onClick={() => removePack(p.id)}>
+                      移除
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
-          <div className="filter-row">
-            <span className="filter-label">册号</span>
-            <div className="book-switch">
+          <div className="teacher-panel">
+            <div className="teacher-panel-head">
+              <h2>布置给学生</h2>
+              <span>必选</span>
+            </div>
+            <StudentPicker
+              students={students}
+              selected={pickedStudents}
+              onChange={setPickedStudents}
+              emptyHint="还没有学生账号。请先在教师端添加学生。"
+            />
+            <label className="field pack-prefix">
+              <span>标题前缀（可选）</span>
+              <input
+                value={titlePrefix}
+                onChange={(e) => setTitlePrefix(e.target.value)}
+                placeholder="例如 Week 3"
+              />
+            </label>
+            <div className="pack-publish-meta">
+              <span>
+                {pickedPacks.length} 个包 · {selectedIds(pickedStudents).length} 名学生
+              </span>
               <button
                 type="button"
-                className={`book-chip ${bookFilter === 'all' ? 'active' : ''}`}
-                onClick={() => setBookFilter('all')}
+                className="btn teacher-publish"
+                disabled={!pickedPacks.length || !selectedIds(pickedStudents).length || publishing}
+                onClick={publish}
               >
-                全部
+                {publishing ? '布置中…' : '布置所选作业包'}
               </button>
-              {bookOptions.map((id) => (
-                <button
-                  key={id}
-                  type="button"
-                  className={`book-chip ${bookFilter === id ? 'active' : ''}`}
-                  onClick={() => setBookFilter(id)}
-                >
-                  C{id}
-                </button>
-              ))}
             </div>
           </div>
-        </div>
-
-        {loading ? (
-          <p className="empty-hint">加载作业包…</p>
-        ) : visible.length === 0 ? (
-          <div className="teacher-empty">
-            <p>没有匹配的作业包。</p>
-            <Link className="btn" to="/teacher/packs/new">
-              去新建
-            </Link>
-          </div>
-        ) : (
-          <div className="pack-grid">
-            {visible.map((pack) => {
-              const checked = Boolean(selected[pack.id])
-              const q = packQuestionCount(pack)
-              return (
-                <label key={pack.id} className={`pack-card ${checked ? 'selected' : ''}`}>
-                  <input
-                    type="checkbox"
-                    checked={checked}
-                    onChange={() => toggle(pack.id)}
-                  />
-                  <div className="pack-card-body">
-                    <div className="pack-card-top">
-                      <strong>{pack.title}</strong>
-                      <span className={`pill ${pack.builtin ? '' : 'ok'}`}>
-                        {pack.builtin ? '内置' : '自建'}
-                      </span>
-                    </div>
-                    <p>
-                      {subjectLabel(pack.subject)} · {pack.parts.length} Part · {q} 题
-                    </p>
-                    {pack.description ? <p className="pack-desc">{pack.description}</p> : null}
-                    {!pack.builtin && (
-                      <button
-                        type="button"
-                        className="btn-text pack-delete"
-                        onClick={(e) => {
-                          e.preventDefault()
-                          if (!confirm(`删除作业包「${pack.title}」？`)) return
-                          deletePack(pack.id)
-                            .then(() => {
-                              setSelected((prev) => {
-                                const next = { ...prev }
-                                delete next[pack.id]
-                                return next
-                              })
-                              refreshPacks()
-                            })
-                            .catch((err) => {
-                              alert(err instanceof Error ? err.message : '删除失败')
-                            })
-                        }}
-                      >
-                        删除
-                      </button>
-                    )}
-                  </div>
-                </label>
-              )
-            })}
-          </div>
-        )}
-
-        <div className="pack-publish-bar">
-          <label className="field pack-prefix">
-            <span>标题前缀（可选）</span>
-            <input
-              value={titlePrefix}
-              onChange={(e) => setTitlePrefix(e.target.value)}
-              placeholder="例如 Week 3"
-            />
-          </label>
-          <div className="pack-publish-meta">
-            <span>已选 {pickedPacks.length} 个包</span>
-            <button
-              type="button"
-              className="btn"
-              disabled={!pickedPacks.length || publishing}
-              onClick={publish}
-            >
-              {publishing ? '布置中…' : '布置所选作业包'}
-            </button>
-          </div>
-        </div>
-      </section>
-
-      <section className="teacher-section">
-        <div className="teacher-section-head">
-          <h2>已布置</h2>
-          <span>{items.length} 份</span>
-        </div>
-        {items.length === 0 ? (
-          <p className="empty-hint">还没有布置给学生的作业。勾选上方作业包即可发布。</p>
-        ) : (
-          <ul className="asg-list">
-            {items.map((a) => (
-              <li key={a.id}>
-                <Link to={`/assignment/${a.id}?from=teacher`} className="asg-list-card">
-                  <div>
-                    <strong>{a.title}</strong>
-                    <span>
-                      {subjectLabel(a.subject)} · {a.parts.length} Part ·{' '}
-                      {new Date(a.createdAt).toLocaleString()}
-                    </span>
-                  </div>
-                  <span className="asg-id">#{a.id}</span>
-                </Link>
-                <button
-                  type="button"
-                  className="btn-text"
-                  onClick={() => {
-                    if (!confirm(`删除作业「${a.title}」？`)) return
-                    deleteAssignment(a.id)
-                      .then(() => listAssignments())
-                      .then(setItems)
-                      .catch((err) => alert(err instanceof Error ? err.message : '删除失败'))
-                  }}
-                >
-                  删除
-                </button>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
+        </aside>
+      </div>
     </div>
   )
 }
@@ -322,12 +464,15 @@ function PartPickerPage({ mode }: { mode: PickerMode }) {
   const [books, setBooks] = useState<BookInfo[]>([])
   const [manifests, setManifests] = useState<Record<number, Manifest>>({})
   const [error, setError] = useState('')
-  const [subject, setSubject] = useState<Subject>('listening')
+  const [teacherId, setTeacherId] = useState('')
+  const [subject, setSubject] = useState<PackSubject>(peekLocalPackSubject)
   const [bookFilter, setBookFilter] = useState<number | null>(null)
   const [selected, setSelected] = useState<Record<string, PartRef>>({})
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [saving, setSaving] = useState(false)
+  const [students, setStudents] = useState<TeacherStudent[]>([])
+  const [pickedStudents, setPickedStudents] = useState<Record<string, boolean>>({})
 
   useEffect(() => {
     let cancelled = false
@@ -356,19 +501,35 @@ function PartPickerPage({ mode }: { mode: PickerMode }) {
       .catch((e: Error) => {
         if (!cancelled) setError(e.message || '无法加载题库')
       })
+    if (mode === 'assign') {
+      listTeacherStudents()
+        .then((rows) => {
+          if (!cancelled) setStudents(rows)
+        })
+        .catch(() => {
+          if (!cancelled) setStudents([])
+        })
+    }
+    loadTeacherPackSubject().then((prefs) => {
+      if (!cancelled) {
+        setTeacherId(prefs.teacherId)
+        setSubject(prefs.subject)
+      }
+    })
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [mode])
 
-  const switchSubject = (next: Subject) => {
+  const switchSubject = (next: PackSubject) => {
     if (next === subject) return
     setSubject(next)
     setSelected({})
+    void saveTeacherPackSubject(teacherId, next)
   }
 
   const catalogParts = useMemo(() => {
-    if (bookFilter == null) return []
+    if (!isExamSubject(subject) || bookFilter == null) return []
     const m = manifests[bookFilter]
     if (!m) return []
     return m.parts[subject].filter((p) => !p.error)
@@ -401,10 +562,17 @@ function PartPickerPage({ mode }: { mode: PickerMode }) {
         })
         navigate('/teacher/assignments')
       } else {
+        const studentIds = selectedIds(pickedStudents)
+        if (!studentIds.length) {
+          alert('请选择要布置的学生')
+          setSaving(false)
+          return
+        }
         const asg = await createAssignment({
           title: title.trim() || defaultAssignTitle(subject, picked.length),
           subject,
           parts: picked,
+          studentIds,
         })
         navigate(`/assignment/${asg.id}?from=teacher`)
       }
@@ -432,7 +600,7 @@ function PartPickerPage({ mode }: { mode: PickerMode }) {
           <p>
             {isPack
               ? '预设好后进入作业包库，之后可反复选取布置。'
-              : '临时选题并立刻布置；常用组合请存成作业包。'}
+              : '临时选题并立刻布置；必须选择布置给哪些学生。常用组合请存成作业包。'}
           </p>
         </div>
       </header>
@@ -442,45 +610,34 @@ function PartPickerPage({ mode }: { mode: PickerMode }) {
           <div className="teacher-filters">
             <div className="filter-row">
               <span className="filter-label">科目</span>
-              <div className="tabs" role="tablist">
-                <button
-                  type="button"
-                  className={`tab ${subject === 'listening' ? 'active' : ''}`}
-                  onClick={() => switchSubject('listening')}
-                >
-                  听力 Listening
-                </button>
-                <button
-                  type="button"
-                  className={`tab ${subject === 'reading' ? 'active' : ''}`}
-                  onClick={() => switchSubject('reading')}
-                >
-                  阅读 Reading
-                </button>
-              </div>
+              <SubjectTabs value={subject} onChange={switchSubject} />
               <span className="filter-hint">切换科目会清空已选</span>
             </div>
 
-            <div className="filter-row">
-              <span className="filter-label">册号</span>
-              <div className="book-switch" role="tablist" aria-label="题库册号">
-                {books.map((b) => (
-                  <button
-                    key={b.bookId}
-                    type="button"
-                    className={`book-chip ${bookFilter === b.bookId ? 'active' : ''}`}
-                    onClick={() => setBookFilter(b.bookId)}
-                  >
-                    C{b.bookId}
-                  </button>
-                ))}
+            {isExamSubject(subject) ? (
+              <div className="filter-row">
+                <span className="filter-label">册号</span>
+                <div className="book-switch" role="tablist" aria-label="题库册号">
+                  {books.map((b) => (
+                    <button
+                      key={b.bookId}
+                      type="button"
+                      className={`book-chip ${bookFilter === b.bookId ? 'active' : ''}`}
+                      onClick={() => setBookFilter(b.bookId)}
+                    >
+                      C{b.bookId}
+                    </button>
+                  ))}
+                </div>
+                <span className="filter-hint">可跨册勾选</span>
               </div>
-              <span className="filter-hint">可跨册勾选</span>
-            </div>
+            ) : null}
           </div>
 
           <div className="teacher-catalog">
-            {!manifests[bookFilter] ? (
+            {!isExamSubject(subject) ? (
+              <p className="empty-hint">写作和口语作业包即将开放，目前可布置听力和阅读。</p>
+            ) : bookFilter == null || !manifests[bookFilter] ? (
               <p className="empty-hint">加载 C{bookFilter}…</p>
             ) : groups.length === 0 ? (
               <p className="empty-hint">该册暂无可用 Part</p>
@@ -577,6 +734,17 @@ function PartPickerPage({ mode }: { mode: PickerMode }) {
                 />
               </label>
             )}
+            {!isPack && (
+              <div className="field">
+                <span>布置给学生（必选）</span>
+                <StudentPicker
+                  students={students}
+                  selected={pickedStudents}
+                  onChange={setPickedStudents}
+                  emptyHint="还没有学生账号。"
+                />
+              </div>
+            )}
             <div className="teacher-stats">
               <div>
                 <strong>{picked.length}</strong>
@@ -590,7 +758,12 @@ function PartPickerPage({ mode }: { mode: PickerMode }) {
             <button
               type="button"
               className="btn teacher-publish"
-              disabled={!picked.length || saving}
+              disabled={
+                !isExamSubject(subject) ||
+                !picked.length ||
+                saving ||
+                (!isPack && !selectedIds(pickedStudents).length)
+              }
               onClick={save}
             >
               {saving ? '保存中…' : isPack ? '保存作业包' : '发布作业'}
@@ -602,11 +775,11 @@ function PartPickerPage({ mode }: { mode: PickerMode }) {
   )
 }
 
-function defaultAssignTitle(subject: Subject, n: number) {
+function defaultAssignTitle(subject: PackSubject, n: number) {
   return `${subjectLabel(subject)}专项 · ${n} Part`
 }
 
-function defaultPackTitle(subject: Subject, n: number) {
+function defaultPackTitle(subject: PackSubject, n: number) {
   return `${subjectLabel(subject)}作业包 · ${n} Part`
 }
 

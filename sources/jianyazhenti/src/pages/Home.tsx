@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import BankCatalog from '../components/BankCatalog'
-import { listAssignments, type Assignment } from '../lib/assignments'
+import { listMyAssignments, type Assignment } from '../lib/assignments'
 import {
   listPartsForFilter,
   loadLocalDoneKeys,
@@ -12,6 +12,13 @@ import type { Subject } from '../types'
 
 function subjectLabel(subject: Assignment['subject']) {
   return subject === 'listening' ? '听力' : '阅读'
+}
+
+function isHomeworkPending(a: Assignment) {
+  if (a.myStatus) return a.myStatus !== 'submitted'
+  const total = a.myTotalParts ?? a.parts.length
+  const done = a.mySubmittedParts ?? 0
+  return total > 0 && done < total
 }
 
 function examPath(subject: string, sId: number, bookId?: number) {
@@ -32,10 +39,12 @@ export default function Home() {
   const [pickError, setPickError] = useState('')
   const [picking, setPicking] = useState(testMode && !!lockSubject && lockPart >= 1)
   const searchText = search.toString()
+  const pendingHomework = assignments.filter(isHomeworkPending)
+  const doneHomework = assignments.filter((a) => !isHomeworkPending(a))
 
   useEffect(() => {
     if (partFilter) return
-    listAssignments()
+    listMyAssignments()
       .then(setAssignments)
       .catch(() => setAssignments([]))
   }, [partFilter])
@@ -111,7 +120,7 @@ export default function Home() {
         </p>
         {!partFilter ? (
         <div className="hero-actions">
-          {!partFilter && assignments.length > 0 ? (
+          {!partFilter && pendingHomework.length > 0 ? (
             <button
               className="btn"
               type="button"
@@ -119,7 +128,7 @@ export default function Home() {
                 document.getElementById('homework')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
               }}
             >
-              查看作业（{assignments.length}）
+              未完成作业（{pendingHomework.length}）
             </button>
           ) : null}
           <Link className="btn ghost" to="/student/overview">
@@ -142,24 +151,50 @@ export default function Home() {
       <section className="section" id="homework">
         <h2>老师布置的作业</h2>
         {assignments.length === 0 ? (
-          <p className="empty-hint">暂时没有作业。老师在「作业」里布置后会显示在这里。</p>
+          <p className="empty-hint">暂时没有布置给你的作业。</p>
         ) : (
-          <ul className="asg-list">
-            {assignments.map((a) => (
-              <li key={a.id}>
-                <Link to={`/assignment/${a.id}`} className="asg-list-card">
-                  <div>
-                    <strong>{a.title}</strong>
-                    <span>
-                      {subjectLabel(a.subject)} · {a.parts.length} Part ·{' '}
-                      {new Date(a.createdAt).toLocaleString()}
-                    </span>
-                  </div>
-                  <span className="asg-id">开始</span>
-                </Link>
-              </li>
-            ))}
-          </ul>
+          <>
+            {pendingHomework.length ? (
+              <ul className="asg-list">
+                {pendingHomework.map((a) => (
+                  <li key={a.id}>
+                    <Link to={`/assignment/${a.id}`} className="asg-list-card">
+                      <div>
+                        <strong>{a.title}</strong>
+                        <span>
+                          {subjectLabel(a.subject)} · {a.parts.length} Part · 已交{' '}
+                          {a.mySubmittedParts || 0}/{a.myTotalParts || a.parts.length}
+                          {a.comment ? ' · 老师已点评' : ''}
+                        </span>
+                      </div>
+                      <span className="asg-id">去完成</span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="empty-hint">老师布置的作业都已提交。</p>
+            )}
+            {doneHomework.length ? (
+              <ul className="asg-list" style={{ marginTop: '0.85rem', opacity: 0.78 }}>
+                {doneHomework.map((a) => (
+                  <li key={a.id}>
+                    <Link to={`/assignment/${a.id}`} className="asg-list-card">
+                      <div>
+                        <strong>{a.title}</strong>
+                        <span>
+                          {subjectLabel(a.subject)} · {a.parts.length} Part · 已交{' '}
+                          {a.mySubmittedParts || 0}/{a.myTotalParts || a.parts.length}
+                          {a.comment ? ' · 老师已点评' : ''}
+                        </span>
+                      </div>
+                      <span className="asg-id">已交</span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+          </>
         )}
       </section>
       ) : null}

@@ -9,7 +9,11 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Optional
 
-SUBJECTS = ("listening", "reading")
+PACK_SUBJECTS = ("listening", "reading", "writing", "speaking")
+EXAM_SUBJECTS = ("listening", "reading")
+SUBJECTS = PACK_SUBJECTS
+ADMIN_CREATOR = "admin"
+DEFAULT_SUBJECT = "listening"
 PACKS_JSON = (
     Path(__file__).resolve().parents[1]
     / "sources"
@@ -73,12 +77,28 @@ def ensure_jianya_tables(conn: sqlite3.Connection) -> None:
             updated_at TEXT NOT NULL,
             PRIMARY KEY (assignment_id, student_id, book_id, subject, s_id)
         );
+        CREATE TABLE IF NOT EXISTS jianya_recipients (
+            assignment_id TEXT NOT NULL,
+            student_id TEXT NOT NULL,
+            assigned_at TEXT NOT NULL,
+            PRIMARY KEY (assignment_id, student_id)
+        );
+        CREATE TABLE IF NOT EXISTS jianya_reviews (
+            assignment_id TEXT NOT NULL,
+            student_id TEXT NOT NULL,
+            comment TEXT NOT NULL DEFAULT '',
+            created_by TEXT NOT NULL DEFAULT '',
+            updated_at TEXT NOT NULL,
+            PRIMARY KEY (assignment_id, student_id)
+        );
         CREATE INDEX IF NOT EXISTS idx_jianya_submissions_assignment
             ON jianya_submissions(assignment_id);
         CREATE INDEX IF NOT EXISTS idx_jianya_submissions_student
             ON jianya_submissions(student_id);
         CREATE INDEX IF NOT EXISTS idx_jianya_assignments_created
             ON jianya_assignments(created_at DESC);
+        CREATE INDEX IF NOT EXISTS idx_jianya_recipients_student
+            ON jianya_recipients(student_id);
         """
     )
     conn.commit()
@@ -100,9 +120,42 @@ def _parse_json_obj(raw: str) -> dict[str, Any]:
     return data if isinstance(data, dict) else {}
 
 
+def normalize_pack_subject(subject: str) -> str:
+    value = str(subject or "").strip()
+    if value not in PACK_SUBJECTS:
+        raise ValueError("科目必须是听力、阅读、写作或口语")
+    return value
+
+
+def pack_visible_to(pack: dict[str, Any], viewer_id: str) -> bool:
+    if pack.get("builtin"):
+        return True
+    created = str(pack.get("createdBy") or "")
+    viewer = str(viewer_id or "").strip()
+    if not viewer:
+        return True
+    return created == viewer or created == ADMIN_CREATOR
+
+
+def pack_rank(pack: dict[str, Any]) -> int:
+    if str(pack.get("createdBy") or "") == ADMIN_CREATOR:
+        return 0
+    if pack.get("builtin"):
+        return 2
+    return 1
+
+
+def sort_packs_for_teacher(packs: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    items = list(packs)
+    items.sort(key=lambda row: str(row.get("createdAt") or ""), reverse=True)
+    items.sort(key=pack_rank)
+    return items
+
+
 def _validate_parts(parts: Any, subject: str) -> list[dict[str, Any]]:
-    if subject not in SUBJECTS:
-        raise ValueError("科目必须是 listening 或 reading")
+    subject = normalize_pack_subject(subject)
+    if subject not in EXAM_SUBJECTS:
+        raise ValueError("写作和口语作业包即将开放")
     if not isinstance(parts, list) or not parts:
         raise ValueError("请至少选择一个 Part")
     cleaned: list[dict[str, Any]] = []
@@ -147,7 +200,11 @@ def _pack_row(row: sqlite3.Row, *, builtin: bool = False) -> dict[str, Any]:
         "createdAt": row["created_at"],
     }
     if not builtin:
-        out["createdBy"] = row["created_by"]
+        created_by = str(row["created_by"] or "")
+        out["createdBy"] = created_by
+        out["fromAdmin"] = created_by == ADMIN_CREATOR
+    else:
+        out["fromAdmin"] = False
     return out
 
 
@@ -161,6 +218,219 @@ def _assignment_row(row: sqlite3.Row) -> dict[str, Any]:
         "createdBy": row["created_by"],
         "createdAt": row["created_at"],
     }
+
+
+def teacher_owns_assignment(assignment: Optional[dict[str, Any]], teacher_id: str) -> bool:
+    if not assignment:
+        return False
+    return str(assignment.get("createdBy") or "") == str(teacher_id or "").strip()
+
+
+def _part_keys(assignment: dict[str, Any]) -> list[tuple[int, str, int]]:
+    keys: list[tuple[int, str, int]] = []
+    for part in assignment.get("parts") or []:
+        if not isinstance(part, dict):
+            continue
+        keys.append(
+            (
+                int(part.get("bookId") or 0),
+                str(part.get("subject") or ""),
+                int(part.get("sId") or 0),
+            )
+        )
+    return keys
+
+
+def _normalize_student_ids(raw: Any) -> list[str]:
+    if raw is None:
+        return []
+    if isinstance(raw, str):
+        raw = [raw]
+    if not isinstance(raw, list):
+        raise ValueError("学生名单格式无效")
+    seen: list[str] = []
+    used: set[str] = set()
+    for item in raw:
+        sid = str(item or "").strip()
+        if not sid or sid in used:
+            continue
+        used.add(sid)
+        seen.append(sid)
+    return seen
+
+
+def _table_names(conn: sqlite3.Connection) -> set[str]:
+    rows = conn.execute(
+        "SELECT name FROM sqlite_master WHERE type='table'"
+    ).fetchall()
+    return {str(row[0]) for row in rows}
+
+
+def _assert_students_exist(conn: sqlite3.Connection, student_ids: list[str]) -> None:
+    if not student_ids or "students" not in _table_names(conn):
+        return
+    placeholders = ",".join("?" * len(student_ids))
+    rows = conn.execute(
+        f"SELECT student_id FROM students WHERE student_id IN ({placeholders})",
+        student_ids,
+    ).fetchall()
+    found = {str(row["student_id"]) for row in rows}
+    missing = [sid for sid in student_ids if sid not in found]
+    if missing:
+        raise ValueError("找不到学生：" + "、".join(missing))
+
+
+def _student_name_map(conn: sqlite3.Connection, student_ids: list[str]) -> dict[str, str]:
+    if not student_ids or "students" not in _table_names(conn):
+        return {}
+    placeholders = ",".join("?" * len(student_ids))
+    rows = conn.execute(
+        f"SELECT student_id, name FROM students WHERE student_id IN ({placeholders})",
+        student_ids,
+    ).fetchall()
+    return {str(row["student_id"]): str(row["name"] or "") for row in rows}
+
+
+def list_recipient_ids(conn: sqlite3.Connection, assignment_id: str) -> list[str]:
+    rows = conn.execute(
+        """
+        SELECT student_id FROM jianya_recipients
+        WHERE assignment_id = ?
+        ORDER BY assigned_at, student_id
+        """,
+        (assignment_id,),
+    ).fetchall()
+    return [str(row["student_id"]) for row in rows]
+
+
+def is_recipient(conn: sqlite3.Connection, assignment_id: str, student_id: str) -> bool:
+    if not assignment_id or not student_id:
+        return False
+    row = conn.execute(
+        """
+        SELECT 1 FROM jianya_recipients
+        WHERE assignment_id = ? AND student_id = ?
+        """,
+        (assignment_id, student_id),
+    ).fetchone()
+    return bool(row)
+
+
+def _insert_recipients(
+    conn: sqlite3.Connection,
+    assignment_id: str,
+    student_ids: list[str],
+    *,
+    assigned_at: Optional[str] = None,
+) -> int:
+    if not student_ids:
+        return 0
+    now = assigned_at or utc_now()
+    added = 0
+    for sid in student_ids:
+        cur = conn.execute(
+            """
+            INSERT OR IGNORE INTO jianya_recipients (assignment_id, student_id, assigned_at)
+            VALUES (?, ?, ?)
+            """,
+            (assignment_id, sid, now),
+        )
+        added += cur.rowcount
+    return added
+
+
+def _submitted_part_map(
+    conn: sqlite3.Connection, assignment_ids: list[str]
+) -> dict[tuple[str, str], set[tuple[int, str, int]]]:
+    out: dict[tuple[str, str], set[tuple[int, str, int]]] = {}
+    if not assignment_ids:
+        return out
+    placeholders = ",".join("?" * len(assignment_ids))
+    rows = conn.execute(
+        f"""
+        SELECT assignment_id, student_id, book_id, subject, s_id
+        FROM jianya_submissions
+        WHERE assignment_id IN ({placeholders})
+        """,
+        assignment_ids,
+    ).fetchall()
+    for row in rows:
+        key = (str(row["assignment_id"]), str(row["student_id"]))
+        out.setdefault(key, set()).add(
+            (int(row["book_id"]), str(row["subject"]), int(row["s_id"]))
+        )
+    return out
+
+
+def _enrich_assignments(
+    conn: sqlite3.Connection,
+    items: list[dict[str, Any]],
+    *,
+    for_student_id: Optional[str] = None,
+) -> list[dict[str, Any]]:
+    if not items:
+        return items
+    ids = [str(item["id"]) for item in items]
+    placeholders = ",".join("?" * len(ids))
+    rec_rows = conn.execute(
+        f"""
+        SELECT assignment_id, student_id FROM jianya_recipients
+        WHERE assignment_id IN ({placeholders})
+        ORDER BY assigned_at, student_id
+        """,
+        ids,
+    ).fetchall()
+    rec_map: dict[str, list[str]] = {aid: [] for aid in ids}
+    for row in rec_rows:
+        rec_map[str(row["assignment_id"])].append(str(row["student_id"]))
+    sub_map = _submitted_part_map(conn, ids)
+    review_map: dict[str, dict[str, str]] = {}
+    if for_student_id:
+        rev_rows = conn.execute(
+            f"""
+            SELECT assignment_id, comment, updated_at FROM jianya_reviews
+            WHERE student_id = ? AND assignment_id IN ({placeholders})
+            """,
+            [for_student_id, *ids],
+        ).fetchall()
+        review_map = {
+            str(row["assignment_id"]): {
+                "comment": str(row["comment"] or ""),
+                "reviewedAt": str(row["updated_at"] or ""),
+            }
+            for row in rev_rows
+        }
+    out: list[dict[str, Any]] = []
+    for item in items:
+        assignment = dict(item)
+        part_set = set(_part_keys(assignment))
+        recipients = rec_map.get(str(assignment["id"]), [])
+        submitted_count = 0
+        for sid in recipients:
+            done = sub_map.get((str(assignment["id"]), sid), set())
+            if part_set and part_set <= done:
+                submitted_count += 1
+        assignment["assignedCount"] = len(recipients)
+        assignment["submittedCount"] = submitted_count
+        if for_student_id:
+            done = sub_map.get((str(assignment["id"]), for_student_id), set())
+            submitted_parts = len(part_set & done) if part_set else 0
+            total_parts = len(part_set)
+            assignment["mySubmittedParts"] = submitted_parts
+            assignment["myTotalParts"] = total_parts
+            if total_parts and submitted_parts >= total_parts:
+                assignment["myStatus"] = "submitted"
+            elif submitted_parts:
+                assignment["myStatus"] = "partial"
+            else:
+                assignment["myStatus"] = "missing"
+            review = review_map.get(str(assignment["id"])) or {}
+            assignment["comment"] = review.get("comment") or ""
+            assignment["reviewedAt"] = review.get("reviewedAt") or ""
+        else:
+            assignment["studentIds"] = recipients
+        out.append(assignment)
+    return out
 
 
 def _submission_row(row: sqlite3.Row) -> dict[str, Any]:
@@ -197,7 +467,7 @@ def load_builtin_packs(path: Optional[Path] = None) -> list[dict[str, Any]]:
         if not isinstance(item, dict) or not item.get("id"):
             continue
         subject = str(item.get("subject") or "")
-        if subject not in SUBJECTS:
+        if subject not in EXAM_SUBJECTS:
             continue
         try:
             parts = _validate_parts(item.get("parts") or [], subject)
@@ -217,18 +487,30 @@ def load_builtin_packs(path: Optional[Path] = None) -> list[dict[str, Any]]:
     return out
 
 
-def list_custom_packs(conn: sqlite3.Connection) -> list[dict[str, Any]]:
+def list_custom_packs(
+    conn: sqlite3.Connection, viewer_id: str = ""
+) -> list[dict[str, Any]]:
     rows = conn.execute(
         "SELECT * FROM jianya_packs ORDER BY created_at DESC"
     ).fetchall()
-    return [_pack_row(row) for row in rows]
+    items = [_pack_row(row) for row in rows]
+    if viewer_id:
+        items = [row for row in items if pack_visible_to(row, viewer_id)]
+    return items
 
 
-def list_all_packs(conn: sqlite3.Connection, packs_path: Optional[Path] = None) -> list[dict[str, Any]]:
-    custom = list_custom_packs(conn)
+def list_all_packs(
+    conn: sqlite3.Connection,
+    packs_path: Optional[Path] = None,
+    viewer_id: str = "",
+) -> list[dict[str, Any]]:
+    custom = list_custom_packs(conn, viewer_id=viewer_id)
     custom_ids = {p["id"] for p in custom}
     builtin = [p for p in load_builtin_packs(packs_path) if p["id"] not in custom_ids]
-    return builtin + custom
+    items = custom + builtin
+    if viewer_id:
+        return sort_packs_for_teacher(items)
+    return items
 
 
 def get_pack(conn: sqlite3.Connection, pack_id: str, packs_path: Optional[Path] = None) -> Optional[dict[str, Any]]:
@@ -250,6 +532,7 @@ def create_pack(
     description: str = "",
     created_by: str = "",
 ) -> dict[str, Any]:
+    subject = normalize_pack_subject(subject)
     cleaned = _validate_parts(parts, subject)
     pack_id = new_id("p")
     created_at = utc_now()
@@ -271,29 +554,82 @@ def create_pack(
         "parts": cleaned,
         "builtin": False,
         "createdBy": created_by,
+        "fromAdmin": created_by == ADMIN_CREATOR,
         "createdAt": created_at,
     }
 
 
-def delete_pack(conn: sqlite3.Connection, pack_id: str) -> None:
+def delete_pack(
+    conn: sqlite3.Connection, pack_id: str, *, actor_id: str = ""
+) -> None:
+    pack = get_pack(conn, pack_id)
+    if not pack or pack.get("builtin"):
+        raise ValueError("内置作业包不可删除")
+    if actor_id and str(pack.get("createdBy") or "") != actor_id:
+        raise ValueError("只能删除自己建立的作业包")
     cur = conn.execute("DELETE FROM jianya_packs WHERE id = ?", (pack_id,))
     conn.commit()
     if cur.rowcount <= 0:
         raise ValueError("内置作业包不可删除")
 
 
-def list_assignments(conn: sqlite3.Connection) -> list[dict[str, Any]]:
+def list_assignments(
+    conn: sqlite3.Connection, created_by: str = ""
+) -> list[dict[str, Any]]:
+    viewer = str(created_by or "").strip()
+    if viewer:
+        rows = conn.execute(
+            """
+            SELECT * FROM jianya_assignments
+            WHERE created_by = ?
+            ORDER BY created_at DESC
+            """,
+            (viewer,),
+        ).fetchall()
+    else:
+        rows = conn.execute(
+            "SELECT * FROM jianya_assignments ORDER BY created_at DESC"
+        ).fetchall()
+    return _enrich_assignments(conn, [_assignment_row(row) for row in rows])
+
+
+def list_student_assignments(
+    conn: sqlite3.Connection, student_id: str
+) -> list[dict[str, Any]]:
+    sid = str(student_id or "").strip()
+    if not sid:
+        return []
     rows = conn.execute(
-        "SELECT * FROM jianya_assignments ORDER BY created_at DESC"
+        """
+        SELECT a.* FROM jianya_assignments a
+        INNER JOIN jianya_recipients r ON r.assignment_id = a.id
+        WHERE r.student_id = ?
+        ORDER BY a.created_at DESC
+        """,
+        (sid,),
     ).fetchall()
-    return [_assignment_row(row) for row in rows]
+    return _enrich_assignments(
+        conn, [_assignment_row(row) for row in rows], for_student_id=sid
+    )
 
 
-def get_assignment(conn: sqlite3.Connection, assignment_id: str) -> Optional[dict[str, Any]]:
+def get_assignment(
+    conn: sqlite3.Connection,
+    assignment_id: str,
+    *,
+    student_id: Optional[str] = None,
+) -> Optional[dict[str, Any]]:
     row = conn.execute(
         "SELECT * FROM jianya_assignments WHERE id = ?", (assignment_id,)
     ).fetchone()
-    return _assignment_row(row) if row else None
+    if not row:
+        return None
+    items = _enrich_assignments(
+        conn,
+        [_assignment_row(row)],
+        for_student_id=str(student_id).strip() if student_id else None,
+    )
+    return items[0]
 
 
 def create_assignment(
@@ -304,8 +640,13 @@ def create_assignment(
     parts: Any,
     pack_id: Optional[str] = None,
     created_by: str = "",
+    student_ids: Any = None,
 ) -> dict[str, Any]:
     cleaned = _validate_parts(parts, subject)
+    ids = _normalize_student_ids(student_ids)
+    if not ids:
+        raise ValueError("请至少选择一名学生")
+    _assert_students_exist(conn, ids)
     assignment_id = new_id("a")
     created_at = utc_now()
     title_text = (title or "").strip() or "未命名作业"
@@ -324,8 +665,10 @@ def create_assignment(
             created_at,
         ),
     )
+    _insert_recipients(conn, assignment_id, ids, assigned_at=created_at)
     conn.commit()
-    return {
+    created = get_assignment(conn, assignment_id)
+    return created or {
         "id": assignment_id,
         "title": title_text,
         "subject": subject,
@@ -333,6 +676,9 @@ def create_assignment(
         "packId": pack_id or None,
         "createdBy": created_by,
         "createdAt": created_at,
+        "studentIds": ids,
+        "assignedCount": len(ids),
+        "submittedCount": 0,
     }
 
 
@@ -343,9 +689,13 @@ def publish_from_packs(
     title_prefix: str = "",
     created_by: str = "",
     packs_path: Optional[Path] = None,
+    student_ids: Any = None,
 ) -> list[dict[str, Any]]:
     if not pack_ids:
         raise ValueError("请至少选择一个作业包")
+    ids = _normalize_student_ids(student_ids)
+    if not ids:
+        raise ValueError("请至少选择一名学生")
     created: list[dict[str, Any]] = []
     prefix = (title_prefix or "").strip()
     for pack_id in pack_ids:
@@ -361,14 +711,147 @@ def publish_from_packs(
                 parts=pack["parts"],
                 pack_id=pack["id"],
                 created_by=created_by,
+                student_ids=ids,
             )
         )
     return created
 
 
-def delete_assignment(conn: sqlite3.Connection, assignment_id: str) -> None:
+def add_recipients(
+    conn: sqlite3.Connection, assignment_id: str, student_ids: Any
+) -> dict[str, Any]:
+    assignment = get_assignment(conn, assignment_id)
+    if not assignment:
+        raise ValueError("作业不存在或已删除")
+    ids = _normalize_student_ids(student_ids)
+    if not ids:
+        raise ValueError("请至少选择一名学生")
+    _assert_students_exist(conn, ids)
+    _insert_recipients(conn, assignment_id, ids)
+    conn.commit()
+    return get_roster(conn, assignment_id)
+
+
+def get_roster(conn: sqlite3.Connection, assignment_id: str) -> dict[str, Any]:
+    assignment = get_assignment(conn, assignment_id)
+    if not assignment:
+        raise ValueError("作业不存在或已删除")
+    recipients = list_recipient_ids(conn, assignment_id)
+    names = _student_name_map(conn, recipients)
+    part_set = set(_part_keys(assignment))
+    sub_map = _submitted_part_map(conn, [assignment_id])
+    time_rows = conn.execute(
+        """
+        SELECT student_id, MAX(submitted_at) AS submitted_at
+        FROM jianya_submissions
+        WHERE assignment_id = ?
+        GROUP BY student_id
+        """,
+        (assignment_id,),
+    ).fetchall()
+    submitted_at_map = {
+        str(row["student_id"]): str(row["submitted_at"] or "") for row in time_rows
+    }
+    review_rows = conn.execute(
+        """
+        SELECT student_id, comment, updated_at FROM jianya_reviews
+        WHERE assignment_id = ?
+        """,
+        (assignment_id,),
+    ).fetchall()
+    review_map = {
+        str(row["student_id"]): {
+            "comment": str(row["comment"] or ""),
+            "reviewedAt": str(row["updated_at"] or ""),
+        }
+        for row in review_rows
+    }
+    students: list[dict[str, Any]] = []
+    submitted_count = 0
+    for sid in recipients:
+        done = sub_map.get((assignment_id, sid), set())
+        submitted_parts = len(part_set & done) if part_set else 0
+        total_parts = len(part_set)
+        if total_parts and submitted_parts >= total_parts:
+            status = "submitted"
+            submitted_count += 1
+        elif submitted_parts:
+            status = "partial"
+        else:
+            status = "missing"
+        review = review_map.get(sid) or {}
+        students.append(
+            {
+                "studentId": sid,
+                "name": names.get(sid) or sid,
+                "status": status,
+                "submittedParts": submitted_parts,
+                "totalParts": total_parts,
+                "submittedAt": submitted_at_map.get(sid) or "",
+                "comment": review.get("comment") or "",
+                "reviewedAt": review.get("reviewedAt") or "",
+            }
+        )
+    order = {"missing": 0, "partial": 1, "submitted": 2}
+    students.sort(key=lambda row: (order.get(str(row["status"]), 9), str(row["studentId"])))
+    return {
+        "assignmentId": assignment_id,
+        "assignedCount": len(recipients),
+        "submittedCount": submitted_count,
+        "students": students,
+    }
+
+
+def save_review(
+    conn: sqlite3.Connection,
+    *,
+    assignment_id: str,
+    student_id: str,
+    comment: str,
+    created_by: str = "",
+) -> dict[str, Any]:
+    assignment = get_assignment(conn, assignment_id)
+    if not assignment:
+        raise ValueError("作业不存在或已删除")
+    sid = str(student_id or "").strip()
+    if not sid:
+        raise ValueError("缺少学号")
+    if not is_recipient(conn, assignment_id, sid):
+        raise ValueError("该学生不在这份作业名单中")
+    text = str(comment or "").strip()
+    now = utc_now()
+    conn.execute(
+        """
+        INSERT INTO jianya_reviews (assignment_id, student_id, comment, created_by, updated_at)
+        VALUES (?, ?, ?, ?, ?)
+        ON CONFLICT(assignment_id, student_id)
+        DO UPDATE SET comment = excluded.comment, created_by = excluded.created_by, updated_at = excluded.updated_at
+        """,
+        (assignment_id, sid, text, created_by, now),
+    )
+    conn.commit()
+    return {
+        "assignmentId": assignment_id,
+        "studentId": sid,
+        "comment": text,
+        "createdBy": created_by,
+        "updatedAt": now,
+    }
+
+
+def delete_assignment(
+    conn: sqlite3.Connection, assignment_id: str, *, actor_id: str = ""
+) -> None:
+    if actor_id:
+        assignment = get_assignment(conn, assignment_id)
+        if not assignment:
+            raise ValueError("作业不存在或已删除")
+        if not teacher_owns_assignment(assignment, actor_id):
+            raise ValueError("只能删除自己布置的作业")
     conn.execute("DELETE FROM jianya_drafts WHERE assignment_id = ?", (assignment_id,))
     conn.execute("DELETE FROM jianya_submissions WHERE assignment_id = ?", (assignment_id,))
+    conn.execute("DELETE FROM jianya_recipients WHERE assignment_id = ?", (assignment_id,))
+    conn.execute("DELETE FROM jianya_reviews WHERE assignment_id = ?", (assignment_id,))
     cur = conn.execute("DELETE FROM jianya_assignments WHERE id = ?", (assignment_id,))
     conn.commit()
     if cur.rowcount <= 0:
@@ -437,10 +920,12 @@ def save_submission(
     assignment = get_assignment(conn, assignment_id)
     if not assignment:
         raise ValueError("作业不存在或已删除")
-    if subject not in SUBJECTS:
+    if subject not in EXAM_SUBJECTS:
         raise ValueError("科目无效")
     if not student_id:
         raise ValueError("缺少学号")
+    if not is_recipient(conn, assignment_id, student_id):
+        raise ValueError("这份作业未布置给你")
     existing = get_submission(conn, assignment_id, student_id, book_id, subject, s_id)
     if existing:
         return existing
@@ -577,6 +1062,8 @@ def save_draft(
 ) -> dict[str, str]:
     if not get_assignment(conn, assignment_id):
         raise ValueError("作业不存在或已删除")
+    if not is_recipient(conn, assignment_id, student_id):
+        raise ValueError("这份作业未布置给你")
     if get_submission(conn, assignment_id, student_id, book_id, subject, s_id):
         return get_draft(conn, assignment_id, student_id, book_id, subject, s_id)
     answers_obj = answers if isinstance(answers, dict) else {}
