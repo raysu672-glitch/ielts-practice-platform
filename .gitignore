@@ -66,3 +66,7 @@ _kouyulianxi_src/
 _patch_*.py
 _tmp_kouyu_app.js
 _check_state.py
+
+# Jianya SPA deps and large exam assets (keep on server / local only)
+sources/jianyazhenti/node_modules/
+sources/jianyazhenti/exam-data/

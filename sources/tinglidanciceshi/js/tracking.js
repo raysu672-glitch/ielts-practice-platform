@@ -341,6 +341,7 @@
         if (testType === 'random') return '随机测试';
         if (testType === 'wrong_words') return '错题测试';
         if (testType === 'module_test') return '模块测试';
+        if (testType === 'mock_exam') return '模拟考';
         return '测试记录';
     }
 
@@ -464,12 +465,14 @@ async function saveModuleTestRecord(payload) {
     const module = getModuleById(moduleType);
     const totalCount = Number(payload.totalCount || payload.total_count || 0);
     const correctCount = Number(payload.correctCount || payload.correct_count || payload.rightCount || payload.right_count || 0);
-    const score = payload.scorePercent != null
+    const useCount = !!(module && module.unit === '个');
+    const percent = payload.scorePercent != null
         ? Number(payload.scorePercent)
         : (payload.score_percent != null ? Number(payload.score_percent) : (payload.score != null ? Number(payload.score) : (totalCount > 0 ? Math.round(correctCount / totalCount * 100) : 0)));
+    const score = useCount ? correctCount : percent;
     const threshold = payload.passThreshold != null ? Number(payload.passThreshold) : (payload.pass_threshold != null ? Number(payload.pass_threshold) : await getPassThreshold(moduleType, currentStudent));
     const duration = Math.max(0, Math.round(Number(payload.durationSeconds || payload.duration_seconds || 0)));
-    const isPassed = payload.isPassed != null ? !!payload.isPassed : (payload.is_passed != null ? !!payload.is_passed : score >= threshold);
+    const isPassed = payload.isPassed != null ? !!payload.isPassed : (payload.is_passed != null ? !!payload.is_passed : (useCount ? correctCount >= threshold : score >= threshold));
     const nowIso = new Date().toISOString();
     const record = {
         student_id: studentId,

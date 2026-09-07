@@ -44,6 +44,8 @@
         }
         .container { width: min(100%, 1180px); margin: 0 auto; }
         body.teacher-writing-wide .container { width: min(100%, 1680px); }
+        body.student-jianya-wide { padding: 8px 10px 12px; }
+        body.student-jianya-wide .container { width: min(100%, 1680px); }
         #tabWriting { margin: 0 -8px; }
         #writingReportsIframe { min-height: calc(100vh - 160px); }
 

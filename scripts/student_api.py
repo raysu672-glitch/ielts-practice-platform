@@ -29,6 +29,66 @@ def dumps_details(value: Any) -> str:
     return json.dumps(value if value is not None else [], ensure_ascii=False)
 
 
+COUNT_MODULE_RE = re.compile(r"^(reading|listening)_p[1-4]$")
+COUNT_MODULE_TARGETS = {
+    "reading_p1": (9, 11, 12),
+    "reading_p2": (8, 10, 10),
+    "reading_p3": (6, 6, 8),
+    "listening_p1": (8, 9, 9),
+    "listening_p2": (7, 8, 9),
+    "listening_p3": (4, 4, 5),
+    "listening_p4": (4, 6, 7),
+}
+
+
+def is_count_score_module(module_type: str) -> bool:
+    return bool(COUNT_MODULE_RE.match(str(module_type or "")))
+
+
+def _student_target_band(conn: Any, student_id: str) -> float:
+    try:
+        row = conn.execute(
+            "SELECT target_score FROM students WHERE student_id = ?",
+            (student_id,),
+        ).fetchone()
+    except Exception:
+        return 6.5
+    if not row:
+        return 6.5
+    try:
+        score = float(row["target_score"] if hasattr(row, "keys") else row[0] or 6.5)
+    except (TypeError, ValueError):
+        return 6.5
+    if score in (6, 7):
+        return score
+    return 6.5
+
+
+def threshold_for_module(conn: Any, student_id: str, module_type: str) -> Optional[float]:
+    band = _student_target_band(conn, student_id)
+    column = "score_7" if band == 7 else "score_6" if band == 6 else "score_6_5"
+    try:
+        row = conn.execute(
+            f"SELECT {column} FROM pass_standards WHERE module_type = ?",
+            (module_type,),
+        ).fetchone()
+    except Exception:
+        row = None
+    if row is not None:
+        try:
+            return float(row[column] if hasattr(row, "keys") else row[0])
+        except (TypeError, ValueError, KeyError, IndexError):
+            pass
+    defaults = COUNT_MODULE_TARGETS.get(module_type)
+    if not defaults:
+        return None
+    if band == 7:
+        return float(defaults[2])
+    if band == 6:
+        return float(defaults[0])
+    return float(defaults[1])
+
+
 def norm_speaking_question_key(text: str) -> str:
     return re.sub(r"[^a-z0-9]+", "", str(text or "").lower())
 
@@ -348,19 +408,29 @@ def insert_test_record(conn: Any, student_id: str, payload: dict[str, Any]) -> d
     now = utc_now()
     total_count = int(payload.get("total_count") or payload.get("totalCount") or 0)
     correct_count = int(payload.get("correct_count") or payload.get("correctCount") or 0)
+    module_type = str(payload.get("module_type") or payload.get("moduleType") or "dictation")
+    count_module = is_count_score_module(module_type)
     score = payload.get("score")
     if score is None:
         score = payload.get("score_percent", payload.get("scorePercent"))
-    if score is None:
+    if count_module:
+        score = float(correct_count)
+    elif score is None:
         score = round(correct_count / total_count * 100, 2) if total_count > 0 else 0
-    score = float(score)
-    threshold = float(payload.get("pass_threshold") or payload.get("passThreshold") or 80)
+        score = float(score)
+    else:
+        score = float(score)
+    if "pass_threshold" in payload or "passThreshold" in payload:
+        threshold = float(payload.get("pass_threshold") or payload.get("passThreshold") or 80)
+    else:
+        looked_up = threshold_for_module(conn, student_id, module_type)
+        threshold = float(looked_up if looked_up is not None else 80)
     is_passed = payload.get("is_passed", payload.get("isPassed"))
     if is_passed is None:
-        is_passed = score >= threshold
+        is_passed = (correct_count >= threshold) if count_module else (score >= threshold)
     record = {
         "student_id": student_id,
-        "module_type": str(payload.get("module_type") or payload.get("moduleType") or "dictation"),
+        "module_type": module_type,
         "module_name": payload.get("module_name") or payload.get("moduleName") or "听力1000词",
         "test_type": payload.get("test_type") or payload.get("testType") or "module_test",
         "score": score,

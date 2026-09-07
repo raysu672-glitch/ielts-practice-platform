@@ -12,6 +12,7 @@ import argparse
 import json
 import mimetypes
 import os
+import shutil
 import sqlite3
 import subprocess
 import sys
@@ -108,10 +109,17 @@ from task_api import (  # noqa: E402
     submit_stage_test as task_submit_stage_test,
     update_scope_progress as task_update_scope_progress,
 )
+from jianya_api import (  # noqa: E402
+    ensure_jianya_tables,
+    list_student_submissions as jianya_list_student_submissions,
+)
 DEFAULT_DB_PATH = ROOT / "data" / "ielts_local.db"
 DEFAULT_P4_ASR_BASE = "https://p4.oyenglish.com.cn"
 DEFAULT_WRITING_API_BASE = "http://127.0.0.1:8080"
 WRITING_BACKEND_DIR = ROOT / "sources" / "xiezuopigai" / "ielts-writing-backend"
+JIANYA_DIR = ROOT / "sources" / "jianyazhenti"
+JIANYA_DIST = JIANYA_DIR / "dist"
+JIANYA_EXAM_DATA = JIANYA_DIR / "exam-data"
 
 ALLOWED_TABLES = {
     "teacher_config",
@@ -126,6 +134,39 @@ ALLOWED_TABLES = {
 
 JSON_COLUMNS = {"details"}
 BOOL_COLUMNS = {"is_password_changed", "is_active", "is_passed", "is_mastered", "last_result"}
+
+
+def build_jianya_catalog(data_root: Path) -> dict[str, Any]:
+    books: list[dict[str, Any]] = []
+    if not data_root.is_dir():
+        return {"books": books}
+    for item in data_root.iterdir():
+        if not item.is_dir() or not item.name.startswith("academic"):
+            continue
+        suffix = item.name[len("academic") :]
+        if not suffix.isdigit():
+            continue
+        book_id = int(suffix)
+        label = f"ACADEMIC {book_id}"
+        scraped_at = ""
+        manifest_path = item / "manifest.json"
+        if manifest_path.is_file():
+            try:
+                manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+                label = str(manifest.get("label") or label)
+                scraped_at = str(manifest.get("scrapedAt") or "")
+            except (OSError, json.JSONDecodeError, TypeError):
+                pass
+        books.append(
+            {
+                "bookId": book_id,
+                "folder": item.name,
+                "label": label,
+                "scrapedAt": scraped_at,
+            }
+        )
+    books.sort(key=lambda row: int(row["bookId"]), reverse=True)
+    return {"books": books}
 
 
 def is_safe_identifier(value: str) -> bool:
@@ -601,6 +642,7 @@ def init_db(db_path: Path, *, bind_host: str = "127.0.0.1") -> None:
         )
         ensure_wrong_items_table(conn)
         ensure_task_tables(conn)
+        ensure_jianya_tables(conn)
         seed_mvp_units(conn)
 
         conn.execute(
@@ -834,6 +876,8 @@ class LocalHandler(SimpleHTTPRequestHandler):
     writing_api_base: str = DEFAULT_WRITING_API_BASE
     p4_asr_base: str = DEFAULT_P4_ASR_BASE
     session_secret: bytes = b""
+    timeout = 60
+    protocol_version = "HTTP/1.0"
 
     def end_headers(self) -> None:
         for name, value in cors_headers_for_origin(self.headers.get("Origin")).items():
@@ -1416,6 +1460,15 @@ class LocalHandler(SimpleHTTPRequestHandler):
             self.send_json({"data": None, "error": {"message": "需要学生登录"}}, status=401)
             return None
         return session
+
+    def handle_jianya_me_submissions(self) -> None:
+        session = self.require_student_session()
+        if not session:
+            return
+        with closing(connect(self.db_path)) as conn:
+            ensure_jianya_tables(conn)
+            data = jianya_list_student_submissions(conn, str(session.get("id") or ""))
+            self.send_json({"data": data, "error": None})
 
     def handle_student_progress(self) -> None:
         session = self.require_student_session()
@@ -2088,6 +2141,9 @@ class LocalHandler(SimpleHTTPRequestHandler):
         if parsed.path.rstrip("/") == "/api/teacher/teachers":
             self.handle_teacher_teachers_get()
             return
+        if parsed.path.rstrip("/") == "/api/jianya/me/submissions":
+            self.handle_jianya_me_submissions()
+            return
         if parsed.path.startswith("/api/config"):
             self.handle_public_config()
             return
@@ -2100,6 +2156,12 @@ class LocalHandler(SimpleHTTPRequestHandler):
             if not self.require_logged_in_session():
                 return
             self.proxy_p4_api("GET")
+            return
+        if parsed.path == "/exam-data" or parsed.path.startswith("/exam-data/"):
+            self.handle_jianya_exam_data(parsed)
+            return
+        if parsed.path == "/jianyazhenti" or parsed.path.startswith("/jianyazhenti/"):
+            self.handle_jianya_spa(parsed)
             return
 
         # /tinglidanciceshi → /tinglidanciceshi/ ，避免相对脚本解析到站点根目录导致 DB 客户端 404
@@ -2327,6 +2389,68 @@ class LocalHandler(SimpleHTTPRequestHandler):
                 "python -m uvicorn main:app --host 127.0.0.1 --port 8080"
             )
             self.send_json({"success": False, "message": message}, status=502)
+
+    def _safe_under(self, root: Path, rel: str) -> Optional[Path]:
+        target = (root / rel).resolve()
+        base = root.resolve()
+        if target == base or base in target.parents:
+            return target
+        return None
+
+    def send_local_file(self, file_path: Path, content_type: Optional[str] = None) -> None:
+        if not file_path.is_file():
+            self.send_error(HTTPStatus.NOT_FOUND, "File not found")
+            return
+        ctype = content_type or self.guess_type(str(file_path))
+        headers_sent = False
+        try:
+            length = file_path.stat().st_size
+            self.send_response(HTTPStatus.OK)
+            self.send_header("Content-Type", ctype)
+            self.send_header("Content-Length", str(length))
+            self.end_headers()
+            headers_sent = True
+            with file_path.open("rb") as fh:
+                shutil.copyfileobj(fh, self.wfile)
+        except (BrokenPipeError, ConnectionResetError, ConnectionAbortedError):
+            return
+        except OSError:
+            if not headers_sent:
+                self.send_error(HTTPStatus.INTERNAL_SERVER_ERROR, "File read error")
+
+    def jianya_catalog_payload(self) -> dict[str, Any]:
+        return build_jianya_catalog(JIANYA_EXAM_DATA)
+
+    def handle_jianya_exam_data(self, parsed: urllib.parse.ParseResult) -> None:
+        rel = parsed.path[len("/exam-data") :].lstrip("/")
+        if rel in ("", "catalog.json"):
+            body = json.dumps(self.jianya_catalog_payload(), ensure_ascii=False).encode("utf-8")
+            self.send_response(HTTPStatus.OK)
+            self.send_header("Content-Type", "application/json; charset=utf-8")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+            return
+        target = self._safe_under(JIANYA_EXAM_DATA, urllib.parse.unquote(rel))
+        if target is None or not target.is_file():
+            self.send_error(HTTPStatus.NOT_FOUND, "Exam data not found")
+            return
+        self.send_local_file(target)
+
+    def handle_jianya_spa(self, parsed: urllib.parse.ParseResult) -> None:
+        rel = parsed.path[len("/jianyazhenti") :].lstrip("/")
+        dist = JIANYA_DIST
+        if dist.is_dir():
+            if rel:
+                target = self._safe_under(dist, urllib.parse.unquote(rel))
+                if target is not None and target.is_file():
+                    self.send_local_file(target)
+                    return
+            index = dist / "index.html"
+            if index.is_file():
+                self.send_local_file(index, "text/html; charset=utf-8")
+                return
+        self.send_error(HTTPStatus.NOT_FOUND, "剑雅真题未构建，请在 sources/jianyazhenti 执行 npm run build")
 
     def translate_path(self, path: str) -> str:
         path = urllib.parse.urlparse(path).path

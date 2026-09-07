@@ -154,6 +154,7 @@ async function loadStudents() {
         const toggleLabel = s.status === 'active' ? '禁用' : '启用';
         const toggleClass = s.status === 'active' ? 'btn-danger' : 'btn-success';
         html += '<tr><td>' + escapeHtml(s.student_id) + '</td><td>' + studentNameLinkHtml(s.student_id, s.name) + '</td><td>' + s.target_score + '分</td><td><span class="badge ' + statusBadge + '</span></td><td><div class="student-actions">';
+        html += '<button class="btn btn-sm" onclick="openStudentLearningProgress(\'' + escapeJsString(s.student_id) + '\',\'' + escapeJsString(s.name) + '\')">查看情况</button>';
         html += '<button class="btn btn-sm btn-secondary" onclick="showEditStudentModal(\'' + escapeJsString(s.student_id) + '\',\'' + escapeJsString(s.name) + '\',\'' + escapeJsString(String(s.target_score)) + '\')">修改</button>';
         html += '<button class="btn btn-sm btn-secondary" onclick="resetPassword(\'' + escapeJsString(s.student_id) + '\')">重置密码</button>';
         html += '<button class="btn btn-sm ' + toggleClass + '" onclick="toggleStatus(\'' + escapeJsString(s.student_id) + '\',\'' + escapeJsString(s.status) + '\')">' + toggleLabel + '</button>';
@@ -761,8 +762,8 @@ function buildProgressRows(students, allRecords, allStudySessions) {
             const studentRecords = getModuleRecords(studentRecordsAll, module.id);
             const studentSessions = getModuleStudySessions(studentSessionsAll, module.id);
             const target = getModuleTargetForScore(module, getStudentTargetScoreValue(s));
-            const bestScore = getBestScore(studentRecords);
-            const passCount = getPassCount(studentRecords);
+            const bestScore = getBestScore(studentRecords, module.unit);
+            const passCount = getPassCount(studentRecords, module.unit, target);
             const passRate = studentRecords.length > 0 ? Math.round(passCount / studentRecords.length * 100) : 0;
             const totalSeconds = window.TrackingUtils.sumPracticeSeconds(studentSessionsRaw, studentRecordsAll, { moduleId: module.id });
             const todaySeconds = window.TrackingUtils.sumPracticeSeconds(studentSessionsRaw, studentRecordsAll, {
@@ -962,39 +963,281 @@ function renderTeacherProgressSummary() {
     container.innerHTML = html;
 }
 
+function studentSituationModuleLabel(moduleType) {
+    if (!moduleType) return '—';
+    var m = (typeof getModuleById === 'function') ? getModuleById(moduleType) : null;
+    if (m && m.name) return m.name;
+    if (moduleType === 'mock_reading') return '阅读模拟考';
+    if (moduleType === 'mock_listening') return '听力模拟考';
+    return String(moduleType);
+}
+
+function isJianyaPartModule(moduleId) {
+    return /^(reading_p[123]|listening_p[1234])$/.test(String(moduleId || ''));
+}
+
+var _teacherHistoryContext = { studentId: '', studentName: '', returnModuleId: '' };
+
+function ensureTeacherHistoryOverlay() {
+    var el = document.getElementById('teacherHistoryOverlay');
+    if (el) return el;
+    el = document.createElement('div');
+    el.id = 'teacherHistoryOverlay';
+    el.style.cssText = 'display:none;position:fixed;inset:0;z-index:12000;background:#f5f6fa;';
+    el.innerHTML =
+        '<div style="display:flex;flex-direction:column;height:100%;">' +
+        '<div style="display:flex;align-items:center;gap:12px;padding:10px 16px;background:#fff;border-bottom:1px solid #e5e7eb;">' +
+        '<button type="button" class="btn btn-sm btn-secondary" onclick="closeTeacherStudentHistory()">返回学生情况</button>' +
+        '<strong id="teacherHistoryTitle" style="font-size:1rem;"></strong>' +
+        '</div>' +
+        '<iframe id="teacherHistoryIframe" title="学生历史" style="flex:1;width:100%;border:0;background:#fff;" allow="autoplay"></iframe>' +
+        '</div>';
+    document.body.appendChild(el);
+    return el;
+}
+
+function openTeacherStudentHistory(studentId, studentName, kind, moduleId, moduleName) {
+    if (!studentId) return;
+    _teacherHistoryContext = {
+        studentId: studentId,
+        studentName: studentName || studentId,
+        returnModuleId: ''
+    };
+    var url;
+    var title;
+    if (kind === 'mock') {
+        url = '/jianyazhenti/student/mock/history?embed=1&teacher_view=1&student_id=' +
+            encodeURIComponent(studentId);
+        title = (studentName || studentId) + ' · 模拟考历史';
+    } else {
+        var mid = moduleId || '';
+        url = '/jianyazhenti/student/history?embed=1&teacher_view=1&student_id=' +
+            encodeURIComponent(studentId) +
+            '&module_type=' + encodeURIComponent(mid);
+        title = (studentName || studentId) + ' · ' + (moduleName || mid) + '历史';
+    }
+    var overlay = ensureTeacherHistoryOverlay();
+    var titleEl = document.getElementById('teacherHistoryTitle');
+    var frame = document.getElementById('teacherHistoryIframe');
+    if (titleEl) titleEl.textContent = title;
+    if (frame) {
+        frame.src = url;
+    }
+    overlay.style.display = 'block';
+    document.body.classList.add('teacher-writing-wide');
+}
+
+function closeTeacherStudentHistory() {
+    var overlay = document.getElementById('teacherHistoryOverlay');
+    var frame = document.getElementById('teacherHistoryIframe');
+    if (frame) frame.src = '';
+    if (overlay) overlay.style.display = 'none';
+    var tabWriting = document.getElementById('tabWriting');
+    var tabJianya = document.getElementById('tabJianya');
+    var keepWide = (tabWriting && tabWriting.style.display === 'block') ||
+        (tabJianya && tabJianya.style.display === 'block');
+    if (!keepWide) document.body.classList.remove('teacher-writing-wide');
+    var ctx = _teacherHistoryContext || {};
+    if (ctx.studentId) {
+        showStudentDetailProgress(ctx.studentId, ctx.studentName || ctx.studentId);
+    }
+}
+
+function studentSituationPlanBrief(task) {
+    if (!task) return '暂无任务数据';
+    var brief = (task.plan_progress_brief || []).map(function(b) { return b.text || ''; }).filter(Boolean).join(' · ');
+    if (task.plan_status === 'none') return '未排计划';
+    if ((task.plan_pause || {}).active) {
+        return '计划暂停至 ' + (task.plan_pause.resume_on || '') +
+            (task.plan_pause.reason ? (' · ' + task.plan_pause.reason) : '');
+    }
+    if ((task.plan_pause || {}).upcoming) {
+        return '将于 ' + (task.plan_pause.pause_from || '') + ' 暂停' +
+            (task.plan_pause.reason ? (' · ' + task.plan_pause.reason) : '');
+    }
+    if (task.plan_status === 'all_paused') return '计划已暂停';
+    return brief || '—';
+}
+
+function studentSituationMockPartsSummary(record) {
+    var details = record && record.details;
+    if (Array.isArray(details) && details.length) {
+        var d0 = details[0] || {};
+        if (Array.isArray(d0.parts) && d0.parts.length) {
+            return d0.parts.map(function(p) {
+                return (p && p.label) || '';
+            }).filter(Boolean).join(' · ') || '—';
+        }
+        if (d0.subject) return String(d0.subject);
+    }
+    return record.module_name || studentSituationModuleLabel(record.module_type);
+}
+
+function renderStudentSituationTaskCard(task) {
+    if (!task) {
+        return '<div style="margin-bottom:16px;padding:14px;background:#f8f9fa;border-radius:10px;color:#666;">暂无任务计划数据</div>';
+    }
+    var todayDone = Number(task.today_done) || 0;
+    var todayTotal = Number(task.today_total) || 0;
+    var todayCell = todayTotal > 0 ? (todayDone + '/' + todayTotal) : '无任务';
+    var backlog = Number(task.backlog) || 0;
+    var todayMins = Number(task.today_minutes) || 0;
+    var budget = Number(task.budget_minutes) || 0;
+    var statusEmoji = (typeof taskOverviewStatusEmoji === 'function')
+        ? taskOverviewStatusEmoji(task.row_status)
+        : '';
+    var html = '<div style="margin-bottom:16px;padding:16px;background:#fff;border:1px solid #e5e7eb;border-radius:10px;">';
+    html += '<h4 style="margin:0 0 12px;">任务执行</h4>';
+    html += '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:12px;text-align:center;margin-bottom:10px;">';
+    html += '<div><div style="font-size:1.2rem;font-weight:700;">' + statusEmoji + ' ' + escapeHtml(todayCell) + '</div><div style="color:#666;font-size:0.85rem;">今日任务</div></div>';
+    html += '<div><div style="font-size:1.2rem;font-weight:700;">' + todayMins + (budget ? ('/' + budget) : '') + ' 分</div><div style="color:#666;font-size:0.85rem;">今日时长/配额</div></div>';
+    html += '<div><div style="font-size:1.2rem;font-weight:700;' + (backlog >= 3 ? 'color:#dc2626;' : '') + '">' + (backlog > 0 ? backlog : '0') + '</div><div style="color:#666;font-size:0.85rem;">积压单元</div></div>';
+    html += '<div><div style="font-size:1.05rem;font-weight:600;line-height:1.35;">' + escapeHtml(studentSituationPlanBrief(task)) + '</div><div style="color:#666;font-size:0.85rem;margin-top:4px;">计划进度</div></div>';
+    html += '</div></div>';
+    return html;
+}
+
+function renderStudentSituationWrongBooks(counts) {
+    counts = counts || {};
+    var keys = Object.keys(counts).filter(function(k) { return Number(counts[k]) > 0; });
+    keys.sort(function(a, b) { return Number(counts[b]) - Number(counts[a]); });
+    var html = '<div style="margin-top:24px;"><h4 style="margin-bottom:12px;">错题本（未掌握）</h4>';
+    if (!keys.length) {
+        html += '<p style="color:#666;padding:12px;background:#f8f9fa;border-radius:8px;margin:0;">暂无未掌握错题</p></div>';
+        return html;
+    }
+    html += '<table style="width:100%;border-collapse:collapse;"><thead><tr style="background:#f8f9fa;">';
+    html += '<th style="padding:10px;text-align:left;">模块</th><th style="padding:10px;text-align:center;">未掌握数</th></tr></thead><tbody>';
+    for (var i = 0; i < keys.length; i++) {
+        html += '<tr style="border-bottom:1px solid #dee2e6;">';
+        html += '<td style="padding:10px;">' + escapeHtml(studentSituationModuleLabel(keys[i])) + '</td>';
+        html += '<td style="padding:10px;text-align:center;">' + Number(counts[keys[i]]) + '</td></tr>';
+    }
+    html += '</tbody></table></div>';
+    return html;
+}
+
+function renderStudentSituationMockExams(mockExams, studentId, studentName) {
+    mockExams = mockExams || [];
+    var html = '<div style="margin-top:24px;"><div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px;flex-wrap:wrap;">';
+    html += '<h4 style="margin:0;">模拟考记录</h4>';
+    if (studentId) {
+        html += '<button type="button" class="btn btn-sm btn-secondary" onclick="openTeacherStudentHistory(\'' +
+            escapeJsString(studentId) + '\',\'' + escapeJsString(studentName || studentId) + '\',\'mock\')">打开完整模考历史（可查对错）</button>';
+    }
+    html += '</div>';
+    if (!mockExams.length) {
+        html += '<p style="color:#666;padding:12px;background:#f8f9fa;border-radius:8px;margin:0;">暂无模拟考记录</p></div>';
+        return html;
+    }
+    html += '<div class="records-table-wrap"><table class="records-table" style="width:100%;"><thead><tr style="background:#f8f9fa;">';
+    html += '<th style="padding:10px;text-align:left;">时间</th>';
+    html += '<th style="padding:10px;text-align:left;">名称</th>';
+    html += '<th style="padding:10px;text-align:center;">得分</th>';
+    html += '<th style="padding:10px;text-align:center;">正确/总题</th>';
+    html += '<th style="padding:10px;text-align:center;">时长</th>';
+    html += '<th style="padding:10px;text-align:left;">试卷/Part</th>';
+    html += '</tr></thead><tbody>';
+    for (var i = 0; i < mockExams.length; i++) {
+        var r = mockExams[i];
+        var score = (r.score != null && r.score !== '') ? (Number(r.score) + '%') : '—';
+        var ct = ((r.correct_count != null ? r.correct_count : '—') + '/' +
+            (r.total_count != null ? r.total_count : '—'));
+        var rowClick = studentId
+            ? (' style="border-bottom:1px solid #dee2e6;cursor:pointer;" title="点击查看完整模考历史与对错" onclick="openTeacherStudentHistory(\'' +
+                escapeJsString(studentId) + '\',\'' + escapeJsString(studentName || studentId) + '\',\'mock\')"')
+            : ' style="border-bottom:1px solid #dee2e6;"';
+        html += '<tr' + rowClick + '>';
+        html += '<td style="padding:10px;">' + escapeHtml(formatChinaDateTime(r.created_at || r.ended_at)) + '</td>';
+        html += '<td style="padding:10px;">' + escapeHtml(r.module_name || studentSituationModuleLabel(r.module_type)) + '</td>';
+        html += '<td style="padding:10px;text-align:center;">' + escapeHtml(String(score)) + '</td>';
+        html += '<td style="padding:10px;text-align:center;">' + escapeHtml(String(ct)) + '</td>';
+        html += '<td style="padding:10px;text-align:center;">' + escapeHtml(formatDuration(r.duration_seconds || 0)) + '</td>';
+        html += '<td style="padding:10px;font-size:0.85rem;color:#555;">' + escapeHtml(studentSituationMockPartsSummary(r)) + '</td>';
+        html += '</tr>';
+    }
+    html += '</tbody></table></div>';
+    html += '<p style="color:#666;font-size:0.85rem;margin:8px 0 0;">点任意一行或上方按钮，打开与学生端相同的模考历史，可点进 Part 看对错对照。</p>';
+    html += '</div>';
+    return html;
+}
+
+function renderStudentSituationRecentTests(records) {
+    var recent = (records || []).filter(function(r) {
+        return String(r.test_type || '') !== 'mock_exam';
+    }).slice(0, 12);
+    var html = '<div style="margin-top:24px;"><h4 style="margin-bottom:12px;">近期测试（非模拟考）</h4>';
+    if (!recent.length) {
+        html += '<p style="color:#666;padding:12px;background:#f8f9fa;border-radius:8px;margin:0;">暂无测试记录</p></div>';
+        return html;
+    }
+    html += '<div class="records-table-wrap"><table class="records-table" style="width:100%;"><thead><tr style="background:#f8f9fa;">';
+    html += '<th style="padding:10px;text-align:left;">时间</th>';
+    html += '<th style="padding:10px;text-align:left;">模块</th>';
+    html += '<th style="padding:10px;text-align:center;">类型</th>';
+    html += '<th style="padding:10px;text-align:center;">得分</th>';
+    html += '<th style="padding:10px;text-align:center;">是否达标</th>';
+    html += '</tr></thead><tbody>';
+    for (var i = 0; i < recent.length; i++) {
+        var r = recent[i];
+        var typeLabel = (window.TrackingUtils && window.TrackingUtils.getTestTypeLabel)
+            ? window.TrackingUtils.getTestTypeLabel(r.test_type)
+            : (r.test_type || '—');
+        var passed = r.is_passed ? '<span class="badge badge-success">达标</span>' : '<span class="badge badge-warning">未达标</span>';
+        var scoreText = (r.score != null && r.score !== '') ? String(r.score) : '—';
+        html += '<tr style="border-bottom:1px solid #dee2e6;">';
+        html += '<td style="padding:10px;">' + escapeHtml(formatChinaDateTime(r.created_at || r.ended_at)) + '</td>';
+        html += '<td style="padding:10px;">' + escapeHtml(r.module_name || studentSituationModuleLabel(r.module_type)) + '</td>';
+        html += '<td style="padding:10px;text-align:center;">' + escapeHtml(typeLabel) + '</td>';
+        html += '<td style="padding:10px;text-align:center;">' + escapeHtml(scoreText) + '</td>';
+        html += '<td style="padding:10px;text-align:center;">' + passed + '</td>';
+        html += '</tr>';
+    }
+    html += '</tbody></table></div></div>';
+    return html;
+}
+
 async function showStudentDetailProgress(studentId, studentName, filterModuleId) {
     const container = document.getElementById('teacherStudentProgress');
-    if (filterModuleId === undefined || filterModuleId === null) {
-        filterModuleId = '';
-    } else if (!filterModuleId) {
-        filterModuleId = _progressColumnFilters.module || 'dictation';
-    }
+    filterModuleId = String(filterModuleId || '').trim();
     const module = filterModuleId ? getModuleById(filterModuleId) : null;
     const moduleName = module ? module.name : '';
+    const overviewMode = !filterModuleId;
 
     const detailResult = await teacherApiGet('/api/teacher/student-detail?student_id=' + encodeURIComponent(studentId));
     if (detailResult.error) {
         showToast((detailResult.error && detailResult.error.message) || '加载学生详情失败', 'error');
         return;
     }
-    const records = (detailResult.data && detailResult.data.test_records) || [];
-    const wrongCount = ((detailResult.data && detailResult.data.wrong_words) || []).length;
-    const rawSessions = (detailResult.data && detailResult.data.study_sessions) || [];
+    const data = detailResult.data || {};
+    const student = data.student || {};
+    const records = data.test_records || [];
+    const mockExams = data.mock_exams || records.filter(function(r) {
+        return String(r.test_type || '') === 'mock_exam';
+    });
+    const wrongCount = (data.wrong_words || []).length;
+    const wrongBookCounts = data.wrong_book_counts || {};
+    const taskOverview = data.task_overview || null;
+    const rawSessions = data.study_sessions || [];
     const allSessions = getStudySessions(rawSessions);
     const selectedRecords = filterModuleId ? getModuleRecords(records, filterModuleId) : records;
     const selectedSessions = filterModuleId ? getModuleStudySessions(allSessions, filterModuleId) : allSessions;
-    const selectedBestScore = getBestScore(selectedRecords);
-    const selectedPassCount = getPassCount(selectedRecords);
+    const studentTargetScore = (student.target_score != null) ? student.target_score : 6.5;
+    const selectedBestScore = getBestScore(selectedRecords, module && module.unit);
+    const selectedPassCount = getPassCount(selectedRecords, module && module.unit, filterModuleId ? getModuleTargetForScore(module, studentTargetScore) : null);
     const selectedSeconds = window.TrackingUtils.sumPracticeSeconds(rawSessions, records, filterModuleId ? { moduleId: filterModuleId } : {});
+    const displayName = student.name || studentName || studentId;
+    const statusText = student.status === 'active' ? '正常' : (student.status === 'disabled' ? '禁用' : (student.status || '—'));
 
     let html = '<div style="margin-bottom:20px;">';
-    html += '<button class="btn btn-sm btn-secondary" onclick="loadTeacherProgressData()"> 返回汇总</button>';
-    html += '<h3 style="display:inline-block; margin-left:20px;">' + escapeHtml(studentName) + (moduleName ? (' 的' + moduleName + '进度') : ' 的学习进度') + '</h3>';
+    html += '<button class="btn btn-sm btn-secondary" onclick="loadTeacherProgressData()">返回汇总</button>';
+    html += '<h3 style="display:inline-block; margin-left:20px;">' +
+        escapeHtml(displayName) +
+        (moduleName ? (' · ' + moduleName + '进度') : ' · 学习情况') +
+        '</h3>';
+    html += '<div style="margin-top:8px;color:#666;font-size:0.9rem;">学号 ' + escapeHtml(student.student_id || studentId) +
+        ' · 目标 ' + escapeHtml(String(studentTargetScore)) + ' 分 · 状态 ' + escapeHtml(statusText) + '</div>';
     html += '</div>';
-
-    const studentTargetScore = (detailResult.data && detailResult.data.student && detailResult.data.student.target_score != null)
-        ? detailResult.data.student.target_score
-        : 6.5;
 
     html += '<div style="margin-bottom:15px; padding:15px; background:linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius:10px; color:white;">';
     html += '<div style="display:grid; grid-template-columns:repeat(4, 1fr); gap:16px; text-align:center;">';
@@ -1008,11 +1251,19 @@ async function showStudentDetailProgress(studentId, studentName, filterModuleId)
     if (filterModuleId) {
         html += '<div><div style="font-size:1.3rem; font-weight:bold;">' + (selectedRecords.length > 0 ? formatTargetValue(selectedBestScore, module && module.unit) : '-') + '</div><div style="font-size:0.85rem; opacity:0.9;">本模块最高分</div></div>';
     } else {
-        html += '<div><div style="font-size:1.3rem; font-weight:bold;">' + (selectedRecords.length > 0 ? Math.round(selectedPassCount / selectedRecords.length * 100) : 0) + '%</div><div style="font-size:0.85rem; opacity:0.9;">总达标率</div></div>';
+        html += '<div><div style="font-size:1.3rem; font-weight:bold;">' + mockExams.length + '</div><div style="font-size:0.85rem; opacity:0.9;">模拟考次数</div></div>';
     }
-    html += '<div><div style="font-size:1.3rem; font-weight:bold;">' + wrongCount + '</div><div style="font-size:0.85rem; opacity:0.9;">听写未掌握错词</div></div>';
+    var wrongTotal = 0;
+    Object.keys(wrongBookCounts).forEach(function(k) { wrongTotal += Number(wrongBookCounts[k]) || 0; });
+    if (!wrongTotal) wrongTotal = wrongCount;
+    html += '<div><div style="font-size:1.3rem; font-weight:bold;">' + wrongTotal + '</div><div style="font-size:0.85rem; opacity:0.9;">未掌握错题</div></div>';
     html += '</div></div>';
 
+    if (overviewMode) {
+        html += renderStudentSituationTaskCard(taskOverview);
+    }
+
+    html += '<h4 style="margin:8px 0 12px;">分科进度</h4>';
     html += '<table style="width:100%; border-collapse: collapse;">';
     html += '<thead><tr style="background:#f8f9fa;">';
     html += '<th style="padding:12px; text-align:left; border-bottom:2px solid #dee2e6;">科目</th>';
@@ -1022,27 +1273,28 @@ async function showStudentDetailProgress(studentId, studentName, filterModuleId)
     html += '<th style="padding:12px; text-align:center; border-bottom:2px solid #dee2e6;">达标次数</th>';
     html += '<th style="padding:12px; text-align:center; border-bottom:2px solid #dee2e6;">状态</th>';
     html += '<th style="padding:12px; text-align:center; border-bottom:2px solid #dee2e6;">练习时长</th>';
+    html += '<th style="padding:12px; text-align:center; border-bottom:2px solid #dee2e6;">操作</th>';
     html += '</tr></thead><tbody>';
 
-    // 教师详情与学生端一致：只展示已开放模块，其余先隐藏
     const availableModules = MODULES.filter(isModuleAvailable);
     for (let i = 0; i < availableModules.length; i++) {
         const m = availableModules[i];
+        if (filterModuleId && m.id !== filterModuleId) continue;
         const moduleTarget = getModuleTargetForScore(m, studentTargetScore);
         const moduleRecords = getModuleRecords(records, m.id);
-        const bestScore = getBestScore(moduleRecords);
-        const passCount = getPassCount(moduleRecords);
+        const bestScore = getBestScore(moduleRecords, m.unit);
+        const passCount = getPassCount(moduleRecords, m.unit, moduleTarget);
         const moduleTotalSeconds = window.TrackingUtils.sumPracticeSeconds(rawSessions, records, { moduleId: m.id });
         const studyOnly = isStudyOnlyModule(m);
         const progressPercent = (!studyOnly && bestScore > 0) ? Math.min(100, Math.round((bestScore / moduleTarget) * 100)) : 0;
         let statusClass = 'badge-info';
-        let statusText = '未开始';
+        let statusLabel = '未开始';
         if (!studyOnly && bestScore >= moduleTarget && bestScore > 0) {
             statusClass = 'badge-success';
-            statusText = '达标';
+            statusLabel = '达标';
         } else if ((!studyOnly && moduleRecords.length > 0) || moduleTotalSeconds > 0) {
             statusClass = 'badge-warning';
-            statusText = '进行中';
+            statusLabel = '进行中';
         }
 
         const progressColor = progressPercent >= 100 ? '#28a745' : '#667eea';
@@ -1058,21 +1310,38 @@ async function showStudentDetailProgress(studentId, studentName, filterModuleId)
             html += '<div style="flex:1; background:#e9ecef; border-radius:10px; height:8px; overflow:hidden;">';
             html += '<div style="width:' + progressPercent + '%; background:' + progressColor + '; height:100%; transition:width 0.3s;"></div>';
             html += '</div>';
-            html += '<span style="min-width:50px; text-align:right;">' + (moduleRecords.length > 0 ? formatTargetValue(bestScore, m.unit) : formatTargetValue(0, m.unit)) + '</span>';
+            html += '<span style="min-width:50px; text-align:right;">' + (moduleRecords.length > 0 ? (m.unit === '个' ? formatCountScore(bestScore, totalForBestCount(moduleRecords, m.id)) : formatTargetValue(bestScore, m.unit)) : formatTargetValue(0, m.unit)) + '</span>';
             html += '</div>';
         }
         html += '</td>';
         html += '<td style="padding:15px 12px; text-align:center;">' + (studyOnly ? '—' : moduleRecords.length) + '</td>';
         html += '<td style="padding:15px 12px; text-align:center;">' + (studyOnly ? '—' : passCount) + '</td>';
-        html += '<td style="padding:15px 12px; text-align:center;"><span class="badge ' + statusClass + '" style="font-size:0.75rem;">' + statusText + '</span></td>';
+        html += '<td style="padding:15px 12px; text-align:center;"><span class="badge ' + statusClass + '" style="font-size:0.75rem;">' + statusLabel + '</span></td>';
         html += '<td style="padding:15px 12px; text-align:center; color:#666; font-size:0.9rem;">' + formatDuration(moduleTotalSeconds) + '</td>';
+        html += '<td style="padding:15px 12px; text-align:center;">';
+        if (isJianyaPartModule(m.id)) {
+            html += '<button type="button" class="btn btn-sm btn-success" onclick="openTeacherStudentHistory(\'' +
+                escapeJsString(student.student_id || studentId) + '\',\'' +
+                escapeJsString(displayName) + '\',\'part\',\'' +
+                escapeJsString(m.id) + '\',\'' +
+                escapeJsString(m.name) + '\')">历史</button>';
+        } else {
+            html += '<span style="color:#94a3b8;">—</span>';
+        }
+        html += '</td>';
         html += '</tr>';
     }
 
     html += '</tbody></table>';
 
+    if (overviewMode) {
+        html += renderStudentSituationMockExams(mockExams, student.student_id || studentId, displayName);
+        html += renderStudentSituationRecentTests(records);
+        html += renderStudentSituationWrongBooks(wrongBookCounts);
+    }
+
     const dailyRows = buildDailyPracticeRows(rawSessions, records, filterModuleId).slice(0, 14);
-    html += '<div style="margin-top:25px;"><h4 style="margin-bottom:12px;">每日练习时长</h4>';
+    html += '<div style="margin-top:25px;"><h4 style="margin-bottom:12px;">每日练习时长（近14天）</h4>';
     if (dailyRows.length === 0) {
         html += '<p style="color:#666; padding:12px; background:#f8f9fa; border-radius:8px;">暂无练习时长记录</p>';
     } else {

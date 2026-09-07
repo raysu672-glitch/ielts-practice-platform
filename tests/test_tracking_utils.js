@@ -10,6 +10,7 @@ const sessions = [
 assert.deepEqual(utils.filterStudySessions(sessions), [sessions[0], sessions[2]]);
 assert.equal(utils.sumDuration(utils.filterStudySessions(sessions)), 150);
 assert.equal(utils.getTestTypeLabel('module_test'), '模块测试');
+assert.equal(utils.getTestTypeLabel('mock_exam'), '模拟考');
 assert.equal(utils.getTestTypeLabel('wrong_words'), '错题测试');
 assert.deepEqual(utils.parseDetails('[{"word":"apple","isCorrect":false}]'), [
     { word: 'apple', isCorrect: false },

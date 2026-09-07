@@ -312,11 +312,38 @@ def load_student_detail(
         item["is_passed"] = bool(item.get("is_passed"))
     for item in wrong_words:
         item["is_mastered"] = bool(item.get("is_mastered"))
+
+    student = public_student_row(dict(row))
+    mock_exams = [
+        r for r in records if str(r.get("test_type") or "") == "mock_exam"
+    ]
+
+    wrong_book_counts: dict[str, int] = {}
+    try:
+        from student_api import load_wrong_book_counts
+
+        wrong_book_counts = load_wrong_book_counts(conn, sid)
+    except Exception:
+        wrong_book_counts = {}
+
+    task_overview: Optional[dict[str, Any]] = None
+    try:
+        from task_api import student_task_snapshot
+
+        task_overview = student_task_snapshot(
+            conn, sid, str(student.get("name") or "")
+        )
+    except Exception:
+        task_overview = None
+
     return {
-        "student": public_student_row(dict(row)),
+        "student": student,
         "test_records": records,
         "study_sessions": sessions,
         "wrong_words": wrong_words,
+        "wrong_book_counts": wrong_book_counts,
+        "mock_exams": mock_exams,
+        "task_overview": task_overview,
     }, None
 
 

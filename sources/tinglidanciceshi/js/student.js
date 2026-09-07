@@ -396,6 +396,45 @@ async function completeCurrentTaskStudy(payload) {
     switchStudentTab('tasks');
 }
 
+/** 任务学习：部分模块只会上报时长、不会主动 taskUnitComplete；退出时补打勾。 */
+async function maybeCompleteTaskStudyOnLeave(opts) {
+    opts = opts || {};
+    const ctx = window._currentTaskContext || {};
+    if (!ctx.plan_item_id) return false;
+    const current = window._currentModule;
+    if (!current || current.mode !== 'study') return false;
+    // 阅读同义 / 听力跟读有独立完成条件，不能靠退出自动完成
+    if (current.id === 'reading_synonym' || current.id === 'listening_p4_speed') return false;
+    if (window._taskAutoCompleteInFlight) return false;
+    const minSeconds = opts.minSeconds != null ? opts.minSeconds : 60;
+    const duration = practiceElapsedSeconds(current.startedAt);
+    if (duration < minSeconds) return false;
+    window._taskAutoCompleteInFlight = true;
+    try {
+        const planItemId = ctx.plan_item_id;
+        const contentVersion = ctx.content_version || '1';
+        const result = await apiFetch('/api/task/me/complete-study', {
+            method: 'POST',
+            body: JSON.stringify({
+                plan_item_id: planItemId,
+                content_version: contentVersion
+            })
+        });
+        if (result.error) {
+            console.warn('任务退出自动打勾失败:', result.error);
+            return false;
+        }
+        window._currentTaskContext = null;
+        showToast('任务已完成', 'success');
+        return true;
+    } catch (e) {
+        console.warn('任务退出自动打勾异常:', e);
+        return false;
+    } finally {
+        window._taskAutoCompleteInFlight = false;
+    }
+}
+
 function switchStudentTab(tab) {
     document.querySelectorAll('#studentHome [data-student-tab]').forEach(function(t) {
         t.classList.toggle('active', t.getAttribute('data-student-tab') === tab);
@@ -406,7 +445,9 @@ function switchStudentTab(tab) {
     document.getElementById('studentTabHistory').style.display = tab === 'history' ? 'block' : 'none';
     var jianyaEl = document.getElementById('studentTabJianya');
     if (jianyaEl) jianyaEl.style.display = tab === 'jianya' ? 'block' : 'none';
-    document.body.classList.toggle('student-jianya-wide', tab === 'jianya');
+    var mockEl = document.getElementById('studentTabMock');
+    if (mockEl) mockEl.style.display = tab === 'mock' ? 'block' : 'none';
+    document.body.classList.toggle('student-jianya-wide', tab === 'jianya' || tab === 'mock');
     if (tab === 'history') {
         loadStudentHistory();
     }
@@ -416,6 +457,9 @@ function switchStudentTab(tab) {
     if (tab === 'jianya') {
         loadJianyaStudentFrame();
     }
+    if (tab === 'mock') {
+        loadJianyaMockFrame();
+    }
 }
 
 function loadJianyaStudentFrame() {
@@ -423,6 +467,18 @@ function loadJianyaStudentFrame() {
     if (!frame) return;
     var sid = (currentStudent && currentStudent.student_id) ? encodeURIComponent(currentStudent.student_id) : '';
     var next = '/jianyazhenti/student?embed=1';
+    if (sid) next += '&student_id=' + sid;
+    if (frame.getAttribute('data-src') !== next) {
+        frame.src = next;
+        frame.setAttribute('data-src', next);
+    }
+}
+
+function loadJianyaMockFrame() {
+    var frame = document.getElementById('jianyaMockIframe');
+    if (!frame) return;
+    var sid = (currentStudent && currentStudent.student_id) ? encodeURIComponent(currentStudent.student_id) : '';
+    var next = '/jianyazhenti/student/mock?embed=1';
     if (sid) next += '&student_id=' + sid;
     if (frame.getAttribute('data-src') !== next) {
         frame.src = next;
@@ -455,6 +511,11 @@ function openWritingCorrectionHistory() {
         '../xiezuopigai/ielts-writing-backend/teacher.html?role=student&v=12',
         'history'
     );
+}
+
+function openJianyaPartHistory(moduleId, moduleName) {
+    const url = '/jianyazhenti/student/history?embed=1&module_type=' + encodeURIComponent(moduleId);
+    openGenericIframe(moduleId, (moduleName || moduleId) + '历史', url, 'history');
 }
 
 async function loadProgressTable() {
@@ -498,8 +559,8 @@ async function loadProgressTable() {
         const modSessions = getModuleStudySessions(sessions, m.id);
         const modSeconds = window.TrackingUtils.sumPracticeSeconds(allSessions, records, { moduleId: m.id });
         const speakingPracticed = m.id === 'speaking' ? getSpeakingPracticedCount(modSessions) : 0;
-        const bestScore = getBestScore(moduleRecords);
-        const passCount = getPassCount(moduleRecords);
+        const bestScore = getBestScore(moduleRecords, m.unit);
+        const passCount = getPassCount(moduleRecords, m.unit, moduleTarget);
         const progressPercent = bestScore > 0 ? Math.min(100, Math.round((bestScore / moduleTarget) * 100)) : 0;
         const isTestable = !isStudyOnlyModule(m) && (isBuiltinDictationModule(m.id) || !!m.test_url);
         if (isTestable) totalProgressForTests += progressPercent;
@@ -519,7 +580,12 @@ async function loadProgressTable() {
         if (isStudyOnlyModule(m)) {
             scoreDisplay = '—';
         } else if (moduleRecords.length > 0) {
-            scoreDisplay = formatTargetValue(bestScore, m.unit);
+            if (m.unit === '个') {
+                const tot = totalForBestCount(moduleRecords, m.id);
+                scoreDisplay = formatCountScore(bestScore, tot);
+            } else {
+                scoreDisplay = formatTargetValue(bestScore, m.unit);
+            }
         } else {
             scoreDisplay = modSeconds > 0 ? '学习中' : formatTargetValue(0, m.unit);
         }
@@ -573,6 +639,8 @@ async function loadProgressTable() {
                 }
                 if (hasWrongBook(m)) {
                     html += '<button class="btn btn-sm btn-success" onclick="openWrongBook(\'' + m.id + '\')">' + wrongBookButtonLabel(m.id) + '</button>';
+                } else if (/^(reading_p[123]|listening_p[1234])$/.test(m.id)) {
+                    html += '<button class="btn btn-sm btn-success" onclick="openJianyaPartHistory(\'' + m.id + '\',\'' + escapeJsString(m.name) + '\')">历史</button>';
                 } else {
                     html += '<button class="btn btn-sm btn-success" onclick="switchStudentTab(\'history\')">历史</button>';
                 }
@@ -899,6 +967,11 @@ function studentLogout() {
     if (jianyaFrame) {
         jianyaFrame.src = '';
         jianyaFrame.removeAttribute('data-src');
+    }
+    var mockFrame = document.getElementById('jianyaMockIframe');
+    if (mockFrame) {
+        mockFrame.src = '';
+        mockFrame.removeAttribute('data-src');
     }
     clearStudentSession();
     authLogout('student').finally(function() {
@@ -2363,7 +2436,7 @@ async function openGenericIframe(moduleId, moduleName, url, mode) {
         plan_item_id: ctx.plan_item_id,
         unit_id: ctx.unit_id
     };
-    startPracticeClock();
+    if (finalMode !== 'history') startPracticeClock();
     document.body.classList.toggle('student-jianya-wide', /^(reading_p[123]|listening_p[1234])$/.test(normalizedModuleId));
     const paramObj = {
         student_id: currentStudent && currentStudent.student_id,
@@ -2371,7 +2444,7 @@ async function openGenericIframe(moduleId, moduleName, url, mode) {
         module_type: normalizedModuleId,
         module_name: moduleName,
         mode: finalMode,
-        v: '20260904i'
+        v: '20260904parts1'
     };
     if (ctx.plan_item_id != null) paramObj.plan_item_id = ctx.plan_item_id;
     if (ctx.unit_id) paramObj.unit_id = ctx.unit_id;
@@ -2381,7 +2454,8 @@ async function openGenericIframe(moduleId, moduleName, url, mode) {
     }
     const finalUrl = appendModuleParams(url, paramObj);
     showScreen('genericScreen');
-    document.getElementById('genericScreenTitle').textContent = moduleName + (finalMode === 'test' ? '测试' : '学习');
+    const titleSuffix = finalMode === 'test' ? '测试' : (finalMode === 'history' ? '' : '学习');
+    document.getElementById('genericScreenTitle').textContent = moduleName + titleSuffix;
     const genericIframe = document.getElementById('genericIframe');
     // P4 跟读测试需要麦克风；学习页允许自动播放音频
     genericIframe.setAttribute('allow', 'microphone; autoplay');
@@ -2393,6 +2467,7 @@ async function openGenericIframe(moduleId, moduleName, url, mode) {
 async function saveCurrentModuleFallback() {
     const current = window._currentModule;
     if (!current) return;
+    if (current.mode === 'history') return;
     if (current.pendingStudySave) {
         try { await current.pendingStudySave; } catch (e) {}
     }
@@ -2433,7 +2508,9 @@ function exitGenericIframe() {
     } catch(e) {}
     setTimeout(async function() {
         try { await saveCurrentModuleFallback(); } catch(e) { console.error('保存模块兜底时长失败:', e); }
+        try { await maybeCompleteTaskStudyOnLeave(); } catch(e) { console.warn('任务自动打勾失败:', e); }
         finishGenericIframeClose();
+        try { loadTodayTasks(); } catch(e) {}
     }, 700);
 }
 
@@ -2617,6 +2694,13 @@ window.addEventListener('message', async function(event) {
             } else if (!result.skipped) {
                 showToast(moduleType === 'speaking' ? '口语练习进度已保存' : '学习时长已保存');
                 try { loadProgressTable(); } catch(e) {}
+                // 写作词伙等：上报学习完成后，任务模式下同步打勾
+                if (window._currentTaskContext && window._currentTaskContext.plan_item_id &&
+                    (data.type === 'phraseStudyComplete' || data.type === 'genericStudyComplete') &&
+                    moduleType !== 'reading_synonym' && moduleType !== 'listening_p4_speed' &&
+                    moduleType !== 'speaking') {
+                    try { await maybeCompleteTaskStudyOnLeave({ minSeconds: 5 }); } catch (e2) {}
+                }
             }
             return;
         }

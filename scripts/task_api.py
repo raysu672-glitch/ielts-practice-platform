@@ -3796,6 +3796,39 @@ def _student_overview_row(
     }
 
 
+def student_task_snapshot(
+    conn: sqlite3.Connection,
+    student_id: str,
+    name: str = "",
+    *,
+    task_date: Optional[str] = None,
+    now: Optional[datetime] = None,
+) -> dict[str, Any]:
+    """One student's task/plan health for teacher detail pages."""
+    ensure_task_tables(conn)
+    if task_date:
+        try:
+            datetime.strptime(task_date, "%Y-%m-%d")
+        except ValueError as exc:
+            raise ValueError("日期格式应为 YYYY-MM-DD") from exc
+    task_date = task_date or china_ymd(now)
+    dt = now or datetime.now(timezone.utc)
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    hour = dt.astimezone(SHANGHAI).hour
+    sid = str(student_id or "").strip()
+    display_name = str(name or "").strip()
+    if not display_name:
+        row = conn.execute(
+            "SELECT name FROM students WHERE student_id=?",
+            (sid,),
+        ).fetchone()
+        display_name = (row["name"] if row else "") or sid
+    snap = _student_overview_row(conn, sid, display_name, task_date, hour=hour)
+    snap["task_date"] = task_date
+    return snap
+
+
 def class_overview(
     conn: sqlite3.Connection,
     *,

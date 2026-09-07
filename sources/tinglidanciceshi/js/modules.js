@@ -559,13 +559,58 @@ function getSpeakingTotalQuestions(sessions) {
     return total;
 }
 
-function getBestScore(records) {
-    if (!records || records.length === 0) return 0;
-    return Math.max.apply(null, records.map(function(r) { return Number(r.score) || 0; }));
+function isCountScoreModule(moduleId) {
+    return /^(reading|listening)_p[1-4]$/.test(normalizeModuleType(moduleId));
 }
 
-function getPassCount(records) {
-    return (records || []).filter(function(r) { return !!r.is_passed; }).length;
+function recordScoreValue(record, unit) {
+    if (unit === '个') {
+        var correct = Number(record && record.correct_count);
+        if (Number.isFinite(correct)) return correct;
+    }
+    return Number(record && record.score) || 0;
+}
+
+function getBestScore(records, unit) {
+    if (!records || records.length === 0) return 0;
+    return Math.max.apply(null, records.map(function(r) { return recordScoreValue(r, unit); }));
+}
+
+function partPaperQuestionCount(moduleId) {
+    var id = normalizeModuleType(moduleId);
+    if (id === 'reading_p1' || id === 'reading_p2') return 13;
+    if (id === 'reading_p3') return 14;
+    if (/^listening_p[1-4]$/.test(id)) return 10;
+    return 0;
+}
+
+function totalForBestCount(records, moduleId) {
+    var paper = partPaperQuestionCount(moduleId);
+    var maxStored = 0;
+    (records || []).forEach(function(r) {
+        var n = Number(r && r.total_count);
+        if (Number.isFinite(n) && n > maxStored) maxStored = n;
+    });
+    return Math.max(paper, maxStored);
+}
+
+function formatCountScore(correct, total) {
+    if (total > 0) return correct + '/' + total;
+    return correct + '个';
+}
+
+function getPassCount(records, unit, target) {
+    return (records || []).filter(function(r) {
+        if (unit === '个') {
+            var goal = Number(target);
+            if (!Number.isFinite(goal) || goal <= 0) goal = Number(r && r.pass_threshold);
+            if (Number(r && r.pass_threshold) >= 50 && Number(r && r.total_count) > 0 && Number(r.pass_threshold) > Number(r.total_count)) {
+                goal = Number(target) || 0;
+            }
+            return recordScoreValue(r, '个') >= goal && goal > 0;
+        }
+        return !!(r && r.is_passed);
+    }).length;
 }
 
 function getStudentTargetScoreValue(student) {
