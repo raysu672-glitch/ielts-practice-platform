@@ -33,8 +33,24 @@ if str(_SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(_SCRIPTS_DIR))
 
 from ai_config import ai_settings, load_ai_env, load_env_file  # noqa: E402
-from luboke_api import get_course, load_courses, public_course  # noqa: E402
-from oss_sign import oss_configured, oss_settings, sign_get_url  # noqa: E402
+try:
+    from luboke_api import get_course, load_courses, public_course  # noqa: E402
+    from oss_sign import oss_configured, sign_get_url  # noqa: E402
+except ImportError:  # Recorded-course modules are optional; homework deploy must still boot.
+    def get_course(*_a, **_k):
+        return None
+
+    def load_courses(*_a, **_k):
+        return []
+
+    def public_course(item):
+        return item
+
+    def oss_configured(*_a, **_k):
+        return False
+
+    def sign_get_url(*_a, **_k):
+        raise RuntimeError("录播课模块未部署")
 from cors_utils import cors_headers_for_origin  # noqa: E402
 from password_utils import authenticate_row_password, hash_password, is_password_hashed  # noqa: E402
 from session_auth import (  # noqa: E402
