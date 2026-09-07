@@ -2004,6 +2004,7 @@ def put_plan_draft(
                 status,
             ),
         )
+    raw_eff = effective_from
     eff_ymd = normalize_effective_from(effective_from)
     conn.execute(
         """
@@ -2016,13 +2017,18 @@ def put_plan_draft(
         """,
         (student_id, china_ymd(), eff_ymd),
     )
-    # First plan (live empty): apply immediately so student is not stuck a day with no tasks.
     live_n = conn.execute(
         "SELECT COUNT(*) AS c FROM plan_items WHERE student_id=? AND status!='removed'",
         (student_id,),
     ).fetchone()["c"]
     today = china_ymd()
-    if live_n == 0 or eff_ymd <= today:
+    # Apply when due. Empty live + omitted effective_from still goes live today
+    # (API/tests convenience). An explicit future date is always respected —
+    # otherwise「明天生效」on a first plan would still create today's tasks.
+    apply_now = eff_ymd <= today or (
+        live_n == 0 and (raw_eff is None or raw_eff == "")
+    )
+    if apply_now:
         apply_draft_to_live(conn, student_id)
         conn.execute("DELETE FROM plan_draft_meta WHERE student_id=?", (student_id,))
         if eff_ymd == today and live_n > 0:

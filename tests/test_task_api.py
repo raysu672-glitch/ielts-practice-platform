@@ -349,6 +349,30 @@ class TaskApiTests(unittest.TestCase):
         ).fetchone()["c"]
         self.assertEqual(live, 1)
 
+    def test_first_plan_explicit_tomorrow_stays_draft(self) -> None:
+        """Teacher chose 明天生效 on an empty live plan — no tasks until that day."""
+        conn = _connect()
+        tomorrow = (datetime.now(SHANGHAI) + timedelta(days=1)).strftime("%Y-%m-%d")
+        put_plan_draft(
+            conn,
+            "2025001",
+            [{"item_type": "study", "unit_id": "reading_synonym_u01"}],
+            effective_from=tomorrow,
+        )
+        live = conn.execute(
+            "SELECT COUNT(*) AS c FROM plan_items WHERE student_id='2025001' AND status!='removed'"
+        ).fetchone()["c"]
+        self.assertEqual(live, 0)
+        plan = get_plan(conn, "2025001")
+        self.assertTrue(plan["pending_plan_change"])
+        self.assertEqual(plan["draft_effective_from"], tomorrow)
+        daily = build_daily_tasks(conn, "2025001", china_ymd())
+        self.assertEqual(daily, [])
+        live_after = conn.execute(
+            "SELECT COUNT(*) AS c FROM plan_items WHERE student_id='2025001' AND status!='removed'"
+        ).fetchone()["c"]
+        self.assertEqual(live_after, 0)
+
     def test_draft_applies_next_day_only(self) -> None:
         conn = _connect()
         # Seed live first
