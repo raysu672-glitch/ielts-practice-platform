@@ -2696,9 +2696,10 @@ window.addEventListener('message', async function(event) {
             } else if (!result.skipped) {
                 showToast(moduleType === 'speaking' ? '口语练习进度已保存' : '学习时长已保存');
                 try { loadProgressTable(); } catch(e) {}
-                // 写作词伙等：上报学习完成后，任务模式下同步打勾
+                // 写作词伙 / 听力基础等：上报学习完成后，任务模式下同步打勾
                 if (window._currentTaskContext && window._currentTaskContext.plan_item_id &&
-                    (data.type === 'phraseStudyComplete' || data.type === 'genericStudyComplete') &&
+                    (data.type === 'phraseStudyComplete' || data.type === 'genericStudyComplete' ||
+                     data.type === 'listeningStudyComplete') &&
                     moduleType !== 'reading_synonym' && moduleType !== 'listening_p4_speed' &&
                     moduleType !== 'speaking') {
                     try { await maybeCompleteTaskStudyOnLeave({ minSeconds: 5 }); } catch (e2) {}
