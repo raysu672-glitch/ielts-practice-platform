@@ -2572,10 +2572,12 @@ function exitListening() {
     } catch(e) {}
     setTimeout(async function() {
         try { await saveCurrentModuleFallback(); } catch(e) { console.error('保存听力学习兜底时长失败:', e); }
+        try { await maybeCompleteTaskStudyOnLeave(); } catch(e) { console.warn('任务自动打勾失败:', e); }
         stopPracticeClock();
         window._currentModule = null;
         document.getElementById('listeningIframe').src = '';
         showStudentHome();
+        try { loadTodayTasks(); } catch(e) {}
     }, 700);
 }
 
