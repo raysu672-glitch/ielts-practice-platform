@@ -6,6 +6,7 @@ Caller enforces session identity. All dates use Asia/Shanghai calendar days.
 from __future__ import annotations
 
 import json
+import re
 import sqlite3
 from collections import OrderedDict
 from datetime import datetime, timedelta, timezone
@@ -79,6 +80,11 @@ WRITING_PHRASE_CATEGORIES = [
     ("网络科技类", "网络科技类"),
     ("政府社会类", "政府社会类"),
 ]
+WRITING_PHRASE_PER_UNIT = 10
+_PHRASE_ITEM_RE = re.compile(
+    r"\{\s*zh:\s*(['\"])((?:\\.|(?!\1).)*)\1\s*,\s*en:\s*(['\"])((?:\\.|(?!\3).)*)\3\s*\}",
+    re.S,
+)
 SPEAKING_COMPLEX_PATTERNS = [f"p{i}" for i in range(1, 8)]
 SPEAKING_COMPLEX_ADV = [f"a{i}" for i in range(1, 11)]
 SPEAKING_P2_MATERIALS = [
@@ -125,7 +131,7 @@ EXPECTED_TASK_UNIT_COUNTS = {
     "listening_basic": 41,
     "listening_synonym": 24,
     "sentence": 12,
-    "writing_phrase": 14,
+    "writing_phrase": 28,
     "writing_translate": 23,
     "listening_p4_speed": 24,
     "speaking_complex": 17,
@@ -609,6 +615,63 @@ def _load_p1_question_keys() -> list[str]:
     return keys
 
 
+def _unescape_js_string(raw: str) -> str:
+    return (
+        str(raw or "")
+        .replace("\\'", "'")
+        .replace('\\"', '"')
+        .replace("\\\\", "\\")
+    )
+
+
+def _parse_phrase_items(block: str) -> list[dict[str, str]]:
+    out: list[dict[str, str]] = []
+    for m in _PHRASE_ITEM_RE.finditer(block or ""):
+        out.append(
+            {
+                "zh": _unescape_js_string(m.group(2)),
+                "en": _unescape_js_string(m.group(4)),
+            }
+        )
+    return out
+
+
+def _load_writing_phrase_by_category() -> OrderedDict[str, list[dict[str, str]]]:
+    """Load phrase banks from xiezuocihuo sources (foundation + categories)."""
+    by_cat: OrderedDict[str, list[dict[str, str]]] = OrderedDict()
+
+    game_path = _REPO_ROOT / "sources" / "xiezuocihuo" / "game.js"
+    if game_path.is_file():
+        text = game_path.read_text(encoding="utf-8")
+        m = re.search(r"foundationVocab\s*=\s*\[(.*?)\];", text, re.S)
+        if m:
+            by_cat["__foundation__"] = _parse_phrase_items(m.group(1))
+
+    cat_path = _REPO_ROOT / "sources" / "xiezuocihuo" / "categories.js"
+    if cat_path.is_file():
+        text = cat_path.read_text(encoding="utf-8")
+        for block in re.split(r"\{\s*id:\s*", text)[1:]:
+            if block.startswith("'"):
+                end = block.find("'", 1)
+                if end < 0:
+                    continue
+                cat_id = block[1:end]
+                rest = block[end + 1 :]
+            elif block.startswith('"'):
+                end = block.find('"', 1)
+                if end < 0:
+                    continue
+                cat_id = block[1:end]
+                rest = block[end + 1 :]
+            else:
+                continue
+            if not cat_id:
+                continue
+            by_cat[cat_id] = _parse_phrase_items(rest)
+
+    return by_cat
+
+
 def _load_translation_items() -> list[dict[str, Any]]:
     path = _REPO_ROOT / "sources" / "juzifanyixin" / "translation_data.json"
     if not path.is_file():
@@ -710,19 +773,52 @@ def seed_mvp_units(conn: sqlite3.Connection) -> None:
             study_url=f"../changnanju/index.html?from={nums[0]}&to={nums[-1]}",
         )
 
-    for idx, (cat_id, cat_name) in enumerate(WRITING_PHRASE_CATEGORIES, start=1):
-        _upsert_task_unit(
-            conn,
-            unit_id=f"writing_phrase_u{idx:02d}",
-            module_type="writing_phrase",
-            parent_module="writing_phrase",
-            unit_no=idx,
-            title=cat_name,
-            content_ref={"categoryId": cat_id, "scope_total": 1},
-            est_minutes=20,
-            completion_rule="category_round_once",
-            study_url=f"../xiezuocihuo/index.html?categoryId={cat_id}",
-        )
+    phrase_bank = _load_writing_phrase_by_category()
+    phrase_unit_no = 0
+    for cat_id, cat_name in WRITING_PHRASE_CATEGORIES:
+        rows = list(phrase_bank.get(cat_id) or [])
+        if not rows:
+            phrase_unit_no += 1
+            _upsert_task_unit(
+                conn,
+                unit_id=f"writing_phrase_u{phrase_unit_no:02d}",
+                module_type="writing_phrase",
+                parent_module="writing_phrase",
+                unit_no=phrase_unit_no,
+                title=cat_name,
+                content_ref={"categoryId": cat_id, "scope_total": 1},
+                est_minutes=15,
+                completion_rule="category_round_once",
+                study_url=f"../xiezuocihuo/index.html?categoryId={cat_id}",
+            )
+            continue
+        for j in range(0, len(rows), WRITING_PHRASE_PER_UNIT):
+            chunk = rows[j : j + WRITING_PHRASE_PER_UNIT]
+            phrase_unit_no += 1
+            start = j + 1
+            end = j + len(chunk)
+            indexes = list(range(j, j + len(chunk)))
+            _upsert_task_unit(
+                conn,
+                unit_id=f"writing_phrase_u{phrase_unit_no:02d}",
+                module_type="writing_phrase",
+                parent_module="writing_phrase",
+                unit_no=phrase_unit_no,
+                title=f"{cat_name} · {start}-{end}",
+                content_ref={
+                    "categoryId": cat_id,
+                    "itemIndexes": indexes,
+                    "from": start,
+                    "to": end,
+                    "scope_total": len(chunk),
+                },
+                est_minutes=15,
+                completion_rule="phrases_once",
+                study_url=(
+                    f"../xiezuocihuo/index.html?categoryId={cat_id}"
+                    f"&from={start}&to={end}"
+                ),
+            )
 
     by_cat: OrderedDict[str, list[dict[str, Any]]] = OrderedDict()
     for it in _load_translation_items():

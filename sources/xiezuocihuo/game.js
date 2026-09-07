@@ -163,7 +163,8 @@ function buildCategoryPage() {
   });
 }
 
-function selectCategory(catId) {
+function selectCategory(catId, options) {
+  options = options || {};
   var catName, catVocab;
 
   if (catId === '__foundation__') {
@@ -178,6 +179,26 @@ function selectCategory(catId) {
 
   currentCategoryId = catId;
   vocab = catVocab.slice();   // 副本，shuffle不影响原数组
+
+  var fromIdx = options.fromIndex;
+  var toIdx = options.toIndex;
+  if (fromIdx == null && options.from != null) {
+    fromIdx = Math.max(0, Number(options.from) - 1);
+  }
+  if (toIdx == null && options.to != null) {
+    toIdx = Math.max(0, Number(options.to) - 1);
+  }
+  if (fromIdx != null || toIdx != null) {
+    var start = fromIdx != null && !isNaN(fromIdx) ? fromIdx : 0;
+    var end = toIdx != null && !isNaN(toIdx) ? (toIdx + 1) : vocab.length;
+    if (start < 0) start = 0;
+    if (end > vocab.length) end = vocab.length;
+    if (start < end) {
+      vocab = vocab.slice(start, end);
+      catName = catName + ' · ' + (start + 1) + '-' + end;
+    }
+  }
+
   phraseStartTime = Date.now(); // 记录学习开始时间
 
   // 更新 header 徽章
@@ -1385,9 +1406,23 @@ function showSynthesisModal(phrases) {
 }
 
 /* ══════════════════════════════════════════════════
-   初始化：构建分类页（不自动开始游戏）
+   初始化：构建分类页；任务模式带 categoryId/from/to 时直接进入
 ══════════════════════════════════════════════════ */
 buildCategoryPage();
+
+(function applyTaskQueryParams() {
+  try {
+    var params = new URLSearchParams(window.location.search || '');
+    var catId = params.get('categoryId') || params.get('category') || '';
+    if (!catId) return;
+    var fromRaw = params.get('from');
+    var toRaw = params.get('to');
+    var opts = {};
+    if (fromRaw != null && fromRaw !== '') opts.from = Number(fromRaw);
+    if (toRaw != null && toRaw !== '') opts.to = Number(toRaw);
+    selectCategory(catId, opts);
+  } catch (e) {}
+})();
 
 /* ── 监听父页面请求保存（主页面返回时触发） ── */
 window.addEventListener('message', function(e) {

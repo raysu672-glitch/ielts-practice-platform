@@ -126,7 +126,7 @@ class TaskApiTests(unittest.TestCase):
             "listening_basic": 41,
             "listening_synonym": 24,
             "sentence": 12,
-            "writing_phrase": 14,
+            "writing_phrase": 28,
             "writing_translate": 23,
             "listening_p4_speed": 24,
             "speaking_complex": 17,
