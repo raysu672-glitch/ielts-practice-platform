@@ -7,7 +7,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;600&family=Noto+Serif+SC:wght@600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css?v=20260904apply">
+    <link rel="stylesheet" href="style.css?v=20260908p2ai2">
 </head>
 <body>
     <!-- 顶部导航 -->
@@ -203,9 +203,32 @@
 
                         <div class="p2-apply-blocks" id="p2ApplyBlocks"></div>
 
-                        <div class="action-buttons">
-                            <button class="btn btn-secondary" id="p2PrevQBtn">上一题</button>
-                            <button class="btn btn-primary" id="p2NextQBtn">下一题</button>
+                        <div class="action-buttons p2-practice-actions">
+                            <button type="button" class="btn btn-secondary" id="p2PrevQBtn">上一题</button>
+                            <button type="button" class="btn btn-primary" id="p2StartRecordBtn">
+                                <span>🎙️</span> <span id="p2RecordBtnLabel">开始练习</span>
+                            </button>
+                            <button type="button" class="btn btn-primary" id="p2NextQBtn">下一题</button>
+                        </div>
+
+                        <div class="ai-section p2-ai-section" id="p2AiSection">
+                            <div class="ai-header">
+                                <h3>AI 雅思评分（Part 2）</h3>
+                            </div>
+                            <div class="recording-status" id="p2RecordingStatus" style="display: none;">
+                                <div class="status-indicator" id="p2StatusIndicator">🎙️ 正在录音...</div>
+                                <div class="transcript-preview" id="p2TranscriptPreview"></div>
+                            </div>
+                            <button type="button" class="btn btn-ai" id="p2AiEvaluateBtn" disabled>
+                                <span>✨</span> AI 评分
+                            </button>
+                            <div class="ai-result" id="p2AiResult" style="display: none;">
+                                <div class="loading" id="p2AiLoading" style="display: none;">
+                                    <div class="spinner"></div>
+                                    <p>AI 正在分析你的 Part 2 回答...</p>
+                                </div>
+                                <div class="result-content" id="p2ResultContent"></div>
+                            </div>
                         </div>
                     </div>
                 </section>
@@ -218,7 +241,7 @@
     <script src="p2-data.js?v=20260904apply"></script>
     <script src="audio/p2/manifest.js?v=20260824b"></script>
     <script src="audio/manifest.js?v=20260825p1audio"></script>
-    <script src="app.js?v=20260904examcal"></script>
-    <script src="p2-app.js?v=20260904examcal"></script>
+    <script src="app.js?v=20260908p2dur90"></script>
+    <script src="p2-app.js?v=20260908p2ai2"></script>
 </body>
 </html>

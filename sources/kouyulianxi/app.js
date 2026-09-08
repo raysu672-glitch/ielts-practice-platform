@@ -407,7 +407,7 @@ class P1Practice {
         return (!n || isNaN(n)) ? null : n;
     }
 
-    recordBestScore(q, overall) {
+    recordBestScore(q, overall, part = 'p1') {
         const key = this.scoreKeyForQuestion(q);
         const n = Number(overall);
         if (!key || !n || isNaN(n)) return false;
@@ -418,11 +418,11 @@ class P1Practice {
             this.bestScores[key] = n;
             this.refreshSidebarBestScore(key);
         }
-        this.persistBestScoreToServer(qText, n);
+        this.persistBestScoreToServer(qText, n, part);
         return true;
     }
 
-    async persistBestScoreToServer(questionText, overall) {
+    async persistBestScoreToServer(questionText, overall, part = 'p1') {
         const qText = String(questionText || '').trim();
         const n = Number(overall);
         if (!qText || !n || isNaN(n)) return;
@@ -431,7 +431,7 @@ class P1Practice {
                 method: 'POST',
                 credentials: 'include',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ question: qText, score: n, part: 'p1' })
+                body: JSON.stringify({ question: qText, score: n, part: part || 'p1' })
             });
             if (!res.ok) return;
             const payload = await res.json();
@@ -1815,65 +1815,19 @@ class P1Practice {
         const cat = this.data.categories[this.currentCategoryIndex];
         const q = cat.questions[this.currentQuestionIndex];
         const evalKey = this.currentQuestionKey();
-        this._evalContext = { cat, q, key: evalKey };
-        
-        const metrics = this.extractSpeakingMetrics(
-            fullTranscript,
-            this.lastAsrResult,
-            this.lastRecordingDurationS
-        );
-        const prompt = this.buildEvaluationPrompt(cat, q, fullTranscript, metrics);
+        this._evalContext = { cat, q, key: evalKey, part: 'p1', durationS: Number(this.lastRecordingDurationS) || 0 };
         
         try {
-            const response = await fetch('/api/ai/messages', {
-                method: 'POST',
-                credentials: 'include',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    max_tokens: 4000,
-                    messages: [
-                        {
-                            role: 'user',
-                            content: prompt
-                        }
-                    ],
-                    system: this.getSpeakingSystemPrompt(),
-                    temperature: 0.3
-                })
+            const parsed = await this.evaluateSpeakingAnswer({
+                part: 'p1',
+                question: q,
+                categoryName: cat.name,
+                transcript: fullTranscript,
+                asrResult: this.lastAsrResult,
+                durationS: this.lastRecordingDurationS,
+                mount: { result: resultDiv, loading: loadingDiv, content: contentDiv }
             });
-            
-            if (response.status === 401) {
-                throw new Error('请先登录主站后再使用 AI 评分');
-            }
-            if (!response.ok) {
-                const errorText = await response.text();
-                throw new Error(`API 错误 ${response.status}: ${errorText.substring(0, 200)}`);
-            }
-            
-            const data = await response.json();
-            console.log('API 返回数据:', data);
-            
-            // 尝试多种可能的返回格式
-            let aiResponse = '';
-            if (data.content && data.content[0] && data.content[0].text) {
-                aiResponse = data.content[0].text;  // Anthropic 格式
-            } else if (data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content) {
-                aiResponse = data.choices[0].message.content;  // OpenAI 格式
-            } else if (data.output) {
-                aiResponse = data.output;
-            } else if (data.text) {
-                aiResponse = data.text;
-            } else if (data.result) {
-                aiResponse = data.result;
-            } else {
-                aiResponse = JSON.stringify(data);
-            }
-            
-            loadingDiv.style.display = 'none';
-            this.renderAIResult(aiResponse, evalKey);
-            
+            this.renderAIResultFromParsed(parsed, evalKey);
         } catch (error) {
             loadingDiv.style.display = 'none';
             if (evalKey === this.currentQuestionKey()) {
@@ -1886,6 +1840,163 @@ class P1Practice {
                 `;
             }
         }
+    }
+
+    /** 上传录音到 P4 ASR，供 P1/P2 复用。返回 { transcript, data } */
+    async transcribeAudioBlob(blob) {
+        if (!blob || blob.size < 1000) {
+            throw new Error('录音太短，请重试');
+        }
+        const urls = [this.transcribeUrl];
+        if (this.transcribeUrl === '/api/p4/transcribe') {
+            urls.push('https://p4.oyenglish.com.cn/transcribe');
+        }
+        let lastError = null;
+        for (const url of urls) {
+            try {
+                const form = new FormData();
+                form.append('file', blob, 'recording.webm');
+                const res = await fetch(url, {
+                    method: 'POST',
+                    body: form,
+                    credentials: url.startsWith('/') ? 'include' : 'omit'
+                });
+                if (!res.ok) {
+                    const errText = await res.text();
+                    throw new Error('HTTP ' + res.status + ': ' + errText.substring(0, 200));
+                }
+                const data = await res.json();
+                if (data && data.error) throw new Error(data.error);
+                const transcript = (data.recognizedText || data.text || data.transcript || '').trim();
+                return { transcript, data };
+            } catch (err) {
+                lastError = err;
+                console.warn('识别失败，尝试下一个地址:', url, err);
+            }
+        }
+        throw lastError || new Error('语音识别失败');
+    }
+
+    /**
+     * 通用口语评分（P1/P2）。
+     * mount: { result, loading, content } DOM 节点
+     * 返回 parseAIEvaluation 结果；不负责写入 P1 会话缓存。
+     */
+    async evaluateSpeakingAnswer({
+        part = 'p1',
+        question,
+        categoryName = '',
+        transcript,
+        asrResult = null,
+        durationS = 0,
+        mount = null
+    } = {}) {
+        await this.loadPublicConfig();
+        if (!this.aiConfigured) {
+            throw new Error('AI 未配置：请在服务器 config/ai.env 中设置 AI_API_KEY 后重启服务');
+        }
+        const fullTranscript = String(transcript || '').trim();
+        if (fullTranscript.length < 5) {
+            throw new Error('录音内容太短，请先完成练习');
+        }
+        const resultDiv = mount && mount.result;
+        const loadingDiv = mount && mount.loading;
+        const contentDiv = mount && mount.content;
+        if (resultDiv) resultDiv.style.display = 'block';
+        if (loadingDiv) loadingDiv.style.display = 'block';
+        if (contentDiv) contentDiv.innerHTML = '';
+
+        const cat = { name: categoryName || (part === 'p2' ? 'Part 2' : 'Part 1') };
+        const q = question || { q: '', title: '' };
+        this._evalContext = { cat, q, part, durationS: Number(durationS) || 0 };
+
+        const metrics = this.extractSpeakingMetrics(fullTranscript, asrResult, durationS);
+        const prompt = this.buildEvaluationPrompt(cat, q, fullTranscript, metrics, { part });
+
+        try {
+            const response = await fetch('/api/ai/messages', {
+                method: 'POST',
+                credentials: 'include',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    max_tokens: 4000,
+                    messages: [{ role: 'user', content: prompt }],
+                    system: this.getSpeakingSystemPrompt(),
+                    temperature: 0.3
+                })
+            });
+            if (response.status === 401) {
+                throw new Error('请先登录主站后再使用 AI 评分');
+            }
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`API 错误 ${response.status}: ${errorText.substring(0, 200)}`);
+            }
+            const data = await response.json();
+            let aiResponse = '';
+            if (data.content && data.content[0] && data.content[0].text) {
+                aiResponse = data.content[0].text;
+            } else if (data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content) {
+                aiResponse = data.choices[0].message.content;
+            } else if (data.output) {
+                aiResponse = data.output;
+            } else if (data.text) {
+                aiResponse = data.text;
+            } else if (data.result) {
+                aiResponse = data.result;
+            } else {
+                aiResponse = JSON.stringify(data);
+            }
+            if (loadingDiv) loadingDiv.style.display = 'none';
+            const parsed = this.parseAIEvaluation(aiResponse);
+            parsed.transcript = parsed.transcript || fullTranscript;
+            if (contentDiv) {
+                contentDiv.innerHTML = this.renderScoreHTML(parsed);
+            }
+            if (resultDiv) resultDiv.style.display = 'block';
+            if (q && parsed.overall != null) {
+                this.recordBestScore(q, parsed.overall, part);
+                if (part === 'p2' && window.p2Practice && window.p2Practice.bestScores) {
+                    const key = this.scoreKeyForQuestion(q);
+                    const n = Number(parsed.overall);
+                    if (key && n && !isNaN(n)) {
+                        const prev = Number(window.p2Practice.bestScores[key]);
+                        if (!prev || n > prev) window.p2Practice.bestScores[key] = n;
+                    }
+                }
+            }
+            this.reportScoreToParent(parsed);
+            return parsed;
+        } catch (error) {
+            if (loadingDiv) loadingDiv.style.display = 'none';
+            throw error;
+        }
+    }
+
+    renderAIResultFromParsed(parsed, evalKey = null) {
+        const html = this.renderScoreHTML(parsed);
+        const key = evalKey || this.currentQuestionKey();
+        if (key) {
+            const prev = this.questionSessions[key] || {};
+            this.questionSessions[key] = {
+                ...prev,
+                transcript: parsed.transcript || prev.transcript || this.transcript || '',
+                aiHtml: html,
+                aiVisible: true,
+                aiEvaluateEnabled: true,
+                feedbackVisible: true,
+                overall: parsed.overall != null ? Number(parsed.overall) : prev.overall
+            };
+        }
+        if (key && key !== this.currentQuestionKey()) {
+            return;
+        }
+        const contentDiv = document.getElementById('resultContent');
+        const resultDiv = document.getElementById('aiResult');
+        if (contentDiv) contentDiv.innerHTML = html;
+        if (resultDiv) resultDiv.style.display = 'block';
+        this.setPracticeButtonMode('again');
+        this.persistLoadedQuestionSession();
     }
     
     getSpeakingSystemPrompt() {
@@ -2324,7 +2435,8 @@ class P1Practice {
     }
 
     // 构建评分提示词（对齐 ielts-speaking-prompt.md）
-    buildEvaluationPrompt(cat, q, transcript, metrics) {
+    buildEvaluationPrompt(cat, q, transcript, metrics, opts = {}) {
+        const part = (opts && opts.part) === 'p2' ? 'p2' : 'p1';
         const m = metrics || this.extractSpeakingMetrics(transcript, this.lastAsrResult, this.lastRecordingDurationS);
         let pauseLines = '';
         if (m.long_pauses && m.long_pauses.length) {
@@ -2348,25 +2460,39 @@ class P1Practice {
         const tsNote = m.has_word_timestamps
             ? ''
             : '\n（说明：当前 ASR 未返回词级时间戳，长停顿/词时长信号可能为空；请主要依据转录、语速、填充词与连接词评分。）\n';
-        const usedChips = this.getUsedWordChips();
-        const chipNote = usedChips.length
-            ? `\n## 学生勾选的提示词块（练习辅助，不是扣分项）\n学生练习时点选了这些词块：${usedChips.join(', ')}\n评分时：若转录中确实用到了这些表达，可在 LR/FC 中认可；不要因为“没用词块”扣分；也不要仅因点选了词块就抬高分数，以实际说出的话为准。\n`
-            : '\n## 学生勾选的提示词块\n（未勾选或未记录）评分只看实际口述转录，不要因为没用词块扣分。\n';
+        const usedChips = part === 'p1' ? this.getUsedWordChips() : [];
+        const chipNote = part === 'p1'
+            ? (usedChips.length
+                ? `\n## 学生勾选的提示词块（练习辅助，不是扣分项）\n学生练习时点选了这些词块：${usedChips.join(', ')}\n评分时：若转录中确实用到了这些表达，可在 LR/FC 中认可；不要因为“没用词块”扣分；也不要仅因点选了词块就抬高分数，以实际说出的话为准。\n`
+                : '\n## 学生勾选的提示词块\n（未勾选或未记录）评分只看实际口述转录，不要因为没用词块扣分。\n')
+            : '\n';
         const examSignals = this.buildExaminerSignals(q.q || q.title || '', m.transcript || transcript, q);
         const tr = examSignals.topic_relevance || {};
+        const cuePoints = Array.isArray(q.cuePoints) ? q.cuePoints : [];
+        const cueBlock = part === 'p2' && cuePoints.length
+            ? `\n## 题目提示点（Cue points）\n${cuePoints.map((c, i) => `${i + 1}. ${c}`).join('\n')}\n`
+            : '';
+        const partLabel = part === 'p2' ? 'PART2' : 'PART1';
+        const partExtra = part === 'p2'
+            ? `- 这是 Part 2 长轮（约 1–2 分钟）。词数明显不足（如 <80 词）或未展开 → FC 倾向 5 或更低；不必逐字背素材，但要扣题并有开头/展开/收尾
+- **硬性规则：录音总时长不足 90 秒时，overall 不得超过 5.5**（即使四项平均更高也必须压到 ≤5.5），并在反馈中明确写出「时长不足」
+- 评估是否覆盖主要 cue points；遗漏过多写入反馈
+- 不要因为用了课堂素材就额外加分，以实际口述为准`
+            : `- 这是 Part 1 短问答；切题作答即可`;
 
-        return `请评估以下学生的雅思口语 PART1 回答。
+        return `请评估以下学生的雅思口语 ${partLabel} 回答。
 重要：
 - FC/LR/GRA/Pron 的 band 必须是 1–9 的整数（禁止 0，禁止 0.5）
 - overall 可以是 0.5 间隔（四项平均后 .25进.5，.75进整）
 - 按真实考官多份模考校准：6.5≈FC7+Pron7+LR/GRA6（Chen Aiyu）；6.0 常见四项6或Pron/LR单项7；5.5常见FC5或GRA5（含时态+关系代词不准）；4.5常见FC4短答/中段停顿。FC差会拖Pron；复述题目挡6.5+；paraphrase卡壳可把LR从7压回6
 - 语法错误必须列入 errors；错误少但结构过简仍可能是 GRA5；冲 5.5→6 优先：that/which/who、第二条件句、情态动词、稳住 FC
 - 禁止照抄示例数字
+${partExtra}
 
 ## 考试题目
-${q.q}
-题目类型：${cat.name}
-${chipNote}
+${q.q || q.title || ''}
+${q.title && q.q && q.title !== q.q ? `中文题名：${q.title}\n` : ''}题目类型：${(cat && cat.name) || (part === 'p2' ? 'Part 2' : 'Part 1')}
+${cueBlock}${chipNote}
 ## 学生回答转录
 ${m.transcript || transcript}
 
@@ -2385,7 +2511,7 @@ ${examSignals.grammar_structure && examSignals.grammar_structure.simple_split ? 
 
 ### 基础数据
 - 总词数: ${m.total_words}
-- 总时长: ${m.total_duration_s}秒
+- 总时长: ${m.total_duration_s}秒${part === 'p2' && Number(m.total_duration_s) > 0 && Number(m.total_duration_s) < 90 ? ' ⚠️ 不足90秒 → overall 必须 ≤5.5' : ''}
 - 语速: ${m.wpm} WPM（参考：100-140为正常，<90偏慢，>160偏快）
 ${tsNote}
 ### 流利度信号
@@ -2426,7 +2552,7 @@ ${durationIssues}${suspicious}
 
 ### 2. 总分
 四项整数平均后，.25进.5，.75进整（总分可以是 x.5）
-
+${part === 'p2' ? '若总时长 < 90 秒：overall 强制 ≤5.5，并在 problems/反馈中说明时长不足\n' : ''}
 ### 3. 每个单项的详细解析
 每个维度除了分数，还要有完整的 detailed_analysis。
 FC 必须含 naturalness；LR 必须含 chinglish_flags；语法 errors 单独完整列出。
@@ -2928,6 +3054,33 @@ FC 必须含 naturalness；LR 必须含 chinglish_flags；语法 errors 单独�
         const maxOverall = this.maxOverallForTranscript(transcript, topicRel.level);
         if (topicCaps && overallNum > topicCaps.overall) overallNum = topicCaps.overall;
         if (overallNum > maxOverall) overallNum = maxOverall;
+
+        // Part 2 练习硬规则：总时长不足 90 秒，overall 封顶 5.5
+        const evalPart = (this._evalContext && this._evalContext.part) || 'p1';
+        const evalDurationS = Number(
+            (this._evalContext && this._evalContext.durationS)
+            || this.lastRecordingDurationS
+            || 0
+        );
+        let durationCapApplied = false;
+        if (evalPart === 'p2' && evalDurationS > 0 && evalDurationS < 90 && overallNum > 5.5) {
+            overallNum = 5.5;
+            durationCapApplied = true;
+            const durNote = `录音约 ${Math.round(evalDurationS)} 秒，不足 90 秒，按练习标准总分封顶 5.5`;
+            if (!weaknesses.some((w) => String(w).includes('不足 90'))) {
+                weaknesses = [...weaknesses, durNote];
+            }
+            if (!problems.some((p) => String(p && (p.issue || p) || '').includes('不足 90'))) {
+                problems = [
+                    {
+                        issue: durNote,
+                        impact: 'high',
+                        how_to_fix: 'Part 2 建议说到至少 90 秒，把开头、展开和收尾说完整后再停。'
+                    },
+                    ...problems
+                ];
+            }
+        }
         const overall = overallNum.toFixed(1);
         
         // 示范：优先 AI 7 分改写；没有则用本题词块示范
@@ -2944,6 +3097,8 @@ FC 必须含 naturalness；LR 必须含 chinglish_flags；语法 errors 单独�
             grammar: String(grammar),
             pronunciation: String(pronunciation),
             overall,
+            durationCapApplied,
+            evalDurationS: evalDurationS || null,
             reasons,
             detailed,
             pragmaticIssues,
@@ -3825,6 +3980,7 @@ FC 必须含 naturalness；LR 必须含 chinglish_flags；语法 errors 单独�
                 <div class="overall-label">总体 Band 分数</div>
                 <div class="overall-value">${p.overall}</div>
             </div>
+            ${p.durationCapApplied ? `<div class="band-note" style="margin-top:10px;padding:10px 12px;background:#f8e8c8;border-radius:4px;font-size:14px;color:#5c3d0a;">⏱ 录音约 ${Math.round(Number(p.evalDurationS) || 0)} 秒，不足 90 秒：按 Part 2 练习标准，总分已封顶 5.5。</div>` : ''}
             <div class="score-card">
                 <div class="score-item"><div class="score-label">FC</div><div class="score-value ${getBandClass(p.fluency)}">${p.fluency}</div></div>
                 <div class="score-item"><div class="score-label">LR</div><div class="score-value ${getBandClass(p.vocabulary)}">${p.vocabulary}</div></div>

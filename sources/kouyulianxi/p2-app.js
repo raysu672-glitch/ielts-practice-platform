@@ -1,4 +1,4 @@
-// P2：背素材 + 套题练习（第一期无录音评分）
+// P2：背素材 + 套题练习（套题含录音与 AI 评分；背素材不打分）
 class P2Practice {
     constructor() {
         this.data = typeof P2_DATA !== 'undefined' ? P2_DATA : { materials: [], questions: [] };
@@ -17,6 +17,21 @@ class P2Practice {
         this._ttsAudio = null;
         this._ttsUtter = null;
 
+        // 套题录音 / 评分（独立于 P1 DOM）
+        this.isRecording = false;
+        this.isTranscribing = false;
+        this.mediaRecorder = null;
+        this.recordingStream = null;
+        this.recordedChunks = [];
+        this.recordingBlob = null;
+        this.recordingStartedAt = null;
+        this.lastRecordingDurationS = 0;
+        this.transcript = '';
+        this.lastAsrResult = null;
+        this._recordingQIndex = null;
+        this.evalByQuestionId = {}; // id -> { transcript, aiHtml, overall }
+        this.bestScores = {}; // scoreKey -> band
+
         this.progress = this.loadProgress();
         this.bindShell();
         this.bindMemorize();
@@ -24,6 +39,7 @@ class P2Practice {
         this.renderMaterialList();
         this.renderQuestionList();
         this.updateProgressLabel();
+        this.loadBestScoresFromServer();
     }
 
     mainMaterials() {
@@ -209,6 +225,7 @@ class P2Practice {
                 this.selectQuestion(this.questionIndex);
             }
         } else {
+            if (this.isRecording) this.stopRecording();
             this.renderMaterialList();
             if (this.materialId) this.selectMaterial(this.materialId);
         }
@@ -622,6 +639,319 @@ class P2Practice {
             const qid = q && q.id;
             this.speakText(q?.q || q?.title, document.getElementById('p2SpeakQBtn'), qid != null ? `question:${qid}:q` : '');
         });
+        document.getElementById('p2StartRecordBtn')?.addEventListener('click', () => {
+            this.toggleRecording();
+        });
+        document.getElementById('p2AiEvaluateBtn')?.addEventListener('click', () => {
+            this.evaluateWithAI();
+        });
+    }
+
+    p1() {
+        return window.p1Practice || null;
+    }
+
+    canRecord() {
+        const p1 = this.p1();
+        if (p1 && typeof p1.canRecord === 'function') return p1.canRecord();
+        return !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia && window.MediaRecorder);
+    }
+
+    scoreKeyForQuestion(q) {
+        const p1 = this.p1();
+        if (p1 && typeof p1.scoreKeyForQuestion === 'function') return p1.scoreKeyForQuestion(q);
+        const raw = String((q && (q.q || q.title)) || '').toLowerCase();
+        return raw.replace(/[^a-z0-9]+/g, '') || '';
+    }
+
+    formatBestScore(score) {
+        const p1 = this.p1();
+        if (p1 && typeof p1.formatBestScore === 'function') return p1.formatBestScore(score);
+        const n = Number(score);
+        if (!n || isNaN(n)) return '';
+        return (Math.round(n * 2) / 2).toFixed(1);
+    }
+
+    async loadBestScoresFromServer() {
+        try {
+            const res = await fetch('/api/student/speaking-best-scores', { credentials: 'include' });
+            if (!res.ok) return;
+            const payload = await res.json();
+            const scores = (payload && payload.data && payload.data.scores) || {};
+            Object.keys(scores).forEach((k) => {
+                const n = Number(scores[k]);
+                if (k && n && !isNaN(n)) this.bestScores[k] = n;
+            });
+            // 合并 P1 内存分（同账号）
+            const p1 = this.p1();
+            if (p1 && p1.bestScores) {
+                Object.keys(p1.bestScores).forEach((k) => {
+                    const n = Number(p1.bestScores[k]);
+                    if (!k || !n || isNaN(n)) return;
+                    const prev = Number(this.bestScores[k]);
+                    if (!prev || n > prev) this.bestScores[k] = n;
+                });
+            }
+            this.renderQuestionList();
+        } catch (_) { /* 未登录 */ }
+    }
+
+    bestScoreBadgeHtml(q) {
+        const key = this.scoreKeyForQuestion(q);
+        const best = Number(this.bestScores[key]);
+        if (!key || !best || isNaN(best)) return '';
+        return `<span class="p1-best-score" title="历史最高分（账号记录）">Band ${this.escapeHtml(this.formatBestScore(best))}</span>`;
+    }
+
+    setRecordButtonMode(mode) {
+        const label = document.getElementById('p2RecordBtnLabel');
+        const btn = document.getElementById('p2StartRecordBtn');
+        if (!btn) return;
+        if (mode === 'recording') {
+            if (label) label.textContent = '停止录音';
+            btn.classList.add('is-recording');
+            btn.style.background = '#ef4444';
+        } else if (mode === 'again') {
+            if (label) label.textContent = '再练一次';
+            btn.classList.remove('is-recording');
+            btn.style.background = '';
+        } else {
+            if (label) label.textContent = '开始练习';
+            btn.classList.remove('is-recording');
+            btn.style.background = '';
+        }
+    }
+
+    resetEvalUI({ clearResult = true } = {}) {
+        const status = document.getElementById('p2RecordingStatus');
+        const evalBtn = document.getElementById('p2AiEvaluateBtn');
+        const result = document.getElementById('p2AiResult');
+        const content = document.getElementById('p2ResultContent');
+        const preview = document.getElementById('p2TranscriptPreview');
+        const indicator = document.getElementById('p2StatusIndicator');
+        if (status) status.style.display = 'none';
+        if (evalBtn) evalBtn.disabled = true;
+        if (clearResult) {
+            if (result) result.style.display = 'none';
+            if (content) content.innerHTML = '';
+        }
+        if (preview) preview.textContent = '';
+        if (indicator) indicator.textContent = '🎙️ 正在录音...';
+        this.setRecordButtonMode('start');
+    }
+
+    restoreEvalForQuestion(q) {
+        const saved = q && this.evalByQuestionId[q.id];
+        const status = document.getElementById('p2RecordingStatus');
+        const preview = document.getElementById('p2TranscriptPreview');
+        const indicator = document.getElementById('p2StatusIndicator');
+        const evalBtn = document.getElementById('p2AiEvaluateBtn');
+        const result = document.getElementById('p2AiResult');
+        const content = document.getElementById('p2ResultContent');
+        if (!saved || !saved.transcript) {
+            this.transcript = '';
+            this.lastAsrResult = null;
+            this.resetEvalUI({ clearResult: true });
+            return;
+        }
+        this.transcript = saved.transcript;
+        this.lastAsrResult = saved.lastAsrResult || null;
+        this.lastRecordingDurationS = saved.durationS || 0;
+        if (status) status.style.display = 'block';
+        if (indicator) indicator.textContent = '✅ 识别完成';
+        if (preview) preview.textContent = saved.transcript;
+        if (evalBtn) evalBtn.disabled = saved.transcript.length <= 5;
+        this.setRecordButtonMode('again');
+        if (saved.aiHtml && content && result) {
+            content.innerHTML = saved.aiHtml;
+            result.style.display = 'block';
+        } else if (result) {
+            result.style.display = 'none';
+            if (content) content.innerHTML = '';
+        }
+    }
+
+    async toggleRecording() {
+        if (!this.canRecord()) {
+            alert('你的浏览器不支持录音，请使用 Chrome 或 Edge');
+            return;
+        }
+        if (this.isTranscribing) return;
+        if (!this.isRecording) await this.startRecording();
+        else this.stopRecording();
+    }
+
+    async startRecording() {
+        this.stopSpeak();
+        try {
+            this.recordingStream = await navigator.mediaDevices.getUserMedia({
+                audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true }
+            });
+            this._recordingQIndex = this.questionIndex;
+            this.recordedChunks = [];
+            this.recordingBlob = null;
+            this.transcript = '';
+            this.lastAsrResult = null;
+
+            const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
+                ? 'audio/webm;codecs=opus'
+                : (MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : '');
+            this.mediaRecorder = mimeType
+                ? new MediaRecorder(this.recordingStream, { mimeType })
+                : new MediaRecorder(this.recordingStream);
+            this.mediaRecorder.ondataavailable = (e) => {
+                if (e.data && e.data.size > 0) this.recordedChunks.push(e.data);
+            };
+            this.mediaRecorder.onstop = () => {
+                const type = (this.mediaRecorder && this.mediaRecorder.mimeType) || 'audio/webm';
+                this.recordingBlob = new Blob(this.recordedChunks, { type });
+                if (this.recordingStream) {
+                    this.recordingStream.getTracks().forEach((t) => t.stop());
+                    this.recordingStream = null;
+                }
+                this.uploadAndTranscribe();
+            };
+
+            this.isRecording = true;
+            this.recordingStartedAt = Date.now();
+            this.mediaRecorder.start(200);
+            this.setRecordButtonMode('recording');
+            const status = document.getElementById('p2RecordingStatus');
+            const indicator = document.getElementById('p2StatusIndicator');
+            const preview = document.getElementById('p2TranscriptPreview');
+            const evalBtn = document.getElementById('p2AiEvaluateBtn');
+            const result = document.getElementById('p2AiResult');
+            const content = document.getElementById('p2ResultContent');
+            if (status) status.style.display = 'block';
+            if (indicator) indicator.textContent = '🎙️ 正在录音... 请说英语（Part 2 建议说满 1–2 分钟）';
+            if (preview) preview.textContent = '（录音中，停止后上传识别）';
+            if (evalBtn) evalBtn.disabled = true;
+            if (result) result.style.display = 'none';
+            if (content) content.innerHTML = '';
+        } catch (err) {
+            console.error('P2 录音失败:', err);
+            alert('无法访问麦克风，请检查浏览器权限设置');
+            this.isRecording = false;
+            this.resetEvalUI();
+        }
+    }
+
+    stopRecording() {
+        if (!this.isRecording) return;
+        this.isRecording = false;
+        if (this.recordingStartedAt) {
+            this.lastRecordingDurationS = Math.max(0, (Date.now() - this.recordingStartedAt) / 1000);
+            this.recordingStartedAt = null;
+        }
+        this.setRecordButtonMode('again');
+        const indicator = document.getElementById('p2StatusIndicator');
+        const preview = document.getElementById('p2TranscriptPreview');
+        if (indicator) indicator.textContent = '⏳ 录音结束，正在上传识别...';
+        if (preview) preview.textContent = '上传到 P4 ASR，请稍候...';
+        if (this.mediaRecorder && this.mediaRecorder.state !== 'inactive') {
+            this.mediaRecorder.stop();
+        }
+    }
+
+    async uploadAndTranscribe() {
+        const indicator = document.getElementById('p2StatusIndicator');
+        const preview = document.getElementById('p2TranscriptPreview');
+        const evalBtn = document.getElementById('p2AiEvaluateBtn');
+        const p1 = this.p1();
+        if (!p1 || typeof p1.transcribeAudioBlob !== 'function') {
+            if (indicator) indicator.textContent = '⚠️ 评分模块未就绪，请刷新页面';
+            return;
+        }
+        this.isTranscribing = true;
+        try {
+            const { transcript, data } = await p1.transcribeAudioBlob(this.recordingBlob);
+            this.isTranscribing = false;
+            this.lastAsrResult = data;
+            const sameQ = this._recordingQIndex === this.questionIndex;
+            const q = this.data.questions[this._recordingQIndex];
+            if (q) {
+                this.evalByQuestionId[q.id] = {
+                    ...(this.evalByQuestionId[q.id] || {}),
+                    transcript,
+                    lastAsrResult: data,
+                    durationS: this.lastRecordingDurationS,
+                    aiHtml: '',
+                    overall: null
+                };
+            }
+            if (sameQ) {
+                this.transcript = transcript;
+                if (indicator) {
+                    indicator.textContent = transcript.length > 5 ? '✅ 识别完成' : '⚠️ 未识别到有效内容，请重试';
+                }
+                if (preview) preview.textContent = transcript || '（未识别到文字）';
+                if (evalBtn) evalBtn.disabled = transcript.length <= 5;
+                this.setRecordButtonMode('again');
+            }
+        } catch (err) {
+            this.isTranscribing = false;
+            console.error(err);
+            if (indicator) indicator.textContent = '⚠️ 识别失败：' + (err.message || '请重试');
+            if (preview) preview.textContent = '';
+            if (evalBtn) evalBtn.disabled = true;
+        }
+    }
+
+    async evaluateWithAI() {
+        const p1 = this.p1();
+        if (!p1 || typeof p1.evaluateSpeakingAnswer !== 'function') {
+            alert('评分模块未就绪，请刷新页面');
+            return;
+        }
+        const q = this.data.questions[this.questionIndex];
+        if (!q) return;
+        const fullTranscript = String(this.transcript || '').trim();
+        if (fullTranscript.length < 5) {
+            alert('录音内容太短，请先完成练习');
+            return;
+        }
+        const resultDiv = document.getElementById('p2AiResult');
+        const loadingDiv = document.getElementById('p2AiLoading');
+        const contentDiv = document.getElementById('p2ResultContent');
+        try {
+            const parsed = await p1.evaluateSpeakingAnswer({
+                part: 'p2',
+                question: q,
+                categoryName: 'Part 2 套题',
+                transcript: fullTranscript,
+                asrResult: this.lastAsrResult,
+                durationS: this.lastRecordingDurationS,
+                mount: { result: resultDiv, loading: loadingDiv, content: contentDiv }
+            });
+            const key = this.scoreKeyForQuestion(q);
+            const overall = Number(parsed.overall);
+            if (key && overall && !isNaN(overall)) {
+                const prev = Number(this.bestScores[key]);
+                if (!prev || overall > prev) {
+                    this.bestScores[key] = overall;
+                    this.renderQuestionList();
+                }
+            }
+            this.evalByQuestionId[q.id] = {
+                ...(this.evalByQuestionId[q.id] || {}),
+                transcript: fullTranscript,
+                lastAsrResult: this.lastAsrResult,
+                durationS: this.lastRecordingDurationS,
+                aiHtml: contentDiv ? contentDiv.innerHTML : '',
+                overall: overall || null
+            };
+            this.setRecordButtonMode('again');
+        } catch (error) {
+            if (loadingDiv) loadingDiv.style.display = 'none';
+            if (contentDiv) {
+                contentDiv.innerHTML = `
+                    <div class="feedback-section">
+                        <h4>评分失败</h4>
+                        <p class="feedback-text">${this.escapeHtml(error.message || '请稍后重试')}</p>
+                    </div>`;
+            }
+            if (resultDiv) resultDiv.style.display = 'block';
+        }
     }
 
     applyMaterialIds(q) {
@@ -660,6 +990,8 @@ class P2Practice {
             const div = document.createElement('div');
             div.className = 'question-item' + (idx === this.questionIndex ? ' active' : '');
             div.dataset.qIndex = String(idx);
+            const scoreKey = this.scoreKeyForQuestion(q);
+            if (scoreKey) div.dataset.scoreKey = scoreKey;
             const heat = [];
             if (q.tag) heat.push(q.tag);
             if (q.heatRank != null) heat.push(`#${q.heatRank}`);
@@ -672,8 +1004,9 @@ class P2Practice {
                 ? `<span class="p2-side-heat">${this.escapeHtml(heat.join(' · '))}</span>`
                 : '';
             div.classList.add('p2-q-item');
+            const bestBadge = this.bestScoreBadgeHtml(q);
             div.innerHTML = `
-                <div class="question-item-title">${idx + 1}. ${this.escapeHtml(q.title || q.q)}</div>
+                <div class="question-item-title">${idx + 1}. ${this.escapeHtml(q.title || q.q)}${bestBadge ? ' ' + bestBadge : ''}</div>
                 <div class="p2-q-meta">
                     <span class="p2-side-type">${sideNote}</span>
                     ${heatLine}
@@ -685,11 +1018,15 @@ class P2Practice {
 
     selectQuestion(index) {
         if (index < 0 || index >= (this.data.questions || []).length) return;
+        if (this.isRecording) {
+            this.stopRecording();
+        }
         this.questionIndex = index;
         this.hideOpening = false;
         this.expandedMaterial = false;
         this.renderQuestionList();
         this.renderApplyCard();
+        this.restoreEvalForQuestion(this.data.questions[index]);
     }
 
     renderApplyCard() {

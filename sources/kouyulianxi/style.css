@@ -824,6 +824,25 @@ html.is-embedded .p2-main {
     border: 1px solid var(--border);
 }
 
+.p2-ai-section {
+    margin-top: 8px;
+}
+
+.p2-practice-actions {
+    margin-top: 8px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+}
+
+.p2-practice-actions #p2StartRecordBtn {
+    min-width: 140px;
+}
+
+.p2-ai-section .btn.is-recording,
+.p2-practice-actions .btn.is-recording {
+    background: #ef4444;
+}
+
 .ai-header {
     display: flex;
     justify-content: space-between;
