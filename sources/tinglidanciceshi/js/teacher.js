@@ -124,37 +124,126 @@ async function loadTeacherData() {
     }
 }
 
-function studentNameLinkHtml(studentId, studentName) {
+/** 学生详情页「返回汇总」应回到的教师端 Tab（students / progress / records / active） */
+var _studentDetailReturnTab = 'progress';
+
+function studentNameLinkHtml(studentId, studentName, returnTab) {
     const name = studentName || studentId || '-';
     if (!studentId) return escapeHtml(name);
+    const ret = returnTab || 'students';
     return '<a class="student-name-link" href="javascript:void(0)" onclick="event.stopPropagation();openStudentLearningProgress(\'' +
-        escapeJsString(studentId) + '\', \'' + escapeJsString(name) + '\')">' + escapeHtml(name) + '</a>';
+        escapeJsString(studentId) + '\', \'' + escapeJsString(name) + '\', \'' + escapeJsString(ret) + '\')">' + escapeHtml(name) + '</a>';
 }
 
-function openStudentLearningProgress(studentId, studentName) {
+function openStudentLearningProgress(studentId, studentName, returnTab) {
     if (!studentId) return;
+    _studentDetailReturnTab = returnTab || 'students';
     switchTeacherTab('progress', null, { skipLoad: true });
     const container = document.getElementById('teacherStudentProgress');
     if (container) container.innerHTML = '<p style="text-align:center;color:#666;padding:40px;">加载中...</p>';
     showStudentDetailProgress(studentId, studentName || studentId);
 }
 
-async function loadStudents() {
-    const result = await teacherApiGet('/api/teacher/students');
-    const container = document.getElementById('studentsList');
-    const students = result.data;
-    if (!students || students.length === 0) {
-        container.innerHTML = '<p style="text-align:center;color:#666;padding:20px;">暂无学生</p>';
+function backFromStudentDetail() {
+    const tab = _studentDetailReturnTab || 'progress';
+    if (tab === 'progress') {
+        loadTeacherProgressData();
         return;
     }
-    let html = '<table><thead><tr><th>学号</th><th>姓名</th><th>目标</th><th>状态</th><th>操作</th></tr></thead><tbody>';
-    for (let i = 0; i < students.length; i++) {
-        const s = students[i];
+    switchTeacherTab(tab);
+}
+
+var _cachedStudents = [];
+var _studentsFilterTimer = null;
+
+function studentCreatedYmd(student) {
+    if (!student || !student.created_at) return '';
+    if (window.TrackingUtils && typeof window.TrackingUtils.getChinaYmd === 'function') {
+        return window.TrackingUtils.getChinaYmd(student.created_at) || '';
+    }
+    var d = new Date(student.created_at);
+    if (isNaN(d.getTime())) return '';
+    return d.toISOString().slice(0, 10);
+}
+
+function getStudentsFilterState() {
+    var searchEl = document.getElementById('studentsSearch');
+    var fromEl = document.getElementById('studentsCreatedFrom');
+    var toEl = document.getElementById('studentsCreatedTo');
+    return {
+        q: ((searchEl && searchEl.value) || '').trim().toLowerCase(),
+        from: ((fromEl && fromEl.value) || '').trim(),
+        to: ((toEl && toEl.value) || '').trim()
+    };
+}
+
+function studentMatchesFilters(student, filters) {
+    if (!student) return false;
+    filters = filters || getStudentsFilterState();
+    if (filters.q) {
+        var id = String(student.student_id || '').toLowerCase();
+        var name = String(student.name || '').toLowerCase();
+        if (id.indexOf(filters.q) < 0 && name.indexOf(filters.q) < 0) return false;
+    }
+    var created = studentCreatedYmd(student);
+    if (filters.from || filters.to) {
+        if (!created) return false;
+        if (filters.from && created < filters.from) return false;
+        if (filters.to && created > filters.to) return false;
+    }
+    return true;
+}
+
+function onStudentsFilterInput() {
+    if (_studentsFilterTimer) clearTimeout(_studentsFilterTimer);
+    _studentsFilterTimer = setTimeout(function() {
+        _studentsFilterTimer = null;
+        renderStudentsList();
+    }, 120);
+}
+
+function clearStudentsFilters() {
+    var searchEl = document.getElementById('studentsSearch');
+    var fromEl = document.getElementById('studentsCreatedFrom');
+    var toEl = document.getElementById('studentsCreatedTo');
+    if (searchEl) searchEl.value = '';
+    if (fromEl) fromEl.value = '';
+    if (toEl) toEl.value = '';
+    renderStudentsList();
+}
+
+function renderStudentsList() {
+    const container = document.getElementById('studentsList');
+    if (!container) return;
+    const hint = document.getElementById('studentsFilterHint');
+    const students = _cachedStudents || [];
+    if (!students.length) {
+        container.innerHTML = '<p style="text-align:center;color:#666;padding:20px;">暂无学生</p>';
+        if (hint) hint.textContent = '';
+        return;
+    }
+    const filters = getStudentsFilterState();
+    const filtered = students.filter(function(s) { return studentMatchesFilters(s, filters); });
+    const hasFilter = !!(filters.q || filters.from || filters.to);
+    if (hint) {
+        hint.textContent = hasFilter
+            ? ('显示 ' + filtered.length + ' / ' + students.length + ' 人')
+            : ('共 ' + students.length + ' 人');
+    }
+    if (!filtered.length) {
+        container.innerHTML = '<p style="text-align:center;color:#666;padding:20px;">无匹配学生</p>';
+        return;
+    }
+    let html = '<table><thead><tr><th>学号</th><th>姓名</th><th>目标</th><th>状态</th><th>录入时间</th><th>操作</th></tr></thead><tbody>';
+    for (let i = 0; i < filtered.length; i++) {
+        const s = filtered[i];
         const statusBadge = s.status === 'active' ? 'badge-success">正常' : 'badge-danger">禁用';
         const toggleLabel = s.status === 'active' ? '禁用' : '启用';
         const toggleClass = s.status === 'active' ? 'btn-danger' : 'btn-success';
-        html += '<tr><td>' + escapeHtml(s.student_id) + '</td><td>' + studentNameLinkHtml(s.student_id, s.name) + '</td><td>' + s.target_score + '分</td><td><span class="badge ' + statusBadge + '</span></td><td><div class="student-actions">';
-        html += '<button class="btn btn-sm" onclick="openStudentLearningProgress(\'' + escapeJsString(s.student_id) + '\',\'' + escapeJsString(s.name) + '\')">查看情况</button>';
+        html += '<tr><td>' + escapeHtml(s.student_id) + '</td><td>' + studentNameLinkHtml(s.student_id, s.name, 'students') + '</td><td>' + s.target_score + '分</td><td><span class="badge ' + statusBadge + '</span></td>';
+        html += '<td>' + escapeHtml(formatChinaDateTime(s.created_at)) + '</td>';
+        html += '<td><div class="student-actions">';
+        html += '<button class="btn btn-sm" onclick="openStudentLearningProgress(\'' + escapeJsString(s.student_id) + '\',\'' + escapeJsString(s.name) + '\',\'students\')">查看情况</button>';
         html += '<button class="btn btn-sm btn-secondary" onclick="showEditStudentModal(\'' + escapeJsString(s.student_id) + '\',\'' + escapeJsString(s.name) + '\',\'' + escapeJsString(String(s.target_score)) + '\')">修改</button>';
         html += '<button class="btn btn-sm btn-secondary" onclick="resetPassword(\'' + escapeJsString(s.student_id) + '\')">重置密码</button>';
         html += '<button class="btn btn-sm ' + toggleClass + '" onclick="toggleStatus(\'' + escapeJsString(s.student_id) + '\',\'' + escapeJsString(s.status) + '\')">' + toggleLabel + '</button>';
@@ -162,7 +251,12 @@ async function loadStudents() {
     }
     html += '</tbody></table>';
     container.innerHTML = html;
+}
 
+async function loadStudents() {
+    const result = await teacherApiGet('/api/teacher/students');
+    _cachedStudents = result.data || [];
+    renderStudentsList();
 }
 
 // getCheckedValues 保留兼容（已无 checkbox 但 loadRecords 用到）
@@ -217,6 +311,32 @@ function reopenFilterMenu(id) {
             if (cell) cell.classList.add('filter-cell-open');
         }
     }, 0);
+}
+
+/** 整表重绘后恢复文本筛选框焦点与光标，避免每次只能输入一个字符。 */
+function restoreTextFilterFocus(inputId, selectionStart, selectionEnd) {
+    if (!inputId) return;
+    setTimeout(function() {
+        const el = document.getElementById(inputId);
+        if (!el || typeof el.focus !== 'function') return;
+        el.focus();
+        if (typeof el.setSelectionRange === 'function' && selectionStart != null) {
+            const len = String(el.value || '').length;
+            const start = Math.min(selectionStart, len);
+            const end = Math.min(selectionEnd != null ? selectionEnd : start, len);
+            try { el.setSelectionRange(start, end); } catch (e) {}
+        }
+    }, 0);
+}
+
+function captureActiveTextFilter(inputId) {
+    const el = document.getElementById(inputId);
+    if (!el || document.activeElement !== el) return null;
+    return {
+        id: inputId,
+        start: el.selectionStart,
+        end: el.selectionEnd
+    };
 }
 
 function buildStudentMultiFilter(id, options, selectedIds, toggleFn, clearFn) {
@@ -306,7 +426,11 @@ function getRecordPassText(record) {
 
 function setRecordColumnFilter(key, value) {
     _recordColumnFilters[key] = value || '';
+    const keepFocus = (key === 'studentId')
+        ? captureActiveTextFilter('recordStudentIdFilter')
+        : null;
     renderRecordsTable(_cachedRecordRows);
+    if (keepFocus) restoreTextFilterFocus(keepFocus.id, keepFocus.start, keepFocus.end);
 }
 
 function toggleRecordStudentFilter(studentId) {
@@ -379,7 +503,7 @@ function renderRecordsTable(records) {
 
     let html = '<div class="records-table-wrap"><table class="records-table"><thead>';
     html += '<tr class="records-filter-row">';
-    html += '<th><input class="records-filter-control" value="' + escapeHtml(_recordColumnFilters.studentId) + '" oninput="setRecordColumnFilter(\'studentId\',this.value)"></th>';
+    html += '<th><input id="recordStudentIdFilter" class="records-filter-control" value="' + escapeHtml(_recordColumnFilters.studentId) + '" oninput="setRecordColumnFilter(\'studentId\',this.value)"></th>';
     html += '<th>' + buildStudentMultiFilter('recordStudentFilter', studentOptions, _recordColumnFilters.studentIds, 'toggleRecordStudentFilter', 'clearRecordStudentFilter') + '</th>';
     html += '<th><select class="records-filter-control" onchange="setRecordColumnFilter(\'module\',this.value)">' + moduleOptions + '</select></th>';
     html += '<th><select class="records-filter-control" onchange="setRecordColumnFilter(\'testType\',this.value)"><option value="">全部</option><option value="随机"' + (_recordColumnFilters.testType === '随机' ? ' selected' : '') + '>随机</option><option value="错题"' + (_recordColumnFilters.testType === '错题' ? ' selected' : '') + '>错题</option><option value="模块测试"' + (_recordColumnFilters.testType === '模块测试' ? ' selected' : '') + '>模块测试</option></select></th>';
@@ -396,7 +520,7 @@ function renderRecordsTable(records) {
         const dateStr = getRecordDateText(r);
         const badgeClass = r.is_passed ? 'badge-success' : 'badge-danger';
         const name = getRecordStudentName(r);
-        html += '<tr><td>' + escapeHtml(r.student_id) + '</td><td>' + studentNameLinkHtml(r.student_id, name) + '</td><td>' + escapeHtml(moduleName) + '</td><td>' + escapeHtml(typeText) + '</td><td>' + escapeHtml(dateStr) + '</td><td class="records-duration">' + escapeHtml(formatDuration(r.duration_seconds)) + '</td><td class="records-score">' + escapeHtml(r.score) + '%</td><td><span class="badge ' + badgeClass + '">' + getRecordPassText(r) + '</span></td></tr>';
+        html += '<tr><td>' + escapeHtml(r.student_id) + '</td><td>' + studentNameLinkHtml(r.student_id, name, 'records') + '</td><td>' + escapeHtml(moduleName) + '</td><td>' + escapeHtml(typeText) + '</td><td>' + escapeHtml(dateStr) + '</td><td class="records-duration">' + escapeHtml(formatDuration(r.duration_seconds)) + '</td><td class="records-score">' + escapeHtml(r.score) + '%</td><td><span class="badge ' + badgeClass + '">' + getRecordPassText(r) + '</span></td></tr>';
     }
     if (filteredRecords.length === 0) {
         html += '<tr><td colspan="8" style="text-align:center;color:#666;padding:20px;">暂无测试记录</td></tr>';
@@ -719,7 +843,7 @@ function renderActiveStudents() {
         const row = rows[i];
         html += '<tr' + (row.seconds > 0 ? '' : ' class="active-zero-row"') + '>';
         html += '<td>' + escapeHtml(row.student_id) + '</td>';
-        html += '<td>' + studentNameLinkHtml(row.student_id, row.student_name) + '</td>';
+        html += '<td>' + studentNameLinkHtml(row.student_id, row.student_name, 'active') + '</td>';
         html += '<td class="numeric-cell">' + escapeHtml(row.seconds > 0 ? formatDuration(row.seconds) : '0秒') + '</td>';
         html += '<td class="numeric-cell">' + row.count + '</td>';
         html += '<td>' + escapeHtml(formatChinaDateTime(row.latest)) + '</td>';
@@ -812,7 +936,11 @@ function buildProgressRows(students, allRecords, allStudySessions) {
 
 function setProgressColumnFilter(key, value) {
     _progressColumnFilters[key] = value || '';
+    const keepFocus = (key === 'studentId')
+        ? captureActiveTextFilter('progressStudentIdFilter')
+        : null;
     renderTeacherProgressSummary();
+    if (keepFocus) restoreTextFilterFocus(keepFocus.id, keepFocus.start, keepFocus.end);
 }
 
 function toggleProgressStudentFilter(studentId) {
@@ -901,7 +1029,7 @@ function renderTeacherProgressSummary() {
 
     let html = '<div class="records-table-wrap"><table class="records-table progress-table"><thead>';
     html += '<tr class="records-filter-row">';
-    html += '<th><input class="records-filter-control" value="' + escapeHtml(_progressColumnFilters.studentId) + '" oninput="setProgressColumnFilter(\'studentId\',this.value)"></th>';
+    html += '<th><input id="progressStudentIdFilter" class="records-filter-control" value="' + escapeHtml(_progressColumnFilters.studentId) + '" oninput="setProgressColumnFilter(\'studentId\',this.value)"></th>';
     html += '<th>' + buildStudentMultiFilter('progressStudentFilter', studentOptions, _progressColumnFilters.studentIds, 'toggleProgressStudentFilter', 'clearProgressStudentFilter') + '</th>';
     html += '<th><select class="records-filter-control" onchange="setProgressColumnFilter(\'module\',this.value)">' + moduleOptions + '</select></th>';
     html += '<th><select class="records-filter-control" onchange="setProgressColumnFilter(\'targetUnit\',this.value)">' + unitOptions + '</select></th>';
@@ -938,7 +1066,7 @@ function renderTeacherProgressSummary() {
 
     for (let i = 0; i < filteredRows.length; i++) {
         const row = filteredRows[i];
-        html += '<tr style="cursor:pointer;" onclick="showStudentDetailProgress(\'' + escapeJsString(row.student_id) + '\', \'' + escapeJsString(row.student_name) + '\', \'' + escapeJsString(row.module_id) + '\')">';
+        html += '<tr style="cursor:pointer;" onclick="_studentDetailReturnTab=\'progress\';showStudentDetailProgress(\'' + escapeJsString(row.student_id) + '\', \'' + escapeJsString(row.student_name) + '\', \'' + escapeJsString(row.module_id) + '\')">';
         html += '<td>' + escapeHtml(row.student_id) + '</td>';
         html += '<td><strong style="color:#667eea; text-decoration:underline;">' + escapeHtml(row.student_name) + '</strong></td>';
         if (row.module_id === 'speaking' && row.practicedCount > 0) {
@@ -1197,6 +1325,32 @@ function renderStudentSituationRecentTests(records) {
     return html;
 }
 
+function modulePlanTaskProgress(progress, moduleId) {
+    progress = progress || {};
+    moduleId = String(moduleId || '');
+    var row = progress[moduleId] || null;
+    if (!row && moduleId === 'speaking') {
+        var done = 0;
+        var total = 0;
+        Object.keys(progress).forEach(function(mt) {
+            if (mt === 'speaking' || String(mt).indexOf('speaking_') === 0) {
+                done += Number((progress[mt] || {}).done) || 0;
+                total += Number((progress[mt] || {}).total) || 0;
+            }
+        });
+        return { done: done, total: total };
+    }
+    return {
+        done: Number((row || {}).done) || 0,
+        total: Number((row || {}).total) || 0
+    };
+}
+
+function formatModuleTaskProgress(done, total) {
+    if (!total) return '—';
+    return done + '/' + total + ' 单元';
+}
+
 async function showStudentDetailProgress(studentId, studentName, filterModuleId) {
     const container = document.getElementById('teacherStudentProgress');
     filterModuleId = String(filterModuleId || '').trim();
@@ -1230,7 +1384,7 @@ async function showStudentDetailProgress(studentId, studentName, filterModuleId)
     const statusText = student.status === 'active' ? '正常' : (student.status === 'disabled' ? '禁用' : (student.status || '—'));
 
     let html = '<div style="margin-bottom:20px;">';
-    html += '<button class="btn btn-sm btn-secondary" onclick="loadTeacherProgressData()">返回汇总</button>';
+    html += '<button class="btn btn-sm btn-secondary" onclick="backFromStudentDetail()">返回汇总</button>';
     html += '<h3 style="display:inline-block; margin-left:20px;">' +
         escapeHtml(displayName) +
         (moduleName ? (' · ' + moduleName + '进度') : ' · 学习情况') +
@@ -1272,10 +1426,11 @@ async function showStudentDetailProgress(studentId, studentName, filterModuleId)
     html += '<th style="padding:12px; text-align:center; border-bottom:2px solid #dee2e6;">测试次数</th>';
     html += '<th style="padding:12px; text-align:center; border-bottom:2px solid #dee2e6;">达标次数</th>';
     html += '<th style="padding:12px; text-align:center; border-bottom:2px solid #dee2e6;">状态</th>';
-    html += '<th style="padding:12px; text-align:center; border-bottom:2px solid #dee2e6;">练习时长</th>';
+    html += '<th style="padding:12px; text-align:center; border-bottom:2px solid #dee2e6;">任务进度</th>';
     html += '<th style="padding:12px; text-align:center; border-bottom:2px solid #dee2e6;">操作</th>';
     html += '</tr></thead><tbody>';
 
+    const planProgress = (taskOverview && taskOverview.module_unit_progress) || {};
     const availableModules = MODULES.filter(isModuleAvailable);
     for (let i = 0; i < availableModules.length; i++) {
         const m = availableModules[i];
@@ -1285,6 +1440,7 @@ async function showStudentDetailProgress(studentId, studentName, filterModuleId)
         const bestScore = getBestScore(moduleRecords, m.unit);
         const passCount = getPassCount(moduleRecords, m.unit, moduleTarget);
         const moduleTotalSeconds = window.TrackingUtils.sumPracticeSeconds(rawSessions, records, { moduleId: m.id });
+        const taskProg = modulePlanTaskProgress(planProgress, m.id);
         const studyOnly = isStudyOnlyModule(m);
         const progressPercent = (!studyOnly && bestScore > 0) ? Math.min(100, Math.round((bestScore / moduleTarget) * 100)) : 0;
         let statusClass = 'badge-info';
@@ -1292,7 +1448,7 @@ async function showStudentDetailProgress(studentId, studentName, filterModuleId)
         if (!studyOnly && bestScore >= moduleTarget && bestScore > 0) {
             statusClass = 'badge-success';
             statusLabel = '达标';
-        } else if ((!studyOnly && moduleRecords.length > 0) || moduleTotalSeconds > 0) {
+        } else if ((!studyOnly && moduleRecords.length > 0) || moduleTotalSeconds > 0 || taskProg.done > 0) {
             statusClass = 'badge-warning';
             statusLabel = '进行中';
         }
@@ -1317,7 +1473,8 @@ async function showStudentDetailProgress(studentId, studentName, filterModuleId)
         html += '<td style="padding:15px 12px; text-align:center;">' + (studyOnly ? '—' : moduleRecords.length) + '</td>';
         html += '<td style="padding:15px 12px; text-align:center;">' + (studyOnly ? '—' : passCount) + '</td>';
         html += '<td style="padding:15px 12px; text-align:center;"><span class="badge ' + statusClass + '" style="font-size:0.75rem;">' + statusLabel + '</span></td>';
-        html += '<td style="padding:15px 12px; text-align:center; color:#666; font-size:0.9rem;">' + formatDuration(moduleTotalSeconds) + '</td>';
+        html += '<td style="padding:15px 12px; text-align:center; color:#666; font-size:0.9rem;" title="已完成单元 / 该科目内容库总单元">' +
+            escapeHtml(formatModuleTaskProgress(taskProg.done, taskProg.total)) + '</td>';
         html += '<td style="padding:15px 12px; text-align:center;">';
         if (isJianyaPartModule(m.id)) {
             html += '<button type="button" class="btn btn-sm btn-success" onclick="openTeacherStudentHistory(\'' +

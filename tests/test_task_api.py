@@ -26,6 +26,7 @@ from task_api import (  # noqa: E402
     apply_draft_to_live,
     backlog_plan_item_ids,
     build_daily_tasks,
+    catalog_unit_progress_for_student,
     china_ymd,
     class_overview,
     clear_gendu_assignment,
@@ -198,6 +199,30 @@ class TaskApiTests(unittest.TestCase):
         prog = get_plan(conn, "2025001")["progress"]["reading_synonym"]
         self.assertEqual(prog["study_x"], 1)
         self.assertEqual(prog["study_y"], 3)
+
+    def test_catalog_unit_progress_uses_task_units_total(self) -> None:
+        conn = _connect()
+        put_plan_draft(
+            conn,
+            "2025001",
+            [
+                {"item_type": "study", "unit_id": "reading_synonym_u01"},
+                {"item_type": "study", "unit_id": "reading_synonym_u02"},
+            ],
+        )
+        apply_draft_to_live(conn, "2025001")
+        item = conn.execute(
+            "SELECT id FROM plan_items WHERE unit_id='reading_synonym_u01'"
+        ).fetchone()
+        update_scope_progress(conn, "2025001", item["id"], scope_done=10)
+        complete_study(conn, "2025001", item["id"], "1")
+        cat = catalog_unit_progress_for_student(conn, "2025001")["reading_synonym"]
+        catalog_total = conn.execute(
+            "SELECT COUNT(*) AS c FROM task_units WHERE is_active=1 AND module_type='reading_synonym'"
+        ).fetchone()["c"]
+        self.assertEqual(cat["done"], 1)
+        self.assertEqual(cat["total"], catalog_total)
+        self.assertGreater(cat["total"], 2)
 
     def test_complete_study_requires_reading_scope(self) -> None:
         conn = _connect()

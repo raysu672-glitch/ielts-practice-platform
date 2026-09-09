@@ -1325,6 +1325,56 @@ def _plan_progress(conn: sqlite3.Connection, student_id: str) -> dict[str, dict[
     return prog
 
 
+def catalog_unit_progress_for_student(
+    conn: sqlite3.Connection, student_id: str
+) -> dict[str, dict[str, int]]:
+    """科目内容库单元进度：done/total，total 来自 task_units，不是计划条目数。"""
+    ensure_task_tables(conn)
+    sid = str(student_id or "").strip()
+    totals = {
+        str(r["module_type"]): int(r["c"] or 0)
+        for r in conn.execute(
+            """
+            SELECT module_type, COUNT(*) AS c
+            FROM task_units WHERE is_active=1
+            GROUP BY module_type
+            """
+        ).fetchall()
+        if r["module_type"]
+    }
+    done_map = {
+        str(r["module_type"]): int(r["c"] or 0)
+        for r in conn.execute(
+            """
+            SELECT module_type, COUNT(DISTINCT unit_id) AS c
+            FROM plan_items
+            WHERE student_id=? AND item_type='study' AND study_completed=1
+              AND unit_id IS NOT NULL AND TRIM(unit_id) != ''
+            GROUP BY module_type
+            """,
+            (sid,),
+        ).fetchall()
+        if r["module_type"]
+    }
+    out: dict[str, dict[str, int]] = {}
+    for mt, total in totals.items():
+        done = min(int(done_map.get(mt, 0)), total)
+        out[mt] = {"done": done, "total": total}
+    speak_keys = [
+        mt
+        for mt in totals
+        if mt == "speaking" or mt.startswith("speaking_")
+    ]
+    if speak_keys:
+        speak_total = sum(totals[mt] for mt in speak_keys)
+        speak_done = sum(int(done_map.get(mt, 0)) for mt in speak_keys)
+        out["speaking"] = {
+            "done": min(speak_done, speak_total),
+            "total": speak_total,
+        }
+    return out
+
+
 def effective_plan_status(conn: sqlite3.Connection, student_id: str) -> str:
     """none | all_paused | active (D28). Schedule pause → all_paused while active."""
     expire_plan_pause_if_due(conn, student_id)
@@ -3917,6 +3967,7 @@ def student_task_snapshot(
         display_name = (row["name"] if row else "") or sid
     snap = _student_overview_row(conn, sid, display_name, task_date, hour=hour)
     snap["task_date"] = task_date
+    snap["module_unit_progress"] = catalog_unit_progress_for_student(conn, sid)
     return snap
 
 
