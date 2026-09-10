@@ -315,7 +315,10 @@ def load_student_detail(
 
     student = public_student_row(dict(row))
     mock_exams = [
-        r for r in records if str(r.get("test_type") or "") == "mock_exam"
+        r
+        for r in records
+        if str(r.get("test_type") or "") == "mock_exam"
+        and str(r.get("module_type") or "") in ("mock_reading", "mock_listening")
     ]
 
     wrong_book_counts: dict[str, int] = {}

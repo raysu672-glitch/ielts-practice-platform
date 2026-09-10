@@ -887,16 +887,64 @@
         }
 
         // ==================== 录音 ====================
+        function getMicAudioConstraints() {
+            // 不强制 sampleRate:16000——开麦瞬间切采样率会打断扬声器通路，导致原文开头几词放不出。
+            return {
+                audio: {
+                    echoCancellation: true,
+                    noiseSuppression: true,
+                    autoGainControl: true
+                }
+            };
+        }
+
+        async function ensureMicStream() {
+            if (state.recordingStream) {
+                var live = state.recordingStream.getTracks().some(function(t) {
+                    return t.readyState === 'live';
+                });
+                if (live) return state.recordingStream;
+                try {
+                    state.recordingStream.getTracks().forEach(function(t) { t.stop(); });
+                } catch (e) {}
+                state.recordingStream = null;
+            }
+            state.recordingStream = await navigator.mediaDevices.getUserMedia(getMicAudioConstraints());
+            return state.recordingStream;
+        }
+
+        function seekAudioToStart(audio) {
+            return new Promise(function(resolve) {
+                if (!audio) {
+                    resolve();
+                    return;
+                }
+                var settled = false;
+                function done() {
+                    if (settled) return;
+                    settled = true;
+                    audio.removeEventListener('seeked', done);
+                    resolve();
+                }
+                audio.addEventListener('seeked', done);
+                try {
+                    audio.currentTime = 0;
+                } catch (e) {
+                    done();
+                    return;
+                }
+                // 已在起点或 seek 无触发时兜底
+                if (audio.currentTime < 0.05) {
+                    setTimeout(done, 50);
+                } else {
+                    setTimeout(done, 400);
+                }
+            });
+        }
+
         async function startRecording() {
             try {
-                state.recordingStream = await navigator.mediaDevices.getUserMedia({
-                    audio: {
-                        echoCancellation: true,
-                        noiseSuppression: true,
-                        autoGainControl: true,
-                        sampleRate: 16000
-                    }
-                });
+                await ensureMicStream();
                 state.mediaRecorder = new MediaRecorder(state.recordingStream);
                 state.recordedChunks = [];
 
@@ -931,7 +979,9 @@
                     uploadAndScore();
                 };
 
-                state.mediaRecorder.start(100);
+                if (state.mediaRecorder.state === 'inactive') {
+                    state.mediaRecorder.start(100);
+                }
             } catch (err) {
                 console.error('录音失败:', err);
                 showError('无法访问麦克风，请检查浏览器权限设置');
@@ -1095,7 +1145,7 @@
 
             state.isTesting = true;
             updateTestButton('testing');
-            elements.statusText.textContent = '正在录音，请跟读原文...';
+            elements.statusText.textContent = '正在准备麦克风与原文...';
             elements.statusText.className = 'status-text testing';
 
             try {
@@ -1105,9 +1155,17 @@
                 if (!(state.audioDuration > 1)) {
                     throw new Error('原文音频时长异常，请确认 ' + (currentLesson.audioUrl || '') + ' 可访问');
                 }
+
+                // 先开麦并短暂稳定，再开录+播原文，避免开麦瞬间砍掉开头几词
+                await ensureMicStream();
+                await new Promise(function(r) { setTimeout(r, 400); });
+                await seekAudioToStart(state.audioPlayer);
+
+                elements.statusText.textContent = '正在录音，请跟读原文...';
+                // 此时只是 MediaRecorder.start，不再触发 getUserMedia 设备切换
                 await startRecording();
-                state.audioPlayer.currentTime = 0;
                 await state.audioPlayer.play();
+
                 // 给进度条一点时间；若 2 秒内仍无推进，判定播放失败
                 await new Promise(function(r) { setTimeout(r, 2000); });
                 if (state.isTesting && (!state.audioPlayer || state.audioPlayer.currentTime < 0.2)) {

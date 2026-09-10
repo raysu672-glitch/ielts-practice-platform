@@ -1245,8 +1245,13 @@ function renderStudentSituationWrongBooks(counts) {
     return html;
 }
 
+function isFullMockExamRecord(record) {
+    var mt = String((record && record.module_type) || '');
+    return mt === 'mock_reading' || mt === 'mock_listening';
+}
+
 function renderStudentSituationMockExams(mockExams, studentId, studentName) {
-    mockExams = mockExams || [];
+    mockExams = (mockExams || []).filter(isFullMockExamRecord);
     var html = '<div style="margin-top:24px;"><div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px;flex-wrap:wrap;">';
     html += '<h4 style="margin:0;">模拟考记录</h4>';
     if (studentId) {
@@ -1366,9 +1371,9 @@ async function showStudentDetailProgress(studentId, studentName, filterModuleId)
     const data = detailResult.data || {};
     const student = data.student || {};
     const records = data.test_records || [];
-    const mockExams = data.mock_exams || records.filter(function(r) {
+    const mockExams = (data.mock_exams || records.filter(function(r) {
         return String(r.test_type || '') === 'mock_exam';
-    });
+    })).filter(isFullMockExamRecord);
     const wrongCount = (data.wrong_words || []).length;
     const wrongBookCounts = data.wrong_book_counts || {};
     const taskOverview = data.task_overview || null;

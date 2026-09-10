@@ -88,6 +88,18 @@ function jianyaHomeworkPending(item) {
     return total > 0 && done < total;
 }
 
+function jianyaSubjectLabel(subject) {
+    if (subject === 'listening') return '听力';
+    if (subject === 'writing') return '写作';
+    if (subject === 'speaking') return '口语';
+    if (subject === 'reading') return '阅读';
+    return '作业';
+}
+
+function jianyaProgressUnit(subject) {
+    return subject === 'writing' || subject === 'speaking' ? '题' : 'Part';
+}
+
 function updateJianyaHomeworkBadge(count) {
     var badge = document.getElementById('jianyaHomeworkBadge');
     if (!badge) return;
@@ -126,12 +138,13 @@ function renderJianyaHomeworkBanner(pending) {
     pending.forEach(function(a) {
         var total = Number(a.myTotalParts || (a.parts && a.parts.length) || 0);
         var done = Number(a.mySubmittedParts || 0);
-        var subj = a.subject === 'listening' ? '听力' : '阅读';
+        var subj = jianyaSubjectLabel(a.subject);
+        var unit = jianyaProgressUnit(a.subject);
         var aid = String(a.id || '').replace(/[^a-zA-Z0-9_-]/g, '');
         html += '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:10px 0 0;border-top:1px solid #fed7aa;margin-top:10px;">';
         html += '<div><strong>' + escapeHtml(a.title || '作业') + '</strong>';
         html += '<div style="color:#9a3412;font-size:0.9rem;margin-top:2px;">' +
-            subj + ' · 已交 ' + done + '/' + total + ' Part</div></div>';
+            subj + ' · 已交 ' + done + '/' + total + ' ' + unit + '</div></div>';
         html += '<button class="btn btn-primary" type="button" onclick="openJianyaHomework(\'' +
             aid + '\')">去完成</button></div>';
     });
@@ -757,13 +770,17 @@ async function loadStudentHistory() {
     
     if (!records || records.length === 0) {
         container.innerHTML = '<p style="text-align:center;color:#666;padding:40px;">暂无测试记录</p>';
-        document.getElementById('historyChart').innerHTML = '';
         return;
     }
     
     let html = '';
     for (let i = 0; i < records.length; i++) {
         const r = records[i];
+        // 整场模拟考已含各 Part，历史列表不再单独展示 Part 模拟考条目
+        if (String(r.test_type || '') === 'mock_exam' &&
+            /^(reading_p[123]|listening_p[1234])$/.test(String(r.module_type || ''))) {
+            continue;
+        }
         const module = getModuleById(r.module_type);
         const moduleName = r.module_name || (module ? module.name : normalizeModuleType(r.module_type));
         const typeText = window.TrackingUtils.getTestTypeLabel(r.test_type);
@@ -773,7 +790,6 @@ async function loadStudentHistory() {
         const statusText = r.is_passed ? '达标' : '未达标';
         const wrongWords = window.TrackingUtils.getWrongWordDetails(r.details);
         const wrongCount = Math.max(0, Number(r.total_count) - Number(r.correct_count));
-        const wrongWordList = wrongWords.map(function(w) { return w.word; }).join(',');
         
         html += '<div style="padding:15px;border-bottom:1px solid #eee; cursor:pointer;" onclick="toggleHistoryDetail(' + i + ')">';
         html += '<div style="display:flex;justify-content:space-between;align-items:center;">';
@@ -794,12 +810,6 @@ async function loadStudentHistory() {
             html += ' <span style="color:#667eea;margin-left:10px;">(点击查看详情)</span>';
         }
         html += '</div>';
-        
-        if (wrongWordList) {
-            html += '<div style="margin-top:10px;">';
-            html += '<button class="btn btn-sm" style="padding:6px 16px;font-size:0.85rem;" onclick="event.stopPropagation();startWrongWordsTestFromHistory(\'' + escapeJsString(wrongWordList) + '\', \'' + escapeJsString(normalizeModuleType(r.module_type || 'dictation')) + '\')">测错题</button>';
-            html += '</div>';
-        }
         
         // 错题详情区域
         if (wrongWords.length > 0) {
@@ -822,20 +832,6 @@ async function loadStudentHistory() {
         html += '</div>';
     }
     container.innerHTML = html;
-    
-    // 简单图表
-    const reversed = records.slice(0, 20).reverse();
-    let chartHtml = '<div style="display:flex;align-items:flex-end;height:150px;padding:10px;background:#f8f9fa;border-radius:10px;">';
-    for (let i = 0; i < reversed.length; i++) {
-        const r = reversed[i];
-        const height = r.score / 100 * 150;
-        const color = r.is_passed ? '#28a745' : '#dc3545';
-        chartHtml += '<div style="flex:1;display:flex;flex-direction:column;align-items:center;">';
-        chartHtml += '<div style="width:20px;background:' + color + ';height:' + height + 'px;min-height:5px;border-radius:5px 5px 0 0;"></div>';
-        chartHtml += '<span style="font-size:0.7rem;color:#666;margin-top:5px;">' + r.score + '%</span></div>';
-    }
-    chartHtml += '</div>';
-    document.getElementById('historyChart').innerHTML = chartHtml;
 }
 
 function toggleHistoryDetail(index) {
