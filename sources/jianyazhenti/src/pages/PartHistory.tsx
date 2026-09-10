@@ -199,6 +199,7 @@ function homeworkAttempts(moduleType: string, rows: Awaited<ReturnType<typeof li
   const out: Attempt[] = []
   for (const rec of rows) {
     const sPart = Number(rec.sPart || 0)
+    if (rec.subject !== 'listening' && rec.subject !== 'reading') continue
     if (moduleTypeForPart(rec.subject, sPart) !== moduleType) continue
     const correct = Number(rec.correct || 0)
     const total = Number(rec.total || 0)

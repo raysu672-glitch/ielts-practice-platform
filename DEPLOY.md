@@ -40,7 +40,7 @@ push 到 `main` 后，GitHub Actions 会自动运行 `scripts/deploy.py`。也�
 
 本地紧急热修仍可用 `python scripts/deploy.py`，但事后必须立刻补 commit 并 push 到 `main`，保证 GitHub 与线上一致。不要直接在服务器上改业务代码。
 
-默认部署**不会**覆盖线上 `data/*.db`、`config/ai.env` 与音频文件。
+默认部署**不会**覆盖线上 `data/*.db`、`config/ai.env`、`config/oss.env` 与音频文件。
 
 ### 5. 检查 `/api/health`
 
@@ -81,7 +81,7 @@ gh secret set IELTS_DEPLOY_USER --body "root"
 gh secret set IELTS_DEPLOY_KEY < "d:\Download\雅思训练.pem"
 ```
 
-自动部署**不会**覆盖线上 `data/*.db`、`config/ai.env` 与音频文件。更换 AI Key 仍需本机执行：`python scripts/deploy.py --sync-ai-env`。
+自动部署**不会**覆盖线上 `data/*.db`、`config/ai.env`、`config/oss.env` 与音频文件。更换 AI Key 仍需本机执行：`python scripts/deploy.py --sync-ai-env`。更换 OSS Key：`python scripts/deploy.py --sync-oss-env`。
 
 ## GitHub 推送
 
@@ -90,7 +90,7 @@ gh secret set IELTS_DEPLOY_KEY < "d:\Download\雅思训练.pem"
 | 仓库名称 | 建议使用 `ielts-practice-platform` |
 | 可见性 | 默认私有仓库 |
 | 认证方式 | 使用 `gh auth login`、系统凭据管理或临时环境变量 |
-| 不提交内容 | `.env`、`config/ai.env`、`config/admin.env`、`*.pem`、`data/*.db`、音频文件、`sources/_zips/`、`sources/_extract/`、本地截图 |
+| 不提交内容 | `.env`、`config/ai.env`、`config/admin.env`、`config/oss.env`、`*.pem`、`data/*.db`、音频文件、`sources/_zips/`、`sources/_extract/`、本地截图 |
 
 ## 平台统一 AI 配置
 
@@ -106,6 +106,18 @@ gh secret set IELTS_DEPLOY_KEY < "d:\Download\雅思训练.pem"
 | 首次/更换 Key | `python scripts/deploy.py --sync-ai-env` |
 
 systemd 通过 `EnvironmentFile=-/var/www/ielts/config/ai.env` 注入；写作后端也会优先读取该文件。
+
+## 录播课 OSS（`config/oss.env`）
+
+视频文件放在阿里云 OSS 私有桶，练习站只签发短期播放地址。密钥不要提交 GitHub。
+
+| 项目 | 说明 |
+|---|---|
+| 本地文件 | `config/oss.env`（从 `config/oss.env.example` 复制） |
+| 服务器文件 | `/var/www/ielts/config/oss.env` |
+| 变量 | `OSS_ACCESS_KEY_ID`、`OSS_ACCESS_KEY_SECRET`、`OSS_BUCKET`、`OSS_ENDPOINT` |
+| 默认部署 | **不会**覆盖服务器上的 `config/oss.env` |
+| 首次/更换 Key | `python scripts/deploy.py --sync-oss-env` |
 
 ## 管理员初始密码（`IELTS_ADMIN_PASSWORD`）
 

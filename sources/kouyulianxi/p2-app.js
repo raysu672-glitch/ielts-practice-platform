@@ -98,6 +98,7 @@ class P2Practice {
     bindShell() {
         document.getElementById('partTabP1')?.addEventListener('click', () => this.showPart('p1'));
         document.getElementById('partTabP2')?.addEventListener('click', () => this.showPart('p2'));
+        document.getElementById('partTabP3')?.addEventListener('click', () => this.showPart('p3'));
         document.getElementById('p2ModeMemorize')?.addEventListener('click', () => this.setMode('memorize'));
         document.getElementById('p2ModeApply')?.addEventListener('click', () => this.setMode('apply'));
         document.getElementById('p2GuideClose')?.addEventListener('click', () => {
@@ -120,8 +121,10 @@ class P2Practice {
     showPart(part) {
         const p1 = document.getElementById('part1View');
         const p2 = document.getElementById('part2View');
+        const p3 = document.getElementById('part3View');
         const p1Nav = document.getElementById('p1NavRight');
         const p2Nav = document.getElementById('p2NavRight');
+        const p3Nav = document.getElementById('p3NavRight');
         const title = document.getElementById('navTitle');
         const progress = document.getElementById('progressText');
 
@@ -129,11 +132,26 @@ class P2Practice {
             btn.classList.toggle('active', btn.dataset.part === part);
         });
 
-        if (part === 'p2') {
+        if (part === 'p3') {
+            if (p1) p1.style.display = 'none';
+            if (p2) p2.style.display = 'none';
+            if (p3) p3.style.display = 'flex';
+            if (p1Nav) p1Nav.style.display = 'none';
+            if (p2Nav) p2Nav.style.display = 'none';
+            if (p3Nav) p3Nav.style.display = 'flex';
+            if (title) title.textContent = '口语 P3 练习';
+            if (progress) progress.style.display = 'none';
+            this.stopSpeak();
+            if (window.p3Practice && typeof window.p3Practice.onShow === 'function') {
+                window.p3Practice.onShow();
+            }
+        } else if (part === 'p2') {
             if (p1) p1.style.display = 'none';
             if (p2) p2.style.display = 'flex';
+            if (p3) p3.style.display = 'none';
             if (p1Nav) p1Nav.style.display = 'none';
             if (p2Nav) p2Nav.style.display = 'flex';
+            if (p3Nav) p3Nav.style.display = 'none';
             if (title) title.textContent = '口语 P2 练习';
             if (progress) progress.style.display = 'none';
             this.setMode(this.mode || 'memorize');
@@ -141,8 +159,10 @@ class P2Practice {
         } else {
             if (p1) p1.style.display = 'flex';
             if (p2) p2.style.display = 'none';
+            if (p3) p3.style.display = 'none';
             if (p1Nav) p1Nav.style.display = 'flex';
             if (p2Nav) p2Nav.style.display = 'none';
+            if (p3Nav) p3Nav.style.display = 'none';
             if (title) title.textContent = '口语 P1 练习';
             if (progress) progress.style.display = '';
             this.stopSpeak();
@@ -1260,9 +1280,12 @@ class P2Practice {
 
 document.addEventListener('DOMContentLoaded', () => {
     window.p2Practice = new P2Practice();
-    // 默认仍在 P1；URL ?part=p2 时打开 P2
+    // 默认仍在 P1；URL ?part=p2|p3 时打开对应 Part
     const params = new URLSearchParams(window.location.search);
-    if (params.get('part') === 'p2') {
+    const part = params.get('part');
+    if (part === 'p3') {
+        window.p2Practice.showPart('p3');
+    } else if (part === 'p2') {
         window.p2Practice.showPart('p2');
         window.p2Practice.setMode('memorize');
     } else {

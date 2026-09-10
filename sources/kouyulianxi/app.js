@@ -1906,7 +1906,7 @@ class P1Practice {
         if (loadingDiv) loadingDiv.style.display = 'block';
         if (contentDiv) contentDiv.innerHTML = '';
 
-        const cat = { name: categoryName || (part === 'p2' ? 'Part 2' : 'Part 1') };
+        const cat = { name: categoryName || (part === 'p3' ? 'Part 3' : (part === 'p2' ? 'Part 2' : 'Part 1')) };
         const q = question || { q: '', title: '' };
         this._evalContext = { cat, q, part, durationS: Number(durationS) || 0 };
 
@@ -1962,6 +1962,14 @@ class P1Practice {
                     if (key && n && !isNaN(n)) {
                         const prev = Number(window.p2Practice.bestScores[key]);
                         if (!prev || n > prev) window.p2Practice.bestScores[key] = n;
+                    }
+                }
+                if (part === 'p3' && window.p3Practice && window.p3Practice.bestScores) {
+                    const key = this.scoreKeyForQuestion(q);
+                    const n = Number(parsed.overall);
+                    if (key && n && !isNaN(n)) {
+                        const prev = Number(window.p3Practice.bestScores[key]);
+                        if (!prev || n > prev) window.p3Practice.bestScores[key] = n;
                     }
                 }
             }
@@ -2472,13 +2480,19 @@ class P1Practice {
         const cueBlock = part === 'p2' && cuePoints.length
             ? `\n## 题目提示点（Cue points）\n${cuePoints.map((c, i) => `${i + 1}. ${c}`).join('\n')}\n`
             : '';
-        const partLabel = part === 'p2' ? 'PART2' : 'PART1';
+        const partLabel = part === 'p3' ? 'PART3' : (part === 'p2' ? 'PART2' : 'PART1');
         const partExtra = part === 'p2'
             ? `- 这是 Part 2 长轮（约 1–2 分钟）。词数明显不足（如 <80 词）或未展开 → FC 倾向 5 或更低；不必逐字背素材，但要扣题并有开头/展开/收尾
 - **硬性规则：录音总时长不足 90 秒时，overall 不得超过 5.5**（即使四项平均更高也必须压到 ≤5.5），并在反馈中明确写出「时长不足」
 - 评估是否覆盖主要 cue points；遗漏过多写入反馈
 - 不要因为用了课堂素材就额外加分，以实际口述为准`
-            : `- 这是 Part 1 短问答；切题作答即可`;
+            : (part === 'p3'
+                ? `- 这是 Part 3 讨论短中轮（建议约 30–60 秒）。要有观点 + 解释/例证，不要只给一句 Yes/No
+- 评估逻辑是否自洽（引入→论点→小结）；模板痕迹过重可压 Pron/FC，但不因「用了课堂万能素材」额外加分
+- 切题讨论即可；不必像 Part 2 那样长独白；词数过少（如 <40 词）→ FC 倾向 5 或更低
+- 不要套用 Part 2 的 90 秒时长封顶规则`
+                : `- 这是 Part 1 短问答；切题作答即可`);
+        const partNameDefault = part === 'p3' ? 'Part 3' : (part === 'p2' ? 'Part 2' : 'Part 1');
 
         return `请评估以下学生的雅思口语 ${partLabel} 回答。
 重要：
@@ -2491,8 +2505,8 @@ ${partExtra}
 
 ## 考试题目
 ${q.q || q.title || ''}
-${q.title && q.q && q.title !== q.q ? `中文题名：${q.title}\n` : ''}题目类型：${(cat && cat.name) || (part === 'p2' ? 'Part 2' : 'Part 1')}
-${cueBlock}${chipNote}
+${q.title && q.q && q.title !== q.q ? `话题/中文题名：${q.title}\n` : ''}题目类型：${(cat && cat.name) || partNameDefault}
+${q.qType ? `题型标签：${q.qType}\n` : ''}${cueBlock}${chipNote}
 ## 学生回答转录
 ${m.transcript || transcript}
 

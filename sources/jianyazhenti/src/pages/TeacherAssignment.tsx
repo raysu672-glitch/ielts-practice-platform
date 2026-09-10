@@ -18,8 +18,11 @@ import {
 import StudentPicker, { selectedIds } from '../components/StudentPicker'
 import SubjectTabs from '../components/SubjectTabs'
 import {
+  canBuildPacks,
   isExamSubject,
+  isWritingSubject,
   subjectLabel,
+  type ExamSubject,
   type PackSubject,
 } from '../lib/packSubjects'
 import { loadTeacherPackSubject, peekLocalPackSubject, saveTeacherPackSubject } from '../lib/teacherPrefs'
@@ -30,17 +33,17 @@ import {
   parseTestNo,
   type BookInfo,
 } from '../lib/data'
-import type { Manifest, ManifestPart, Subject } from '../types'
+import type { Manifest, ManifestPart } from '../types'
+import { topicToPart, writingLessons, writingTaskLabel } from '../lib/writingTopics'
 
 function partId(bookId: number, sId: number) {
   return `${bookId}:${sId}`
 }
 
-function toRef(bookId: number, subject: PackSubject, p: ManifestPart): PartRef {
-  const examSubject: Subject = isExamSubject(subject) ? subject : 'listening'
+function toRef(bookId: number, subject: ExamSubject, p: ManifestPart): PartRef {
   return {
     bookId,
-    subject: examSubject,
+    subject,
     sId: p.sId,
     testNo: parseTestNo(p.sName),
     sPart: p.sPart,
@@ -56,7 +59,24 @@ function packKindLabel(pack: AssignmentPack) {
 }
 
 function packBooks(pack: AssignmentPack) {
+  if (isWritingSubject(pack.subject)) return []
   return [...new Set(pack.parts.map((p) => p.bookId))].sort((a, b) => b - a)
+}
+
+function packSummary(pack: AssignmentPack) {
+  if (isWritingSubject(pack.subject)) {
+    const first = pack.parts[0]
+    const lessons = [...new Set(pack.parts.map((p) => p.lesson || p.testNo).filter(Boolean))]
+    const lessonText = lessons.length ? `第${lessons.join('/')}课` : '写作'
+    const task = writingTaskLabel(first?.task || 'task2')
+    if (pack.parts.length === 1) {
+      return `${subjectLabel(pack.subject)} · ${lessonText} · ${task}`
+    }
+    return `${subjectLabel(pack.subject)} · ${lessonText} · ${pack.parts.length} 题`
+  }
+  const books = packBooks(pack)
+  const q = packQuestionCount(pack)
+  return `${subjectLabel(pack.subject)}${books.length ? ` · ${books.map((id) => `C${id}`).join(' / ')}` : ''} · ${pack.parts.length} Part · ${q} 题`
 }
 
 function PackCard({
@@ -70,11 +90,9 @@ function PackCard({
   onToggle: () => void
   onDeleted?: () => void
 }) {
-  const q = packQuestionCount(pack)
-  const books = packBooks(pack)
   const kind = packKindLabel(pack)
   return (
-    <label className={`pack-card ${checked ? 'selected' : ''}`}>
+    <label className={`pack-card ${isWritingSubject(pack.subject) ? 'writing-pack' : ''} ${checked ? 'selected' : ''}`}>
       <input type="checkbox" checked={checked} onChange={onToggle} />
       <div className="pack-card-body">
         <div className="pack-card-top">
@@ -83,11 +101,7 @@ function PackCard({
             {kind}
           </span>
         </div>
-        <p>
-          {subjectLabel(pack.subject)}
-          {books.length ? ` · ${books.map((id) => `C${id}`).join(' / ')}` : ''}
-          {` · ${pack.parts.length} Part · ${q} 题`}
-        </p>
+        <p>{packSummary(pack)}</p>
         {pack.description ? <p className="pack-desc">{pack.description}</p> : null}
         {!pack.builtin && onDeleted ? (
           <button
@@ -116,6 +130,7 @@ export function TeacherAssignmentList() {
   const [teacherId, setTeacherId] = useState('')
   const [subject, setSubject] = useState<PackSubject>(peekLocalPackSubject)
   const [bookFilter, setBookFilter] = useState<'all' | number>('all')
+  const [lessonFilter, setLessonFilter] = useState<'all' | number>('all')
   const [selected, setSelected] = useState<Record<string, boolean>>({})
   const [titlePrefix, setTitlePrefix] = useState('')
   const [publishing, setPublishing] = useState(false)
@@ -142,6 +157,7 @@ export function TeacherAssignmentList() {
   const changeSubject = (next: PackSubject) => {
     setSubject(next)
     setBookFilter('all')
+    setLessonFilter('all')
     void saveTeacherPackSubject(teacherId, next)
   }
 
@@ -157,19 +173,38 @@ export function TeacherAssignmentList() {
     () =>
       packs.filter((p) => {
         if (!p.builtin || p.subject !== subject) return false
+        if (isWritingSubject(subject)) {
+          if (lessonFilter !== 'all') {
+            const hasLesson = p.parts.some((x) => (x.lesson || x.testNo) === lessonFilter)
+            if (!hasLesson) return false
+          }
+          return true
+        }
         if (bookFilter !== 'all') {
           const hasBook = p.parts.some((x) => x.bookId === bookFilter)
           if (!hasBook) return false
         }
         return true
       }),
-    [packs, subject, bookFilter],
+    [packs, subject, bookFilter, lessonFilter],
   )
 
   const visibleAssignments = useMemo(
     () => items.filter((row) => row.subject === subject),
     [items, subject],
   )
+
+  const lessonOptions = useMemo(() => {
+    const set = new Set<number>()
+    for (const p of packs) {
+      if (!p.builtin || !isWritingSubject(p.subject)) continue
+      for (const part of p.parts) {
+        const lesson = part.lesson || part.testNo
+        if (lesson) set.add(lesson)
+      }
+    }
+    return [...set].sort((a, b) => a - b)
+  }, [packs])
 
   const bookOptions = useMemo(() => {
     const set = new Set<number>()
@@ -232,7 +267,7 @@ export function TeacherAssignmentList() {
           <Link className="btn ghost" to="/teacher/bank">
             浏览题库
           </Link>
-          {isExamSubject(subject) ? (
+          {canBuildPacks(subject) ? (
             <>
               <Link className="btn ghost" to="/teacher/packs/new">
                 新建作业包
@@ -262,11 +297,11 @@ export function TeacherAssignmentList() {
             ) : customPacks.length === 0 ? (
               <div className="teacher-empty">
                 <p>
-                  {isExamSubject(subject)
+                  {canBuildPacks(subject)
                     ? '这个科目还没有管理员共享或你自建的作业包。'
-                    : '写作和口语作业包即将开放。'}
+                    : '口语作业包即将开放。'}
                 </p>
-                {isExamSubject(subject) ? (
+                {canBuildPacks(subject) ? (
                   <Link className="btn" to="/teacher/packs/new">
                     去新建
                   </Link>
@@ -330,8 +365,31 @@ export function TeacherAssignmentList() {
                     ))}
                   </div>
                 </div>
+              ) : isWritingSubject(subject) ? (
+                <div className="filter-row">
+                  <span className="filter-label">课次</span>
+                  <div className="book-switch">
+                    <button
+                      type="button"
+                      className={`book-chip ${lessonFilter === 'all' ? 'active' : ''}`}
+                      onClick={() => setLessonFilter('all')}
+                    >
+                      全部
+                    </button>
+                    {lessonOptions.map((lesson) => (
+                      <button
+                        key={lesson}
+                        type="button"
+                        className={`book-chip ${lessonFilter === lesson ? 'active' : ''}`}
+                        onClick={() => setLessonFilter(lesson)}
+                      >
+                        第{lesson}课
+                      </button>
+                    ))}
+                  </div>
+                </div>
               ) : (
-                <p className="filter-hint">写作和口语暂无内置作业包。</p>
+                <p className="filter-hint">口语暂无内置作业包。</p>
               )}
             </div>
             {loading ? (
@@ -339,7 +397,11 @@ export function TeacherAssignmentList() {
             ) : builtinPacks.length === 0 ? (
               <p className="empty-hint">没有匹配的内置作业包。</p>
             ) : (
-              <div className="pack-grid pack-grid-scroll">
+              <div
+                className={`pack-grid pack-grid-scroll ${
+                  isWritingSubject(subject) ? 'writing-pack-grid' : ''
+                }`}
+              >
                 {builtinPacks.map((pack) => (
                   <PackCard
                     key={pack.id}
@@ -358,7 +420,11 @@ export function TeacherAssignmentList() {
               <span>{visibleAssignments.length} 份</span>
             </div>
             {visibleAssignments.length === 0 ? (
-              <p className="empty-hint">这个科目还没有你布置的作业。勾选作业包并在右侧选择学生后即可发布。</p>
+              <p className="empty-hint">
+                {canBuildPacks(subject)
+                  ? '这个科目还没有你布置的作业。勾选作业包并在右侧选择学生后即可发布。'
+                  : '口语作业即将开放。'}
+              </p>
             ) : (
               <ul className="asg-list">
                 {visibleAssignments.map((a) => (
@@ -536,6 +602,7 @@ function PartPickerPage({ mode }: { mode: PickerMode }) {
   }, [manifests, bookFilter, subject])
 
   const groups = useMemo(() => groupByTest(catalogParts), [catalogParts])
+  const writingGroups = useMemo(() => writingLessons(), [])
   const picked = useMemo(() => Object.values(selected), [selected])
   const totalQ = picked.reduce((s, p) => s + p.questionCount, 0)
 
@@ -582,9 +649,9 @@ function PartPickerPage({ mode }: { mode: PickerMode }) {
     }
   }
 
-  if (error) return <div className="shell status">{error}</div>
-  if (!books.length || bookFilter == null) {
-    return <div className="shell status">加载题库…</div>
+  if (error && isExamSubject(subject)) return <div className="shell status">{error}</div>
+  if (!isWritingSubject(subject) && (!books.length || bookFilter == null)) {
+    return <div className="shell status">{error || '加载题库…'}</div>
   }
 
   const isPack = mode === 'pack'
@@ -631,12 +698,46 @@ function PartPickerPage({ mode }: { mode: PickerMode }) {
                 </div>
                 <span className="filter-hint">可跨册勾选</span>
               </div>
+            ) : isWritingSubject(subject) ? (
+              <p className="filter-hint">从强化段写作题库勾选题目，可跨课次组合。</p>
             ) : null}
           </div>
 
           <div className="teacher-catalog">
-            {!isExamSubject(subject) ? (
-              <p className="empty-hint">写作和口语作业包即将开放，目前可布置听力和阅读。</p>
+            {isWritingSubject(subject) ? (
+              writingGroups.map((group) => (
+                <div className="teacher-test" key={group.lesson}>
+                  <h3>{group.title}</h3>
+                  <div className="teacher-part-grid writing-topic-grid">
+                    {group.topics.map((topic) => {
+                      const ref = topicToPart(topic)
+                      const id = partId(ref.bookId, ref.sId)
+                      const checked = Boolean(selected[id])
+                      return (
+                        <label
+                          key={id}
+                          className={`teacher-part-card writing-topic-card ${checked ? 'selected' : ''}`}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={checked}
+                            onChange={() => toggle(ref)}
+                          />
+                          <span className="teacher-part-body">
+                            <strong>
+                              {writingTaskLabel(topic.task)} · {topic.title}
+                            </strong>
+                            <span className="teacher-topic-prompt">{topic.prompt}</span>
+                            {topic.examMeta ? <span>{topic.examMeta}</span> : null}
+                          </span>
+                        </label>
+                      )
+                    })}
+                  </div>
+                </div>
+              ))
+            ) : !isExamSubject(subject) ? (
+              <p className="empty-hint">口语作业包即将开放，目前可布置听力、阅读和写作。</p>
             ) : bookFilter == null || !manifests[bookFilter] ? (
               <p className="empty-hint">加载 C{bookFilter}…</p>
             ) : groups.length === 0 ? (
@@ -647,7 +748,7 @@ function PartPickerPage({ mode }: { mode: PickerMode }) {
                   <h3>Test {testNo}</h3>
                   <div className="teacher-part-grid">
                     {parts.map((p) => {
-                      const ref = toRef(bookFilter, subject, p)
+                      const ref = toRef(bookFilter as number, subject as ExamSubject, p)
                       const id = partId(ref.bookId, ref.sId)
                       const checked = Boolean(selected[id])
                       return (
@@ -681,11 +782,13 @@ function PartPickerPage({ mode }: { mode: PickerMode }) {
         <aside className="teacher-side">
           <div className="teacher-panel">
             <div className="teacher-panel-head">
-              <h2>已选 Part</h2>
-              <span>{picked.length} 个</span>
+              <h2>{isWritingSubject(subject) ? '已选题目' : '已选 Part'}</h2>
+              <span>{picked.length} {isWritingSubject(subject) ? '题' : '个'}</span>
             </div>
             {picked.length === 0 ? (
-              <p className="empty-hint">从左侧勾选 Part。</p>
+              <p className="empty-hint">
+                {isWritingSubject(subject) ? '从左侧勾选写作题目。' : '从左侧勾选 Part。'}
+              </p>
             ) : (
               <ul className="picked-list">
                 {picked.map((p) => {
@@ -694,7 +797,9 @@ function PartPickerPage({ mode }: { mode: PickerMode }) {
                     <li key={id}>
                       <div>
                         <strong>
-                          C{p.bookId} T{p.testNo} P{p.sPart}
+                          {isWritingSubject(subject)
+                            ? `${writingTaskLabel(p.task || '')} · 第${p.lesson || p.testNo}课`
+                            : `C${p.bookId} T${p.testNo} P${p.sPart}`}
                         </strong>
                         <span>{p.label}</span>
                       </div>
@@ -748,18 +853,20 @@ function PartPickerPage({ mode }: { mode: PickerMode }) {
             <div className="teacher-stats">
               <div>
                 <strong>{picked.length}</strong>
-                <span>Part 数</span>
+                <span>{isWritingSubject(subject) ? '题目数' : 'Part 数'}</span>
               </div>
-              <div>
-                <strong>{totalQ}</strong>
-                <span>总题数</span>
-              </div>
+              {isExamSubject(subject) ? (
+                <div>
+                  <strong>{totalQ}</strong>
+                  <span>总题数</span>
+                </div>
+              ) : null}
             </div>
             <button
               type="button"
               className="btn teacher-publish"
               disabled={
-                !isExamSubject(subject) ||
+                !canBuildPacks(subject) ||
                 !picked.length ||
                 saving ||
                 (!isPack && !selectedIds(pickedStudents).length)
@@ -776,11 +883,15 @@ function PartPickerPage({ mode }: { mode: PickerMode }) {
 }
 
 function defaultAssignTitle(subject: PackSubject, n: number) {
-  return `${subjectLabel(subject)}专项 · ${n} Part`
+  return isWritingSubject(subject)
+    ? `${subjectLabel(subject)}作业 · ${n} 题`
+    : `${subjectLabel(subject)}专项 · ${n} Part`
 }
 
 function defaultPackTitle(subject: PackSubject, n: number) {
-  return `${subjectLabel(subject)}作业包 · ${n} Part`
+  return isWritingSubject(subject)
+    ? `${subjectLabel(subject)}作业包 · ${n} 题`
+    : `${subjectLabel(subject)}作业包 · ${n} Part`
 }
 
 export default function TeacherAssignmentNew() {

@@ -2,6 +2,7 @@ import { Navigate, Route, Routes } from 'react-router-dom'
 import Portal from './pages/Portal'
 import Home from './pages/Home'
 import Exam from './pages/Exam'
+import WritingExam from './pages/WritingExam'
 import Result from './pages/Result'
 import Overview from './pages/Overview'
 import PartHistory from './pages/PartHistory'
@@ -34,6 +35,7 @@ export default function App() {
       <Route path="/teacher/assignments/new" element={<TeacherAssignmentNew />} />
       <Route path="/teacher/packs/new" element={<TeacherPackNew />} />
       <Route path="/assignment/:id" element={<AssignmentHub />} />
+      <Route path="/exam/:bookId/writing/:sId" element={<WritingExam />} />
       <Route path="/exam/:bookId/:subject/:sId" element={<Exam />} />
       <Route path="/exam/:subject/:sId" element={<Exam />} />
       <Route path="/result/:subject/:sId" element={<Result />} />

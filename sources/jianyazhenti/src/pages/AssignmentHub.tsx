@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { absoluteAppUrl } from '../lib/embed'
 import StudentPicker, { selectedIds } from '../components/StudentPicker'
+import { isWritingSubject, subjectLabel } from '../lib/packSubjects'
+import { writingTaskLabel } from '../lib/writingTopics'
 import {
   addRecipients,
   assignmentPartPath,
@@ -195,8 +197,11 @@ export default function AssignmentHub() {
           </div>
           <h1>{assignment.title}</h1>
           <p>
-            {assignment.subject === 'listening' ? '听力' : '阅读'} · {assignment.parts.length}{' '}
-            Part · 任意顺序完成 · 每 Part 交卷后锁定
+            {subjectLabel(assignment.subject)} · {assignment.parts.length}{' '}
+            {isWritingSubject(assignment.subject) ? '题' : 'Part'}
+            {isWritingSubject(assignment.subject)
+              ? ' · 完成后提交'
+              : ' · 任意顺序完成 · 每 Part 交卷后锁定'}
             {fromTeacher ? ` · 已布置 ${assignedCount} 人 / 已交 ${submittedCount} 人` : ''}
           </p>
         </div>
@@ -336,24 +341,30 @@ export default function AssignmentHub() {
               <Link to={to} className={`asg-part-card ${done ? 'done' : ''}`}>
                 <div>
                   <strong>
-                    C{p.bookId} Test {p.testNo} Part {p.sPart}
+                    {isWritingSubject(p.subject)
+                      ? `${writingTaskLabel(p.task || '')} · ${p.label}`
+                      : `C${p.bookId} Test ${p.testNo} Part ${p.sPart}`}
                   </strong>
                   <span>
-                    {p.label} · {p.questionCount} 题
+                    {isWritingSubject(p.subject)
+                      ? p.prompt || p.label
+                      : `${p.label} · ${p.questionCount} 题`}
                   </span>
                 </div>
                 {fromTeacher && !reviewStudentId ? (
                   <div className="asg-part-status">
-                    <span className="pill">打开试卷</span>
+                    <span className="pill">{isWritingSubject(p.subject) ? '查看题目' : '打开试卷'}</span>
                   </div>
                 ) : fromTeacher && reviewStudentId ? (
                   <div className="asg-part-status">
                     {done && sub ? (
                       <>
                         <span className="pill ok">已交 · 查看作答</span>
-                        <span>
-                          {sub.correct}/{sub.total}（{sub.pct}%）
-                        </span>
+                        {isWritingSubject(p.subject) ? null : (
+                          <span>
+                            {sub.correct}/{sub.total}（{sub.pct}%）
+                          </span>
+                        )}
                       </>
                     ) : (
                       <span className="pill warn">该生尚未提交</span>
@@ -362,12 +373,14 @@ export default function AssignmentHub() {
                 ) : done && sub ? (
                   <div className="asg-part-status">
                     <span className="pill ok">已完成 · 锁定</span>
-                    <span>
-                      {sub.correct}/{sub.total}（{sub.pct}%）
-                    </span>
+                    {isWritingSubject(p.subject) ? null : (
+                      <span>
+                        {sub.correct}/{sub.total}（{sub.pct}%）
+                      </span>
+                    )}
                   </div>
                 ) : (
-                  <span className="pill">未完成 · 开始作答</span>
+                  <span className="pill">{isWritingSubject(p.subject) ? '未完成 · 开始写作' : '未完成 · 开始作答'}</span>
                 )}
               </Link>
             </li>

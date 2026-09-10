@@ -1,16 +1,22 @@
-import type { PackSubject, Subject } from '../types'
+import type { PackSubject } from '../types'
 import type { GradeResult } from './grade'
 
 export const DEFAULT_STUDENT_ID = 'local'
 
 export interface PartRef {
   bookId: number
-  subject: Subject
+  subject: PackSubject
   sId: number
   testNo: number
   sPart: number
   label: string
   questionCount: number
+  prompt?: string
+  task?: string
+  lesson?: number
+  pattern?: string
+  examMeta?: string
+  tips?: string
 }
 
 export interface AssignmentPack {
@@ -46,7 +52,7 @@ export interface AssignmentSubmission {
   assignmentId: string
   studentId: string
   bookId: number
-  subject: Subject
+  subject: PackSubject
   sId: number
   status: 'submitted'
   answers: Record<string, string>
@@ -77,7 +83,7 @@ async function api<T>(url: string, init?: RequestInit): Promise<T> {
   return body.data as T
 }
 
-function partKey(bookId: number, subject: Subject, sId: number) {
+function partKey(bookId: number, subject: string, sId: number) {
   return `${bookId}:${subject}:${sId}`
 }
 
@@ -261,7 +267,7 @@ export async function deleteAssignment(id: string): Promise<void> {
 export async function loadAssignmentAnswers(
   assignmentId: string,
   bookId: number,
-  subject: Subject,
+  subject: PackSubject,
   sId: number,
 ): Promise<Record<string, string>> {
   const q = new URLSearchParams({
@@ -276,7 +282,7 @@ export async function loadAssignmentAnswers(
 export async function saveAssignmentAnswers(
   assignmentId: string,
   bookId: number,
-  subject: Subject,
+  subject: PackSubject,
   sId: number,
   answers: Record<string, string>,
 ): Promise<void> {
@@ -295,7 +301,7 @@ export async function saveAssignmentAnswers(
 export async function getSubmission(
   assignmentId: string,
   bookId: number,
-  subject: Subject,
+  subject: PackSubject,
   sId: number,
   studentId?: string,
 ): Promise<AssignmentSubmission | null> {
@@ -320,7 +326,7 @@ export async function listSubmissions(
 export function isPartSubmitted(
   submissions: AssignmentSubmission[],
   bookId: number,
-  subject: Subject,
+  subject: PackSubject,
   sId: number,
 ) {
   return submissions.some((s) => s.bookId === bookId && s.subject === subject && s.sId === sId)
@@ -329,7 +335,7 @@ export function isPartSubmitted(
 export async function saveSubmission(input: {
   assignmentId: string
   bookId: number
-  subject: Subject
+  subject: PackSubject
   sId: number
   answers: Record<string, string>
   graded: GradeResult

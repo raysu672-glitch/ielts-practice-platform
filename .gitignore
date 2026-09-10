@@ -8,6 +8,7 @@
 data/*.db
 data/*.sqlite
 data/*.sqlite3
+data/luboke_courses.json
 data/session_secret.txt
 *.log
 
@@ -36,6 +37,7 @@ sources/_extract/
 .env.*
 config/ai.env
 config/admin.env
+config/oss.env
 *.pem
 *.key
 id_rsa*

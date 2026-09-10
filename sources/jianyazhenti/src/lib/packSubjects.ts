@@ -18,6 +18,14 @@ export function isExamSubject(value: string): value is ExamSubject {
   return value === 'listening' || value === 'reading'
 }
 
+export function isWritingSubject(value: string) {
+  return value === 'writing'
+}
+
+export function canBuildPacks(value: string) {
+  return isExamSubject(value) || isWritingSubject(value)
+}
+
 export function subjectLabel(subject: string) {
   const tab = PACK_SUBJECT_TABS.find((item) => item.id === subject)
   return tab ? tab.label : '作业'

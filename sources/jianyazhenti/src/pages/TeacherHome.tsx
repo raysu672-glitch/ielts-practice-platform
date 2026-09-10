@@ -7,7 +7,7 @@ import {
   type Assignment,
   type RosterStudent,
 } from '../lib/assignments'
-import { isExamSubject, subjectLabel, type PackSubject } from '../lib/packSubjects'
+import { canBuildPacks, subjectLabel, type PackSubject } from '../lib/packSubjects'
 import { loadTeacherPackSubject, peekLocalPackSubject, saveTeacherPackSubject } from '../lib/teacherPrefs'
 
 type StatusRow = Assignment & {
@@ -114,7 +114,7 @@ export default function TeacherHome() {
       </div>
 
       <div className="teacher-home-links">
-        {isExamSubject(subject) ? (
+        {canBuildPacks(subject) ? (
           <>
             <Link className="btn ghost" to="/teacher/packs/new">
               新建作业包
@@ -124,7 +124,7 @@ export default function TeacherHome() {
             </Link>
           </>
         ) : (
-          <p className="filter-hint">写作和口语作业包即将开放，目前可布置听力和阅读。</p>
+          <p className="filter-hint">口语作业包即将开放，目前可布置听力、阅读和写作。</p>
         )}
       </div>
 
@@ -137,9 +137,9 @@ export default function TeacherHome() {
           <p className="empty-hint">加载提交情况…</p>
         ) : visible.length === 0 ? (
           <p className="empty-hint">
-            {isExamSubject(subject)
+            {canBuildPacks(subject)
               ? '这个科目还没有你布置的作业。布置后，这里会显示每个学生的提交进度。'
-              : '写作和口语作业即将开放。'}
+              : '口语作业即将开放。'}
           </p>
         ) : (
           <ul className="asg-list">

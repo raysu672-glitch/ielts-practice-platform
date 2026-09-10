@@ -1298,6 +1298,18 @@
   opacity: 0.9;
 }
 
+.writing-pack .pack-desc {
+  display: -webkit-box;
+  -webkit-line-clamp: 5;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  white-space: pre-wrap;
+}
+
+.pack-grid.writing-pack-grid {
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+}
+
 .pack-delete {
   justify-self: start;
   margin-top: 0.2rem;
@@ -2388,4 +2400,190 @@ html.embedded .exam-shell {
 
 .teacher-section .student-picker {
   margin-bottom: 0.85rem;
+}
+
+.writing-topic-grid {
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+}
+
+.writing-topic-card .teacher-topic-prompt {
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.teacher-test h3 .filter-hint {
+  font-weight: 400;
+}
+
+.asg-part-card > div:first-child span {
+  white-space: pre-wrap;
+}
+
+.writing-exam-main {
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+  max-width: 76rem;
+  width: 100%;
+  margin: 0 auto;
+  padding: 0.7rem 1rem 0.85rem;
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+
+.writing-prompt-card {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 0.75rem 1rem 0.85rem;
+  box-shadow: var(--shadow);
+  flex: 0 0 auto;
+}
+
+.writing-prompt-compact h1 {
+  margin: 0 0 0.35rem;
+  font-size: 1.12rem;
+}
+
+.writing-prompt-kicker {
+  margin: 0 0 0.3rem;
+  color: var(--ink-soft);
+  font-size: 0.82rem;
+}
+
+.writing-prompt-card h1 {
+  margin: 0 0 0.75rem;
+  font-family: var(--font-display);
+  font-size: 1.35rem;
+}
+
+.writing-prompt-text {
+  margin: 0;
+  line-height: 1.55;
+  white-space: pre-wrap;
+}
+
+.writing-ref-grid {
+  flex: 0 0 auto;
+  display: grid;
+  grid-template-columns: 1.15fr 1.2fr 1.05fr;
+  gap: 0.7rem;
+  align-items: start;
+}
+
+.writing-ref-card {
+  min-width: 0;
+  overflow: visible;
+  background: #f3f7f1;
+  border: 1px solid #cfe0c8;
+  border-radius: 14px;
+  padding: 0.65rem 0.8rem 0.75rem;
+}
+
+.writing-ref-card h2 {
+  margin: 0 0 0.45rem;
+  color: #3f6b35;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.writing-ref-empty {
+  margin: 0;
+  color: var(--ink-soft);
+  font-size: 0.86rem;
+}
+
+.writing-tips-text {
+  margin: 0;
+  line-height: 1.55;
+  white-space: pre-wrap;
+  color: var(--ink);
+  font-size: 0.86rem;
+}
+
+.writing-vocab-list {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.28rem 0.75rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.writing-sentence-list {
+  margin: 0;
+  padding: 0 0 0 1.1rem;
+  list-style: decimal;
+}
+
+.writing-vocab-list li,
+.writing-sentence-list li {
+  margin: 0;
+  line-height: 1.45;
+  font-size: 0.86rem;
+}
+
+.writing-essay-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  min-width: 0;
+  min-height: 0;
+}
+
+.writing-compose {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.9rem;
+  align-items: stretch;
+  flex: 1 1 auto;
+  min-height: 320px;
+}
+
+.writing-essay-field > span {
+  color: var(--ink-soft);
+  font-size: 0.9rem;
+  flex: 0 0 auto;
+}
+
+.writing-essay-field textarea {
+  flex: 1 1 auto;
+  min-height: 260px;
+  padding: 0.9rem 1rem;
+  border-radius: 14px;
+  border: 1px solid var(--line);
+  font: inherit;
+  line-height: 1.6;
+  resize: none;
+}
+
+.writing-essay-meta {
+  display: flex;
+  justify-content: space-between;
+  color: var(--ink-soft);
+  font-size: 0.85rem;
+  flex: 0 0 auto;
+}
+
+.writing-exam-actions {
+  flex: 0 0 auto;
+}
+
+@media (max-width: 980px) {
+  .writing-ref-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .writing-vocab-list {
+    grid-template-columns: 1fr;
+  }
+
+  .writing-compose {
+    grid-template-columns: 1fr;
+    min-height: 360px;
+  }
 }

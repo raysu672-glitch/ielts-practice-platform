@@ -1,0 +1,454 @@
+{
+  "bookId": 100,
+  "title": "强化段写作题目",
+  "topics": [
+    {
+      "id": 1,
+      "lesson": 1,
+      "lessonTitle": "第一课",
+      "pattern": "Vs比较关系",
+      "task": "task2",
+      "questionType": "agree_disagree",
+      "title": "个人健康是为了自己还是社会责任",
+      "examMeta": "2021.05.15 大陆",
+      "prompt": "People should look after their health for personal benefits, rather than a duty for a society. To what extent do you agree or disagree?",
+      "tips": "开头段：\n主体段1:个人健康对个人的好处；\na-d 不会承受病痛；\na-d 减少看病支出；\n\n主体段2:个人健康对社会的责任；\na-d 个人健康情况影响整体社会的健康情况；infection 传染病；\na-d 一定程度上减少政府在public health care的开支；\n\n结尾段：In conclusion, 个人健康对个人和社会同样重要。",
+      "themes": [
+        "健康饮食类"
+      ]
+    },
+    {
+      "id": 2,
+      "lesson": 1,
+      "lessonTitle": "第一课",
+      "pattern": "Idea+idea",
+      "task": "task2",
+      "questionType": "agree_disagree",
+      "title": "媒体是否应限制详细犯罪报道",
+      "examMeta": "2020.10.24 大陆",
+      "prompt": "Detailed description of crimes on newspaper and TV can have bad consequences on society, so this kind of information should be restricted on media. To what extent do you agree or disagree with this statement?",
+      "tips": "开头段：\n主体段1论证idea1= Detailed description of crimes on newspaper and TV can have bad consequences on society ？\n同意✅-是坏的影响；\n不同意❌-不是坏的影响；\n\n主体段2 论证idea2=假设idea1 成立（although detailed description of crimes on newspaper and TV can have bad consequences on society），那么this kind of information should be restricted on media ？\n同意✅-应该限制；\n不同意❌-不该限制；",
+      "themes": [
+        "暴力犯罪类",
+        "媒体广告类",
+        "媒体商业类"
+      ]
+    },
+    {
+      "id": 3,
+      "lesson": 1,
+      "lessonTitle": "第一课",
+      "pattern": "Idea+idea",
+      "task": "task2",
+      "questionType": "agree_disagree",
+      "title": "关押罪犯还是教育与职业培训",
+      "examMeta": "",
+      "prompt": "Some people think criminals should not be imprisoned. Instead, education and job training should replace the former to deal with criminals. To what extent do you agree or disagree?",
+      "tips": "大逻辑：部分赞同25%；\n主体段1: criminals should not be imprisoned？\n同意✅-不该关押；\n不同意❌-应该关押；\na-d关押罪犯可以达到惩罚目的；\na-d关押罪犯可以达到预防犯罪的目的；\n\n主体段2: education and job training should replace 监狱/关押 来处置罪犯？\n同意✅-能替代；\n不同意❌-不能替代；\n尽管不能完全代替，education and job training也有他们的作用。\nEducation不知道什么是犯罪行为，不知道犯罪以后面临的结果；通过教育，可以。。。\njob training没有生存技能—工作培训帮助他们掌握生存技能—避免犯罪；",
+      "themes": [
+        "暴力犯罪类"
+      ]
+    },
+    {
+      "id": 4,
+      "lesson": 2,
+      "lessonTitle": "第二课",
+      "pattern": "Facts+idea（两件事情）",
+      "task": "task2",
+      "questionType": "agree_disagree",
+      "title": "男女是否应平等分担家务",
+      "examMeta": "2018.09.15 国内",
+      "prompt": "In many countries nowadays, more and more women have full-time jobs as men, so there is logic that men and women should share the housework tasks equally (like cleaning and looking after children). To what extent do you agree or disagree?",
+      "tips": "主体段1: 主句核心语意：A+B+C.\nmen and women should share the housework tasks ?\n同意✅-应该分担；\n不同意❌-不该分担；\na-d 分担家务可以促进夫妻间的感情；\na-d 分担家务同时可以减少劳动时间；\n\n主体段2:修饰成分—equally adv. 修饰v. & adj.\nEqually share?\n同意✅-应该平等；\n不同意❌-不应当平等；\na-d 时间维度上；夫妻双方大概率是在不同的行业or工作单位—上班和空闲时间完全不同—投入到家务劳动的时间可能也是不能完全平等；\na-d 不同的家务需要的精力是完全不同的；for example, cleaning and looking after children是完全不同的两件家务劳动，后者一定会比前者花费更多的精力；完全做不到equally share的；",
+      "themes": [
+        "家庭旅游类"
+      ]
+    },
+    {
+      "id": 5,
+      "lesson": 2,
+      "lessonTitle": "第二课",
+      "pattern": "Facts+idea（两件事情）",
+      "task": "task2",
+      "questionType": "agree_disagree",
+      "title": "快餐取代传统食物的影响",
+      "examMeta": "2021.04.24 大陆",
+      "prompt": "In many countries, traditional foods are being replaced by international fast foods. This is having a negative effect on both families and societies. To what extent do you agree or disagree?",
+      "tips": "Idea：This is having a negative effect on both families and societies.\n主体段1: a negative effect on families？\n同意✅-对家庭是负面影响；\n不同意❌-不是负面影响；\na-d食物选择上会引发家庭矛盾；\na-d选择快餐，增加家庭经济负担；\n\n主体段2:a negative effect on societies？\n同意✅-对社会是负面影响；\n不同意❌-不是负面影响；\na-d复杂的传统食物制作过程失传；\na-d社会普遍肥胖情况出现；",
+      "themes": [
+        "健康饮食类"
+      ]
+    },
+    {
+      "id": 6,
+      "lesson": 2,
+      "lessonTitle": "第二课",
+      "pattern": "核心语意+逻辑关系",
+      "task": "task2",
+      "questionType": "agree_disagree",
+      "title": "鼓励住城里能否解决交通问题",
+      "examMeta": "2021.11.20 A类（大陆）",
+      "prompt": "The best way to solve traffic and transport problems is to encourage people to live in cities rather than in the suburbs. To what extent do you agree or disagree?",
+      "tips": "审题方式（分段方式）：先论证主句核心语意，再论证修饰成分/逻辑关系；\n\n主体段1:核心语意 A+B+C\nThe best way is to encourage people to live in cities rather than in the suburbs ?\n同意✅-是最好措施；\n不同意❌-不是最好的措施；\na-d论点/措施太片面了；只解决了郊区居民的问题，其他问题并没有解决，行人秩序，乱停车等等问题；\na-d这个措施会带来新的交通问题；更拥堵；公共交通资源会被加速消耗；\n\n主体段2:逻辑关系—让人们做了后面的措施，能否解决前面的问题/达到前面的目的：\n让encourage people to live in cities rather than in the suburbs这么干了，能不能solve traffic and transport problems？\n同意✅-能解决交通问题；\n不同意❌-不能解决交通问题；\ncity>suburb城市当中有什么，郊区没有的，给人们提供了便利；\na-d居住在城市，人们出行会变得更加方便；城市里面的公共交通会更发达一点；\na-d人们的通勤距离变短；大部分的企业单位，政府机关，社会机构都在城市；",
+      "themes": [
+        "城市交通类"
+      ]
+    },
+    {
+      "id": 7,
+      "lesson": 2,
+      "lessonTitle": "第二课",
+      "pattern": "核心语意+逻辑关系",
+      "task": "task2",
+      "questionType": "agree_disagree",
+      "title": "每年驾照考试能否提升道路安全",
+      "examMeta": "2021.05.08 A类（大陆）",
+      "prompt": "Some people believe that the best way to improve road safety is to make vehicle drivers test every year. To what extent do you agree or disagree?",
+      "tips": "审题方式：先论证核心语意，再论证修饰成分/逻辑关系；\n\n主体段1:核心语意—the best way is to make vehicle drivers test every year？\n不同意❌-不是最好的措施；\na-d太片面了。Road safety所关联的因素：行人，道路设计，交通设施，车辆安全性，天气因素；\na-d驾考考场和真实路况不太一样；真实路况—驾驶经验；能通过考试，但不能完全应对复杂的真实路况，so不能完全避免事故的发生；\n\n主体段2:逻辑关系—make vehicle drivers test every year这么干了，能不能improve road safety？\n同意✅-能提升道路安全；\n不同意❌-不能提升道路安全；\n驾驶者/驾驶员角度，可以一定程度提升；\na-d交规，安全意识不断的强化；\na-d驾驶技术可以维持在考试的标准之上；",
+      "themes": [
+        "城市交通类"
+      ]
+    },
+    {
+      "id": 8,
+      "lesson": 2,
+      "lessonTitle": "第二课",
+      "pattern": "一件事情",
+      "task": "task2",
+      "questionType": "agree_disagree",
+      "title": "住在大城市是否有害健康",
+      "examMeta": "",
+      "prompt": "Some people think living in big cities is bad for people's health. To what extent do you agree or disagree?",
+      "tips": "写法1: 大逻辑—部分赞同；\n主体段1:同意，有坏处；\na-d 空气污染；\na-d 心理焦虑；\n\n主体段2:不同意，有好处；\na-d 医疗资源；\na-d 锻炼场所；",
+      "themes": [
+        "健康饮食类",
+        "城市交通类"
+      ]
+    },
+    {
+      "id": 9,
+      "lesson": 2,
+      "lessonTitle": "第二课",
+      "pattern": "Discuss both views",
+      "task": "task2",
+      "questionType": "discuss_both",
+      "title": "托儿所还是祖辈照顾孩子",
+      "examMeta": "",
+      "prompt": "Some working parents believe childcare centers can provide the best care for children; others think other family members like grandparents can do this job. Discuss both views and give your own opinion.",
+      "tips": "V1: childcare centers can provide the best care for children a-d\n人员\n\nV2: other family members like grandparents can do this job  a-d\n退休—有时间；\n\nPV:支持1，反对2\nPersonally, 我支持1. A-d childcare center中还有别的小朋友，培养social 能力；怼2，a-d，grandparents 可能会spoil the children;",
+      "themes": [
+        "家庭旅游类",
+        "教育学习类"
+      ]
+    },
+    {
+      "id": 10,
+      "lesson": 2,
+      "lessonTitle": "第二课",
+      "pattern": "Discuss both views",
+      "task": "task2",
+      "questionType": "discuss_both",
+      "title": "电脑互联网还是学校老师更重要",
+      "examMeta": "",
+      "prompt": "Some people think that computers and the Internet are more important for a child's education than going to school. But others believe that schools and teachers are essential for children to learn effectively. Discuss both views and give your own opinion.",
+      "tips": "V1: computers and the Internet are more important for a child's education than going to school\n互联网和电脑学习，有什么？有的这个东西如何>去学校？\n内容丰富；\n\nV2: schools and teachers are essential for children to learn effectively\n针对性；\n\nPV:支持2，反对1；\n支持2-同学，互相帮助，共同进步；\n反对1-网络游戏；知识不正确；不良内容—沉迷于其中，影响学习；\n\nIn conclusion，尽管电脑和互联网会给学生的学习带来好处，我更倾向选择学校和老师。",
+      "themes": [
+        "网络科技类",
+        "教育学习类"
+      ]
+    },
+    {
+      "id": 11,
+      "lesson": 2,
+      "lessonTitle": "第二课",
+      "pattern": "Discuss both views",
+      "task": "task2",
+      "questionType": "discuss_both",
+      "title": "网购的好处与问题",
+      "examMeta": "",
+      "prompt": "More and more people choose online shopping. Some people think this trend will have positive influences (such as creating new jobs); however, others think it causes many problems. Discuss both views and give your opinion.",
+      "tips": "V1: this trend will have positive influences\n方便—送货上门；\n\nV2: it causes many problems\n欺诈；犯罪；\n\nIn conclusion，网购的发展给今天的人们既会带来好处，也会带来弊端。",
+      "themes": [
+        "网络科技类",
+        "媒体商业类"
+      ]
+    },
+    {
+      "id": 12,
+      "lesson": 2,
+      "lessonTitle": "第二课",
+      "pattern": "Discuss both views",
+      "task": "task2",
+      "questionType": "discuss_both",
+      "title": "国际合作主要益处是环境还是贸易",
+      "examMeta": "",
+      "prompt": "Some people think the main benefit of greater international cooperation is in the protection of the environment, while others think the main benefit is the world business. Discuss both views and give your own opinion.",
+      "tips": "V1: the main benefit of greater international cooperation is in the protection of the environment 国际间加强交流的好处是—环境保护；\n互相学习治理环境问题的技术，经验；\n\nV2: the main benefit is the world business  国际间加强交流的好处是—世界贸易；\n加强交流—知道其他国家的需求—定向出口；\n\nPV:1+2\n支持1：环境问题大, global warming，单一国家没法治理；支持2：加强交流—制定贸易政策，帮助贸易发展；",
+      "themes": [
+        "能源环保类"
+      ]
+    },
+    {
+      "id": 13,
+      "lesson": 2,
+      "lessonTitle": "第二课",
+      "pattern": "Discuss both views",
+      "task": "task2",
+      "questionType": "discuss_both",
+      "title": "教育能否解决垃圾食品问题",
+      "examMeta": "",
+      "prompt": "Scientists agree that many people are eating too much junk food and it is damaging their health. Some people think that this problem can be solved by educating people to eat less junk food. Other people believe that education will not work. Discuss both opinions and give your own opinion.",
+      "tips": "V1: this problem can be solved by educating people to eat less junk food\n危害---少吃or不吃；\n\nV2: education will not work\n教育本身不具备强制性；\n\nPV:支持2*2，=反对1；\n不得不去选择—\n口味好—",
+      "themes": [
+        "健康饮食类",
+        "教育学习类"
+      ]
+    },
+    {
+      "id": 14,
+      "lesson": 3,
+      "lessonTitle": "第三课",
+      "pattern": "原因+对策",
+      "task": "task2",
+      "questionType": "two_part",
+      "title": "人们走路变少的原因与对策",
+      "examMeta": "",
+      "prompt": "Health experts claim that walking is the best exercise. However, people are walking less on a daily basis. What has made this happen? How can we deal with this?",
+      "tips": "主体段1:原因\na-d没时间 为了满足不断上涨的生活成本—多赚钱—大量的时间花在工作—更频繁的加班—自己的空闲时间（free time/spare time/leisure time）变少—没有额外的时间来walking；\na-d替代的出行方式/锻炼方式；\n\n主体段2:解决方案；\na-d政府：特定的人群，给予一定的补贴；\na-d媒体：宣传锻炼的好处，达到多锻炼的目的；",
+      "themes": [
+        "健康饮食类",
+        "城市交通类"
+      ]
+    },
+    {
+      "id": 15,
+      "lesson": 3,
+      "lessonTitle": "第三课",
+      "pattern": "原因+对策",
+      "task": "task2",
+      "questionType": "two_part",
+      "title": "高中毕业后不会理财",
+      "examMeta": "",
+      "prompt": "A lot of young people do not know how to manage their money when graduating from high school. What do you think are the reasons? What can be done to teach them this important skill?",
+      "tips": "主体段1:原因\na-d学校没教；学校专注于传统学科类知识，物理，化学，数学等等；\na-d家长没教；学生没有收入，来自于家长—没有机会接触家里的跟金钱有关的内容；\n主体段2:解决方案；\na-d学校加入的课程；对准毕业生；树立良好的金钱观念；\na-d家长在生活中，让孩子接触到金钱管理的内容；",
+      "themes": [
+        "教育学习类"
+      ]
+    },
+    {
+      "id": 16,
+      "lesson": 3,
+      "lessonTitle": "第三课",
+      "pattern": "原因+对策",
+      "task": "task2",
+      "questionType": "two_part",
+      "title": "出狱后再犯罪",
+      "examMeta": "",
+      "prompt": "Research suggests that the majority of criminals who are sent to prison would commit crimes when set free. Why do you think is the case? What can be done to solve this problem?",
+      "tips": "主体段1:原因\na-d报复社会；revenge v.\na-d缺乏生存技能；\na-d监狱里可能会接受到更坏的内容；\n\n主体段2:解决方案；\na-d相关部门加强监管；\na-d提供技能培训；",
+      "themes": [
+        "暴力犯罪类"
+      ]
+    },
+    {
+      "id": 17,
+      "lesson": 3,
+      "lessonTitle": "第三课",
+      "pattern": "原因+影响",
+      "task": "task2",
+      "questionType": "two_part",
+      "title": "晚育的原因与影响",
+      "examMeta": "",
+      "prompt": "In many countries around the world, men and women are having babies later in their life. Why has this happened? What are its effects on society and family life?",
+      "tips": "主体段1:原因\na-d为了给下一代创造更好的经济条件；\na-d结婚晚—提升自己，上学时间延长；\n\n主体段2:影响\nSociety- negative effects-aging population—having babies later—出生率下降—长久来看，导致老龄化问题—社会没有足够的新鲜劳动力补充，进而影响到社会的正常发展or稳定；\nFamily life—孕妇的生育风险增加；大部分的人的身体素质会随着年龄的上升而下降—大龄孕妇会更容易产生生育风险，because身体素质下降所带来的；",
+      "themes": [
+        "家庭旅游类"
+      ]
+    },
+    {
+      "id": 18,
+      "lesson": 3,
+      "lessonTitle": "第三课",
+      "pattern": "原因+影响",
+      "task": "task2",
+      "questionType": "two_part",
+      "title": "发展中国家扩张旅游业",
+      "examMeta": "",
+      "prompt": "An increasing number of developing countries are expanding the tourism industry. Why is the case? Is it a positive or negative development?",
+      "tips": "主体段1:原因\na-d相比于传统的重工业花费很大（设备，技术，人才），旅游业投入比较小，回报丰厚；\na-d自然风景比较好—适合发展旅游；\n\n主体段2:影响\na-d positive提供更多就业机会；\na-d negative 破坏环境；",
+      "themes": [
+        "家庭旅游类"
+      ]
+    },
+    {
+      "id": 19,
+      "lesson": 3,
+      "lessonTitle": "第三课",
+      "pattern": "原因+影响",
+      "task": "task2",
+      "questionType": "two_part",
+      "title": "家长给孩子施加压力",
+      "examMeta": "2021.10.30 A类（大陆）",
+      "prompt": "Nowadays, some parents put a lot of pressure on their children. Why do parents do this? Is this a positive or negative development?",
+      "tips": "主体段1:原因\na-d寄希望于孩子；\na-d增加竞争力；\na-d满足虚荣心；\n\n主体段2:影响\nNegative心理问题，叛逆；\nNegative 亲子关系疏远；\nPositive一定程度上提升孩子的能力/竞争力；",
+      "themes": [
+        "教育学习类",
+        "品格教育类"
+      ]
+    },
+    {
+      "id": 20,
+      "lesson": 3,
+      "lessonTitle": "第三课",
+      "pattern": "利弊",
+      "task": "task2",
+      "questionType": "advantages",
+      "title": "国际交换生项目利弊",
+      "examMeta": "",
+      "prompt": "Some educationalists think that the program of international exchange visits would benefit all teenage school students. Do you think benefit of such a program overweigh its disadvantage?",
+      "tips": "主体段1:优点；\na-d锻炼语言能力；\na-d锻炼独立生活的能力；\n主体段2:弊端；\na-d经济负担；\na-d 水土不服—饮食，气候",
+      "themes": [
+        "教育学习类",
+        "家庭旅游类"
+      ]
+    },
+    {
+      "id": 21,
+      "lesson": 3,
+      "lessonTitle": "第三课",
+      "pattern": "利弊",
+      "task": "task2",
+      "questionType": "advantages",
+      "title": "允许孩子玩电脑和平板",
+      "examMeta": "",
+      "prompt": "More and more parents are allowing their children to play on computers and tablets as they think that children should learn technology skills. Do the advantages of this development outweigh the disadvantages?",
+      "tips": "主体段1:优点；\na-d提前了解，为以后的major or工作打基础；\na-d提升自学能力；\n\n主体段2:弊端；\na-d沉迷网络空间or游戏；\na-d身体伤害，视力or肩颈；",
+      "themes": [
+        "网络科技类",
+        "教育学习类"
+      ]
+    },
+    {
+      "id": 22,
+      "lesson": 4,
+      "lessonTitle": "第四课",
+      "pattern": "小作文图表",
+      "task": "task1",
+      "questionType": "task1",
+      "title": "四国人均二氧化碳排放",
+      "examMeta": "",
+      "prompt": "The graph shows average carbon dioxide (CO2) emissions per person in the United Kingdom, Sweden, Italy and Portugal between 1967 and 2007.",
+      "themes": [
+        "小作文词伙一",
+        "小作文词伙二"
+      ]
+    },
+    {
+      "id": 23,
+      "lesson": 4,
+      "lessonTitle": "第四课",
+      "pattern": "小作文图表",
+      "task": "task1",
+      "questionType": "task1",
+      "title": "英国学校年度开支变化",
+      "examMeta": "",
+      "prompt": "The three pie charts below show the changes in annual spending by a particular UK school in 1981, 1991, and 2001.",
+      "themes": [
+        "小作文词伙一",
+        "小作文词伙二",
+        "小作文词伙三"
+      ]
+    },
+    {
+      "id": 24,
+      "lesson": 4,
+      "lessonTitle": "第四课",
+      "pattern": "小作文图表",
+      "task": "task1",
+      "questionType": "task1",
+      "title": "五大手机品牌全球销量",
+      "examMeta": "",
+      "prompt": "The chart below shows global sales of the top five mobile phone brands between 2009 and 2013.",
+      "themes": [
+        "小作文词伙一",
+        "小作文词伙二"
+      ]
+    },
+    {
+      "id": 25,
+      "lesson": 4,
+      "lessonTitle": "第四课",
+      "pattern": "小作文图表",
+      "task": "task1",
+      "questionType": "task1",
+      "title": "英国通勤方式变化",
+      "examMeta": "",
+      "prompt": "The graph below shows the average number of UK commuters travelling each day by car, bus or train between 1970 and 2030.",
+      "themes": [
+        "小作文词伙一",
+        "小作文词伙二"
+      ]
+    },
+    {
+      "id": 26,
+      "lesson": 4,
+      "lessonTitle": "第四课",
+      "pattern": "小作文图表",
+      "task": "task1",
+      "questionType": "task1",
+      "title": "城市家庭垃圾回收比例",
+      "examMeta": "",
+      "prompt": "The chart below shows the percentages of different types of household wastes that were recycled in one city between 1992 and 2002.",
+      "themes": [
+        "小作文词伙一",
+        "小作文词伙二"
+      ]
+    },
+    {
+      "id": 27,
+      "lesson": 4,
+      "lessonTitle": "第四课",
+      "pattern": "小作文图表",
+      "task": "task1",
+      "questionType": "task1",
+      "title": "五国消费品开支",
+      "examMeta": "",
+      "prompt": "The table below gives information on consumer spending on different items in five different countries in 2002.",
+      "themes": [
+        "小作文词伙一",
+        "小作文词伙二"
+      ]
+    },
+    {
+      "id": 28,
+      "lesson": 4,
+      "lessonTitle": "第四课",
+      "pattern": "小作文图表",
+      "task": "task1",
+      "questionType": "task1",
+      "title": "澳洲四州小学班级规模",
+      "examMeta": "",
+      "prompt": "The charts show the class size in primary (elementary) schools in four states in Australia in 2010.",
+      "themes": [
+        "小作文词伙一",
+        "小作文词伙二",
+        "小作文词伙三"
+      ]
+    },
+    {
+      "id": 29,
+      "lesson": 5,
+      "lessonTitle": "第五课",
+      "pattern": "小作文图表",
+      "task": "task1",
+      "questionType": "task1",
+      "title": "阿联酋医疗教育与预期寿命",
+      "examMeta": "",
+      "prompt": "The bar chart shows the expenditure on health and education in UAE, while the line chart illustrates the changes in life expectancy and infant mortality.",
+      "themes": [
+        "小作文词伙一",
+        "小作文词伙二"
+      ]
+    }
+  ]
+}

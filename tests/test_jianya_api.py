@@ -365,16 +365,77 @@ class JianyaApiTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "自己布置"):
             delete_assignment(conn, other_asg["id"], actor_id="zhangxiaodong")
 
-    def test_writing_speaking_packs_not_open(self) -> None:
+    def test_speaking_packs_not_open(self) -> None:
         conn = _conn()
         with self.assertRaisesRegex(ValueError, "即将开放"):
             create_pack(
                 conn,
-                title="写作包",
+                title="口语包",
+                subject="speaking",
+                parts=[PART],
+                created_by="admin",
+            )
+
+    def test_writing_topics_can_be_selected(self) -> None:
+        conn = _conn()
+        with self.assertRaisesRegex(ValueError, "至少选择一个题目"):
+            create_pack(
+                conn,
+                title="空写作包",
                 subject="writing",
                 parts=[],
                 created_by="admin",
             )
+        pack = create_pack(
+            conn,
+            title="强化段第一课自建",
+            subject="writing",
+            parts=[{"sId": 1}, {"sId": 22}],
+            created_by="admin",
+        )
+        self.assertEqual(pack["subject"], "writing")
+        self.assertEqual(len(pack["parts"]), 2)
+        self.assertIn("personal benefits", pack["parts"][0]["prompt"])
+        self.assertIn("主体段1", pack["parts"][0]["tips"])
+        self.assertEqual(pack["parts"][1]["task"], "task1")
+        self.assertEqual(pack["parts"][1]["sPart"], 1)
+        builtin = [row for row in list_all_packs(conn) if row["id"] == "wpack-t1"]
+        self.assertEqual(len(builtin), 1)
+        self.assertEqual(len(builtin[0]["parts"]), 1)
+        writing_builtin = [
+            row
+            for row in list_all_packs(conn)
+            if row.get("builtin") and row["subject"] == "writing"
+        ]
+        self.assertEqual(len(writing_builtin), 29)
+        asg = create_assignment(
+            conn,
+            title="写作作业",
+            subject="writing",
+            parts=[{"sId": 1}],
+            created_by="zhangxiaodong",
+            student_ids=["2025001"],
+        )
+        self.assertEqual(asg["parts"][0]["sId"], 1)
+        saved = save_submission(
+            conn,
+            assignment_id=asg["id"],
+            student_id="2025001",
+            book_id=asg["parts"][0]["bookId"],
+            subject="writing",
+            s_id=1,
+            answers={
+                "outline": "个人健康对个人和社会都重要。",
+                "essay": "Health matters for both individuals and society.",
+            },
+            correct=0,
+            total=1,
+            wrong=0,
+            blank=0,
+            pct=0,
+        )
+        self.assertEqual(saved["answers"]["essay"][:6], "Health")
+        self.assertIn("个人健康", saved["answers"]["outline"])
 
 
 if __name__ == "__main__":

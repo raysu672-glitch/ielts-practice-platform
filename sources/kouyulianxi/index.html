@@ -7,7 +7,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;600&family=Noto+Serif+SC:wght@600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css?v=20260908p2ai2">
+    <link rel="stylesheet" href="style.css?v=20260908p3b">
 </head>
 <body>
     <!-- 顶部导航 -->
@@ -17,6 +17,7 @@
             <div class="part-switch" role="tablist" aria-label="Part 切换">
                 <button type="button" class="part-tab active" data-part="p1" id="partTabP1">P1</button>
                 <button type="button" class="part-tab" data-part="p2" id="partTabP2">P2</button>
+                <button type="button" class="part-tab" data-part="p3" id="partTabP3">P3</button>
             </div>
             <span class="nav-subtitle" id="progressText">0 / 0 题</span>
         </div>
@@ -30,6 +31,9 @@
         </div>
         <div class="nav-right" id="p2NavRight" style="display: none;">
             <span class="nav-subtitle" id="p2ProgressText">素材 0 / 6</span>
+        </div>
+        <div class="nav-right" id="p3NavRight" style="display: none;">
+            <span class="nav-subtitle" id="p3ProgressText">话题 0 / 0</span>
         </div>
     </nav>
 
@@ -236,12 +240,105 @@
         </div>
     </main>
 
+    <!-- ========== P3 ========== -->
+    <main class="main-content p2-main" id="part3View" style="display: none;">
+        <div class="p2-body">
+            <div class="p2-pane" id="p3Pane" style="display: flex;">
+                <aside class="sidebar p2-sidebar">
+                    <div class="p2-side-label">追问链话题</div>
+                    <div class="category-list" id="p3TopicList"></div>
+                </aside>
+                <section class="practice-area">
+                    <div class="empty-state" id="p3Empty">
+                        <div class="empty-icon">💬</div>
+                        <h2>选择左侧话题开始 Part 3</h2>
+                        <p>每话题 2–4 道追问：逐题录音并 AI 评分</p>
+                    </div>
+                    <div class="practice-card p2-card" id="p3Card" style="display: none;">
+                        <div class="question-header">
+                            <span class="question-category" id="p3TopicMeta">Part 3 追问链</span>
+                            <div class="question-row">
+                                <h2 class="question-title" id="p3TopicTitle"></h2>
+                            </div>
+                            <p class="p2-q-en" id="p3TopicEn"></p>
+                        </div>
+
+                        <div class="p3-chain-progress" id="p3ChainProgress" role="tablist" aria-label="追问进度"></div>
+
+                        <div class="p3-q-block">
+                            <div class="question-row">
+                                <p class="p3-q-en" id="p3QuestionText"></p>
+                                <button type="button" class="btn-speak" id="p3SpeakQBtn" title="听题目">
+                                    <span class="speak-icon" aria-hidden="true">🔊</span>
+                                    <span class="speak-label">听题目</span>
+                                </button>
+                            </div>
+                            <p class="p3-q-tip" id="p3QuestionTip"></p>
+                            <div class="p3-qtype-badge" id="p3QTypeBadge"></div>
+                        </div>
+
+                        <details class="p3-frame-box" id="p3FrameBox" open>
+                            <summary>本题答题角度（优先按这条说）</summary>
+                            <p class="p3-angle-note" id="p3AngleNote">先扣本题两个角度；不要为了用素材硬扯无关话题。</p>
+                            <div class="p3-angles" id="p3Angles"></div>
+                            <div class="p3-frame-steps" id="p3FrameSteps"></div>
+                        </details>
+
+                        <details class="p3-frame-box p3-optional-mats" id="p3OptionalMatsBox">
+                            <summary>可选通用语料（勿硬套）</summary>
+                            <p class="p3-angle-note">只有能自然扣回本题时，才借用一句；整段搬运会像跑题。</p>
+                            <div class="p3-materials" id="p3Materials"></div>
+                        </details>
+
+                        <details class="p1-sample-box" id="p3SampleBox" style="display:none;">
+                            <summary>参考思路 <span class="p1-sample-badge">6分+示例</span></summary>
+                            <p class="p1-sample-text" id="p3SampleText"></p>
+                            <p class="p1-sample-hint">对照结构练习，不必逐字背诵。</p>
+                        </details>
+
+                        <div class="action-buttons p2-practice-actions">
+                            <button type="button" class="btn btn-secondary" id="p3PrevQBtn">上一问</button>
+                            <button type="button" class="btn btn-primary" id="p3StartRecordBtn">
+                                <span>🎙️</span> <span id="p3RecordBtnLabel">开始练习</span>
+                            </button>
+                            <button type="button" class="btn btn-primary" id="p3NextQBtn">下一问</button>
+                        </div>
+
+                        <div class="ai-section p2-ai-section" id="p3AiSection">
+                            <div class="ai-header">
+                                <h3>AI 雅思评分（Part 3）</h3>
+                            </div>
+                            <div class="recording-status" id="p3RecordingStatus" style="display: none;">
+                                <div class="status-indicator" id="p3StatusIndicator">🎙️ 正在录音...</div>
+                                <div class="transcript-preview" id="p3TranscriptPreview"></div>
+                            </div>
+                            <button type="button" class="btn btn-ai" id="p3AiEvaluateBtn" disabled>
+                                <span>✨</span> AI 评分
+                            </button>
+                            <div class="ai-result" id="p3AiResult" style="display: none;">
+                                <div class="loading" id="p3AiLoading" style="display: none;">
+                                    <div class="spinner"></div>
+                                    <p>AI 正在分析你的 Part 3 回答...</p>
+                                </div>
+                                <div class="result-content" id="p3ResultContent"></div>
+                            </div>
+                        </div>
+
+                        <div class="p3-chain-summary" id="p3ChainSummary" style="display: none;"></div>
+                    </div>
+                </section>
+            </div>
+        </div>
+    </main>
+
     <script src="config.js?v=20260825p1d"></script>
     <script src="p1-data.js?v=20260827d"></script>
     <script src="p2-data.js?v=20260904apply"></script>
+    <script src="p3-data.js?v=20260908p3b"></script>
     <script src="audio/p2/manifest.js?v=20260824b"></script>
     <script src="audio/manifest.js?v=20260825p1audio"></script>
-    <script src="app.js?v=20260908p2dur90"></script>
-    <script src="p2-app.js?v=20260908p2ai2"></script>
+    <script src="app.js?v=20260908p3"></script>
+    <script src="p2-app.js?v=20260908p3"></script>
+    <script src="p3-app.js?v=20260908p3b"></script>
 </body>
 </html>

@@ -34,6 +34,7 @@ if str(_SCRIPTS_DIR) not in sys.path:
 from ai_config import AI_ENV_PATH  # noqa: E402
 
 ADMIN_ENV_PATH = CONFIG_DIR / "admin.env"
+OSS_ENV_PATH = CONFIG_DIR / "oss.env"
 
 
 def env(name: str, default: str = "") -> str:
@@ -138,7 +139,7 @@ def tar_filter(include_data: bool):
         if "__pycache__" in name or name.endswith((".pyc", ".pyo", ".log")):
             return None
         # Never ship secrets; server keeps its own config/*.env unless --sync-*-env
-        if base in ("ai.env", "admin.env") or base == ".env" or (
+        if base in ("ai.env", "admin.env", "oss.env") or base == ".env" or (
             base.startswith(".env.") and base != ".env.example"
         ):
             return None
@@ -291,6 +292,25 @@ def sync_ai_env(ssh: paramiko.SSHClient) -> None:
     log("AI config synced (not committed to GitHub)")
 
 
+def sync_oss_env(ssh: paramiko.SSHClient) -> None:
+    """Upload local config/oss.env to the server (OSS AccessKey for recorded courses)."""
+    if not OSS_ENV_PATH.is_file():
+        raise RuntimeError(
+            f"Missing local {OSS_ENV_PATH}. Copy config/oss.env.example to config/oss.env first."
+        )
+    remote_path = f"{DEPLOY_DIR}/config/oss.env"
+    log(f"Syncing OSS config to {remote_path} ...")
+    run(ssh, f"mkdir -p {shell_quote(DEPLOY_DIR)}/config")
+    sftp = ssh.open_sftp()
+    try:
+        sftp.put(str(OSS_ENV_PATH), remote_path)
+    finally:
+        sftp.close()
+    run(ssh, f"chmod 640 {shell_quote(remote_path)}")
+    run(ssh, f"chown root:www-data {shell_quote(remote_path)}")
+    log("OSS config synced (not committed to GitHub)")
+
+
 def _local_admin_env_content() -> str | None:
     if ADMIN_ENV_PATH.is_file():
         return ADMIN_ENV_PATH.read_text(encoding="utf-8")
@@ -334,6 +354,7 @@ User=www-data
 WorkingDirectory={DEPLOY_DIR}
 EnvironmentFile=-{DEPLOY_DIR}/config/ai.env
 EnvironmentFile=-{DEPLOY_DIR}/config/admin.env
+EnvironmentFile=-{DEPLOY_DIR}/config/oss.env
 ExecStart=/usr/bin/python3 {DEPLOY_DIR}/scripts/local_server.py \\
     --host 127.0.0.1 \\
     --port {SERVICE_PORT} \\
@@ -362,6 +383,13 @@ WantedBy=multi-user.target
         f"if [ -f {shell_quote(DEPLOY_DIR)}/config/admin.env ]; then "
         f"chmod 640 {shell_quote(DEPLOY_DIR)}/config/admin.env; "
         f"chown root:www-data {shell_quote(DEPLOY_DIR)}/config/admin.env; fi",
+        check=False,
+    )
+    run(
+        ssh,
+        f"if [ -f {shell_quote(DEPLOY_DIR)}/config/oss.env ]; then "
+        f"chmod 640 {shell_quote(DEPLOY_DIR)}/config/oss.env; "
+        f"chown root:www-data {shell_quote(DEPLOY_DIR)}/config/oss.env; fi",
         check=False,
     )
 
@@ -593,6 +621,11 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
         help="Upload config/admin.env (or IELTS_ADMIN_PASSWORD) to the server. Default deploy never overwrites it.",
     )
     parser.add_argument(
+        "--sync-oss-env",
+        action="store_true",
+        help="Upload local config/oss.env to the server (OSS keys). Default deploy never overwrites it.",
+    )
+    parser.add_argument(
         "--setup-writing-venv",
         action="store_true",
         help="Create/update /var/www/ielts/.venv and install writing AI dependencies",
@@ -615,6 +648,8 @@ def main(argv: list[str]) -> int:
             sync_ai_env(ssh)
         if args.sync_admin_env:
             sync_admin_env(ssh)
+        if args.sync_oss_env:
+            sync_oss_env(ssh)
         if args.provision or args.setup_writing_venv:
             setup_writing_venv(ssh)
         if args.repair_tracking_data:

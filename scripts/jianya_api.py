@@ -11,15 +11,25 @@ from typing import Any, Optional
 
 PACK_SUBJECTS = ("listening", "reading", "writing", "speaking")
 EXAM_SUBJECTS = ("listening", "reading")
+OPEN_SUBJECTS = ("listening", "reading", "writing")
 SUBJECTS = PACK_SUBJECTS
 ADMIN_CREATOR = "admin"
 DEFAULT_SUBJECT = "listening"
+WRITING_BOOK_ID = 100
 PACKS_JSON = (
     Path(__file__).resolve().parents[1]
     / "sources"
     / "jianyazhenti"
     / "exam-data"
     / "assignment-packs.json"
+)
+WRITING_TOPICS_JSON = (
+    Path(__file__).resolve().parents[1]
+    / "sources"
+    / "jianyazhenti"
+    / "src"
+    / "data"
+    / "writing-topics.json"
 )
 
 
@@ -152,10 +162,130 @@ def sort_packs_for_teacher(packs: list[dict[str, Any]]) -> list[dict[str, Any]]:
     return items
 
 
+def load_writing_topics(path: Optional[Path] = None) -> list[dict[str, Any]]:
+    file_path = path or WRITING_TOPICS_JSON
+    if not file_path.is_file():
+        return []
+    try:
+        payload = json.loads(file_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return []
+    items = payload.get("topics") if isinstance(payload, dict) else payload
+    if not isinstance(items, list):
+        return []
+    out: list[dict[str, Any]] = []
+    for item in items:
+        if not isinstance(item, dict):
+            continue
+        try:
+            topic_id = int(item.get("id") or 0)
+            lesson = int(item.get("lesson") or 0)
+        except (TypeError, ValueError):
+            continue
+        prompt = str(item.get("prompt") or "").strip()
+        if topic_id <= 0 or not prompt:
+            continue
+        task = str(item.get("task") or "task2").strip() or "task2"
+        out.append(
+            {
+                "id": topic_id,
+                "lesson": lesson or 1,
+                "lessonTitle": str(item.get("lessonTitle") or f"第{lesson}课"),
+                "pattern": str(item.get("pattern") or "").strip(),
+                "task": task,
+                "questionType": str(item.get("questionType") or "").strip(),
+                "title": str(item.get("title") or "").strip() or f"写作题目 {topic_id}",
+                "examMeta": str(item.get("examMeta") or "").strip(),
+                "prompt": prompt,
+                "tips": str(item.get("tips") or "").strip(),
+            }
+        )
+    return out
+
+
+def writing_topic_part(topic: dict[str, Any]) -> dict[str, Any]:
+    task = str(topic.get("task") or "task2")
+    return {
+        "bookId": WRITING_BOOK_ID,
+        "subject": "writing",
+        "sId": int(topic["id"]),
+        "testNo": int(topic.get("lesson") or 1),
+        "sPart": 1 if task == "task1" else 2,
+        "label": str(topic.get("title") or "").strip(),
+        "questionCount": 1,
+        "prompt": str(topic.get("prompt") or "").strip(),
+        "task": task,
+        "lesson": int(topic.get("lesson") or 1),
+        "pattern": str(topic.get("pattern") or "").strip(),
+        "examMeta": str(topic.get("examMeta") or "").strip(),
+        "tips": str(topic.get("tips") or "").strip(),
+    }
+
+
+def builtin_writing_packs(path: Optional[Path] = None) -> list[dict[str, Any]]:
+    packs: list[dict[str, Any]] = []
+    for topic in load_writing_topics(path):
+        part = writing_topic_part(topic)
+        lesson_title = str(topic.get("lessonTitle") or f"第{part['lesson']}课")
+        task_label = "Task 1" if part["task"] == "task1" else "Task 2"
+        bits = [part["prompt"]]
+        if part.get("examMeta"):
+            bits.append(str(part["examMeta"]))
+        packs.append(
+            {
+                "id": f"wpack-t{part['sId']}",
+                "title": part["label"] or f"{lesson_title} {task_label}",
+                "subject": "writing",
+                "description": "\n".join(bits),
+                "parts": [part],
+                "builtin": True,
+                "createdAt": "",
+            }
+        )
+    return packs
+
+
+def _writing_topic_by_id(topic_id: int) -> Optional[dict[str, Any]]:
+    for topic in load_writing_topics():
+        if int(topic["id"]) == int(topic_id):
+            return topic
+    return None
+
+
+def _validate_writing_parts(parts: Any) -> list[dict[str, Any]]:
+    if not isinstance(parts, list) or not parts:
+        raise ValueError("请至少选择一个题目")
+    cleaned: list[dict[str, Any]] = []
+    seen: set[int] = set()
+    for item in parts:
+        if not isinstance(item, dict):
+            raise ValueError("题目格式无效")
+        try:
+            topic_id = int(item.get("sId") or item.get("s_id") or item.get("id") or 0)
+        except (TypeError, ValueError) as exc:
+            raise ValueError("题目编号无效") from exc
+        topic = _writing_topic_by_id(topic_id)
+        if not topic:
+            raise ValueError(f"找不到写作题目 {topic_id}")
+        if topic_id in seen:
+            continue
+        seen.add(topic_id)
+        part = writing_topic_part(topic)
+        label = str(item.get("label") or "").strip()
+        if label:
+            part["label"] = label
+        cleaned.append(part)
+    if not cleaned:
+        raise ValueError("请至少选择一个题目")
+    return cleaned
+
+
 def _validate_parts(parts: Any, subject: str) -> list[dict[str, Any]]:
     subject = normalize_pack_subject(subject)
+    if subject == "writing":
+        return _validate_writing_parts(parts)
     if subject not in EXAM_SUBJECTS:
-        raise ValueError("写作和口语作业包即将开放")
+        raise ValueError("口语作业包即将开放")
     if not isinstance(parts, list) or not parts:
         raise ValueError("请至少选择一个 Part")
     cleaned: list[dict[str, Any]] = []
@@ -189,13 +319,32 @@ def _validate_parts(parts: Any, subject: str) -> list[dict[str, Any]]:
     return cleaned
 
 
+def _enrich_writing_parts(parts: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    out: list[dict[str, Any]] = []
+    for part in parts:
+        if not isinstance(part, dict):
+            continue
+        item = dict(part)
+        if str(item.get("subject") or "") == "writing" and not str(item.get("tips") or "").strip():
+            try:
+                topic_id = int(item.get("sId") or 0)
+            except (TypeError, ValueError):
+                topic_id = 0
+            topic = _writing_topic_by_id(topic_id) if topic_id else None
+            tips = str((topic or {}).get("tips") or "").strip()
+            if tips:
+                item["tips"] = tips
+        out.append(item)
+    return out
+
+
 def _pack_row(row: sqlite3.Row, *, builtin: bool = False) -> dict[str, Any]:
     out = {
         "id": row["id"],
         "title": row["title"],
         "subject": row["subject"],
         "description": row["description"] or "",
-        "parts": _parse_json_list(row["parts_json"]),
+        "parts": _enrich_writing_parts(_parse_json_list(row["parts_json"])),
         "builtin": builtin,
         "createdAt": row["created_at"],
     }
@@ -213,7 +362,7 @@ def _assignment_row(row: sqlite3.Row) -> dict[str, Any]:
         "id": row["id"],
         "title": row["title"],
         "subject": row["subject"],
-        "parts": _parse_json_list(row["parts_json"]),
+        "parts": _enrich_writing_parts(_parse_json_list(row["parts_json"])),
         "packId": row["pack_id"] or None,
         "createdBy": row["created_by"],
         "createdAt": row["created_at"],
@@ -452,38 +601,37 @@ def _submission_row(row: sqlite3.Row) -> dict[str, Any]:
 
 
 def load_builtin_packs(path: Optional[Path] = None) -> list[dict[str, Any]]:
-    file_path = path or PACKS_JSON
-    if not file_path.is_file():
-        return []
-    try:
-        payload = json.loads(file_path.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError):
-        return []
-    packs = payload.get("packs") if isinstance(payload, dict) else None
-    if not isinstance(packs, list):
-        return []
     out: list[dict[str, Any]] = []
-    for item in packs:
-        if not isinstance(item, dict) or not item.get("id"):
-            continue
-        subject = str(item.get("subject") or "")
-        if subject not in EXAM_SUBJECTS:
-            continue
+    file_path = path or PACKS_JSON
+    if file_path.is_file():
         try:
-            parts = _validate_parts(item.get("parts") or [], subject)
-        except ValueError:
-            continue
-        out.append(
-            {
-                "id": str(item["id"]),
-                "title": str(item.get("title") or "未命名作业包"),
-                "subject": subject,
-                "description": str(item.get("description") or ""),
-                "parts": parts,
-                "builtin": True,
-                "createdAt": str(item.get("createdAt") or ""),
-            }
-        )
+            payload = json.loads(file_path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            payload = None
+        packs = payload.get("packs") if isinstance(payload, dict) else None
+        if isinstance(packs, list):
+            for item in packs:
+                if not isinstance(item, dict) or not item.get("id"):
+                    continue
+                subject = str(item.get("subject") or "")
+                if subject not in OPEN_SUBJECTS:
+                    continue
+                try:
+                    parts = _validate_parts(item.get("parts") or [], subject)
+                except ValueError:
+                    continue
+                out.append(
+                    {
+                        "id": str(item["id"]),
+                        "title": str(item.get("title") or "未命名作业包"),
+                        "subject": subject,
+                        "description": str(item.get("description") or ""),
+                        "parts": parts,
+                        "builtin": True,
+                        "createdAt": str(item.get("createdAt") or ""),
+                    }
+                )
+    out.extend(builtin_writing_packs())
     return out
 
 
@@ -920,7 +1068,7 @@ def save_submission(
     assignment = get_assignment(conn, assignment_id)
     if not assignment:
         raise ValueError("作业不存在或已删除")
-    if subject not in EXAM_SUBJECTS:
+    if subject not in OPEN_SUBJECTS:
         raise ValueError("科目无效")
     if not student_id:
         raise ValueError("缺少学号")

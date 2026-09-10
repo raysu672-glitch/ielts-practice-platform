@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>录播课 - 藕叶英语</title>
+  <style>
+    :root {
+      --brand: #5c6bc0;
+      --brand-deep: #3949ab;
+      --bg: #f4f5f9;
+      --surface: #fff;
+      --text: #1a1d2e;
+      --muted: #6b7280;
+      --border: #e2e4ec;
+      --danger: #b91c1c;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+    .wrap { max-width: 960px; margin: 0 auto; padding: 20px 16px 40px; }
+    body.embed .wrap { padding: 12px 12px 24px; }
+    .top {
+      display: flex; justify-content: space-between; align-items: baseline;
+      gap: 12px; margin-bottom: 16px; flex-wrap: wrap;
+    }
+    h1 { font-size: 1.35rem; margin: 0; }
+    .sub { color: var(--muted); font-size: 0.9rem; margin: 4px 0 0; }
+    .login-link { color: var(--brand-deep); }
+    .msg {
+      background: #fff; border: 1px solid var(--border); border-radius: 12px;
+      padding: 28px 20px; text-align: center; color: var(--muted);
+    }
+    .msg.error { color: var(--danger); border-color: #fecaca; background: #fef2f2; }
+    .list { display: grid; gap: 16px; }
+    .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 4px; }
+    .chip {
+      border: 1px solid var(--border); background: #fff; border-radius: 999px;
+      padding: 6px 12px; font: inherit; color: var(--text); cursor: pointer;
+    }
+    .chip.active { background: var(--brand); color: #fff; border-color: var(--brand); }
+    .subject-block h2 { font-size: 1.05rem; margin: 0 0 8px; }
+    .subject-block .empty { color: var(--muted); font-size: 0.9rem; padding: 8px 2px; }
+    .card {
+      background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+      padding: 14px 16px; display: flex; justify-content: space-between; align-items: flex-start;
+      gap: 12px; cursor: pointer; text-align: left; width: 100%;
+      font: inherit; color: inherit;
+    }
+    .card:hover, .card.active { border-color: var(--brand); box-shadow: 0 4px 16px rgba(92,107,192,.12); }
+    .card strong { display: block; }
+    .card .meta { color: var(--muted); font-size: 0.85rem; margin-top: 4px; }
+    .card .summary { color: #4b5563; font-size: 0.88rem; margin-top: 6px; line-height: 1.45; }
+    .play { background: var(--brand); color: #fff; border: 0; border-radius: 8px; padding: 8px 14px; cursor: pointer; }
+    .player-box {
+      margin-top: 18px; background: #111; border-radius: 12px; overflow: hidden; position: relative;
+      display: none;
+    }
+    .player-box.on { display: block; }
+    video { width: 100%; max-height: 70vh; background: #000; vertical-align: middle; }
+    .watermark {
+      position: absolute; right: 12px; top: 12px; color: rgba(255,255,255,.45);
+      font-size: 13px; pointer-events: none; letter-spacing: 0.4px;
+      text-shadow: 0 1px 2px rgba(0,0,0,.6);
+    }
+    .now-playing { color: var(--muted); font-size: 0.9rem; margin: 10px 0 0; display: none; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="top">
+      <div>
+        <h1>录播课</h1>
+        <p class="sub" id="who">登录后才能播放，视频不经过练习站服务器</p>
+      </div>
+      <a class="login-link" id="homeLink" href="/tinglidanciceshi/">返回学习首页</a>
+    </div>
+    <div id="status" class="msg">正在检查登录…</div>
+    <div id="chips" class="chips" hidden></div>
+    <div id="list" class="list" hidden></div>
+    <div id="playerBox" class="player-box">
+      <div class="watermark" id="watermark"></div>
+      <video id="player" controls playsinline controlslist="nodownload"></video>
+    </div>
+    <p class="now-playing" id="nowPlaying"></p>
+  </div>
+  <script src="/luboke/app.js?v=20260908subj"></script>
+</body>
+</html>

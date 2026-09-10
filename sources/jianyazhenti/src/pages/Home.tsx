@@ -8,10 +8,11 @@ import {
   loadServerDoneKeys,
   pickRandomUnused,
 } from '../lib/randomTest'
+import { isWritingSubject, subjectLabel as packSubjectLabel } from '../lib/packSubjects'
 import type { Subject } from '../types'
 
 function subjectLabel(subject: Assignment['subject']) {
-  return subject === 'listening' ? '听力' : '阅读'
+  return packSubjectLabel(subject)
 }
 
 function isHomeworkPending(a: Assignment) {
@@ -162,7 +163,8 @@ export default function Home() {
                       <div>
                         <strong>{a.title}</strong>
                         <span>
-                          {subjectLabel(a.subject)} · {a.parts.length} Part · 已交{' '}
+                          {subjectLabel(a.subject)} · {a.parts.length}{' '}
+                          {isWritingSubject(a.subject) ? '题' : 'Part'} · 已交{' '}
                           {a.mySubmittedParts || 0}/{a.myTotalParts || a.parts.length}
                           {a.comment ? ' · 老师已点评' : ''}
                         </span>
@@ -183,7 +185,8 @@ export default function Home() {
                       <div>
                         <strong>{a.title}</strong>
                         <span>
-                          {subjectLabel(a.subject)} · {a.parts.length} Part · 已交{' '}
+                          {subjectLabel(a.subject)} · {a.parts.length}{' '}
+                          {isWritingSubject(a.subject) ? '题' : 'Part'} · 已交{' '}
                           {a.mySubmittedParts || 0}/{a.myTotalParts || a.parts.length}
                           {a.comment ? ' · 老师已点评' : ''}
                         </span>
