@@ -476,6 +476,16 @@ async function completeCurrentTaskStudy(payload) {
     switchStudentTab('tasks');
 }
 
+/** 有单元进度的科目：不能靠「退出页面」静默打勾（否则练一句也会变成已完成）。 */
+var TASK_SCOPE_GATED_MODULES = {
+    writing_translate: true,
+    sentence: true,
+    writing_phrase: true,
+    listening_synonym: true,
+    reading_synonym: true,
+    listening_p4_speed: true
+};
+
 /** 任务学习：部分模块只会上报时长、不会主动 taskUnitComplete；退出时补打勾。 */
 async function maybeCompleteTaskStudyOnLeave(opts) {
     opts = opts || {};
@@ -483,8 +493,8 @@ async function maybeCompleteTaskStudyOnLeave(opts) {
     if (!ctx.plan_item_id) return false;
     const current = window._currentModule;
     if (!current || current.mode !== 'study') return false;
-    // 阅读同义 / 听力跟读有独立完成条件，不能靠退出自动完成
-    if (current.id === 'reading_synonym' || current.id === 'listening_p4_speed') return false;
+    // 有明确完成条件的科目：除非模块主动发完成信号，否则不因退出自动打勾
+    if (TASK_SCOPE_GATED_MODULES[current.id] && !opts.fromModuleSignal) return false;
     if (window._taskAutoCompleteInFlight) return false;
     const minSeconds = opts.minSeconds != null ? opts.minSeconds : 60;
     const duration = practiceElapsedSeconds(current.startedAt);
@@ -513,6 +523,22 @@ async function maybeCompleteTaskStudyOnLeave(opts) {
     } finally {
         window._taskAutoCompleteInFlight = false;
     }
+}
+
+/** 写作翻译 / 长难句等：退出时询问是否确认完成本单元（避免误标完成，也避免真做完无法打勾）。 */
+async function confirmCompleteScopedTaskOnLeave() {
+    const ctx = window._currentTaskContext || {};
+    const current = window._currentModule;
+    if (!ctx.plan_item_id || !current || current.mode !== 'study') return false;
+    if (!TASK_SCOPE_GATED_MODULES[current.id]) return false;
+    if (current.id === 'reading_synonym' || current.id === 'listening_p4_speed') return false;
+    const duration = practiceElapsedSeconds(current.startedAt);
+    if (duration < 20) return false;
+    var ok = window.confirm(
+        '确认已完成本单元全部练习？\n\n点「确定」将标记任务完成；若只练了部分，请点「取消」，下次可继续。'
+    );
+    if (!ok) return false;
+    return maybeCompleteTaskStudyOnLeave({ fromModuleSignal: true, minSeconds: 0 });
 }
 
 function switchStudentTab(tab, opts) {
@@ -2599,7 +2625,15 @@ function exitGenericIframe() {
     } catch(e) {}
     setTimeout(async function() {
         try { await saveCurrentModuleFallback(); } catch(e) { console.error('保存模块兜底时长失败:', e); }
-        try { await maybeCompleteTaskStudyOnLeave(); } catch(e) { console.warn('任务自动打勾失败:', e); }
+        try {
+            var current = window._currentModule;
+            if (current && TASK_SCOPE_GATED_MODULES[current.id] &&
+                current.id !== 'reading_synonym' && current.id !== 'listening_p4_speed') {
+                await confirmCompleteScopedTaskOnLeave();
+            } else {
+                await maybeCompleteTaskStudyOnLeave();
+            }
+        } catch(e) { console.warn('任务退出自动打勾失败:', e); }
         finishGenericIframeClose();
         try { loadTodayTasks(); } catch(e) {}
     }, 700);
@@ -2799,13 +2833,19 @@ window.addEventListener('message', async function(event) {
             } else if (!result.skipped) {
                 showToast(moduleType === 'speaking' ? '口语练习进度已保存' : '学习时长已保存');
                 try { loadProgressTable(); } catch(e) {}
-                // 写作词伙 / 听力基础等：上报学习完成后，任务模式下同步打勾
+                // 模块主动上报学完（词伙通关 / 听力学完等）时才允许自动打勾
                 if (window._currentTaskContext && window._currentTaskContext.plan_item_id &&
                     (data.type === 'phraseStudyComplete' || data.type === 'genericStudyComplete' ||
                      data.type === 'listeningStudyComplete') &&
                     moduleType !== 'reading_synonym' && moduleType !== 'listening_p4_speed' &&
                     moduleType !== 'speaking') {
-                    try { await maybeCompleteTaskStudyOnLeave({ minSeconds: 5 }); } catch (e2) {}
+                    try {
+                        await maybeCompleteTaskStudyOnLeave({
+                            minSeconds: 5,
+                            fromModuleSignal: data.type !== 'genericStudyComplete' ||
+                                !TASK_SCOPE_GATED_MODULES[moduleType]
+                        });
+                    } catch (e2) {}
                 }
             }
             return;
