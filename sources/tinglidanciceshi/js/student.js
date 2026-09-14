@@ -544,7 +544,7 @@ function switchStudentTab(tab, opts) {
         refreshJianyaHomeworkState();
     }
     if (tab === 'mock') {
-        loadJianyaMockFrame();
+        loadJianyaMockFrame(true);
     }
     if (tab === 'luboke') {
         loadLubokeStudentFrame();
@@ -563,13 +563,20 @@ function loadJianyaStudentFrame(path) {
     }
 }
 
-function loadJianyaMockFrame() {
+function loadJianyaMockFrame(force) {
     var frame = document.getElementById('jianyaMockIframe');
     if (!frame) return;
     var sid = (currentStudent && currentStudent.student_id) ? encodeURIComponent(currentStudent.student_id) : '';
     var next = '/jianyazhenti/student/mock?embed=1';
     if (sid) next += '&student_id=' + sid;
-    if (frame.getAttribute('data-src') !== next) {
+    // 口语模考会把 iframe 导航走；切回「模拟考」时强制回到入口
+    var drifted = false;
+    try {
+        drifted = !String(frame.src || '').includes('/jianyazhenti/student/mock');
+    } catch (e) {
+        drifted = true;
+    }
+    if (force || drifted || frame.getAttribute('data-src') !== next) {
         frame.src = next;
         frame.setAttribute('data-src', next);
     }
@@ -1283,7 +1290,7 @@ function speakDictationWord(word, onDone) {
     try { speechSynthesis.cancel(); } catch (e) {}
     var uttered = new SpeechSynthesisUtterance(word);
     uttered.lang = 'en-GB';
-    uttered.rate = 0.85;
+    uttered.rate = 1.0;
     uttered.onend = function() { if (onDone) onDone(); };
     uttered.onerror = function() { if (onDone) onDone(); };
     try {

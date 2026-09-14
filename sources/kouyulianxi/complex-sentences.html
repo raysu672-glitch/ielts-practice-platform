@@ -560,7 +560,7 @@ else toast('音频加载失败，请重试');
 function speak(text){
 try{
 if('speechSynthesis' in window){
-const u=new SpeechSynthesisUtterance(text); u.lang='en-US'; u.rate=0.92; u.pitch=1;
+const u=new SpeechSynthesisUtterance(text); u.lang='en-US'; u.rate=1.0; u.pitch=1;
 window.speechSynthesis.cancel(); window.speechSynthesis.speak(u);
 } else { toast('音频加载失败，请重试'); }
 }catch(e){ toast('朗读不可用'); }

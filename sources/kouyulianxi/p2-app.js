@@ -341,7 +341,7 @@ class P2Practice {
         }
         const utter = new SpeechSynthesisUtterance(t);
         utter.lang = 'en-GB';
-        utter.rate = 0.92;
+        utter.rate = 1.0;
         const voices = speechSynthesis.getVoices() || [];
         // Prefer male British when available
         const v = voices.find(x => /en-GB/i.test(x.lang) && /male|ryan|thomas|daniel/i.test(x.name))

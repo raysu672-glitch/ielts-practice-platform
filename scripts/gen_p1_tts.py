@@ -33,7 +33,7 @@ AUDIO_DIR = ROOT / "sources" / "kouyulianxi" / "audio"
 MANIFEST_JS = AUDIO_DIR / "manifest.js"
 
 VOICE = "en-GB-LibbyNeural"
-RATE = "-3%"
+RATE = "+0%"
 PITCH = "+0Hz"
 VOLUME = "+0%"
 
@@ -49,7 +49,7 @@ def load_p1_via_node(path: Path) -> dict:
     script = (
         "const fs=require('fs');"
         f"const t=fs.readFileSync({json.dumps(str(path))},'utf8');"
-        "const i=t.indexOf('{'); const j=t.lastIndexOf('}');"
+        "const i=t.indexOf('{'); const j=t.lastIndexOf('};');"
         "const data=eval('('+t.slice(i,j+1)+')');"
         "process.stdout.write(JSON.stringify(data));"
     )

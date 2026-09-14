@@ -673,7 +673,7 @@ function useTTS(text) {
   const playBtn = document.getElementById('playBtn');
   const utter = new SpeechSynthesisUtterance(text);
   utter.lang = 'en-GB';
-  utter.rate = 0.9;
+  utter.rate = 1.0;
   utter.pitch = 1.0;
   utter.onstart = function() {
     playBtn.classList.add('speaking');

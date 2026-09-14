@@ -684,7 +684,7 @@
             try { speechSynthesis.cancel(); } catch (e) {}
             const uttered = new SpeechSynthesisUtterance(word);
             uttered.lang = 'en-GB';
-            uttered.rate = 0.85;
+            uttered.rate = 1.0;
             try {
                 speechSynthesis.speak(uttered);
             } catch (e) {

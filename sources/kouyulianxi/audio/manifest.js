@@ -199,7 +199,7 @@ const P1_AUDIO_MANIFEST = {
   "xihao:24": "audio/xihao/24.mp3",
   "q:wouldyouusemirrorstodecorateyourroom": "audio/xihao/24.mp3",
   "xihao:25": "audio/xihao/25.mp3",
-  "q:whatkindofhouseorapartmentdoyouwanttoliveininthefuture": "audio/xihao/25.mp3",
+  "q:whatkindofhouseorapartmentdoyouwanttoliveinthefuture": "audio/xihao/25.mp3",
   "xihao:26": "audio/xihao/26.mp3",
   "q:whatpartofyourhomedoyoulikethemost": "audio/xihao/26.mp3",
   "xihao:27": "audio/xihao/27.mp3",

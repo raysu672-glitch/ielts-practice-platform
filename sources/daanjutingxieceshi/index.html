@@ -226,7 +226,7 @@ function playAudio() {
 
   const utter = new SpeechSynthesisUtterance(q.original);
   utter.lang = 'en-GB';
-  utter.rate = 0.9;
+  utter.rate = 1.0;
   utter.onstart = function() {
     playBtn.classList.add('speaking');
     playBtn.innerHTML = '&#9724;';

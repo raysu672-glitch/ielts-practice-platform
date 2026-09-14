@@ -1092,7 +1092,7 @@ class P1Practice {
         if (voice) {
             try { utter.voice = voice; } catch (_) {}
         }
-        utter.rate = 0.92;
+        utter.rate = 1.0;
         utter.pitch = 1.02;
         utter.volume = 1;
 

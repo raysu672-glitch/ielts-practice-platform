@@ -22,7 +22,7 @@ except ImportError:
 
 # 配置
 VOICE = "en-GB-SoniaNeural"   # 英式英语，女声，清晰适合雅思初学者
-RATE = "-10%"                  # 稍慢一点，适合初级学习者
+RATE = "+0%"                  # 标准语速
 VOLUME = "+0%"
 
 BASE_DIR = Path(__file__).parent.parent

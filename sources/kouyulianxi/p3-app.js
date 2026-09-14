@@ -476,7 +476,7 @@ class P3Practice {
         }
         const utter = new SpeechSynthesisUtterance(t);
         utter.lang = 'en-GB';
-        utter.rate = 0.92;
+        utter.rate = 1.0;
         const voices = speechSynthesis.getVoices() || [];
         const v = voices.find((x) => /en-GB/i.test(x.lang)) || voices.find((x) => /^en/i.test(x.lang));
         if (v) utter.voice = v;
