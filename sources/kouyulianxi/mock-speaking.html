@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>口语模考 - 雅思练习平台</title>
+    <style>
+        * { box-sizing: border-box; }
+        html, body { margin: 0; padding: 0; min-height: 100%; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Microsoft YaHei', sans-serif;
+            background: #f1ebe0;
+            color: #243029;
+            line-height: 1.6;
+        }
+        .mock-shell { max-width: 900px; margin: 0 auto; padding: 24px; }
+        .mock-start-overlay { display: flex; justify-content: center; padding: 24px 0; }
+        .mock-start-card { background: #fff; border-radius: 12px; padding: 32px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); text-align: center; width: 100%; max-width: 560px; }
+        .mock-start-card h1 { margin: 0 0 12px; font-size: 28px; color: #1a3a3a; }
+        .mock-start-card p { color: #666; line-height: 1.6; margin: 8px 0; }
+        .mock-mic-row { display: flex; align-items: center; justify-content: center; gap: 10px; margin: 20px 0; padding: 12px; background: #f5f7f7; border-radius: 8px; }
+        .mock-mic-status { font-weight: 600; color: #2d6a6a; }
+        .mock-btn { padding: 12px 28px; border: none; border-radius: 8px; font-size: 16px; cursor: pointer; background: #2d6a6a; color: #fff; }
+        .mock-btn:disabled { background: #9db8b8; cursor: not-allowed; }
+        .mock-btn.ghost { background: transparent; color: #2d6a6a; border: 1px solid #2d6a6a; }
+        .mock-btn.danger { background: #b34545; }
+        .mock-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; }
+        .mock-phase { font-size: 14px; color: #2d6a6a; font-weight: 600; letter-spacing: 0.5px; }
+        .mock-timer { font-size: 32px; font-weight: 700; color: #1a3a3a; font-variant-numeric: tabular-nums; }
+        .mock-timer.warn { color: #b34545; }
+        .mock-question-card { background: #fff; border-radius: 12px; padding: 28px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); margin-bottom: 20px; }
+        .mock-question-text { font-size: 22px; line-height: 1.5; color: #1a3a3a; margin-bottom: 12px; }
+        .mock-cue-card { background: #f5f7f7; border-left: 4px solid #2d6a6a; padding: 16px 20px; margin: 16px 0; border-radius: 0 8px 8px 0; }
+        .mock-cue-card h3 { margin: 0 0 8px; color: #2d6a6a; }
+        .mock-cue-card ul { margin: 8px 0 0; padding-left: 20px; color: #555; }
+        .mock-tip { color: #888; font-size: 14px; margin-top: 12px; }
+        .mock-actions { display: flex; gap: 12px; justify-content: center; align-items: center; margin-top: 20px; flex-wrap: wrap; }
+        .mock-record-dot { width: 12px; height: 12px; border-radius: 50%; background: #ccc; display: inline-block; margin-right: 6px; }
+        .mock-record-dot.recording { background: #d33; animation: pulse 1.2s infinite; }
+        @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
+        .mock-report { background: #fff; border-radius: 12px; padding: 28px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
+        .mock-report table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 14px; }
+        .mock-report th, .mock-report td { padding: 10px; border-bottom: 1px solid #eee; text-align: left; }
+        .mock-report th { background: #f5f7f7; color: #2d6a6a; }
+        .mock-warn { color: #b34545; background: #fdf0f0; padding: 10px 14px; border-radius: 8px; }
+        .mock-note { color: #888; font-size: 13px; margin-top: 16px; }
+        .mock-overall { background: #f0f7f7; border-radius: 12px; padding: 20px; margin: 16px 0; text-align: center; }
+        .mock-band { font-size: 32px; font-weight: 700; color: #1a3a3a; margin-bottom: 10px; }
+        .mock-subscores { display: flex; gap: 18px; justify-content: center; color: #2d6a6a; font-weight: 600; flex-wrap: wrap; }
+        .mock-hidden { display: none !important; }
+    </style>
+</head>
+<body>
+    <div class="mock-shell">
+        <div id="mockStartOverlay" class="mock-start-overlay">
+            <div class="mock-start-card">
+                <h1>口语模拟考</h1>
+                <p>按真实考试流程进行 Part 1 → Part 2 → Part 3，全程约 11–14 分钟。</p>
+                <p>系统会连续录音，并把题目声音混合录入。考试中途不能暂停，退出按弃考处理。</p>
+                <div class="mock-mic-row">
+                    <span>麦克风状态：</span>
+                    <span id="mockMicStatus" class="mock-mic-status">检测中…</span>
+                </div>
+                <button id="mockStartBtn" class="mock-btn" disabled>开始考试</button>
+            </div>
+        </div>
+
+        <div id="mockExamView" class="mock-hidden">
+            <div class="mock-header">
+                <div class="mock-phase" id="mockPhaseLabel">准备中…</div>
+                <div class="mock-timer" id="mockTimer">--</div>
+            </div>
+            <div class="mock-question-card">
+                <div class="mock-question-text" id="mockQuestionText"></div>
+                <div id="mockCueCard" class="mock-cue-card" style="display:none;"></div>
+                <div class="mock-tip" id="mockTip"></div>
+            </div>
+            <div class="mock-actions">
+                <span><span id="mockRecordDot" class="mock-record-dot"></span> 录音中</span>
+                <button id="mockNextBtn" class="mock-btn">下一题</button>
+                <button id="mockAbortBtn" class="mock-btn danger">弃考</button>
+            </div>
+        </div>
+
+        <div id="mockReportView" class="mock-hidden">
+            <div class="mock-report" id="mockReportBody"></div>
+            <div class="mock-actions">
+                <button id="mockDownloadAudioBtn" class="mock-btn ghost">下载整场录音</button>
+                <button id="mockBackBtn" class="mock-btn">返回模拟考</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        window.MOCK_SPEAKING_CONFIG = {
+            transcribePath: '/api/p4/transcribe',
+            aiMessagesPath: '/api/ai/messages',
+            examApiBase: '/api/mock/speaking'
+        };
+    </script>
+    <script src="p1-data.js?v=20260914topic3"></script>
+    <script src="p2-data.js?v=20260914topic3"></script>
+    <script src="p3-data.js?v=20260914topic3"></script>
+    <script src="mock-speaking.js?v=20260914topic3"></script>
+</body>
+</html>

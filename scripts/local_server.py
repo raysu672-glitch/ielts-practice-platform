@@ -173,6 +173,16 @@ from jianya_api import (  # noqa: E402
     save_submission as jianya_save_submission,
     teacher_owns_assignment as jianya_teacher_owns_assignment,
 )
+from mock_speaking_api import (  # noqa: E402
+    cleanup_old_audio,
+    create_mock_exam,
+    ensure_mock_speaking_tables,
+    get_mock_exam,
+    list_student_mock_exams,
+    list_teacher_mock_exams,
+    save_mock_audio,
+    submit_mock_exam,
+)
 DEFAULT_DB_PATH = ROOT / "data" / "ielts_local.db"
 DEFAULT_P4_ASR_BASE = "https://p4.oyenglish.com.cn"
 DEFAULT_WRITING_API_BASE = "http://127.0.0.1:8080"
@@ -708,6 +718,7 @@ def init_db(db_path: Path, *, bind_host: str = "127.0.0.1") -> None:
         ensure_wrong_items_table(conn)
         ensure_task_tables(conn)
         ensure_jianya_tables(conn)
+        ensure_mock_speaking_tables(conn)
         seed_mvp_units(conn)
 
         conn.execute(
@@ -1952,6 +1963,7 @@ class LocalHandler(SimpleHTTPRequestHandler):
                         wrong=wrong,
                         blank=blank,
                         pct=int(pct),
+                        correction=payload.get("correction"),
                     )
                     self.send_json({"data": data, "error": None})
                     return
@@ -2049,6 +2061,96 @@ class LocalHandler(SimpleHTTPRequestHandler):
             return
         with closing(connect(self.db_path)) as conn:
             self.send_json({"data": load_progress(conn, session["id"]), "error": None})
+
+    # 口语模考 API
+    def handle_mock_speaking_start(self) -> None:
+        session = self.require_student_session()
+        if not session:
+            return
+        payload = self.read_json_body()
+        try:
+            with closing(connect(self.db_path)) as conn:
+                row = create_mock_exam(conn, session["id"], payload)
+            self.send_json({"data": row, "error": None})
+        except ValueError as exc:
+            self.send_json({"data": None, "error": {"message": str(exc)}}, status=400)
+
+    def handle_mock_speaking_audio(self, exam_id: int) -> None:
+        session = self.require_student_session()
+        if not session:
+            return
+        length = int(self.headers.get("Content-Length") or 0)
+        if length <= 0 or length > 50 * 1024 * 1024:
+            self.send_json({"data": None, "error": {"message": "音频大小无效"}}, status=400)
+            return
+        audio_bytes = self.rfile.read(length)
+        audio_dir = self.db_path.parent / "mock_recordings"
+        try:
+            with closing(connect(self.db_path)) as conn:
+                rel = save_mock_audio(conn, exam_id, session["id"], audio_bytes, audio_dir)
+            self.send_json({"data": {"audio_path": rel}, "error": None})
+        except ValueError as exc:
+            self.send_json({"data": None, "error": {"message": str(exc)}}, status=400)
+
+    def handle_mock_speaking_submit(self, exam_id: int) -> None:
+        session = self.require_student_session()
+        if not session:
+            return
+        payload = self.read_json_body()
+        try:
+            with closing(connect(self.db_path)) as conn:
+                row = submit_mock_exam(conn, exam_id, session["id"], payload)
+            self.send_json({"data": row, "error": None})
+        except ValueError as exc:
+            self.send_json({"data": None, "error": {"message": str(exc)}}, status=400)
+
+    def handle_student_mock_speaking_history(self) -> None:
+        session = self.require_student_session()
+        if not session:
+            return
+        with closing(connect(self.db_path)) as conn:
+            rows = list_student_mock_exams(conn, session["id"])
+            self.send_json({"data": rows, "error": None})
+
+    def handle_teacher_mock_speaking_history(self, student_id: str) -> None:
+        session = self.require_teacher_session()
+        if not session:
+            return
+        with closing(connect(self.db_path)) as conn:
+            rows = list_teacher_mock_exams(conn, student_id)
+            self.send_json({"data": rows, "error": None})
+
+    def handle_mock_speaking_audio_download(self, exam_id: int, teacher_mode: bool = False) -> None:
+        if teacher_mode:
+            session = self.require_teacher_session()
+        else:
+            session = self.require_student_session()
+        if not session:
+            return
+        with closing(connect(self.db_path)) as conn:
+            row = conn.execute(
+                "SELECT audio_path FROM mock_speaking_exams WHERE id = ?",
+                (exam_id,),
+            ).fetchone()
+            if not row:
+                self.send_json({"data": None, "error": {"message": "记录不存在"}}, status=404)
+                return
+            rel = row["audio_path"] if hasattr(row, "keys") else row[0]
+            if not rel:
+                self.send_json({"data": None, "error": {"message": "音频未上传"}}, status=404)
+                return
+            audio_dir = self.db_path.parent / "mock_recordings"
+            path = audio_dir / rel
+            if not path.exists() or not path.is_file():
+                self.send_json({"data": None, "error": {"message": "音频文件不存在"}}, status=404)
+                return
+            self.send_response(200)
+            self.send_header("Content-Type", "audio/webm")
+            self.send_header("Content-Disposition", f'attachment; filename="mock_speaking_{exam_id}.webm"')
+            self.send_header("Content-Length", str(path.stat().st_size))
+            self.end_headers()
+            with open(path, "rb") as f:
+                shutil.copyfileobj(f, self.wfile)
 
     def handle_student_test_records_get(self) -> None:
         session = self.require_student_session()
@@ -2646,6 +2748,22 @@ class LocalHandler(SimpleHTTPRequestHandler):
         if parsed.path.rstrip("/") == "/api/auth/me":
             self.handle_auth_me()
             return
+        if parsed.path.rstrip("/") == "/api/student/mock-speaking/history":
+            self.handle_student_mock_speaking_history()
+            return
+        if parsed.path.startswith("/api/teacher/mock-speaking/"):
+            parts = [p for p in parsed.path.split("/") if p]
+            if len(parts) >= 4:
+                if len(parts) == 6 and parts[4].isdigit() and parts[5] == "audio":
+                    self.handle_mock_speaking_audio_download(int(parts[4]), teacher_mode=True)
+                    return
+                self.handle_teacher_mock_speaking_history(parts[3])
+                return
+        if parsed.path.startswith("/api/mock/speaking/"):
+            parts = [p for p in parsed.path.split("/") if p]
+            if len(parts) == 5 and parts[3].isdigit() and parts[4] == "audio":
+                self.handle_mock_speaking_audio_download(int(parts[3]))
+                return
         if parsed.path.rstrip("/") == "/api/student/progress":
             self.handle_student_progress()
             return
@@ -2787,6 +2905,19 @@ class LocalHandler(SimpleHTTPRequestHandler):
         if path == "/api/ai/messages":
             self.handle_ai_messages()
             return
+        if path == "/api/mock/speaking/start":
+            self.handle_mock_speaking_start()
+            return
+        if path.startswith("/api/mock/speaking/"):
+            parts = [p for p in path.split("/") if p]
+            if len(parts) >= 4 and parts[3].isdigit():
+                exam_id = int(parts[3])
+                if len(parts) == 5 and parts[4] == "audio":
+                    self.handle_mock_speaking_audio(exam_id)
+                    return
+                if len(parts) == 5 and parts[4] == "submit":
+                    self.handle_mock_speaking_submit(exam_id)
+                    return
         if path == "/api/auth/student/login":
             self.handle_student_login()
             return
@@ -3148,6 +3279,14 @@ def main(argv: list[str]) -> int:
     static_dir = resolve_configured_path(args.static_dir)
     db_path = resolve_configured_path(args.db)
     init_db(db_path, bind_host=args.host)
+
+    # 清理 90 天前的口语模考音频
+    try:
+        removed = cleanup_old_audio(db_path, db_path.parent / "mock_recordings")
+        if removed:
+            print(f"Cleaned {removed} mock speaking audio file(s) older than 90 days")
+    except Exception as exc:
+        print(f"Mock speaking audio cleanup skipped: {exc}")
 
     ai_env = load_ai_env()
     if ai_env:

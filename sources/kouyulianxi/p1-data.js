@@ -13886,3 +13886,7 @@ const P1_DATA = {
     }
   ]
 };
+
+if (typeof window !== 'undefined') {
+  window.P1_DATA = P1_DATA;
+}

@@ -2582,3 +2582,7 @@ const P2_DATA = {
     }
   ]
 };
+
+if (typeof window !== 'undefined') {
+  window.P2_DATA = P2_DATA;
+}

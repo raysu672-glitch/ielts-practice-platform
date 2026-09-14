@@ -33,8 +33,8 @@ const SUBJECTS = [
     id: 'speaking',
     title: '口语',
     en: 'Speaking',
-    ready: false,
-    desc: '口语模拟考即将开放。',
+    ready: true,
+    desc: '按真实考试流程连考 Part 1–3，全程录音并 AI 评分，约 11–14 分钟。',
   },
 ] as const
 
@@ -76,7 +76,7 @@ export default function MockHub() {
           模拟<span>考</span>
         </h1>
         <p className="hero-lead">
-          按官方题型组一套完整模考。阅读、听力从剑雅 C7–C21 抽取你还没做过的 Part；写作和口语稍后开放。
+          按官方题型组一套完整模考。阅读、听力从剑雅 C7–C21 抽取你还没做过的 Part；口语连考 Part 1–3；写作稍后开放。
         </p>
         <div className="hero-actions">
           <Link className="btn ghost" to={`/student/mock/history${qs ? `?${qs}` : ''}`}>
@@ -94,9 +94,13 @@ export default function MockHub() {
               <button
                 type="button"
                 className="btn"
-                onClick={() =>
-                  navigate(`/student/mock/${item.id}${qs ? `?${qs}` : ''}`)
-                }
+                onClick={() => {
+                  if (item.id === 'speaking') {
+                    window.location.href = `/kouyulianxi/mock-speaking.html${qs ? `?${qs}` : ''}`
+                  } else {
+                    navigate(`/student/mock/${item.id}${qs ? `?${qs}` : ''}`)
+                  }
+                }}
               >
                 开始模考
               </button>
