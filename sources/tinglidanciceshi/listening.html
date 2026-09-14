@@ -1150,18 +1150,11 @@
             if (_taskMode) {
                 nextBtn.style.display = 'none';
                 titleEl.textContent = `恭喜完成本单元（第 ${currentGroupIndex + 1} 组）！`;
-                descEl.textContent = '可点击下方按钮打勾，或返回今日任务';
+                descEl.textContent = '系统已根据练习进度自动记为完成';
+                // 学完本组即由系统打勾，不给学生手动「标记完成」按钮
+                postTaskUnitComplete();
                 let taskBtn = document.getElementById('task-complete-btn');
-                if (!taskBtn && completeBtns) {
-                    taskBtn = document.createElement('button');
-                    taskBtn.id = 'task-complete-btn';
-                    taskBtn.className = 'btn btn-primary';
-                    taskBtn.textContent = '完成本单元打勾';
-                    taskBtn.onclick = function() { postTaskUnitComplete(); };
-                    completeBtns.insertBefore(taskBtn, completeBtns.firstChild);
-                }
-                if (taskBtn) taskBtn.style.display = 'inline-block';
-                // 打勾由用户点击「完成本单元打勾」触发，避免立刻跳回首页看不到完成页
+                if (taskBtn) taskBtn.style.display = 'none';
             } else if (currentGroupIndex + 1 < TOTAL_GROUPS) {
                 nextBtn.style.display = 'inline-block';
                 titleEl.textContent = `恭喜完成第 ${currentGroupIndex + 1} 组学习！`;

@@ -4414,14 +4414,21 @@ def complete_study(
     scope_total = 0
     if unit:
         scope_total, _ = _scope_for_unit(unit["content_ref"])
-    if scope_total and unit and unit["module_type"] == "reading_synonym":
+    scope_required = (
+        "reading_synonym",
+        "writing_translate",
+        "sentence",
+    )
+    if scope_total and unit and unit["module_type"] in scope_required:
         prog = conn.execute(
             "SELECT scope_done FROM task_unit_progress WHERE student_id=? AND plan_item_id=?",
             (student_id, plan_item_id),
         ).fetchone()
         done = int(prog["scope_done"]) if prog else 0
         if done < scope_total:
-            raise ValueError(f"请先完成本单元全部 {scope_total} 组练习（当前 {done}/{scope_total}）")
+            raise ValueError(
+                f"请先完成本单元全部 {scope_total} 项练习（当前 {done}/{scope_total}）"
+            )
 
     # Gendu: day complete needs 3 practices; never mark plan study_completed here
     # (lesson advance is driven by ≥70% + next-day pointer).

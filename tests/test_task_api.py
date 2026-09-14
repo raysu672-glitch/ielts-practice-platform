@@ -240,6 +240,36 @@ class TaskApiTests(unittest.TestCase):
         update_scope_progress(conn, "2025001", item["id"], scope_done=10)
         complete_study(conn, "2025001", item["id"], "1")
 
+    def test_complete_study_requires_translate_and_sentence_scope(self) -> None:
+        conn = _connect()
+        put_plan_draft(
+            conn,
+            "2025001",
+            [
+                {"item_type": "study", "unit_id": "writing_translate_u01"},
+                {"item_type": "study", "unit_id": "sentence_u01"},
+            ],
+        )
+        apply_draft_to_live(conn, "2025001")
+        for unit_id in ("writing_translate_u01", "sentence_u01"):
+            item = conn.execute(
+                "SELECT id FROM plan_items WHERE unit_id=?", (unit_id,)
+            ).fetchone()
+            with self.assertRaises(ValueError):
+                complete_study(conn, "2025001", item["id"], "1")
+            unit = conn.execute(
+                "SELECT content_ref FROM task_units WHERE unit_id=?", (unit_id,)
+            ).fetchone()
+            ref = unit["content_ref"]
+            if isinstance(ref, str):
+                import json as _json
+
+                ref = _json.loads(ref)
+            total = int((ref or {}).get("scope_total") or 0)
+            self.assertGreater(total, 0)
+            update_scope_progress(conn, "2025001", item["id"], scope_done=total)
+            complete_study(conn, "2025001", item["id"], "1")
+
     def test_duplicate_unit_rejected(self) -> None:
         conn = _connect()
         with self.assertRaises(ValueError):

@@ -3454,6 +3454,19 @@ function finishGroup() {
 
   renderDoneGroup(groupsDone, found, missed);
   _taskReportScopeProgress(1);
+  try {
+    if (window.parent && window.parent !== window) {
+      window.parent.postMessage({
+        type: 'activityEvent',
+        action: 'synonym.group_done',
+        module_type: 'reading_synonym',
+        plan_item_id: (window._taskMode && window._taskMode.plan_item_id) ? Number(window._taskMode.plan_item_id) : null,
+        unit_id: (window._taskMode && window._taskMode.unit_id) || '',
+        summary: '完成同义替换一组',
+        detail: { groups_done: groupsDone, found: found.length, missed: missed.length }
+      }, '*');
+    }
+  } catch (e) {}
 
   anchorGroupIdx = null;
   currentChain = [];
@@ -3647,14 +3660,31 @@ function _taskSetupEndScreenActions() {
   const retryBtn = row.querySelector('button');
   if (ctx && ctx.plan_item_id) {
     if (retryBtn) retryBtn.style.display = 'none';
+    // 进度已满时由系统自动打勾，不给学生「自行标记完成」按钮
+    _taskPostUnitComplete();
     let doneBtn = document.getElementById('taskEndCompleteBtn');
     if (!doneBtn) {
       doneBtn = document.createElement('button');
       doneBtn.id = 'taskEndCompleteBtn';
       doneBtn.className = 'btn-primary';
-      doneBtn.textContent = '✅ 完成本单元，返回任务';
-      doneBtn.onclick = _taskPostUnitComplete;
+      doneBtn.textContent = '返回今日任务';
+      doneBtn.onclick = function() {
+        try {
+          if (window.parent && window.parent !== window) {
+            window.parent.postMessage({ type: 'requestCloseModule' }, '*');
+          }
+        } catch (e) {}
+      };
       row.appendChild(doneBtn);
+    } else {
+      doneBtn.textContent = '返回今日任务';
+      doneBtn.onclick = function() {
+        try {
+          if (window.parent && window.parent !== window) {
+            window.parent.postMessage({ type: 'requestCloseModule' }, '*');
+          }
+        } catch (e) {}
+      };
     }
     doneBtn.style.display = '';
   } else if (retryBtn) {
@@ -3770,7 +3800,7 @@ function recordAnswer(isCorrect, questionInfo) {
                 banner.id = 'taskModeBanner';
                 banner.style.cssText = 'background:#eff6ff;border:1px solid #bfdbfe;color:#1e40af;padding:10px 14px;margin:8px;border-radius:8px;font-size:14px;';
                 banner.innerHTML = '<strong>今日任务 · 本单元</strong> 请完成全部 <strong>' + scopeTotal +
-                    ' 组</strong> 同义替换练习；<span style="color:#64748b;">不能跳过，全部做完后在结束页返回任务。</span>';
+                    ' 组</strong> 同义替换练习；<span style="color:#64748b;">不能跳过，全部做完后系统自动记为完成。</span>';
                 if (bar && bar.parentNode) bar.parentNode.insertBefore(banner, bar.nextSibling);
                 else document.body.insertBefore(banner, document.body.firstChild);
             }, 100);

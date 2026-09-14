@@ -1420,6 +1420,18 @@ async function showStudentDetailProgress(studentId, studentName, filterModuleId)
 
     if (overviewMode) {
         html += renderStudentSituationTaskCard(taskOverview);
+        html += '<div id="studentActivityTimeline" style="margin:16px 0 20px;padding:14px;border:1px solid #e5e7eb;border-radius:10px;background:#fff;">';
+        html += '<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;">';
+        html += '<h4 style="margin:0;">操作时间线 <span style="font-weight:normal;color:#64748b;font-size:0.85rem;">按日查看 · 保留90天</span></h4>';
+        html += '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">';
+        html += '<label style="font-size:0.9rem;color:#475569;">日期 <input type="date" id="studentActivityDate" ';
+        html += 'style="padding:4px 8px;border:1px solid #cbd5e1;border-radius:6px;" ';
+        html += 'onchange="onStudentActivityDateChange(\'' + escapeJsString(student.student_id || studentId) + '\')"></label>';
+        html += '<button type="button" class="btn btn-sm" onclick="loadStudentActivityTimeline(\'' +
+            escapeJsString(student.student_id || studentId) + '\')">刷新</button>';
+        html += '</div></div>';
+        html += '<div id="studentActivityTimelineBody" style="margin-top:10px;color:#64748b;">加载中…</div>';
+        html += '</div>';
     }
 
     html += '<h4 style="margin:8px 0 12px;">分科进度</h4>';
@@ -1533,6 +1545,133 @@ async function showStudentDetailProgress(studentId, studentName, filterModuleId)
     html += '</div></div>';
 
     container.innerHTML = html;
+    if (overviewMode) {
+        loadStudentActivityTimeline(student.student_id || studentId);
+    }
+}
+
+var _activityActionLabels = {
+    'auth.login': '登录',
+    'auth.logout': '退出',
+    'task.open': '打开任务',
+    'task.exit': '退出任务',
+    'task.scope_progress': '任务进度',
+    'task.complete_ok': '任务打勾成功',
+    'task.complete_fail': '任务打勾失败',
+    'plan.save': '保存计划',
+    'sentence.open': '打开长难句',
+    'sentence.abc_submit': '主谓宾提交',
+    'sentence.drag_result': '挂靠结果',
+    'sentence.translate_submit': '提交翻译',
+    'sentence.analysis_open': '查看解析',
+    'sentence.unit_done': '长难句单元完成',
+    'translate.open': '打开翻译句',
+    'translate.step_submit': '翻译步骤提交',
+    'translate.sentence_done': '翻译整句完成',
+    'translate.unit_done': '翻译单元完成',
+    'synonym.group_done': '同义替换完成一组',
+    'phrase.unit_done': '词伙单元完成',
+    'gendu.practice': '跟读练习'
+};
+
+var _activityTimelineState = { studentId: '', date: '', page: 1, pageSize: 25 };
+
+function _chinaTodayYmd() {
+    try {
+        return new Intl.DateTimeFormat('en-CA', {
+            timeZone: 'Asia/Shanghai',
+            year: 'numeric', month: '2-digit', day: '2-digit'
+        }).format(new Date());
+    } catch (e) {
+        var d = new Date();
+        return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' +
+            String(d.getDate()).padStart(2, '0');
+    }
+}
+
+function onStudentActivityDateChange(studentId) {
+    var input = document.getElementById('studentActivityDate');
+    _activityTimelineState.page = 1;
+    loadStudentActivityTimeline(studentId, 1, input && input.value);
+}
+
+async function loadStudentActivityTimeline(studentId, page, dateYmd) {
+    var body = document.getElementById('studentActivityTimelineBody');
+    if (!body) return;
+    var dateInput = document.getElementById('studentActivityDate');
+    if (!dateYmd) {
+        dateYmd = (dateInput && dateInput.value) || _activityTimelineState.date || _chinaTodayYmd();
+    }
+    if (dateInput && !dateInput.value) dateInput.value = dateYmd;
+    page = Math.max(1, Number(page) || _activityTimelineState.page || 1);
+    _activityTimelineState.studentId = studentId;
+    _activityTimelineState.date = dateYmd;
+    _activityTimelineState.page = page;
+
+    body.innerHTML = '<div style="color:#64748b;">加载中…</div>';
+    var url = '/api/teacher/student-activity?student_id=' + encodeURIComponent(studentId) +
+        '&date=' + encodeURIComponent(dateYmd) +
+        '&page=' + encodeURIComponent(page) +
+        '&page_size=' + encodeURIComponent(_activityTimelineState.pageSize);
+    var result = await teacherApiGet(url);
+    if (result.error) {
+        body.innerHTML = '<div style="color:#b91c1c;">' +
+            escapeHtml((result.error && result.error.message) || '加载失败') + '</div>';
+        return;
+    }
+    var data = result.data || {};
+    var events = data.events || [];
+    var total = Number(data.total) || 0;
+    var pageSize = Number(data.page_size) || _activityTimelineState.pageSize;
+    var totalPages = Math.max(1, Math.ceil(total / pageSize));
+    if (page > totalPages) {
+        return loadStudentActivityTimeline(studentId, totalPages, dateYmd);
+    }
+
+    if (!events.length) {
+        body.innerHTML = '<div style="color:#94a3b8;">该日暂无操作记录</div>';
+        return;
+    }
+
+    var html = '';
+    html += '<div style="max-height:280px;overflow:auto;border:1px solid #f1f5f9;border-radius:8px;">';
+    html += '<table style="width:100%;border-collapse:collapse;font-size:0.92rem;">';
+    html += '<thead><tr style="background:#f8fafc;position:sticky;top:0;">';
+    html += '<th style="padding:8px 10px;text-align:left;border-bottom:1px solid #e2e8f0;">时间</th>';
+    html += '<th style="padding:8px 10px;text-align:left;border-bottom:1px solid #e2e8f0;">动作</th>';
+    html += '<th style="padding:8px 10px;text-align:left;border-bottom:1px solid #e2e8f0;">说明</th>';
+    html += '<th style="padding:8px 10px;text-align:left;border-bottom:1px solid #e2e8f0;">操作者</th>';
+    html += '</tr></thead><tbody>';
+    events.forEach(function(ev) {
+        var label = _activityActionLabels[ev.action] || ev.action;
+        var who = (ev.actor_role === 'teacher' ? '教师' : '学生') +
+            (ev.actor_name ? (' ' + ev.actor_name) : (' ' + (ev.actor_id || '')));
+        var detailBits = [];
+        if (ev.module_type) detailBits.push(ev.module_type);
+        if (ev.unit_id) detailBits.push(ev.unit_id);
+        if (ev.detail && ev.detail.sentence_num != null) detailBits.push('句' + ev.detail.sentence_num);
+        if (ev.detail && ev.detail.correct === true) detailBits.push('对');
+        if (ev.detail && ev.detail.correct === false) detailBits.push('错');
+        var summary = ev.summary || detailBits.join(' · ') || '—';
+        html += '<tr style="border-bottom:1px solid #f1f5f9;">';
+        html += '<td style="padding:8px 10px;white-space:nowrap;color:#334155;">' +
+            escapeHtml(ev.created_at_cn || formatChinaDateTime(ev.created_at) || '') + '</td>';
+        html += '<td style="padding:8px 10px;"><code style="font-size:0.8rem;background:#f1f5f9;padding:2px 6px;border-radius:4px;">' +
+            escapeHtml(label) + '</code></td>';
+        html += '<td style="padding:8px 10px;color:#475569;">' + escapeHtml(summary) + '</td>';
+        html += '<td style="padding:8px 10px;color:#64748b;">' + escapeHtml(who) + '</td>';
+        html += '</tr>';
+    });
+    html += '</tbody></table></div>';
+    html += '<div style="margin-top:8px;display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">';
+    html += '<span style="color:#64748b;font-size:0.85rem;">共 ' + total + ' 条 · 第 ' + page + '/' + totalPages + ' 页</span>';
+    html += '<div style="display:flex;gap:6px;">';
+    html += '<button type="button" class="btn btn-sm btn-secondary"' + (page <= 1 ? ' disabled' : '') +
+        ' onclick="loadStudentActivityTimeline(\'' + escapeJsString(studentId) + '\',' + (page - 1) + ')">上一页</button>';
+    html += '<button type="button" class="btn btn-sm btn-secondary"' + (page >= totalPages ? ' disabled' : '') +
+        ' onclick="loadStudentActivityTimeline(\'' + escapeJsString(studentId) + '\',' + (page + 1) + ')">下一页</button>';
+    html += '</div></div>';
+    body.innerHTML = html;
 }
 
 async function loadTeacherStudentProgress() {

@@ -497,6 +497,68 @@ let selectedFrag = null;
 let matchState = {};  // fragIdx -> nodeIdx (correct matches only)
 let stage1Done = false;
 let stage2Done = false;
+
+// ===== 任务模式：按真实完成句数上报进度 =====
+var _taskParams = new URLSearchParams(window.location.search || '');
+var _taskPlanItemId = _taskParams.get('plan_item_id');
+var _taskUnitId = _taskParams.get('unit_id') || '';
+var _taskContentVersion = _taskParams.get('content_version') || '1';
+var _taskFrom = Number(_taskParams.get('from') || 0);
+var _taskTo = Number(_taskParams.get('to') || 0);
+var PRACTICE_LIST = SENTENCES;
+if (_taskFrom > 0 && _taskTo >= _taskFrom) {
+  PRACTICE_LIST = SENTENCES.filter(function(s) {
+    return s.num >= _taskFrom && s.num <= _taskTo;
+  });
+}
+var _taskCompletedNums = {};
+var _taskUnitCompletePosted = false;
+
+function _taskPost(type, extra) {
+  if (!_taskPlanItemId) return;
+  if (!window.parent || window.parent === window) return;
+  var payload = Object.assign({
+    type: type,
+    plan_item_id: Number(_taskPlanItemId),
+    unit_id: _taskUnitId,
+    content_version: _taskContentVersion
+  }, extra || {});
+  try { window.parent.postMessage(payload, '*'); } catch (e) {}
+}
+
+function _activityLog(action, summary, detail) {
+  if (!window.parent || window.parent === window) return;
+  var s = PRACTICE_LIST[currentIdx];
+  try {
+    window.parent.postMessage({
+      type: 'activityEvent',
+      action: action,
+      module_type: 'sentence',
+      plan_item_id: _taskPlanItemId ? Number(_taskPlanItemId) : null,
+      unit_id: _taskUnitId,
+      summary: summary || '',
+      detail: Object.assign({ sentence_num: s && s.num }, detail || {})
+    }, '*');
+  } catch (e) {}
+}
+
+function _taskMarkCurrentDone() {
+  if (!_taskPlanItemId) return;
+  var s = PRACTICE_LIST[currentIdx];
+  if (!s) return;
+  if (_taskCompletedNums[s.num]) return;
+  _taskCompletedNums[s.num] = true;
+  var done = PRACTICE_LIST.filter(function(x) { return !!_taskCompletedNums[x.num]; }).length;
+  var total = PRACTICE_LIST.length;
+  _taskPost('taskScopeProgress', { scope_done: done });
+  _activityLog('sentence.analysis_open', '完成第' + s.num + '句并查看解析', { done: done, total: total });
+  if (total > 0 && done >= total && !_taskUnitCompletePosted) {
+    _taskUnitCompletePosted = true;
+    _taskPost('taskUnitComplete', {});
+    _activityLog('sentence.unit_done', '长难句本单元完成', { done: done, total: total });
+  }
+}
+
 let dragFailedCount = {};  // fragIdx -> number of wrong attempts
 
 // ===== 拖拽挂靠：答案解析 =====
@@ -606,7 +668,7 @@ function escHtml(s) {
 
 function renderHome() {
   const grid = document.getElementById('sentenceGrid');
-  grid.innerHTML = SENTENCES.map((s, i) => {
+  grid.innerHTML = PRACTICE_LIST.map((s, i) => {
     const num = String(s.num).padStart(3, '0');
     const preview = s.original ? s.original.substring(0, 80) + '...' : '内容加载中...';
     return '<div class="sentence-card" onclick="openPractice(' + i + ')">' +
@@ -635,9 +697,10 @@ function openPractice(idx) {
   document.getElementById('homePage').style.display = 'none';
   document.getElementById('practicePage').classList.add('active');
 
-  const s = SENTENCES[idx];
+  const s = PRACTICE_LIST[idx];
   const num = String(s.num).padStart(3, '0');
   document.getElementById('pageTitle').textContent = '\u7B2C ' + num + ' \u53E5\uFF1A' + s.pattern;
+  _activityLog('sentence.open', '打开第' + s.num + '句', { pattern: s.pattern });
 
   // Reset steps
   ['step1','step2'].forEach(id => { document.getElementById(id).className = 'step active'; });
@@ -662,7 +725,7 @@ function openPractice(idx) {
 
 function navSentence(dir) {
   const newIdx = currentIdx + dir;
-  if (newIdx >= 0 && newIdx < SENTENCES.length) openPractice(newIdx);
+  if (newIdx >= 0 && newIdx < PRACTICE_LIST.length) openPractice(newIdx);
 }
 
 // ===== 区块1：原句渲染 =====
@@ -738,7 +801,7 @@ function closeErr(bi) {
 }
 
 function showABCAnswer(bi) {
-  const s = SENTENCES[currentIdx];
+  const s = PRACTICE_LIST[currentIdx];
   const box = s.challenge1.boxes[bi];
   const input = document.getElementById('input' + bi);
   input.value = box.answer.replace(/[\u3002\uFF08\uFF09]/g, '').trim();
@@ -753,11 +816,12 @@ function showABCAnswer(bi) {
   boxStates[bi] = { answered: true, correct: true };
   unlockNextBox(bi);
   checkAllABC();
+  _activityLog('sentence.abc_submit', '主谓宾填空正确 #' + bi, { box_index: bi, correct: true });
 }
 
 function checkABC(bi) {
   closeErr(bi);
-  const s = SENTENCES[currentIdx];
+  const s = PRACTICE_LIST[currentIdx];
   const box = s.challenge1.boxes[bi];
   const keys = ANSWER_KEYS[s.num] || [];
   const boxKey = keys[bi] || { en: [], cn: [], raw: box.answer };
@@ -857,12 +921,14 @@ function checkABC(bi) {
     boxStates[bi] = { answered: true, correct: true };
     unlockNextBox(bi);
     checkAllABC();
+    _activityLog('sentence.abc_submit', '主谓宾填空正确 #' + bi, { box_index: bi, correct: true });
   } else {
     input.classList.add('wrong-input');
     input.classList.remove('correct-input');
     document.getElementById('icon' + bi).textContent = '\u274C';
     document.getElementById('icon' + bi).classList.add('show');
     document.getElementById('abcItem' + bi).classList.add('wrong');
+    _activityLog('sentence.abc_submit', '主谓宾填空错误 #' + bi, { box_index: bi, correct: false });
     // Show generic error if no trap bubble
     if (!box.trap || !document.getElementById('err' + bi)) {
       // Just mark wrong temporarily
@@ -885,7 +951,7 @@ function unlockNextBox(bi) {
 }
 
 function checkAllABC() {
-  const s = SENTENCES[currentIdx];
+  const s = PRACTICE_LIST[currentIdx];
   if (!s.challenge1 || !s.challenge1.boxes) return;
   const allDone = boxStates.every(bs => bs.answered);
   if (allDone && !stage1Done) {
@@ -1024,16 +1090,20 @@ function selectFrag(fi) {
 
 // Handle drop from HTML5 drag
 function handleDrop(fragIdx, nodeIdx, totalBoxNodes) {
-  const s = SENTENCES[currentIdx];
+  const s = PRACTICE_LIST[currentIdx];
   const boxTagMap = getBoxTagMap(s);
   const correctNodeIdx = getCorrectNodeIdx(fragIdx, s, boxTagMap, totalBoxNodes);
 
   if (nodeIdx === correctNodeIdx) {
     attachFragToNode(fragIdx, nodeIdx, s, totalBoxNodes);
+    _activityLog('sentence.drag_result', '挂靠正确', { frag_index: fragIdx, correct: true });
   } else {
     // Wrong answer!
     if (!dragFailedCount[fragIdx]) dragFailedCount[fragIdx] = 0;
     dragFailedCount[fragIdx]++;
+    _activityLog('sentence.drag_result', '挂靠错误', {
+      frag_index: fragIdx, correct: false, fail_count: dragFailedCount[fragIdx]
+    });
 
     const fragEl = document.getElementById('frag' + fragIdx);
     const nodeEl = document.getElementById('node' + nodeIdx);
@@ -1155,6 +1225,9 @@ function revealAnalysis() {
     alert('\u8BF7\u5148\u5199\u4E0B\u4F60\u7684\u7FFB\u8BD1\u518D\u67E5\u770B\u89E3\u6790\uFF01');
     return;
   }
+  _activityLog('sentence.translate_submit', '提交翻译并查看解析', {
+    translation_len: input.length
+  });
   document.getElementById('section-analysis').classList.remove('zone-locked');
   document.getElementById('step4').classList.remove('active');
   document.getElementById('step4').classList.add('done');
@@ -1164,6 +1237,7 @@ function revealAnalysis() {
   setTimeout(() => {
     document.getElementById('section-analysis').scrollIntoView({ behavior: 'smooth', block: 'start' });
   }, 200);
+  _taskMarkCurrentDone();
 }
 
 // ===== 区块5：解析 =====
@@ -1322,4 +1396,7 @@ function renderAnalysis(s) {
 
 // ===== INIT =====
 renderHome();
+if (_taskPlanItemId && PRACTICE_LIST.length) {
+  openPractice(0);
+}
 </script></body></html>

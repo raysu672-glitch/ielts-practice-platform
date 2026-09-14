@@ -238,6 +238,28 @@ function reportPhraseStudy(minSeconds) {
   return false;
 }
 
+function _taskPostPhraseUnitComplete() {
+  try {
+    var params = new URLSearchParams(window.location.search || '');
+    var planItemId = params.get('plan_item_id');
+    if (!planItemId || !(window.parent && window.parent !== window)) return;
+    var total = Array.isArray(vocab) ? vocab.length : 0;
+    if (total > 0) {
+      window.parent.postMessage({
+        type: 'taskScopeProgress',
+        plan_item_id: Number(planItemId),
+        scope_done: total
+      }, '*');
+    }
+    window.parent.postMessage({
+      type: 'taskUnitComplete',
+      plan_item_id: Number(planItemId),
+      unit_id: params.get('unit_id') || '',
+      content_version: params.get('content_version') || '1'
+    }, '*');
+  } catch (e) {}
+}
+
 function backToCategory() {
   // 发送学习时长给父页面（中途退出也记录）
   reportPhraseStudy(5);
@@ -1164,6 +1186,8 @@ function showFinish() {
   
   // 发送学习时长给父页面（iframe 通信）
   reportPhraseStudy(0);
+  // 全部词伙练完后由系统打勾，不给学生手动标记
+  _taskPostPhraseUnitComplete();
   
   var overlay = document.createElement('div');
   overlay.className = 'finish-overlay';
@@ -1186,11 +1210,27 @@ function showFinish() {
 
   var buttons = document.createElement('div');
   buttons.className = 'finish-btns';
-  var backButton = createTextElement('button', 'btn-back-to-cat', '返回分类');
-  backButton.onclick = backToCategory;
-  var restartButton = createTextElement('button', 'btn-restart', '再来一次');
-  restartButton.onclick = restartCurrentCat;
-  buttons.append(backButton, restartButton);
+  var params = new URLSearchParams(window.location.search || '');
+  var inTask = !!params.get('plan_item_id');
+  if (inTask) {
+    var backTaskBtn = createTextElement('button', 'btn-back-to-cat', '返回今日任务');
+    backTaskBtn.onclick = function() {
+      try {
+        if (window.parent && window.parent !== window) {
+          window.parent.postMessage({ type: 'requestCloseModule' }, '*');
+        }
+      } catch (e) {}
+    };
+    var restartButton = createTextElement('button', 'btn-restart', '再来一次');
+    restartButton.onclick = restartCurrentCat;
+    buttons.append(backTaskBtn, restartButton);
+  } else {
+    var backButton = createTextElement('button', 'btn-back-to-cat', '返回分类');
+    backButton.onclick = backToCategory;
+    var restartButton2 = createTextElement('button', 'btn-restart', '再来一次');
+    restartButton2.onclick = restartCurrentCat;
+    buttons.append(backButton, restartButton2);
+  }
   overlay.appendChild(buttons);
   document.body.appendChild(overlay);
   spawnFireworks();

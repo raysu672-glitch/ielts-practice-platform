@@ -4762,6 +4762,9 @@
         function startPractice(sentenceId) {
             currentSentence = translationData.find(s => s.id === sentenceId);
             currentStep = 0;
+            try {
+                _activityLog('translate.open', '打开翻译句 #' + sentenceId, { sentence_id: sentenceId });
+            } catch (e) {}
             renderPractice();
             showPage('page-practice');
         }
@@ -4790,8 +4793,14 @@
                 html += renderStepCard(step, currentStep + 1, false);
             } else {
                 // All steps completed
+                _taskOnSentenceFinished(s.id);
+                const nextId = _taskMode.plan_item_id ? _taskNextUnfinishedId(s.id) : null;
+                const nextBtn = nextId != null
+                    ? `<button class="btn btn-primary" onclick="startPractice(${nextId})">下一句</button>`
+                    : `<button class="btn btn-primary" onclick="startPractice(${s.id})">重新练习</button>`;
+                const backLabel = _taskMode.plan_item_id ? '返回本单元列表' : '返回列表';
                 html += `
-                    <div class="finish-screen"><h2> 完成！</h2><p>你已经完成了这句的翻译练习</p><div style="background: var(--bg-primary); border: 1px solid var(--border); border-radius: 10px; padding: 20px; margin: 20px 0; text-align: left;"><div style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 8px;">完整英文翻译</div><div style="font-family: 'Playfair Display', serif; font-size: 1.15rem; line-height: 1.8; color: var(--accent);">${s.finalEnglish}</div></div><div class="action-buttons" style="justify-content: center;"><button class="btn btn-primary" onclick="startPractice(${s.id})">重新练习</button><button class="btn btn-secondary" onclick="showSentences('${currentCategory}')">返回列表</button></div></div>
+                    <div class="finish-screen"><h2> 完成！</h2><p>你已经完成了这句的翻译练习</p><div style="background: var(--bg-primary); border: 1px solid var(--border); border-radius: 10px; padding: 20px; margin: 20px 0; text-align: left;"><div style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 8px;">完整英文翻译</div><div style="font-family: 'Playfair Display', serif; font-size: 1.15rem; line-height: 1.8; color: var(--accent);">${s.finalEnglish}</div></div><div class="action-buttons" style="justify-content: center;">${nextBtn}<button class="btn btn-secondary" onclick="showSentences('${currentCategory}')">${backLabel}</button></div></div>
                 `;
             }
             
@@ -4856,17 +4865,33 @@
                 feedback.textContent = ' 正确！';
                 feedback.className = 'feedback success show';
                 nextBtn.classList.add('show');
+                _activityLog('translate.step_submit', '翻译步骤正确', {
+                    sentence_id: currentSentence && currentSentence.id,
+                    step: stepNum,
+                    correct: true
+                });
             } else if (normalizeFuzzy(userAnswer) === normalizeFuzzy(correctAnswer)) {
                 // 基本正确（标点/空格差异）
                 input.className = 'almost';
                 feedback.innerHTML = ` 翻译基本正确，注意标点符号<br>你的: <strong>${userAnswer}</strong><br>参考: <strong>${correctAnswer}</strong>`;
                 feedback.className = 'feedback warning show';
                 nextBtn.classList.add('show');
+                _activityLog('translate.step_submit', '翻译步骤基本正确', {
+                    sentence_id: currentSentence && currentSentence.id,
+                    step: stepNum,
+                    correct: true,
+                    almost: true
+                });
             } else {
                 // 不正确
                 input.className = 'wrong';
                 feedback.innerHTML = ` 不正确<br>正确答案：<strong>${correctAnswer}</strong>`;
                 feedback.className = 'feedback error show';
+                _activityLog('translate.step_submit', '翻译步骤错误', {
+                    sentence_id: currentSentence && currentSentence.id,
+                    step: stepNum,
+                    correct: false
+                });
                 
                 setTimeout(() => {
                     input.className = '';
@@ -4880,7 +4905,141 @@
             renderPractice();
         }
 
-        // Initialize
+
+        // ===== 任务模式：按真实完成句数上报进度 =====
+        const _taskParams = new URLSearchParams(window.location.search || '');
+        const _taskMode = {
+            plan_item_id: _taskParams.get('plan_item_id'),
+            unit_id: _taskParams.get('unit_id') || '',
+            content_version: _taskParams.get('content_version') || '1',
+            category: _taskParams.get('category') || '',
+            ids: (_taskParams.get('ids') || '').split(',').map(function(x) {
+                return Number(String(x).trim());
+            }).filter(function(n) { return n > 0; }),
+            completedIds: new Set(),
+            reportedFinish: new Set()
+        };
+
+        function _taskPost(type, extra) {
+            if (!_taskMode.plan_item_id) return;
+            if (!window.parent || window.parent === window) return;
+            var payload = Object.assign({
+                type: type,
+                plan_item_id: Number(_taskMode.plan_item_id),
+                unit_id: _taskMode.unit_id,
+                content_version: _taskMode.content_version
+            }, extra || {});
+            try { window.parent.postMessage(payload, '*'); } catch (e) {}
+        }
+
+        function _activityLog(action, summary, detail) {
+            if (!window.parent || window.parent === window) return;
+            try {
+                window.parent.postMessage({
+                    type: 'activityEvent',
+                    action: action,
+                    module_type: 'writing_translate',
+                    plan_item_id: _taskMode.plan_item_id ? Number(_taskMode.plan_item_id) : null,
+                    unit_id: _taskMode.unit_id,
+                    summary: summary || '',
+                    detail: detail || {}
+                }, '*');
+            } catch (e) {}
+        }
+
+        function _taskAssignedSentences() {
+            if (_taskMode.ids.length) {
+                return translationData.filter(function(s) {
+                    return _taskMode.ids.indexOf(s.id) >= 0;
+                });
+            }
+            if (_taskMode.category) {
+                return translationData.filter(function(s) {
+                    return s.category === _taskMode.category;
+                });
+            }
+            return [];
+        }
+
+        function _taskScopeDoneCount() {
+            var assigned = _taskAssignedSentences();
+            if (!assigned.length) return _taskMode.completedIds.size;
+            return assigned.filter(function(s) {
+                return _taskMode.completedIds.has(s.id);
+            }).length;
+        }
+
+        function _taskOnSentenceFinished(sentenceId) {
+            if (!_taskMode.plan_item_id) return;
+            var sid = Number(sentenceId);
+            if (_taskMode.reportedFinish.has(sid)) return;
+            _taskMode.reportedFinish.add(sid);
+            _taskMode.completedIds.add(sid);
+            var assigned = _taskAssignedSentences();
+            var total = assigned.length || _taskMode.ids.length;
+            var done = _taskScopeDoneCount();
+            _taskPost('taskScopeProgress', { scope_done: done });
+            _activityLog('translate.sentence_done', '完成翻译句 #' + sid, { sentence_id: sid, done: done, total: total });
+            if (total > 0 && done >= total) {
+                _taskPost('taskUnitComplete', {});
+                _activityLog('translate.unit_done', '翻译本单元完成', { done: done, total: total });
+            }
+        }
+
+        function _taskNextUnfinishedId(afterId) {
+            var assigned = _taskAssignedSentences();
+            if (!assigned.length) return null;
+            var start = 0;
+            if (afterId != null) {
+                for (var i = 0; i < assigned.length; i++) {
+                    if (assigned[i].id === afterId) { start = i + 1; break; }
+                }
+            }
+            for (var j = start; j < assigned.length; j++) {
+                if (!_taskMode.completedIds.has(assigned[j].id)) return assigned[j].id;
+            }
+            for (var k = 0; k < assigned.length; k++) {
+                if (!_taskMode.completedIds.has(assigned[k].id)) return assigned[k].id;
+            }
+            return null;
+        }
+
+        function _taskRenderAssignedList() {
+            var assigned = _taskAssignedSentences();
+            if (!assigned.length) return;
+            currentCategory = assigned[0].category;
+            document.getElementById('category-title').textContent =
+                currentCategory + ' · 任务 ' + assigned.length + ' 句';
+            var list = document.getElementById('sentence-list');
+            list.innerHTML = assigned.map(function(s) {
+                var doneMark = _taskMode.completedIds.has(s.id) ? ' ✓' : '';
+                return '<div class="sentence-item" onclick="startPractice(' + s.id + ')">' +
+                    '<span class="sentence-number">#' + s.id + doneMark + '</span>' +
+                    '<span class="sentence-text">' + s.fullChinese + '</span>' +
+                    '<span class="sentence-arrow"></span></div>';
+            }).join('');
+            showPage('page-sentences');
+        }
+
+        var _origShowSentences = showSentences;
+        showSentences = function(category) {
+            if (_taskMode.plan_item_id) {
+                _taskRenderAssignedList();
+                return;
+            }
+            return _origShowSentences(category);
+        };
+
+        function _taskBoot() {
+            if (!_taskMode.plan_item_id) return;
+            var assigned = _taskAssignedSentences();
+            if (!assigned.length) return;
+            _taskRenderAssignedList();
+            var first = _taskNextUnfinishedId(null);
+            if (first != null) startPractice(first);
+        }
+
         // Initialize
         renderCategories();
+        _taskBoot();
     </script></body></html>

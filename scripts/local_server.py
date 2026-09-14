@@ -72,6 +72,12 @@ except ImportError:  # Recorded-course modules are optional; homework deploy mus
 
     def list_object_keys(*_a, **_k):
         return []
+from activity_log import (  # noqa: E402
+    ensure_activity_tables,
+    list_student_activity,
+    log_activity,
+    log_student_client_events,
+)
 from cors_utils import cors_headers_for_origin  # noqa: E402
 from password_utils import authenticate_row_password, hash_password, is_password_hashed  # noqa: E402
 from session_auth import (  # noqa: E402
@@ -717,6 +723,7 @@ def init_db(db_path: Path, *, bind_host: str = "127.0.0.1") -> None:
         )
         ensure_wrong_items_table(conn)
         ensure_task_tables(conn)
+        ensure_activity_tables(conn)
         ensure_jianya_tables(conn)
         ensure_mock_speaking_tables(conn)
         seed_mvp_units(conn)
@@ -1362,6 +1369,19 @@ class LocalHandler(SimpleHTTPRequestHandler):
                 subject_id=student_id,
                 secret=self.session_secret,
             )
+            try:
+                log_activity(
+                    conn,
+                    actor_role="student",
+                    actor_id=student_id,
+                    actor_name=str(item.get("name") or ""),
+                    action="auth.login",
+                    target_student_id=student_id,
+                    summary="学生登录",
+                    ip=self.client_ip(),
+                )
+            except Exception:
+                pass
             self.send_json(
                 {"data": {"role": "student", "student": public_student(item)}, "error": None},
                 set_cookies=self.login_set_cookies("student", token),
@@ -1394,6 +1414,18 @@ class LocalHandler(SimpleHTTPRequestHandler):
                 subject_id=teacher_id,
                 secret=self.session_secret,
             )
+            try:
+                log_activity(
+                    conn,
+                    actor_role="teacher",
+                    actor_id=teacher_id,
+                    actor_name=str(item.get("name") or ""),
+                    action="auth.login",
+                    summary="教师登录",
+                    ip=self.client_ip(),
+                )
+            except Exception:
+                pass
             self.send_json(
                 {"data": {"role": "teacher", "teacher": public_teacher(item)}, "error": None},
                 set_cookies=self.login_set_cookies("teacher", token),
@@ -1405,10 +1437,35 @@ class LocalHandler(SimpleHTTPRequestHandler):
         role = str((qs.get("role") or [""])[0] or "").strip().lower()
         if role not in ("student", "teacher"):
             role = None
+        try:
+            session = self.current_session(role) if role else self.current_session()
+            if session:
+                with closing(connect(self.db_path)) as conn:
+                    log_activity(
+                        conn,
+                        actor_role=str(session.get("role") or role or "unknown"),
+                        actor_id=str(session.get("id") or ""),
+                        action="auth.logout",
+                        target_student_id=(
+                            str(session.get("id") or "")
+                            if session.get("role") == "student"
+                            else ""
+                        ),
+                        summary="退出登录",
+                        ip=self.client_ip(),
+                    )
+        except Exception:
+            pass
         self.send_json(
             {"data": {"ok": True}, "error": None},
             set_cookies=self.clear_session_cookies(role),
         )
+
+    def client_ip(self) -> str:
+        forwarded = (self.headers.get("X-Forwarded-For") or "").split(",")[0].strip()
+        if forwarded:
+            return forwarded[:64]
+        return str(getattr(self, "client_address", ("", 0))[0] or "")[:64]
 
     def require_teacher_session(self) -> Optional[dict[str, Any]]:
         session = self.current_session("teacher")
@@ -1544,6 +1601,77 @@ class LocalHandler(SimpleHTTPRequestHandler):
                 self.send_json({"data": None, "error": {"message": err}}, status=404)
                 return
             self.send_json({"data": data, "error": None})
+
+    def handle_activity_me_post(self) -> None:
+        session = self.require_student_session()
+        if not session:
+            return
+        payload = self.read_json_body()
+        events = payload.get("events")
+        if events is None and payload.get("action"):
+            events = [payload]
+        try:
+            with closing(connect(self.db_path)) as conn:
+                name = ""
+                row = conn.execute(
+                    "SELECT name FROM students WHERE student_id=?",
+                    (session["id"],),
+                ).fetchone()
+                if row:
+                    name = str(row["name"] or "")
+                data = log_student_client_events(
+                    conn,
+                    student_id=session["id"],
+                    student_name=name,
+                    events=events if isinstance(events, list) else [],
+                    ip=self.client_ip(),
+                )
+                self.send_json({"data": data, "error": None})
+        except ValueError as exc:
+            self.send_json({"data": None, "error": {"message": str(exc)}}, status=400)
+
+    def handle_teacher_student_activity(self) -> None:
+        session = self.require_teacher_session()
+        if not session:
+            return
+        parsed = urllib.parse.urlparse(self.path)
+        qs = urllib.parse.parse_qs(parsed.query or "")
+        student_id = str((qs.get("student_id") or [""])[0] or "").strip()
+        if not student_id:
+            self.send_json({"data": None, "error": {"message": "缺少 student_id"}}, status=400)
+            return
+        limit = int((qs.get("limit") or ["200"])[0] or 200)
+        before_raw = (qs.get("before_id") or [None])[0]
+        before_id = int(before_raw) if before_raw not in (None, "") else None
+        action_prefix = str((qs.get("action_prefix") or [""])[0] or "")
+        on_date = str((qs.get("date") or [""])[0] or "").strip()
+        page = int((qs.get("page") or ["1"])[0] or 1)
+        page_size = int((qs.get("page_size") or ["30"])[0] or 30)
+        try:
+            with closing(connect(self.db_path)) as conn:
+                ensure_activity_tables(conn)
+                payload = list_student_activity(
+                    conn,
+                    student_id,
+                    limit=limit,
+                    before_id=before_id,
+                    action_prefix=action_prefix,
+                    on_date=on_date,
+                    page=page,
+                    page_size=page_size,
+                )
+                self.send_json(
+                    {
+                        "data": {
+                            "student_id": student_id,
+                            "retention_days": 90,
+                            **payload,
+                        },
+                        "error": None,
+                    }
+                )
+        except ValueError as exc:
+            self.send_json({"data": None, "error": {"message": str(exc)}}, status=400)
 
     def handle_teacher_standards_get(self) -> None:
         session = self.require_teacher_session()
@@ -2380,8 +2508,37 @@ class LocalHandler(SimpleHTTPRequestHandler):
                 data = task_complete_study(
                     conn, session["id"], int(plan_item_id), content_version
                 )
+                try:
+                    log_activity(
+                        conn,
+                        actor_role="student",
+                        actor_id=session["id"],
+                        action="task.complete_ok",
+                        target_student_id=session["id"],
+                        plan_item_id=int(plan_item_id),
+                        summary="任务学习打勾成功",
+                        detail={"content_version": content_version},
+                        ip=self.client_ip(),
+                    )
+                except Exception:
+                    pass
                 self.send_json({"data": data, "error": None})
         except ValueError as exc:
+            try:
+                with closing(connect(self.db_path)) as conn:
+                    log_activity(
+                        conn,
+                        actor_role="student",
+                        actor_id=session["id"],
+                        action="task.complete_fail",
+                        target_student_id=session["id"],
+                        plan_item_id=int(plan_item_id) if plan_item_id is not None else None,
+                        summary="任务学习打勾失败",
+                        detail={"error": str(exc)},
+                        ip=self.client_ip(),
+                    )
+            except Exception:
+                pass
             self.send_json({"data": None, "error": {"message": str(exc)}}, status=400)
 
     def handle_task_me_gendu_practice(self) -> None:
@@ -2474,6 +2631,27 @@ class LocalHandler(SimpleHTTPRequestHandler):
                     scope_done=payload.get("scope_done"),
                     delta=payload.get("delta"),
                 )
+                try:
+                    log_activity(
+                        conn,
+                        actor_role="student",
+                        actor_id=session["id"],
+                        action="task.scope_progress",
+                        target_student_id=session["id"],
+                        plan_item_id=int(plan_item_id),
+                        summary="单元进度 "
+                        + str(data.get("scope_done"))
+                        + "/"
+                        + str(data.get("scope_total")),
+                        detail={
+                            "scope_done": data.get("scope_done"),
+                            "scope_total": data.get("scope_total"),
+                            "delta": payload.get("delta"),
+                        },
+                        ip=self.client_ip(),
+                    )
+                except Exception:
+                    pass
                 self.send_json({"data": data, "error": None})
         except ValueError as exc:
             self.send_json({"data": None, "error": {"message": str(exc)}}, status=400)
@@ -2625,6 +2803,23 @@ class LocalHandler(SimpleHTTPRequestHandler):
                 data = task_put_plan_draft(
                     conn, student_id, items, effective_from=payload.get("effective_from")
                 )
+                session = self.current_session("teacher") or {}
+                try:
+                    log_activity(
+                        conn,
+                        actor_role="teacher",
+                        actor_id=str(session.get("id") or ""),
+                        action="plan.save",
+                        target_student_id=student_id,
+                        summary="保存任务计划草稿",
+                        detail={
+                            "item_count": len(items),
+                            "effective_from": payload.get("effective_from"),
+                        },
+                        ip=self.client_ip(),
+                    )
+                except Exception:
+                    pass
                 self.send_json({"data": data, "error": None})
         except ValueError as exc:
             self.send_json({"data": None, "error": {"message": str(exc)}}, status=409)
@@ -2826,6 +3021,9 @@ class LocalHandler(SimpleHTTPRequestHandler):
         if parsed.path.rstrip("/") == "/api/teacher/student-detail":
             self.handle_teacher_student_detail()
             return
+        if parsed.path.rstrip("/") == "/api/teacher/student-activity":
+            self.handle_teacher_student_activity()
+            return
         if parsed.path.rstrip("/") == "/api/teacher/standards":
             self.handle_teacher_standards_get()
             return
@@ -2935,6 +3133,9 @@ class LocalHandler(SimpleHTTPRequestHandler):
             return
         if path == "/api/student/study-sessions":
             self.handle_student_study_sessions_post()
+            return
+        if path == "/api/activity/me":
+            self.handle_activity_me_post()
             return
         if path == "/api/student/test-records":
             self.handle_student_test_records_post()
