@@ -194,6 +194,9 @@ async function loadTodayTasks() {
     const data = result.data || {};
     const items = data.items || [];
     const progress = data.progress || {};
+    // 听力跟读作业状态：已达 70% 时展示"明日换新篇"
+    const genduAsg = data.gendu_assignment || null;
+    const genduPassed = !!(genduAsg && genduAsg.passed_current);
     let html = renderJianyaHomeworkBanner(pendingHomework);
     html += '<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:16px;">';
     html += '<div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:10px;">';
@@ -292,6 +295,9 @@ async function loadTodayTasks() {
                     (it.module_type === 'listening_p4_speed' && it.gendu_best_score != null
                         ? (' <span style="color:#64748b;font-size:0.8rem;">最佳 ' +
                             Math.round(Number(it.gendu_best_score)) + '%</span>')
+                        : '') +
+                    (it.module_type === 'listening_p4_speed' && genduPassed
+                        ? ' <span style="color:#16a34a;font-weight:600;font-size:0.8rem;">✓ 本课已通过，明日自动换新篇</span>'
                         : '') +
                     '</div><div>' + btn + '</div></div>';
             });
