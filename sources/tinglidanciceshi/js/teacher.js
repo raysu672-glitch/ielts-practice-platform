@@ -1419,8 +1419,7 @@ async function showStudentDetailProgress(studentId, studentName, filterModuleId)
     html += '</div></div>';
 
     if (overviewMode) {
-        html += renderStudentSituationTaskCard(taskOverview);
-        html += '<div id="studentActivityTimeline" style="margin:16px 0 20px;padding:14px;border:1px solid #e5e7eb;border-radius:10px;background:#fff;">';
+        html += '<div id="studentActivityTimeline" style="margin:16px 0 20px;padding:14px;border:1px solid #c7d2fe;border-radius:10px;background:#eef2ff;">';
         html += '<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;">';
         html += '<h4 style="margin:0;">操作时间线 <span style="font-weight:normal;color:#64748b;font-size:0.85rem;">按日查看 · 保留90天</span></h4>';
         html += '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">';
@@ -1432,6 +1431,7 @@ async function showStudentDetailProgress(studentId, studentName, filterModuleId)
         html += '</div></div>';
         html += '<div id="studentActivityTimelineBody" style="margin-top:10px;color:#64748b;">加载中…</div>';
         html += '</div>';
+        html += renderStudentSituationTaskCard(taskOverview);
     }
 
     html += '<h4 style="margin:8px 0 12px;">分科进度</h4>';
