@@ -35,7 +35,15 @@ async function apiFetch(url, options) {
     try {
         result = await resp.json();
     } catch (e) {
-        result = { data: null, error: { message: '响应解析失败' } };
+        var hint = '响应解析失败';
+        if (resp.status === 502 || resp.status === 503) {
+            hint = '服务暂时不可用（' + resp.status + '），请稍后点刷新';
+        } else if (resp.status === 404) {
+            hint = '接口不存在（404），请确认服务已更新并重启';
+        } else if (resp.status) {
+            hint = '响应解析失败（HTTP ' + resp.status + '）';
+        }
+        result = { data: null, error: { message: hint } };
     }
     if (!resp.ok && result && !result.error) {
         result.error = { message: '请求失败：' + resp.status };

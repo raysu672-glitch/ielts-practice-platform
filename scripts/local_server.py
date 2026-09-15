@@ -1746,6 +1746,11 @@ class LocalHandler(SimpleHTTPRequestHandler):
                 )
         except ValueError as exc:
             self.send_json({"data": None, "error": {"message": str(exc)}}, status=400)
+        except Exception as exc:
+            self.send_json(
+                {"data": None, "error": {"message": f"加载操作时间线失败：{exc}"}},
+                status=500,
+            )
 
     def handle_teacher_standards_get(self) -> None:
         session = self.require_teacher_session()

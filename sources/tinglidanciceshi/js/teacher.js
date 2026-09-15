@@ -1424,6 +1424,7 @@ async function showStudentDetailProgress(studentId, studentName, filterModuleId)
         html += '<h4 style="margin:0;">操作时间线 <span style="font-weight:normal;color:#64748b;font-size:0.85rem;">按日查看 · 保留90天</span></h4>';
         html += '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">';
         html += '<label style="font-size:0.9rem;color:#475569;">日期 <input type="date" id="studentActivityDate" ';
+        html += 'value="' + escapeHtml(_chinaTodayYmd()) + '" ';
         html += 'style="padding:4px 8px;border:1px solid #cbd5e1;border-radius:6px;" ';
         html += 'onchange="onStudentActivityDateChange(\'' + escapeJsString(student.student_id || studentId) + '\')"></label>';
         html += '<button type="button" class="btn btn-sm" onclick="loadStudentActivityTimeline(\'' +
