@@ -2378,14 +2378,25 @@ def _item_done(item: dict[str, Any]) -> bool:
     return bool(item.get("test_passed"))
 
 
-def backlog_plan_item_ids(conn: sqlite3.Connection, student_id: str) -> list[int]:
-    """D23: items that appeared in some daily_tasks and are still unfinished."""
+def backlog_plan_item_ids(
+    conn: sqlite3.Connection,
+    student_id: str,
+    *,
+    before_date: Optional[str] = None,
+) -> list[int]:
+    """D23: unfinished items that appeared in daily_tasks *before* before_date.
+
+    Today's unfinished tasks do not count yet (the day is still in progress).
+    ``before_date`` defaults to China today.
+    """
+    cutoff = before_date or china_ymd()
     rows = conn.execute(
         """
         SELECT DISTINCT d.plan_item_id
         FROM daily_tasks d
         JOIN plan_items p ON p.id = d.plan_item_id
         WHERE d.student_id=?
+          AND d.task_date < ?
           AND p.status != 'removed'
           AND (
             (p.item_type='study' AND p.study_completed=0)
@@ -2393,7 +2404,7 @@ def backlog_plan_item_ids(conn: sqlite3.Connection, student_id: str) -> list[int
           )
         ORDER BY d.task_date, d.sort_in_day
         """,
-        (student_id,),
+        (student_id, cutoff),
     ).fetchall()
     return [r["plan_item_id"] for r in rows]
 
@@ -2705,7 +2716,7 @@ def _aligned_units_schedule(
         else:
             backlog = {
                 pid
-                for pid in backlog_plan_item_ids(conn, student_id)
+                for pid in backlog_plan_item_ids(conn, student_id, before_date=today)
                 if pid > 0
             }
             picks = _units_pack_picks(
@@ -3024,7 +3035,7 @@ def preview_daily_pack(
             ).fetchall()
         ]
         backlog_items = []
-        for pid in backlog_plan_item_ids(conn, student_id):
+        for pid in backlog_plan_item_ids(conn, student_id, before_date=china_ymd()):
             item_row = conn.execute("SELECT * FROM plan_items WHERE id=?", (pid,)).fetchone()
             if item_row and item_row["status"] == "pending":
                 item = dict(item_row)
@@ -3374,7 +3385,7 @@ def _build_daily_tasks_time_budget(
 
     # 2) backlog carry-over (interleave when multiple subjects)
     backlog_items: list[dict[str, Any]] = []
-    for pid in backlog_plan_item_ids(conn, student_id):
+    for pid in backlog_plan_item_ids(conn, student_id, before_date=task_date):
         if pid in in_result:
             continue
         item_row = conn.execute("SELECT * FROM plan_items WHERE id=?", (pid,)).fetchone()
@@ -3556,7 +3567,7 @@ def _build_daily_tasks_units(
         ).fetchall()
     ]
     live = _gendu_aware_plan_items(conn, student_id, task_date, live)
-    backlog_ids = set(backlog_plan_item_ids(conn, student_id))
+    backlog_ids = set(backlog_plan_item_ids(conn, student_id, before_date=task_date))
     released_ids = _released_plan_item_ids(conn, student_id)
     quota_map = _module_quota_map(conn, student_id, task_date, live)
     asg = get_gendu_assignment(conn, student_id, on_date=task_date)
@@ -3872,7 +3883,7 @@ def _student_overview_row(
     yesterday_minutes = int(round(y_secs / 60.0)) if y_secs else 0
     total_secs = sum_total_study_seconds(conn, student_id)
     total_minutes = int(round(total_secs / 60.0)) if total_secs else 0
-    backlog = len(backlog_plan_item_ids(conn, student_id))
+    backlog = len(backlog_plan_item_ids(conn, student_id, before_date=task_date))
     content_refresh = _content_refresh_count(conn, student_id)
     test_fail = _test_fail_count(conn, student_id, task_date)
     hard_test_fail = _has_hard_test_fail(conn, student_id, task_date)

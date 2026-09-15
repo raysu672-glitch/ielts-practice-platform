@@ -879,7 +879,21 @@ class TaskApiTests(unittest.TestCase):
         daily2 = build_daily_tasks(conn, "2025001", day2)
         self.assertEqual(len(daily2), 2)
         self.assertTrue(all(d["priority_class"] == "carry_over" for d in daily2))
-        self.assertEqual(len(backlog_plan_item_ids(conn, "2025001")), 3)
+        # As of day2: day1's 3 unfinished count; day2's in-progress do not add extra.
+        self.assertEqual(len(backlog_plan_item_ids(conn, "2025001", before_date=day2)), 3)
+        self.assertEqual(len(backlog_plan_item_ids(conn, "2025001", before_date="2026-08-27")), 3)
+
+    def test_backlog_excludes_today_unfinished(self) -> None:
+        """Today's unlocked work is not backlog until the day has passed."""
+        conn = _connect()
+        self._apply_reading_plan(conn, 3)
+        self._enable_units_mode(conn, weekday_units=3, weekend_units=3)
+        today = "2026-09-10"
+        daily = build_daily_tasks(conn, "2025001", today)
+        self.assertEqual(len(daily), 3)
+        self.assertEqual(len(backlog_plan_item_ids(conn, "2025001", before_date=today)), 0)
+        tomorrow = "2026-09-11"
+        self.assertEqual(len(backlog_plan_item_ids(conn, "2025001", before_date=tomorrow)), 3)
 
     def test_units_mode_weekend_backlog_weekday_cap(self) -> None:
         """Weekend 6 unfinished → Monday shows weekday 3, rest stay in backlog."""
@@ -915,7 +929,9 @@ class TaskApiTests(unittest.TestCase):
         monday = build_daily_tasks(conn, "2025001", "2026-08-31")
         self.assertEqual(len(monday), 3)
         self.assertTrue(all(d["priority_class"] == "carry_over" for d in monday))
-        self.assertEqual(len(backlog_plan_item_ids(conn, "2025001")), 6)
+        self.assertEqual(
+            len(backlog_plan_item_ids(conn, "2025001", before_date="2026-08-31")), 6
+        )
 
     def test_units_mode_weekend_quota(self) -> None:
         conn = _connect()
