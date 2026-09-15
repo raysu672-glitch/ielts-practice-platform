@@ -4917,7 +4917,9 @@
                 return Number(String(x).trim());
             }).filter(function(n) { return n > 0; }),
             completedIds: new Set(),
-            reportedFinish: new Set()
+            reportedFinish: new Set(),
+            scope_done: Math.max(0, parseInt(_taskParams.get('scope_done') || '0', 10) || 0),
+            scope_total: Math.max(0, parseInt(_taskParams.get('scope_total') || '0', 10) || 0)
         };
 
         function _taskPost(type, extra) {
@@ -4961,6 +4963,36 @@
             return [];
         }
 
+        function _taskHydrateCompletedFromScope() {
+            if (!_taskMode.plan_item_id) return;
+            var assigned = _taskAssignedSentences();
+            if (!assigned.length) return;
+            var n = Math.min(_taskMode.scope_done || 0, assigned.length);
+            for (var i = 0; i < n; i++) {
+                _taskMode.completedIds.add(assigned[i].id);
+                _taskMode.reportedFinish.add(assigned[i].id);
+            }
+        }
+
+        function _taskEnsureBanner() {
+            if (!_taskMode.plan_item_id) return;
+            var banner = document.getElementById('taskModeBanner');
+            if (!banner) {
+                banner = document.createElement('div');
+                banner.id = 'taskModeBanner';
+                banner.style.cssText = 'background:#eff6ff;border:1px solid #bfdbfe;color:#1e40af;padding:10px 14px;margin:8px;border-radius:8px;font-size:14px;';
+                var host = document.getElementById('page-sentences') || document.body;
+                if (host.firstChild) host.insertBefore(banner, host.firstChild);
+                else host.appendChild(banner);
+            }
+            var assigned = _taskAssignedSentences();
+            var total = assigned.length || _taskMode.scope_total || _taskMode.ids.length;
+            var done = _taskScopeDoneCount();
+            var remain = Math.max(0, total - done);
+            banner.innerHTML = '<strong>今日任务 · 句子翻译</strong> 已完成 <strong>' + done + '/' + total +
+                '</strong> 句' + (remain > 0 ? ('，请继续剩余 <strong>' + remain + '</strong> 句') : '，本单元已完成');
+        }
+
         function _taskScopeDoneCount() {
             var assigned = _taskAssignedSentences();
             if (!assigned.length) return _taskMode.completedIds.size;
@@ -4979,6 +5011,8 @@
             var total = assigned.length || _taskMode.ids.length;
             var done = _taskScopeDoneCount();
             _taskPost('taskScopeProgress', { scope_done: done });
+            _taskEnsureBanner();
+            try { _taskRenderAssignedList(); } catch (e) {}
             _activityLog('translate.sentence_done', '完成翻译句 #' + sid, { sentence_id: sid, done: done, total: total });
             if (total > 0 && done >= total) {
                 _taskPost('taskUnitComplete', {});
@@ -5034,9 +5068,15 @@
             if (!_taskMode.plan_item_id) return;
             var assigned = _taskAssignedSentences();
             if (!assigned.length) return;
+            _taskHydrateCompletedFromScope();
             _taskRenderAssignedList();
+            _taskEnsureBanner();
             var first = _taskNextUnfinishedId(null);
-            if (first != null) startPractice(first);
+            if (first != null) {
+                startPractice(first);
+            } else {
+                _taskPost('taskUnitComplete', {});
+            }
         }
 
         // Initialize

@@ -472,6 +472,8 @@
         // 每组最近一次学习的首轮听写结果：{correct, total} | null
         let groupFirstDictation = [];
         let stage1FirstCorrect = 0;
+        const LISTENING_BOOK_KEY = 'listening';
+        let _groupProgressSyncTimer = null;
 
         function initGroupStatus() {
             groupStatus = new Array(TOTAL_GROUPS).fill('pending');
@@ -501,6 +503,89 @@
             }));
         }
 
+        function buildGroupProgressPayload(indices) {
+            const groups = [];
+            const list = Array.isArray(indices) ? indices : [indices];
+            list.forEach((i) => {
+                if (i == null || i < 0 || i >= TOTAL_GROUPS) return;
+                const stats = groupFirstDictation[i];
+                groups.push({
+                    group_index: i,
+                    first_correct: stats && stats.total > 0 ? Number(stats.correct) || 0 : 0,
+                    first_total: stats && stats.total > 0 ? Number(stats.total) || 0 : 0,
+                    status: groupStatus[i] === 'completed' ? 'completed' : 'pending'
+                });
+            });
+            return { book_key: LISTENING_BOOK_KEY, groups: groups };
+        }
+
+        function applyServerGroupProgress(data) {
+            if (!data || !Array.isArray(data.groups)) return false;
+            let changed = false;
+            data.groups.forEach((g) => {
+                const i = Number(g.group_index);
+                if (!Number.isFinite(i) || i < 0 || i >= TOTAL_GROUPS) return;
+                const total = Number(g.first_total) || 0;
+                const correct = Number(g.first_correct) || 0;
+                if (total > 0) {
+                    groupFirstDictation[i] = { correct: correct, total: total };
+                    changed = true;
+                }
+                if (String(g.status || '') === 'completed') {
+                    groupStatus[i] = 'completed';
+                    changed = true;
+                }
+            });
+            return changed;
+        }
+
+        async function syncGroupStatusFromServer() {
+            try {
+                const res = await fetch(
+                    '/api/student/listening-group-progress?book_key=' + encodeURIComponent(LISTENING_BOOK_KEY),
+                    { credentials: 'include' }
+                );
+                if (!res.ok) return;
+                const body = await res.json();
+                if (!body || body.error || !body.data) return;
+                const changed = applyServerGroupProgress(body.data);
+                if (changed) {
+                    saveGroupStatus();
+                    renderGroupGrid();
+                }
+                // 本机有、服务器没有的组：回填一次
+                const serverIdx = new Set((body.data.groups || []).map((g) => Number(g.group_index)));
+                const missing = [];
+                for (let i = 0; i < TOTAL_GROUPS; i++) {
+                    const stats = groupFirstDictation[i];
+                    const hasLocal = (stats && stats.total > 0) || groupStatus[i] === 'completed';
+                    if (hasLocal && !serverIdx.has(i)) missing.push(i);
+                }
+                if (missing.length) {
+                    await fetch('/api/student/listening-group-progress', {
+                        method: 'POST',
+                        credentials: 'include',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(buildGroupProgressPayload(missing))
+                    });
+                }
+            } catch (e) {}
+        }
+
+        function syncGroupStatusToServer(indices) {
+            const payload = buildGroupProgressPayload(indices);
+            if (!payload.groups.length) return;
+            clearTimeout(_groupProgressSyncTimer);
+            _groupProgressSyncTimer = setTimeout(() => {
+                fetch('/api/student/listening-group-progress', {
+                    method: 'POST',
+                    credentials: 'include',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                }).catch(() => {});
+            }, 50);
+        }
+
         function recordStage1Result() {
             stage1FirstCorrect = masteredWords.length;
             groupFirstDictation[currentGroupIndex] = {
@@ -508,6 +593,7 @@
                 total: currentGroupWords.length
             };
             saveGroupStatus();
+            syncGroupStatusToServer([currentGroupIndex]);
         }
 
         // ==================== 状态管理 ====================
@@ -584,7 +670,7 @@
         }
 
         // ==================== 初始化 ====================
-        function init() {
+        async function init() {
             loadProgress();
             initGroupStatus();
             updateStats();
@@ -599,6 +685,7 @@
                 renderGroupGrid();
                 selectGroup(0);
             }
+            await syncGroupStatusFromServer();
         }
 
         function startHeartbeat() {
@@ -1131,6 +1218,7 @@
             // Mark current group as completed
             groupStatus[currentGroupIndex] = 'completed';
             saveGroupStatus();
+            syncGroupStatusToServer([currentGroupIndex]);
 
             document.getElementById('mastered-count').textContent = masteredWords.length;
             const listContainer = document.getElementById('mastered-list');
@@ -1190,6 +1278,10 @@
             const record = {
                 type: 'listeningStudyComplete',
                 groupIndex: currentGroupIndex + 1,
+                groupIndexZero: currentGroupIndex,
+                bookKey: LISTENING_BOOK_KEY,
+                stage1Correct: (groupFirstDictation[currentGroupIndex] && groupFirstDictation[currentGroupIndex].correct) || stage1FirstCorrect || 0,
+                stage1Total: (groupFirstDictation[currentGroupIndex] && groupFirstDictation[currentGroupIndex].total) || currentGroupWords.length || 0,
                 totalGroups: TOTAL_GROUPS,
                 wordsTested: currentGroupWords.length,
                 masteredCount: masteredWords.length,

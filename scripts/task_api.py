@@ -4096,6 +4096,12 @@ def _enrich_daily(
         scope_done = int(prog["scope_done"]) if prog else 0
         if prog and prog["scope_total"]:
             scope_total = int(prog["scope_total"])
+        gendu_count = int(item.get("gendu_practice_count") or 0)
+        url_scope_done = scope_done
+        url_scope_total = scope_total
+        if str(item.get("module_type") or "") == GENDU_MODULE:
+            url_scope_done = gendu_count
+            url_scope_total = GENDU_DAILY_PRACTICES
         study_url = item.get("study_url") or ""
         if study_url and item.get("id"):
             sep = "&" if "?" in study_url else "?"
@@ -4103,10 +4109,16 @@ def _enrich_daily(
                 f"{study_url}{sep}task_id={item['id']}"
                 f"&plan_item_id={item['plan_item_id']}"
             )
+            if item.get("unit_id"):
+                study_url += f"&unit_id={item['unit_id']}"
+            if item.get("content_version"):
+                study_url += f"&content_version={item['content_version']}"
+            # 续练模块带上已完成数，避免重进从 0 开始虚加
+            if url_scope_total:
+                study_url += f"&scope_done={url_scope_done}&scope_total={url_scope_total}"
         title = item.get("unit_title") or item.get("test_title") or "任务"
         if item.get("need_refresh"):
             title = f"{title}（内容已更新）"
-        gendu_count = int(item.get("gendu_practice_count") or 0)
         entry = {
                 "daily_task_id": item["id"],
                 "plan_item_id": item["plan_item_id"],
@@ -4382,7 +4394,8 @@ def update_scope_progress(
     ).fetchone()
     current = int(existing["scope_done"]) if existing else 0
     if scope_done is not None:
-        current = max(0, int(scope_done))
+        # 绝对进度只升不降，避免重进模块短时上报覆盖已完成进度
+        current = max(current, max(0, int(scope_done)))
     elif delta is not None:
         current = max(0, current + int(delta))
     if scope_total:

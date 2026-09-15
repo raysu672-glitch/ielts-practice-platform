@@ -1579,6 +1579,24 @@ class TaskApiTests(unittest.TestCase):
         ).fetchall()
         self.assertEqual([r["unit_id"] for r in pending], [u0])
 
+    def test_scope_progress_absolute_does_not_decrease(self) -> None:
+        conn = _connect()
+        put_plan_draft(
+            conn,
+            "2025001",
+            [{"item_type": "study", "unit_id": "reading_synonym_u03"}],
+        )
+        apply_draft_to_live(conn, "2025001")
+        item = conn.execute(
+            "SELECT id FROM plan_items WHERE unit_id='reading_synonym_u03'"
+        ).fetchone()
+        self.assertIsNotNone(item)
+        update_scope_progress(conn, "2025001", item["id"], scope_done=6)
+        again = update_scope_progress(conn, "2025001", item["id"], scope_done=2)
+        self.assertEqual(again["scope_done"], 6)
+        bumped = update_scope_progress(conn, "2025001", item["id"], delta=1)
+        self.assertEqual(bumped["scope_done"], 7)
+
 
 if __name__ == "__main__":
     unittest.main()

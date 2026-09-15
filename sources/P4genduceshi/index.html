@@ -648,6 +648,15 @@
                         scorePercent: Number(score) || 0,
                         lessonId: currentLesson.code || currentLesson.id
                     }, '*');
+                    if (window._genduTaskProgress) {
+                        window._genduTaskProgress.done = Math.min(
+                            window._genduTaskProgress.total,
+                            (window._genduTaskProgress.done || 0) + 1
+                        );
+                        if (typeof window._updateGenduBanner === 'function') {
+                            window._updateGenduBanner();
+                        }
+                    }
                 }
             } catch (e) {
                 console.error('上报测试结果失败:', e);
@@ -1240,6 +1249,35 @@
                     if (row) row.style.display = 'none';
                 } else {
                     back.href = catalogUrl();
+                }
+            }
+            if (isTaskMode()) {
+                const done = Math.max(0, parseInt(getQueryParam('scope_done') || '0', 10) || 0);
+                const total = Math.max(1, parseInt(getQueryParam('scope_total') || '3', 10) || 3);
+                window._genduTaskProgress = { done: done, total: total };
+                let banner = document.getElementById('taskModeBanner');
+                if (!banner) {
+                    banner = document.createElement('div');
+                    banner.id = 'taskModeBanner';
+                    banner.style.cssText = 'background:#eff6ff;border:1px solid #bfdbfe;color:#1e40af;padding:10px 14px;margin:0 0 12px;border-radius:8px;font-size:14px;';
+                    const host = document.querySelector('.container') || document.body;
+                    if (host.firstChild) host.insertBefore(banner, host.firstChild);
+                    else host.appendChild(banner);
+                }
+                window._updateGenduBanner = function() {
+                    const p = window._genduTaskProgress || { done: 0, total: 3 };
+                    const remain = Math.max(0, p.total - p.done);
+                    banner.innerHTML = '<strong>今日任务 · 听力跟读</strong> 已练 <strong>' +
+                        p.done + '/' + p.total + '</strong> 次' +
+                        (remain > 0
+                            ? ('，请继续跟读凑满剩余 <strong>' + remain + '</strong> 次（次数会累计，中途退出下次接着算）')
+                            : '，今日次数已满');
+                };
+                window._updateGenduBanner();
+                if (elements.statusText && done < total) {
+                    elements.statusText.textContent = '今日已练 ' + done + '/' + total + ' 次，可继续跟读凑满';
+                } else if (elements.statusText && done >= total) {
+                    elements.statusText.textContent = '今日跟读次数已满，可继续练习但不计入任务';
                 }
             }
             if (!currentLesson.text) {

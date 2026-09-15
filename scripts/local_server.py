@@ -140,8 +140,10 @@ from student_api import (  # noqa: E402
     apply_wrong_item_results,
     apply_wrong_word_results,
     change_password as student_change_password,
+    ensure_listening_group_progress_table,
     insert_study_session,
     insert_test_record,
+    load_listening_group_progress,
     load_progress,
     load_speaking_best_scores,
     load_standards,
@@ -149,6 +151,7 @@ from student_api import (  # noqa: E402
     load_word_mastery,
     load_wrong_book_items,
     load_wrong_words,
+    upsert_listening_group_progress,
     upsert_speaking_best_score,
     upsert_word_mastery,
 )
@@ -765,6 +768,7 @@ def init_db(db_path: Path, *, bind_host: str = "127.0.0.1") -> None:
             "CREATE INDEX IF NOT EXISTS idx_wrong_words_module_type ON wrong_words(module_type)"
         )
         ensure_wrong_items_table(conn)
+        ensure_listening_group_progress_table(conn)
         ensure_task_tables(conn)
         ensure_activity_tables(conn)
         ensure_jianya_tables(conn)
@@ -2534,6 +2538,35 @@ class LocalHandler(SimpleHTTPRequestHandler):
         except ValueError as exc:
             self.send_json({"data": None, "error": {"message": str(exc)}}, status=400)
 
+    def handle_student_listening_group_progress_get(self) -> None:
+        session = self.require_student_session()
+        if not session:
+            return
+        parsed = urllib.parse.urlparse(self.path)
+        qs = urllib.parse.parse_qs(parsed.query or "")
+        book_key = str((qs.get("book_key") or qs.get("book") or ["listening"])[0] or "listening")
+        try:
+            with closing(connect(self.db_path)) as conn:
+                data = load_listening_group_progress(conn, session["id"], book_key)
+            self.send_json({"data": data, "error": None})
+        except ValueError as exc:
+            self.send_json({"data": None, "error": {"message": str(exc)}}, status=400)
+
+    def handle_student_listening_group_progress_post(self) -> None:
+        session = self.require_student_session()
+        if not session:
+            return
+        payload = self.read_json_body()
+        if not isinstance(payload, dict):
+            self.send_json({"data": None, "error": {"message": "请求体无效"}}, status=400)
+            return
+        try:
+            with closing(connect(self.db_path)) as conn:
+                data = upsert_listening_group_progress(conn, session["id"], payload)
+            self.send_json({"data": data, "error": None})
+        except ValueError as exc:
+            self.send_json({"data": None, "error": {"message": str(exc)}}, status=400)
+
     # ── Task system (MVP) ──────────────────────────────────────────────
 
     def handle_task_class_overview(self) -> None:
@@ -3096,6 +3129,9 @@ class LocalHandler(SimpleHTTPRequestHandler):
         if parsed.path.rstrip("/") == "/api/student/word-mastery":
             self.handle_student_word_mastery_get()
             return
+        if parsed.path.rstrip("/") == "/api/student/listening-group-progress":
+            self.handle_student_listening_group_progress_get()
+            return
         if parsed.path.rstrip("/") == "/api/task/class-overview":
             self.handle_task_class_overview()
             return
@@ -3267,6 +3303,9 @@ class LocalHandler(SimpleHTTPRequestHandler):
             return
         if path == "/api/student/word-mastery":
             self.handle_student_word_mastery_post()
+            return
+        if path == "/api/student/listening-group-progress":
+            self.handle_student_listening_group_progress_post()
             return
         if path == "/api/task/me/complete-study":
             self.handle_task_me_complete_study()

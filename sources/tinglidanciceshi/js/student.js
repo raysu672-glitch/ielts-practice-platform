@@ -194,9 +194,6 @@ async function loadTodayTasks() {
     const data = result.data || {};
     const items = data.items || [];
     const progress = data.progress || {};
-    // 听力跟读作业状态：已达 70% 时展示"明日换新篇"
-    const genduAsg = data.gendu_assignment || null;
-    const genduPassed = !!(genduAsg && genduAsg.passed_current);
     let html = renderJianyaHomeworkBanner(pendingHomework);
     html += '<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:16px;">';
     html += '<div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:10px;">';
@@ -279,6 +276,17 @@ async function loadTodayTasks() {
                 } else if (it.item_type === 'test') {
                     btn = '<button class="btn btn-primary" type="button" onclick="openTaskItem(' +
                         it.plan_item_id + ')">去测试</button>';
+                } else if (it.module_type === 'listening_p4_speed' &&
+                    Number(it.gendu_practice_count || it.scope_done || 0) > 0 &&
+                    Number(it.gendu_practice_count || it.scope_done || 0) < Number(it.gendu_required || it.scope_total || 3)) {
+                    btn = '<button class="btn btn-primary" type="button" onclick="openTaskItem(' +
+                        it.plan_item_id + ')">继续跟读</button>';
+                } else if ((it.module_type === 'reading_synonym' || it.module_type === 'sentence' ||
+                    it.module_type === 'writing_translate') &&
+                    Number(it.scope_done || 0) > 0 &&
+                    Number(it.scope_total || 0) > Number(it.scope_done || 0)) {
+                    btn = '<button class="btn btn-primary" type="button" onclick="openTaskItem(' +
+                        it.plan_item_id + ')">继续学习</button>';
                 } else {
                     btn = '<button class="btn btn-primary" type="button" onclick="openTaskItem(' +
                         it.plan_item_id + ')">去学习</button>';
@@ -295,9 +303,6 @@ async function loadTodayTasks() {
                     (it.module_type === 'listening_p4_speed' && it.gendu_best_score != null
                         ? (' <span style="color:#64748b;font-size:0.8rem;">最佳 ' +
                             Math.round(Number(it.gendu_best_score)) + '%</span>')
-                        : '') +
-                    (it.module_type === 'listening_p4_speed' && genduPassed
-                        ? ' <span style="color:#16a34a;font-weight:600;font-size:0.8rem;">✓ 本课已通过，明日自动换新篇</span>'
                         : '') +
                     '</div><div>' + btn + '</div></div>';
             });
@@ -434,22 +439,28 @@ function openTaskItem(planItemId) {
         showToast('该单元暂无学习链接', 'error');
         return;
     }
+    // 续练模块带上当前进度（即使旧 study_url 未含参数）
+    if (it.module_type === 'reading_synonym' || it.module_type === 'sentence' ||
+        it.module_type === 'writing_translate' || it.module_type === 'listening_p4_speed') {
+        if (!/[?&]scope_done=/.test(url)) {
+            url += (url.indexOf('?') >= 0 ? '&' : '?') +
+                'scope_done=' + encodeURIComponent(it.scope_done || 0);
+        }
+        if (!/[?&]scope_total=/.test(url) && it.scope_total) {
+            url += (url.indexOf('?') >= 0 ? '&' : '?') +
+                'scope_total=' + encodeURIComponent(it.scope_total);
+        }
+        if (it.unit_id && !/[?&]unit_id=/.test(url)) {
+            url += (url.indexOf('?') >= 0 ? '&' : '?') +
+                'unit_id=' + encodeURIComponent(it.unit_id);
+        }
+    }
     window._currentTaskContext = {
         plan_item_id: it.plan_item_id,
         unit_id: it.unit_id,
         content_version: it.content_version || '1',
         daily_task_id: it.daily_task_id
     };
-    try {
-        reportActivity({
-            action: 'task.open',
-            module_type: it.module_type,
-            plan_item_id: it.plan_item_id,
-            unit_id: it.unit_id,
-            summary: '打开任务 ' + (it.title || it.module_type || ''),
-            detail: { study_url: url }
-        });
-    } catch (e) {}
     const mod = getModuleById(it.module_type) || { id: it.module_type, name: it.module_type };
     if ((it.module_type === 'dictation' || it.module_type === 'listening_basic') &&
         typeof openListeningIframe === 'function') {
@@ -492,27 +503,6 @@ async function completeCurrentTaskStudy(payload) {
     switchStudentTab('tasks');
 }
 
-/** 上报关键动作日志（不阻塞学习流程） */
-function reportActivity(eventOrList) {
-    var events = Array.isArray(eventOrList) ? eventOrList : [eventOrList];
-    events = events.filter(function(e) { return e && e.action; }).map(function(e) {
-        var ctx = window._currentTaskContext || {};
-        return {
-            action: e.action,
-            module_type: e.module_type || (window._currentModule && window._currentModule.id) || '',
-            plan_item_id: e.plan_item_id != null ? e.plan_item_id : ctx.plan_item_id,
-            unit_id: e.unit_id || ctx.unit_id || '',
-            summary: e.summary || '',
-            detail: e.detail || {}
-        };
-    });
-    if (!events.length) return;
-    apiFetch('/api/activity/me', {
-        method: 'POST',
-        body: JSON.stringify({ events: events })
-    }).catch(function() {});
-}
-
 /** 有单元进度的科目：不能靠「退出页面」静默打勾；须模块上报真实完成。 */
 var TASK_SCOPE_GATED_MODULES = {
     writing_translate: true,
@@ -523,20 +513,14 @@ var TASK_SCOPE_GATED_MODULES = {
     listening_p4_speed: true
 };
 
-/** 任务学习：仅当模块发出真实完成信号时打勾；退出页面本身永不打勾。 */
+/** 任务学习：仅在模块主动发出完成信号（或非进度制科目）时打勾。 */
 async function maybeCompleteTaskStudyOnLeave(opts) {
     opts = opts || {};
     const ctx = window._currentTaskContext || {};
     if (!ctx.plan_item_id) return false;
     const current = window._currentModule;
     if (!current || current.mode !== 'study') return false;
-    // 禁止「退出即完成」；必须模块上报进度满 / taskUnitComplete 等真实信号
-    if (!opts.fromModuleSignal) return false;
-    if (TASK_SCOPE_GATED_MODULES[current.id] && !opts.allowGated) {
-        // 进度制科目默认仍须走 scope 满 / taskUnitComplete；
-        // allowGated 仅给已确认「单元内容已做完」的模块信号使用
-        return false;
-    }
+    if (TASK_SCOPE_GATED_MODULES[current.id] && !opts.fromModuleSignal) return false;
     if (window._taskAutoCompleteInFlight) return false;
     const minSeconds = opts.minSeconds != null ? opts.minSeconds : 60;
     const duration = practiceElapsedSeconds(current.startedAt);
@@ -553,14 +537,14 @@ async function maybeCompleteTaskStudyOnLeave(opts) {
             })
         });
         if (result.error) {
-            console.warn('任务自动打勾失败:', result.error);
+            console.warn('任务退出自动打勾失败:', result.error);
             return false;
         }
         window._currentTaskContext = null;
         showToast('任务已完成', 'success');
         return true;
     } catch (e) {
-        console.warn('任务自动打勾异常:', e);
+        console.warn('任务退出自动打勾异常:', e);
         return false;
     } finally {
         window._taskAutoCompleteInFlight = false;
@@ -2651,22 +2635,6 @@ function exitGenericIframe() {
     } catch(e) {}
     setTimeout(async function() {
         try { await saveCurrentModuleFallback(); } catch(e) { console.error('保存模块兜底时长失败:', e); }
-        try {
-            var ctx = window._currentTaskContext || {};
-            var mod = window._currentModule || {};
-            if (ctx.plan_item_id || mod.id) {
-                reportActivity({
-                    action: 'task.exit',
-                    module_type: mod.id || '',
-                    plan_item_id: ctx.plan_item_id,
-                    unit_id: ctx.unit_id || '',
-                    summary: '退出任务模块',
-                    detail: {
-                        duration_seconds: practiceElapsedSeconds(mod.startedAt)
-                    }
-                });
-            }
-        } catch (e) {}
         try { await maybeCompleteTaskStudyOnLeave(); } catch(e) { console.warn('任务退出自动打勾失败:', e); }
         finishGenericIframeClose();
         try { loadTodayTasks(); } catch(e) {}
@@ -2792,14 +2760,10 @@ window.addEventListener('message', async function(event) {
             var prog = result.data || {};
             var done = Number(prog.scope_done || 0);
             var total = Number(prog.scope_total || 0);
-            // 进度已满时系统自动打勾（不依赖学生点按钮）
+            // 进度已满时自动打勾（模块也会发 taskUnitComplete，此处作兜底）
             if (total > 0 && done >= total && window._currentTaskContext &&
                 window._currentTaskContext.plan_item_id) {
-                maybeCompleteTaskStudyOnLeave({
-                    fromModuleSignal: true,
-                    allowGated: true,
-                    minSeconds: 0
-                });
+                maybeCompleteTaskStudyOnLeave({ fromModuleSignal: true, minSeconds: 0 });
             }
         });
         return;
@@ -2834,23 +2798,6 @@ window.addEventListener('message', async function(event) {
         // Same-origin iframe task completion (may fire before _currentModule checks)
         if (event.origin && event.origin !== window.location.origin) return;
         await completeCurrentTaskStudy(data);
-        return;
-    }
-    if (data.type === 'requestCloseModule') {
-        if (event.origin && event.origin !== window.location.origin) return;
-        try {
-            if (window._currentModule && isBuiltinDictationModule(window._currentModule.id)) {
-                exitListening();
-            } else {
-                exitGenericIframe();
-            }
-        } catch (e) {}
-        return;
-    }
-    if (data.type === 'activityEvent') {
-        if (event.origin && event.origin !== window.location.origin) return;
-        var list = data.events || (data.action ? [data] : []);
-        try { reportActivity(list); } catch (e) {}
         return;
     }
     const current = window._currentModule;
@@ -2897,17 +2844,42 @@ window.addEventListener('message', async function(event) {
             } else if (!result.skipped) {
                 showToast(moduleType === 'speaking' ? '口语练习进度已保存' : '学习时长已保存');
                 try { loadProgressTable(); } catch(e) {}
-                // 非进度制科目：模块学完信号可打勾。进度制科目只认 scope 满 / taskUnitComplete。
+                // 听写绿条进度兜底写入服务器（listening 页也会直写）
+                if (data.type === 'listeningStudyComplete') {
+                    try {
+                        const gi = data.groupIndexZero != null
+                            ? Number(data.groupIndexZero)
+                            : Math.max(0, Number(data.groupIndex || 1) - 1);
+                        const bookKey = data.bookKey || (moduleType === 'listening_basic' ? 'listening_basic' : 'listening');
+                        const stage1Total = Number(data.stage1Total || 0);
+                        const stage1Correct = Number(data.stage1Correct || 0);
+                        if (Number.isFinite(gi) && gi >= 0) {
+                            await apiFetch('/api/student/listening-group-progress', {
+                                method: 'POST',
+                                body: JSON.stringify({
+                                    book_key: bookKey,
+                                    groups: [{
+                                        group_index: gi,
+                                        first_correct: stage1Total > 0 ? stage1Correct : 0,
+                                        first_total: stage1Total > 0 ? stage1Total : 0,
+                                        status: 'completed'
+                                    }]
+                                })
+                            });
+                        }
+                    } catch (e3) {}
+                }
+                // 模块主动上报学完（词伙通关 / 听力学完等）时才允许自动打勾
                 if (window._currentTaskContext && window._currentTaskContext.plan_item_id &&
                     (data.type === 'phraseStudyComplete' || data.type === 'genericStudyComplete' ||
                      data.type === 'listeningStudyComplete') &&
                     moduleType !== 'reading_synonym' && moduleType !== 'listening_p4_speed' &&
-                    moduleType !== 'speaking' &&
-                    !TASK_SCOPE_GATED_MODULES[moduleType]) {
+                    moduleType !== 'speaking') {
                     try {
                         await maybeCompleteTaskStudyOnLeave({
                             minSeconds: 5,
-                            fromModuleSignal: true
+                            fromModuleSignal: data.type !== 'genericStudyComplete' ||
+                                !TASK_SCOPE_GATED_MODULES[moduleType]
                         });
                     } catch (e2) {}
                 }

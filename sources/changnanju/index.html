@@ -513,6 +513,48 @@ if (_taskFrom > 0 && _taskTo >= _taskFrom) {
 }
 var _taskCompletedNums = {};
 var _taskUnitCompletePosted = false;
+var _taskScopeDoneInit = Math.max(0, parseInt(_taskParams.get('scope_done') || '0', 10) || 0);
+var _taskScopeTotalInit = Math.max(
+  0,
+  parseInt(_taskParams.get('scope_total') || '0', 10) || 0
+) || PRACTICE_LIST.length;
+
+function _taskHydrateCompletedFromScope() {
+  if (!_taskPlanItemId || !PRACTICE_LIST.length) return;
+  var n = Math.min(_taskScopeDoneInit, PRACTICE_LIST.length);
+  for (var i = 0; i < n; i++) {
+    _taskCompletedNums[PRACTICE_LIST[i].num] = true;
+  }
+}
+
+function _taskDoneCount() {
+  return PRACTICE_LIST.filter(function(x) { return !!_taskCompletedNums[x.num]; }).length;
+}
+
+function _taskFirstUnfinishedIdx() {
+  for (var i = 0; i < PRACTICE_LIST.length; i++) {
+    if (!_taskCompletedNums[PRACTICE_LIST[i].num]) return i;
+  }
+  return -1;
+}
+
+function _taskEnsureBanner() {
+  if (!_taskPlanItemId) return;
+  var banner = document.getElementById('taskModeBanner');
+  if (!banner) {
+    banner = document.createElement('div');
+    banner.id = 'taskModeBanner';
+    banner.style.cssText = 'background:#eff6ff;border:1px solid #bfdbfe;color:#1e40af;padding:10px 14px;margin:8px 0 12px;border-radius:8px;font-size:14px;';
+    var home = document.getElementById('homePage') || document.body;
+    if (home.firstChild) home.insertBefore(banner, home.firstChild);
+    else home.appendChild(banner);
+  }
+  var done = _taskDoneCount();
+  var total = PRACTICE_LIST.length || _taskScopeTotalInit;
+  var remain = Math.max(0, total - done);
+  banner.innerHTML = '<strong>今日任务 · 长难句</strong> 已完成 <strong>' + done + '/' + total +
+    '</strong> 句' + (remain > 0 ? ('，请继续剩余 <strong>' + remain + '</strong> 句') : '，本单元已完成');
+}
 
 function _taskPost(type, extra) {
   if (!_taskPlanItemId) return;
@@ -548,9 +590,11 @@ function _taskMarkCurrentDone() {
   if (!s) return;
   if (_taskCompletedNums[s.num]) return;
   _taskCompletedNums[s.num] = true;
-  var done = PRACTICE_LIST.filter(function(x) { return !!_taskCompletedNums[x.num]; }).length;
+  var done = _taskDoneCount();
   var total = PRACTICE_LIST.length;
   _taskPost('taskScopeProgress', { scope_done: done });
+  _taskEnsureBanner();
+  try { renderHome(); } catch (e) {}
   _activityLog('sentence.analysis_open', '完成第' + s.num + '句并查看解析', { done: done, total: total });
   if (total > 0 && done >= total && !_taskUnitCompletePosted) {
     _taskUnitCompletePosted = true;
@@ -671,8 +715,9 @@ function renderHome() {
   grid.innerHTML = PRACTICE_LIST.map((s, i) => {
     const num = String(s.num).padStart(3, '0');
     const preview = s.original ? s.original.substring(0, 80) + '...' : '内容加载中...';
-    return '<div class="sentence-card" onclick="openPractice(' + i + ')">' +
-      '<div class="card-num">第 ' + num + ' 句</div>' +
+    const done = !!_taskCompletedNums[s.num];
+    return '<div class="sentence-card' + (done ? ' task-done' : '') + '" onclick="openPractice(' + i + ')">' +
+      '<div class="card-num">第 ' + num + ' 句' + (done ? ' ✓' : '') + '</div>' +
       '<div class="card-pattern">' + escHtml(s.pattern) + '</div>' +
       '<div class="card-preview">' + escHtml(preview) + '</div>' +
     '</div>';
@@ -724,6 +769,18 @@ function openPractice(idx) {
 }
 
 function navSentence(dir) {
+  if (_taskPlanItemId && dir > 0) {
+    for (var i = currentIdx + 1; i < PRACTICE_LIST.length; i++) {
+      if (!_taskCompletedNums[PRACTICE_LIST[i].num]) {
+        openPractice(i);
+        return;
+      }
+    }
+    // 后面都做完了，回首页看总览
+    goHome();
+    _taskEnsureBanner();
+    return;
+  }
   const newIdx = currentIdx + dir;
   if (newIdx >= 0 && newIdx < PRACTICE_LIST.length) openPractice(newIdx);
 }
@@ -1395,8 +1452,18 @@ function renderAnalysis(s) {
 }
 
 // ===== INIT =====
+_taskHydrateCompletedFromScope();
 renderHome();
+_taskEnsureBanner();
 if (_taskPlanItemId && PRACTICE_LIST.length) {
-  openPractice(0);
+  var firstIdx = _taskFirstUnfinishedIdx();
+  if (firstIdx < 0) {
+    if (!_taskUnitCompletePosted) {
+      _taskUnitCompletePosted = true;
+      _taskPost('taskUnitComplete', {});
+    }
+  } else {
+    openPractice(firstIdx);
+  }
 }
 </script></body></html>
