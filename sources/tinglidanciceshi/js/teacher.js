@@ -1640,26 +1640,40 @@ async function loadStudentActivityTimeline(studentId, page, dateYmd) {
     html += '<th style="padding:8px 10px;text-align:left;border-bottom:1px solid #e2e8f0;">时间</th>';
     html += '<th style="padding:8px 10px;text-align:left;border-bottom:1px solid #e2e8f0;">动作</th>';
     html += '<th style="padding:8px 10px;text-align:left;border-bottom:1px solid #e2e8f0;">说明</th>';
-    html += '<th style="padding:8px 10px;text-align:left;border-bottom:1px solid #e2e8f0;">操作者</th>';
     html += '</tr></thead><tbody>';
     events.forEach(function(ev) {
         var label = _activityActionLabels[ev.action] || ev.action;
-        var who = (ev.actor_role === 'teacher' ? '教师' : '学生') +
-            (ev.actor_name ? (' ' + ev.actor_name) : (' ' + (ev.actor_id || '')));
+        var moduleName = (ev.detail && ev.detail.module_name) || '';
+        if (!moduleName && ev.module_type && typeof getModuleById === 'function') {
+            var mod = getModuleById(ev.module_type);
+            moduleName = (mod && mod.name) || ev.module_type;
+        } else if (!moduleName && ev.module_type) {
+            moduleName = ev.module_type;
+        }
         var detailBits = [];
-        if (ev.module_type) detailBits.push(ev.module_type);
-        if (ev.unit_id) detailBits.push(ev.unit_id);
+        if (moduleName && !(ev.summary && String(ev.summary).indexOf(moduleName) >= 0)) {
+            detailBits.push(moduleName);
+        }
+        if (ev.detail && ev.detail.unit_title) detailBits.push(ev.detail.unit_title);
+        else if (ev.unit_id && !(ev.summary && String(ev.summary).indexOf(ev.unit_id) >= 0)) {
+            detailBits.push(ev.unit_id);
+        }
         if (ev.detail && ev.detail.sentence_num != null) detailBits.push('句' + ev.detail.sentence_num);
         if (ev.detail && ev.detail.correct === true) detailBits.push('对');
         if (ev.detail && ev.detail.correct === false) detailBits.push('错');
-        var summary = ev.summary || detailBits.join(' · ') || '—';
+        var summary = ev.summary || '';
+        if (detailBits.length) {
+            summary = summary
+                ? (summary + ' · ' + detailBits.join(' · '))
+                : detailBits.join(' · ');
+        }
+        if (!summary) summary = '—';
         html += '<tr style="border-bottom:1px solid #f1f5f9;">';
         html += '<td style="padding:8px 10px;white-space:nowrap;color:#334155;">' +
             escapeHtml(ev.created_at_cn || formatChinaDateTime(ev.created_at) || '') + '</td>';
         html += '<td style="padding:8px 10px;"><code style="font-size:0.8rem;background:#f1f5f9;padding:2px 6px;border-radius:4px;">' +
             escapeHtml(label) + '</code></td>';
         html += '<td style="padding:8px 10px;color:#475569;">' + escapeHtml(summary) + '</td>';
-        html += '<td style="padding:8px 10px;color:#64748b;">' + escapeHtml(who) + '</td>';
         html += '</tr>';
     });
     html += '</tbody></table></div>';

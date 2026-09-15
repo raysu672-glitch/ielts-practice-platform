@@ -78,6 +78,49 @@ from activity_log import (  # noqa: E402
     log_activity,
     log_student_client_events,
 )
+
+# Teacher activity timeline: human-readable subject names for task events.
+TASK_MODULE_LABELS = {
+    "dictation": "听力1000词",
+    "listening_basic": "听力基础词汇",
+    "reading_synonym": "阅读同义替换",
+    "writing_phrase": "写作词伙",
+    "sentence": "长难句分析",
+    "listening_synonym": "听力同义替换",
+    "writing_translate": "写作句子翻译",
+    "listening_p4_speed": "听力跟读",
+    "writing_correction": "作文批改",
+    "speaking": "口语练习",
+}
+
+
+def _activity_plan_context(conn: Any, plan_item_id: Any) -> dict[str, str]:
+    """Resolve module/unit labels for a plan_item_id (best-effort)."""
+    out = {"module_type": "", "module_name": "", "unit_id": "", "unit_title": ""}
+    try:
+        pid = int(plan_item_id)
+    except (TypeError, ValueError):
+        return out
+    row = conn.execute(
+        """
+        SELECT pi.module_type AS plan_mt, pi.unit_id AS plan_uid,
+               tu.module_type AS unit_mt, tu.title AS unit_title
+        FROM plan_items pi
+        LEFT JOIN task_units tu ON tu.unit_id = pi.unit_id
+        WHERE pi.id = ?
+        """,
+        (pid,),
+    ).fetchone()
+    if not row:
+        return out
+    mt = str(row["plan_mt"] or row["unit_mt"] or "").strip()
+    uid = str(row["plan_uid"] or "").strip()
+    title = str(row["unit_title"] or "").strip()
+    out["module_type"] = mt
+    out["unit_id"] = uid
+    out["unit_title"] = title
+    out["module_name"] = TASK_MODULE_LABELS.get(mt, mt)
+    return out
 from cors_utils import cors_headers_for_origin  # noqa: E402
 from password_utils import authenticate_row_password, hash_password, is_password_hashed  # noqa: E402
 from session_auth import (  # noqa: E402
@@ -1660,6 +1703,37 @@ class LocalHandler(SimpleHTTPRequestHandler):
                     page=page,
                     page_size=page_size,
                 )
+                # Enrich older task events that lack module_type / subject in summary.
+                for ev in payload.get("events") or []:
+                    if not isinstance(ev, dict):
+                        continue
+                    detail = ev.get("detail") if isinstance(ev.get("detail"), dict) else {}
+                    need = (not ev.get("module_type")) or (
+                        str(ev.get("action") or "").startswith("task.")
+                        and "·" not in str(ev.get("summary") or "")
+                    )
+                    if not need or ev.get("plan_item_id") is None:
+                        continue
+                    ctx = _activity_plan_context(conn, ev.get("plan_item_id"))
+                    if not ctx["module_type"] and not ctx["module_name"]:
+                        continue
+                    if not ev.get("module_type"):
+                        ev["module_type"] = ctx["module_type"]
+                    if not ev.get("unit_id") and ctx["unit_id"]:
+                        ev["unit_id"] = ctx["unit_id"]
+                    detail = dict(detail)
+                    if not detail.get("module_name") and ctx["module_name"]:
+                        detail["module_name"] = ctx["module_name"]
+                    if not detail.get("unit_title") and ctx["unit_title"]:
+                        detail["unit_title"] = ctx["unit_title"]
+                    ev["detail"] = detail
+                    summary = str(ev.get("summary") or "")
+                    subject = ctx["module_name"] or ctx["module_type"]
+                    if subject and subject not in summary:
+                        if summary.startswith("单元进度") or summary.startswith("任务学习"):
+                            ev["summary"] = f"{subject} · {summary}"
+                        elif not summary:
+                            ev["summary"] = subject
                 self.send_json(
                     {
                         "data": {
@@ -2509,15 +2583,30 @@ class LocalHandler(SimpleHTTPRequestHandler):
                     conn, session["id"], int(plan_item_id), content_version
                 )
                 try:
+                    ctx = _activity_plan_context(conn, plan_item_id)
+                    subject = ctx["module_name"] or ctx["module_type"]
+                    summary = (
+                        f"{subject} · 任务学习打勾成功"
+                        if subject
+                        else "任务学习打勾成功"
+                    )
+                    if ctx["unit_title"]:
+                        summary += f"（{ctx['unit_title']}）"
                     log_activity(
                         conn,
                         actor_role="student",
                         actor_id=session["id"],
                         action="task.complete_ok",
+                        module_type=ctx["module_type"],
+                        unit_id=ctx["unit_id"],
                         target_student_id=session["id"],
                         plan_item_id=int(plan_item_id),
-                        summary="任务学习打勾成功",
-                        detail={"content_version": content_version},
+                        summary=summary,
+                        detail={
+                            "content_version": content_version,
+                            "module_name": ctx["module_name"],
+                            "unit_title": ctx["unit_title"],
+                        },
                         ip=self.client_ip(),
                     )
                 except Exception:
@@ -2526,15 +2615,28 @@ class LocalHandler(SimpleHTTPRequestHandler):
         except ValueError as exc:
             try:
                 with closing(connect(self.db_path)) as conn:
+                    ctx = _activity_plan_context(conn, plan_item_id)
+                    subject = ctx["module_name"] or ctx["module_type"]
+                    summary = (
+                        f"{subject} · 任务学习打勾失败"
+                        if subject
+                        else "任务学习打勾失败"
+                    )
                     log_activity(
                         conn,
                         actor_role="student",
                         actor_id=session["id"],
                         action="task.complete_fail",
+                        module_type=ctx["module_type"],
+                        unit_id=ctx["unit_id"],
                         target_student_id=session["id"],
                         plan_item_id=int(plan_item_id) if plan_item_id is not None else None,
-                        summary="任务学习打勾失败",
-                        detail={"error": str(exc)},
+                        summary=summary,
+                        detail={
+                            "error": str(exc),
+                            "module_name": ctx["module_name"],
+                            "unit_title": ctx["unit_title"],
+                        },
                         ip=self.client_ip(),
                     )
             except Exception:
@@ -2632,21 +2734,30 @@ class LocalHandler(SimpleHTTPRequestHandler):
                     delta=payload.get("delta"),
                 )
                 try:
+                    ctx = _activity_plan_context(conn, plan_item_id)
+                    subject = ctx["module_name"] or ctx["module_type"]
+                    progress = (
+                        f"单元进度 {data.get('scope_done')}/{data.get('scope_total')}"
+                    )
+                    summary = f"{subject} · {progress}" if subject else progress
+                    if ctx["unit_title"]:
+                        summary += f"（{ctx['unit_title']}）"
                     log_activity(
                         conn,
                         actor_role="student",
                         actor_id=session["id"],
                         action="task.scope_progress",
+                        module_type=ctx["module_type"],
+                        unit_id=ctx["unit_id"],
                         target_student_id=session["id"],
                         plan_item_id=int(plan_item_id),
-                        summary="单元进度 "
-                        + str(data.get("scope_done"))
-                        + "/"
-                        + str(data.get("scope_total")),
+                        summary=summary,
                         detail={
                             "scope_done": data.get("scope_done"),
                             "scope_total": data.get("scope_total"),
                             "delta": payload.get("delta"),
+                            "module_name": ctx["module_name"],
+                            "unit_title": ctx["unit_title"],
                         },
                         ip=self.client_ip(),
                     )
