@@ -688,6 +688,35 @@
             return normalizeText(text).split(/\s+/).filter(w => w.length > 0);
         }
 
+        // 长课文里容易吃词的固定搭配 / 生词，给评分后端 hotwords 提升识别准确率
+        function buildHotwordList(sentence) {
+            const HARD = new Set(['besties','starbucks','binge','watching','hustle','bustle','enjoyable','cheerful','chill','takeaways','jogging','browsing','stunning','fascinating']);
+            const raw = String(sentence || '')
+                .replace(/[’‘]/g, "'")
+                .replace(/[\-—–]/g, ' ')
+                .replace(/[.,!?;:"()\[\]{}…]/g, ' ');
+            const words = raw.split(/\s+/)
+                .map(w => w.replace(/^'+|'+$/g, '').toLowerCase())
+                .filter(w => /^[a-z]{2,30}$/.test(w));
+            const seen = new Set();
+            const list = [];
+            words.forEach(w => {
+                if (!HARD.has(w) || seen.has(w)) return;
+                seen.add(w);
+                list.push(w + '|11');
+            });
+            words.forEach(w => {
+                if (seen.has(w) || list.length >= 24) return;
+                seen.add(w);
+                list.push(w + '|' + (w.length >= 7 ? 10 : 7));
+            });
+            ['shopping mall','hang out','chill out','digital payments','household chores','hustle and bustle','binge watching','window shopping'].forEach(ph => {
+                if (list.length >= 30) return;
+                list.push(ph);
+            });
+            return list.slice(0, 30).join(',');
+        }
+
         function lcsLength(arr1, arr2) {
             const m = arr1.length;
             const n = arr2.length;
@@ -1026,6 +1055,16 @@
             try {
                 const form = new FormData();
                 form.append('file', state.userRecordingBlob, 'recording.webm');
+                // 上传当前课的原文，让评分后端按本课文本逐词比对（否则后端
+                // 会 fallback 到默认篇目，导致任务里跟读其它课文得分个位数）
+                if (currentLesson && currentLesson.text) {
+                    form.append('text', currentLesson.text);
+                }
+                // 长串课文识别容易吃词的固定搭配，交给后端 hotwords 提升识别
+                const hotwords = buildHotwordList(currentLesson.text);
+                if (hotwords) {
+                    form.append('hotwords', hotwords);
+                }
 
                 const res = await fetch(`${API_BASE}/transcribe`, {
                     method: 'POST',
