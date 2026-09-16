@@ -111,26 +111,6 @@ function renderHub() {
 function init() {
     renderHub();
 
-    if (isTaskMode()) {
-        const done = Math.max(0, parseInt(queryParam('scope_done') || '0', 10) || 0);
-        const total = Math.max(1, parseInt(queryParam('scope_total') || '3', 10) || 3);
-        let banner = document.getElementById('taskModeBanner');
-        if (!banner) {
-            banner = document.createElement('div');
-            banner.id = 'taskModeBanner';
-            banner.style.cssText = 'background:#eff6ff;border:1px solid #bfdbfe;color:#1e40af;padding:10px 14px;margin:12px 16px;border-radius:8px;font-size:14px;';
-            const header = document.querySelector('header') || document.body;
-            if (header.nextSibling) header.parentNode.insertBefore(banner, header.nextSibling);
-            else document.body.appendChild(banner);
-        }
-        const remain = Math.max(0, total - done);
-        banner.innerHTML = '<strong>今日任务 · 听力跟读</strong> 已练 <strong>' +
-            done + '/' + total + '</strong> 次' +
-            (remain > 0
-                ? ('，请点开课文继续跟读凑满（次数累计）')
-                : '，今日次数已满');
-    }
-
     const requested = findLesson(queryParam('lessonId') || queryParam('code'));
     if (requested) {
         if (isTestMode() && requested.part !== 'p4') {

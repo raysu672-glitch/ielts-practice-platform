@@ -3272,39 +3272,14 @@ function startGameWithSet(groups) {
   document.getElementById('comboDisplay').classList.remove('active');
   hideFeedback();
 
-  // 任务模式：从已完成组数续练，避免每次从第1组重做却继续给服务器 +1
-  let resumeDone = 0;
-  if (window._taskMode && window._taskMode.plan_item_id) {
-    resumeDone = Math.max(0, Math.min(
-      Number(window._taskMode.scope_done) || 0,
-      activeGroups.length
-    ));
-    for (let gi = 0; gi < resumeDone; gi++) {
-      const grp = activeGroups[gi] || [];
-      grp.forEach(w => usedWords.add(w));
-      groupsDone++;
-      renderDoneGroup(groupsDone, [...grp], []);
-    }
-  }
-
   const setInfo = GROUP_SETS.find(s => s.id === currentSetId);
   document.getElementById('progressText').textContent = `${setInfo?.name || '练习'} · 共 ${activeGroups.length} 组`;
   document.getElementById('sTotal').textContent = allWords.length;
 
   renderGrid();
   updateStats();
+  setHint('🎯 点击任意单词开始练习 — 它将成为参照词');
   startTimer();
-
-  if (resumeDone >= activeGroups.length && activeGroups.length > 0) {
-    setHint('本单元进度已满，正在进入完成页…');
-    setTimeout(() => endGame(), 300);
-    return;
-  }
-  if (resumeDone > 0) {
-    setHint(`✅ 已完成 ${resumeDone}/${activeGroups.length} 组，请继续完成剩余同义词组`);
-  } else {
-    setHint('🎯 点击任意单词开始练习 — 它将成为参照词');
-  }
 }
 
 function renderGrid() {
@@ -3478,7 +3453,7 @@ function finishGroup() {
   groupsDone++;
 
   renderDoneGroup(groupsDone, found, missed);
-  _taskReportScopeProgress();
+  _taskReportScopeProgress(1);
   try {
     if (window.parent && window.parent !== window) {
       window.parent.postMessage({
@@ -3648,15 +3623,15 @@ function _taskScopeTotalForSet(setId) {
   return setId === 23 ? 5 : 10;
 }
 
-function _taskReportScopeProgress() {
+function _taskReportScopeProgress(delta) {
   const ctx = window._taskMode;
-  if (!ctx || !ctx.plan_item_id) return;
+  if (!ctx || !ctx.plan_item_id || !delta) return;
   try {
     if (window.parent && window.parent !== window) {
       window.parent.postMessage({
         type: 'taskScopeProgress',
         plan_item_id: Number(ctx.plan_item_id),
-        scope_done: groupsDone
+        delta: delta
       }, '*');
     }
   } catch (e) {
@@ -3809,22 +3784,14 @@ function recordAnswer(isCorrect, questionInfo) {
 
         if (isTaskMode && taskUnit) {
             const setId = parseInt(taskUnit, 10);
-            const scopeTotal = Math.max(
-                1,
-                parseInt(urlParams.get('scope_total') || '', 10) || _taskScopeTotalForSet(setId)
-            );
-            const scopeDone = Math.max(
-                0,
-                Math.min(scopeTotal, parseInt(urlParams.get('scope_done') || '0', 10) || 0)
-            );
+            const scopeTotal = _taskScopeTotalForSet(setId);
             window._taskMode = {
                 setId: setId,
                 task_id: urlParams.get('task_id'),
                 plan_item_id: urlParams.get('plan_item_id'),
                 unit_id: urlParams.get('unit_id') || ('reading_synonym_u' + String(setId).padStart(2, '0')),
                 content_version: urlParams.get('content_version') || '1',
-                scope_total: scopeTotal,
-                scope_done: scopeDone
+                scope_total: scopeTotal
             };
             selectSet(setId);
             setTimeout(function() {
@@ -3832,13 +3799,8 @@ function recordAnswer(isCorrect, questionInfo) {
                 const banner = document.createElement('div');
                 banner.id = 'taskModeBanner';
                 banner.style.cssText = 'background:#eff6ff;border:1px solid #bfdbfe;color:#1e40af;padding:10px 14px;margin:8px;border-radius:8px;font-size:14px;';
-                const remain = Math.max(0, scopeTotal - scopeDone);
-                banner.innerHTML = '<strong>今日任务 · 本单元</strong> 已完成 <strong>' + scopeDone +
-                    '/' + scopeTotal + '</strong> 组' +
-                    (remain > 0
-                      ? ('，请继续完成剩余 <strong>' + remain + '</strong> 组；')
-                      : '；') +
-                    '<span style="color:#64748b;">不能跳过，全部做完后系统自动记为完成。</span>';
+                banner.innerHTML = '<strong>今日任务 · 本单元</strong> 请完成全部 <strong>' + scopeTotal +
+                    ' 组</strong> 同义替换练习；<span style="color:#64748b;">不能跳过，全部做完后系统自动记为完成。</span>';
                 if (bar && bar.parentNode) bar.parentNode.insertBefore(banner, bar.nextSibling);
                 else document.body.insertBefore(banner, document.body.firstChild);
             }, 100);
