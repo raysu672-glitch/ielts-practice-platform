@@ -1571,6 +1571,88 @@ class TaskApiTests(unittest.TestCase):
         self.assertEqual(asg2["current_unit_id"], next_unit)
         self.assertFalse(asg2["passed_current"])
 
+    def test_genu_practice_day_done_not_backlog(self) -> None:
+        """跟读当天做满 3 次（未过 70 分关）不应计积压。"""
+        conn = _connect()
+        start_unit = conn.execute(
+            """
+            SELECT unit_id FROM task_units
+            WHERE module_type=? ORDER BY unit_no LIMIT 1
+            """,
+            (GENDU_MODULE,),
+        ).fetchone()["unit_id"]
+        today = "2026-09-15"
+        put_gendu_assignment(
+            conn, "2025001", {"start_unit_id": start_unit, "starts_on": today}
+        )
+        daily = build_daily_tasks(conn, "2025001", today)
+        gendu = [x for x in daily if x["module_type"] == GENDU_MODULE][0]
+        pid = gendu["plan_item_id"]
+        # 做满 3 次，但分数都低于 70，未过关 → study_completed 仍为 0
+        report_gendu_practice(conn, "2025001", plan_item_id=pid, score=50, task_date=today)
+        report_gendu_practice(conn, "2025001", plan_item_id=pid, score=60, task_date=today)
+        report_gendu_practice(conn, "2025001", plan_item_id=pid, score=62, task_date=today)
+        row = conn.execute(
+            "SELECT state, gendu_practice_count FROM daily_tasks "
+            "WHERE student_id=? AND task_date=? AND plan_item_id=?",
+            ("2025001", today, pid),
+        ).fetchone()
+        self.assertEqual(row["state"], "done_study")
+        item = conn.execute(
+            "SELECT study_completed FROM plan_items WHERE id=?", (pid,)
+        ).fetchone()
+        self.assertEqual(item["study_completed"], 0)
+        # 官方积压口径：当日做满 → 不算积压
+        self.assertEqual(
+            backlog_plan_item_ids(conn, "2025001", before_date="2026-09-16"), []
+        )
+
+    def test_genu_practice_day_done_not_backlog_keeps_true_backlog(self) -> None:
+        """跟读当日做满不计积压，但其它真正未完成的单元仍要计积压。"""
+        conn = _connect()
+        today = china_ymd()
+        tomorrow = (datetime.strptime(today, "%Y-%m-%d").date() + timedelta(days=1)).strftime(
+            "%Y-%m-%d"
+        )
+        start_unit = conn.execute(
+            """
+            SELECT unit_id FROM task_units
+            WHERE module_type=? ORDER BY unit_no LIMIT 1
+            """,
+            (GENDU_MODULE,),
+        ).fetchone()["unit_id"]
+        put_gendu_assignment(
+            conn, "2025001", {"start_unit_id": start_unit, "starts_on": today}
+        )
+        daily = build_daily_tasks(conn, "2025001", today)
+        gendu = [x for x in daily if x["module_type"] == GENDU_MODULE][0]
+        pid = gendu["plan_item_id"]
+        report_gendu_practice(conn, "2025001", plan_item_id=pid, score=50, task_date=today)
+        report_gendu_practice(conn, "2025001", plan_item_id=pid, score=60, task_date=today)
+        report_gendu_practice(conn, "2025001", plan_item_id=pid, score=62, task_date=today)
+        # 手工插入一个普通未完成单元 + 昨日 daily_tasks 行，模拟真正的积压
+        cur = conn.execute(
+            """
+            INSERT INTO plan_items (student_id, sort_order, item_type, unit_id, module_type, status)
+            VALUES ('2025001', 99, 'study', 'reading_synonym_u01', 'reading_synonym', 'pending')
+            """
+        )
+        normal_pid = cur.lastrowid
+        conn.execute(
+            """
+            INSERT INTO daily_tasks (student_id, task_date, plan_item_id, priority_class, sort_in_day, state, locked, forced)
+            VALUES ('2025001', ?, ?, 'fresh', 0, 'todo', 1, 0)
+            """,
+            (today, normal_pid),
+        )
+        conn.commit()
+        back = backlog_plan_item_ids(conn, "2025001", before_date=tomorrow)
+        # 跟读 pid 已被排除，普通未完成单元仍计 1
+        self.assertNotIn(pid, back)
+        self.assertIn(normal_pid, back)
+        self.assertEqual(len(back), 1)
+        self.assertTrue(all(x != pid for x in back))
+
     def test_gendu_assignment_expires_stops_pack(self) -> None:
         conn = _connect()
         put_time_profile(

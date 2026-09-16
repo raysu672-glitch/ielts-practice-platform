@@ -2409,7 +2409,27 @@ def backlog_plan_item_ids(
         """,
         (student_id, cutoff),
     ).fetchall()
-    return [r["plan_item_id"] for r in rows]
+    ids = [int(r["plan_item_id"]) for r in rows]
+    # 跟读单元：最近一次安排日「做满 3 次 = 当日完成」即不计积压（即使未过 70 分关）。
+    # study_completed 只在过 70 分、次日切课时才置 1，否则会误报为积压。
+    out: list[int] = []
+    for pid in ids:
+        it = conn.execute(
+            "SELECT module_type, item_type FROM plan_items WHERE id=?", (pid,)
+        ).fetchone()
+        if it and str(it["module_type"]) == GENDU_MODULE and it["item_type"] == "study":
+            latest = conn.execute(
+                """
+                SELECT state FROM daily_tasks
+                WHERE student_id=? AND plan_item_id=? AND task_date<?
+                ORDER BY task_date DESC LIMIT 1
+                """,
+                (student_id, pid, cutoff),
+            ).fetchone()
+            if latest and latest["state"] == "done_study":
+                continue
+        out.append(pid)
+    return out
 
 
 def _session_study_date_expr() -> str:
