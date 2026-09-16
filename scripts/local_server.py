@@ -2575,7 +2575,7 @@ class LocalHandler(SimpleHTTPRequestHandler):
         session = self.require_student_session()
         if not session:
             return
-          payload = self.read_json_body()
+        payload = self.read_json_body()
         plan_item_id = payload.get("plan_item_id")
         content_version = str(payload.get("content_version") or "1")
         if plan_item_id is None:
