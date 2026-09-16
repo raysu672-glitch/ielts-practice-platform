@@ -554,7 +554,8 @@ function _taskMarkCurrentDone() {
   _activityLog('sentence.analysis_open', '完成第' + s.num + '句并查看解析', { done: done, total: total });
   if (total > 0 && done >= total && !_taskUnitCompletePosted) {
     _taskUnitCompletePosted = true;
-    _taskPost('taskUnitComplete', {});
+    // 顺带带上最终进度，避免进度上报未落库就打勾
+    _taskPost('taskUnitComplete', { scope_done: done });
     _activityLog('sentence.unit_done', '长难句本单元完成', { done: done, total: total });
   }
 }

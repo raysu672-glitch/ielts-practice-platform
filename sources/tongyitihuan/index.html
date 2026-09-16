@@ -3643,12 +3643,15 @@ function _taskPostUnitComplete() {
   const ctx = window._taskMode || {};
   if (!ctx.plan_item_id) return;
   if (window.parent && window.parent !== window) {
+    const setId = Number(ctx.set_id || ctx.setId || 0);
+    const total = _taskScopeTotalForSet(setId) || Number(groupsDone) || 0;
     window.parent.postMessage({
       type: 'taskUnitComplete',
       unit_id: ctx.unit_id,
       content_version: ctx.content_version || '1',
       task_id: ctx.task_id,
-      plan_item_id: Number(ctx.plan_item_id)
+      plan_item_id: Number(ctx.plan_item_id),
+      scope_done: Math.max(Number(groupsDone) || 0, total)
     }, '*');
   }
 }

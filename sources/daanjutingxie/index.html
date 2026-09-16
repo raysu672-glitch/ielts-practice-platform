@@ -762,15 +762,73 @@ function showResult() {
   document.getElementById('resultEmoji').textContent = resultText;
   document.getElementById('resultScore').textContent = score + ' / ' + GROUPS[currentGroup].length;
   document.getElementById('resultLabel').textContent = label;
+  _taskPostUnitCompleteIfNeeded();
 }
 
 function retryGroup() {
   startGroup(currentGroup);
 }
 
+// ===== 任务模式：按 startId/endId 裁剪题目，做完才打勾 =====
+var _taskParams = new URLSearchParams(window.location.search || '');
+var _taskPlanItemId = _taskParams.get('plan_item_id');
+var _taskUnitId = _taskParams.get('unit_id') || '';
+var _taskContentVersion = _taskParams.get('content_version') || '1';
+var _taskStartId = parseInt(_taskParams.get('startId') || '', 10);
+var _taskEndId = parseInt(_taskParams.get('endId') || '', 10);
+var _taskModeActive = false;
+var _taskUnitCompletePosted = false;
+
+function _taskPost(type, extra) {
+  if (!_taskPlanItemId) return;
+  if (!window.parent || window.parent === window) return;
+  var payload = Object.assign({
+    type: type,
+    plan_item_id: Number(_taskPlanItemId),
+    unit_id: _taskUnitId,
+    content_version: _taskContentVersion
+  }, extra || {});
+  try { window.parent.postMessage(payload, '*'); } catch (e) {}
+}
+
+function _taskPostUnitCompleteIfNeeded() {
+  if (!_taskModeActive || !_taskPlanItemId || _taskUnitCompletePosted) return;
+  var total = GROUPS[currentGroup] ? GROUPS[currentGroup].length : 0;
+  if (total <= 0) return;
+  _taskUnitCompletePosted = true;
+  _taskPost('taskScopeProgress', { scope_done: total });
+  _taskPost('taskUnitComplete', { scope_done: total });
+  var homeBtn = document.querySelector('#result .result-btn.secondary');
+  if (homeBtn) homeBtn.textContent = '返回今日任务';
+  var retryBtn = document.querySelector('#result .result-btn.primary');
+  if (retryBtn) retryBtn.style.display = 'none';
+}
+
+function _taskSetupFromQuery() {
+  if (!(_taskStartId > 0 && _taskEndId >= _taskStartId)) return;
+  var flat = [];
+  for (var g = 0; g < GROUPS.length; g++) {
+    for (var i = 0; i < GROUPS[g].length; i++) {
+      var q = GROUPS[g][i];
+      if (q && q.id >= _taskStartId && q.id <= _taskEndId) flat.push(q);
+    }
+  }
+  if (!flat.length) return;
+  _taskModeActive = true;
+  GROUPS.push(flat);
+  var gi = GROUPS.length - 1;
+  // 隐藏主页分组，直接进入本单元
+  document.getElementById('home').style.display = 'none';
+  startGroup(gi);
+  var title = document.getElementById('quizTitle');
+  if (title) title.textContent = '今日任务 · 题' + _taskStartId + '-' + _taskEndId;
+}
+
 renderHome();
+_taskSetupFromQuery();
 (function tryOpenQueryQuestion() {
   try {
+    if (_taskModeActive) return;
     var params = new URLSearchParams(window.location.search);
     var qid = parseInt(params.get('qid') || params.get('id') || '', 10);
     if (!qid) return;

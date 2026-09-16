@@ -270,6 +270,40 @@ class TaskApiTests(unittest.TestCase):
             update_scope_progress(conn, "2025001", item["id"], scope_done=total)
             complete_study(conn, "2025001", item["id"], "1")
 
+    def test_complete_study_requires_scope_for_all_scoped_modules(self) -> None:
+        """所有带 scope_total 的科目（跟读除外）未做满不能打勾。"""
+        conn = _connect()
+        samples = (
+            "dictation_u01",
+            "listening_basic_u01",
+            "listening_synonym_u01",
+            "writing_phrase_u01",
+            "speaking_p1_u01",
+        )
+        put_plan_draft(
+            conn,
+            "2025001",
+            [{"item_type": "study", "unit_id": uid} for uid in samples],
+        )
+        apply_draft_to_live(conn, "2025001")
+        for unit_id in samples:
+            item = conn.execute(
+                "SELECT id FROM plan_items WHERE unit_id=?", (unit_id,)
+            ).fetchone()
+            self.assertIsNotNone(item, unit_id)
+            with self.assertRaises(ValueError, msg=unit_id):
+                complete_study(conn, "2025001", item["id"], "1")
+            unit = conn.execute(
+                "SELECT content_ref FROM task_units WHERE unit_id=?", (unit_id,)
+            ).fetchone()
+            ref = unit["content_ref"]
+            if isinstance(ref, str):
+                import json as _json
+
+                ref = _json.loads(ref)
+            total = int((ref or {}).get("scope_total") or 0)
+            self.assertGreater(total, 0, unit_id)
+            complete_study(conn, "2025001", item["id"], "1", scope_done=total)
     def test_duplicate_unit_rejected(self) -> None:
         conn = _connect()
         with self.assertRaises(ValueError):
@@ -1578,6 +1612,136 @@ class TaskApiTests(unittest.TestCase):
             ("2025001", GENDU_MODULE),
         ).fetchall()
         self.assertEqual([r["unit_id"] for r in pending], [u0])
+
+    def test_complete_study_backfills_yesterday_daily_task(self) -> None:
+        """复现：跨零点做完长难句，昨日 daily_tasks 仍停在 todo。"""
+        conn = _connect()
+        put_plan_draft(
+            conn,
+            "2025001",
+            [{"item_type": "study", "unit_id": "sentence_u01"}],
+        )
+        apply_draft_to_live(conn, "2025001")
+        item = conn.execute(
+            "SELECT id FROM plan_items WHERE unit_id='sentence_u01'"
+        ).fetchone()
+        pid = int(item["id"])
+        unit = conn.execute(
+            "SELECT content_ref FROM task_units WHERE unit_id='sentence_u01'"
+        ).fetchone()
+        ref = unit["content_ref"]
+        if isinstance(ref, str):
+            import json as _json
+
+            ref = _json.loads(ref)
+        total = int((ref or {}).get("scope_total") or 0)
+        self.assertGreater(total, 0)
+
+        today = china_ymd()
+        yesterday = (
+            datetime.strptime(today, "%Y-%m-%d").date() - timedelta(days=1)
+        ).strftime("%Y-%m-%d")
+        # 模拟：任务原挂在昨天，过零点后学生补做完
+        for day in (yesterday, today):
+            conn.execute(
+                """
+                INSERT OR IGNORE INTO daily_tasks
+                (student_id, task_date, plan_item_id, priority_class, sort_in_day, state, locked)
+                VALUES ('2025001', ?, ?, 'fresh', 0, 'todo', 0)
+                """,
+                (day, pid),
+            )
+        conn.commit()
+
+        update_scope_progress(conn, "2025001", pid, scope_done=total)
+        complete_study(conn, "2025001", pid, "1")
+
+        rows = conn.execute(
+            """
+            SELECT task_date, state FROM daily_tasks
+            WHERE student_id='2025001' AND plan_item_id=?
+            ORDER BY task_date
+            """,
+            (pid,),
+        ).fetchall()
+        by_day = {r["task_date"]: r["state"] for r in rows}
+        self.assertEqual(by_day.get(yesterday), "done_study")
+        self.assertEqual(by_day.get(today), "done_study")
+        plan = conn.execute(
+            "SELECT study_completed FROM plan_items WHERE id=?", (pid,)
+        ).fetchone()
+        self.assertEqual(int(plan["study_completed"]), 1)
+
+    def test_complete_study_accepts_inline_scope_done_race(self) -> None:
+        """复现：进度 postMessage 尚未落库就打勾 → 旧逻辑报「当前 0/N」。"""
+        conn = _connect()
+        put_plan_draft(
+            conn,
+            "2025001",
+            [{"item_type": "study", "unit_id": "sentence_u01"}],
+        )
+        apply_draft_to_live(conn, "2025001")
+        item = conn.execute(
+            "SELECT id FROM plan_items WHERE unit_id='sentence_u01'"
+        ).fetchone()
+        pid = int(item["id"])
+        unit = conn.execute(
+            "SELECT content_ref FROM task_units WHERE unit_id='sentence_u01'"
+        ).fetchone()
+        ref = unit["content_ref"]
+        if isinstance(ref, str):
+            import json as _json
+
+            ref = _json.loads(ref)
+        total = int((ref or {}).get("scope_total") or 0)
+        self.assertGreater(total, 0)
+
+        # 旧竞态：库里还是 0，直接 complete → 应失败
+        with self.assertRaises(ValueError) as ctx:
+            complete_study(conn, "2025001", pid, "1")
+        self.assertIn(f"当前 0/{total}", str(ctx.exception))
+
+        # 新路径：同一请求带上最终 scope_done，原子落库并打勾
+        complete_study(conn, "2025001", pid, "1", scope_done=total)
+        prog = conn.execute(
+            """
+            SELECT scope_done FROM task_unit_progress
+            WHERE student_id='2025001' AND plan_item_id=?
+            """,
+            (pid,),
+        ).fetchone()
+        self.assertEqual(int(prog["scope_done"]), total)
+        plan = conn.execute(
+            "SELECT study_completed FROM plan_items WHERE id=?", (pid,)
+        ).fetchone()
+        self.assertEqual(int(plan["study_completed"]), 1)
+
+    def test_complete_study_race_insufficient_scope_still_rejected(self) -> None:
+        """带 scope_done 也不能少做：未满仍拒绝。"""
+        conn = _connect()
+        put_plan_draft(
+            conn,
+            "2025001",
+            [{"item_type": "study", "unit_id": "writing_translate_u01"}],
+        )
+        apply_draft_to_live(conn, "2025001")
+        item = conn.execute(
+            "SELECT id FROM plan_items WHERE unit_id='writing_translate_u01'"
+        ).fetchone()
+        pid = int(item["id"])
+        unit = conn.execute(
+            "SELECT content_ref FROM task_units WHERE unit_id='writing_translate_u01'"
+        ).fetchone()
+        ref = unit["content_ref"]
+        if isinstance(ref, str):
+            import json as _json
+
+            ref = _json.loads(ref)
+        total = int((ref or {}).get("scope_total") or 0)
+        self.assertGreater(total, 1)
+        with self.assertRaises(ValueError) as ctx:
+            complete_study(conn, "2025001", pid, "1", scope_done=total - 1)
+        self.assertIn(f"当前 {total - 1}/{total}", str(ctx.exception))
 
 
 if __name__ == "__main__":

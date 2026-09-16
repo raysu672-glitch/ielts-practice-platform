@@ -467,6 +467,9 @@ function openTaskItem(planItemId) {
     openGenericIframe(mod.id, mod.name || it.title, url, 'study');
 }
 
+/** 进度上报串行队列：避免「打勾」抢在 scope-progress 落库前发出 */
+var _taskScopeProgressChain = Promise.resolve();
+
 async function completeCurrentTaskStudy(payload) {
     const ctx = window._currentTaskContext || {};
     const planItemId = (payload && payload.plan_item_id) || ctx.plan_item_id;
@@ -475,12 +478,19 @@ async function completeCurrentTaskStudy(payload) {
         showToast('无任务上下文', 'error');
         return;
     }
+    try {
+        await _taskScopeProgressChain;
+    } catch (e) { /* 进度失败仍尝试打勾；服务端会校验 */ }
+    const body = {
+        plan_item_id: planItemId,
+        content_version: contentVersion
+    };
+    if (payload && payload.scope_done != null && payload.scope_done !== '') {
+        body.scope_done = Number(payload.scope_done);
+    }
     const result = await apiFetch('/api/task/me/complete-study', {
         method: 'POST',
-        body: JSON.stringify({
-            plan_item_id: planItemId,
-            content_version: contentVersion
-        })
+        body: JSON.stringify(body)
     });
     if (result.error) {
         showToast((result.error && result.error.message) || '打勾失败', 'error');
@@ -520,7 +530,14 @@ var TASK_SCOPE_GATED_MODULES = {
     writing_phrase: true,
     listening_synonym: true,
     reading_synonym: true,
-    listening_p4_speed: true
+    listening_p4_speed: true,
+    dictation: true,
+    listening_basic: true,
+    speaking: true,
+    speaking_complex: true,
+    speaking_p1: true,
+    speaking_p2_material: true,
+    speaking_p2_apply: true
 };
 
 /** 任务学习：仅当模块发出真实完成信号时打勾；退出页面本身永不打勾。 */
@@ -538,19 +555,23 @@ async function maybeCompleteTaskStudyOnLeave(opts) {
         return false;
     }
     if (window._taskAutoCompleteInFlight) return false;
-    const minSeconds = opts.minSeconds != null ? opts.minSeconds : 60;
+    const minSeconds = opts.minSeconds != null ? opts.minSeconds : 0;
     const duration = practiceElapsedSeconds(current.startedAt);
     if (duration < minSeconds) return false;
     window._taskAutoCompleteInFlight = true;
     try {
         const planItemId = ctx.plan_item_id;
         const contentVersion = ctx.content_version || '1';
+        const body = {
+            plan_item_id: planItemId,
+            content_version: contentVersion
+        };
+        if (opts.scope_done != null && opts.scope_done !== '') {
+            body.scope_done = Number(opts.scope_done);
+        }
         const result = await apiFetch('/api/task/me/complete-study', {
             method: 'POST',
-            body: JSON.stringify({
-                plan_item_id: planItemId,
-                content_version: contentVersion
-            })
+            body: JSON.stringify(body)
         });
         if (result.error) {
             console.warn('任务自动打勾失败:', result.error);
@@ -2667,7 +2688,7 @@ function exitGenericIframe() {
                 });
             }
         } catch (e) {}
-        try { await maybeCompleteTaskStudyOnLeave(); } catch(e) { console.warn('任务退出自动打勾失败:', e); }
+        // 不做退出自动打勾：须模块上报整单元完成
         finishGenericIframeClose();
         try { loadTodayTasks(); } catch(e) {}
     }, 700);
@@ -2731,7 +2752,7 @@ function exitListening() {
     } catch(e) {}
     setTimeout(async function() {
         try { await saveCurrentModuleFallback(); } catch(e) { console.error('保存听力学习兜底时长失败:', e); }
-        try { await maybeCompleteTaskStudyOnLeave(); } catch(e) { console.warn('任务自动打勾失败:', e); }
+        // 不做退出自动打勾：须听写四阶段学完后上报 taskUnitComplete
         stopPracticeClock();
         window._currentModule = null;
         document.getElementById('listeningIframe').src = '';
@@ -2781,26 +2802,30 @@ window.addEventListener('message', async function(event) {
         if (data.scope_done != null) body.scope_done = data.scope_done;
         else if (data.delta != null) body.delta = data.delta;
         else return;
-        apiFetch('/api/task/me/scope-progress', {
-            method: 'POST',
-            body: JSON.stringify(body)
-        }).then(function(result) {
-            if (result.error) {
-                console.warn('scope progress failed', result.error);
-                return;
-            }
-            var prog = result.data || {};
-            var done = Number(prog.scope_done || 0);
-            var total = Number(prog.scope_total || 0);
-            // 进度已满时系统自动打勾（不依赖学生点按钮）
-            if (total > 0 && done >= total && window._currentTaskContext &&
-                window._currentTaskContext.plan_item_id) {
-                maybeCompleteTaskStudyOnLeave({
-                    fromModuleSignal: true,
-                    allowGated: true,
-                    minSeconds: 0
-                });
-            }
+        _taskScopeProgressChain = _taskScopeProgressChain.then(function() {
+            return apiFetch('/api/task/me/scope-progress', {
+                method: 'POST',
+                body: JSON.stringify(body)
+            }).then(function(result) {
+                if (result.error) {
+                    console.warn('scope progress failed', result.error);
+                    return;
+                }
+                var prog = result.data || {};
+                var done = Number(prog.scope_done || 0);
+                var total = Number(prog.scope_total || 0);
+                // 进度已满时系统自动打勾（不依赖学生点按钮）
+                if (total > 0 && done >= total && window._currentTaskContext &&
+                    window._currentTaskContext.plan_item_id) {
+                    return maybeCompleteTaskStudyOnLeave({
+                        fromModuleSignal: true,
+                        allowGated: true,
+                        minSeconds: 0
+                    });
+                }
+            });
+        }).catch(function(err) {
+            console.warn('scope progress chain error', err);
         });
         return;
     }
@@ -2897,20 +2922,7 @@ window.addEventListener('message', async function(event) {
             } else if (!result.skipped) {
                 showToast(moduleType === 'speaking' ? '口语练习进度已保存' : '学习时长已保存');
                 try { loadProgressTable(); } catch(e) {}
-                // 非进度制科目：模块学完信号可打勾。进度制科目只认 scope 满 / taskUnitComplete。
-                if (window._currentTaskContext && window._currentTaskContext.plan_item_id &&
-                    (data.type === 'phraseStudyComplete' || data.type === 'genericStudyComplete' ||
-                     data.type === 'listeningStudyComplete') &&
-                    moduleType !== 'reading_synonym' && moduleType !== 'listening_p4_speed' &&
-                    moduleType !== 'speaking' &&
-                    !TASK_SCOPE_GATED_MODULES[moduleType]) {
-                    try {
-                        await maybeCompleteTaskStudyOnLeave({
-                            minSeconds: 5,
-                            fromModuleSignal: true
-                        });
-                    } catch (e2) {}
-                }
+                // 仅保存学习时长，不据此打勾；整单元完成须 taskUnitComplete / 进度已满
             }
             return;
         }

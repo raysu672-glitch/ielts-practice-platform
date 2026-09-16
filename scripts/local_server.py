@@ -2575,17 +2575,27 @@ class LocalHandler(SimpleHTTPRequestHandler):
         session = self.require_student_session()
         if not session:
             return
-        payload = self.read_json_body()
+          payload = self.read_json_body()
         plan_item_id = payload.get("plan_item_id")
         content_version = str(payload.get("content_version") or "1")
         if plan_item_id is None:
             self.send_json({"data": None, "error": {"message": "缺少 plan_item_id"}}, status=400)
             return
+        scope_done = payload.get("scope_done")
+        try:
+            scope_done_i = None if scope_done in (None, "") else int(scope_done)
+        except (TypeError, ValueError):
+            self.send_json({"data": None, "error": {"message": "scope_done 无效"}}, status=400)
+            return
         try:
             with closing(connect(self.db_path)) as conn:
                 ensure_task_tables(conn)
                 data = task_complete_study(
-                    conn, session["id"], int(plan_item_id), content_version
+                    conn,
+                    session["id"],
+                    int(plan_item_id),
+                    content_version,
+                    scope_done=scope_done_i,
                 )
                 try:
                     ctx = _activity_plan_context(conn, plan_item_id)

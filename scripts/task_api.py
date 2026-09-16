@@ -4407,6 +4407,8 @@ def complete_study(
     student_id: str,
     plan_item_id: int,
     content_version: str,
+    *,
+    scope_done: Optional[int] = None,
 ) -> dict[str, Any]:
     item = conn.execute(
         "SELECT * FROM plan_items WHERE id=? AND student_id=?",
@@ -4422,15 +4424,21 @@ def complete_study(
     if unit and str(unit["content_version"]) != str(content_version):
         raise ValueError("内容版本已更新，请刷新后重学")
 
+    # 打勾请求可顺带带上最终进度，避免「进度上报未落库就打勾」的竞态
+    if scope_done is not None:
+        update_scope_progress(
+            conn, student_id, plan_item_id, scope_done=int(scope_done)
+        )
+
     scope_total = 0
     if unit:
         scope_total, _ = _scope_for_unit(unit["content_ref"])
-    scope_required = (
-        "reading_synonym",
-        "writing_translate",
-        "sentence",
-    )
-    if scope_total and unit and unit["module_type"] in scope_required:
+    # 跟读另有「当日次数」规则；其余有 scope 的单元必须做满才能打勾
+    if (
+        scope_total
+        and unit
+        and str(unit["module_type"]) != GENDU_MODULE
+    ):
         prog = conn.execute(
             "SELECT scope_done FROM task_unit_progress WHERE student_id=? AND plan_item_id=?",
             (student_id, plan_item_id),
@@ -4479,13 +4487,14 @@ def complete_study(
         """,
         (content_version, plan_item_id),
     )
-    today = china_ymd()
+    # 回写该单元所有未完成日任务（含昨日积压 / 跨零点补做），避免只改「今天」一行
     conn.execute(
         """
         UPDATE daily_tasks SET state='done_study'
-        WHERE student_id=? AND task_date=? AND plan_item_id=?
+        WHERE student_id=? AND plan_item_id=?
+          AND state IN ('todo', 'in_progress')
         """,
-        (student_id, today, plan_item_id),
+        (student_id, plan_item_id),
     )
     if unit:
         scope_total, _ = _scope_for_unit(unit["content_ref"])

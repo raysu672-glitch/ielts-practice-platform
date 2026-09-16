@@ -633,8 +633,42 @@ class P2Practice {
                 this.updateProgressLabel();
                 this.renderMaterialList();
                 this.renderMaterialCard();
+                this.maybeReportTaskMaterialComplete(m);
             });
         });
+    }
+
+    maybeReportTaskMaterialComplete(m) {
+        try {
+            if (!m || !window.parent || window.parent === window) return;
+            const params = new URLSearchParams(window.location.search || '');
+            const planItemId = params.get('plan_item_id');
+            const material = params.get('material');
+            if (!planItemId || !material) return;
+            if (String(m.id) !== String(material)) return;
+            const need = (m.steps || []).length;
+            if (need <= 0 || this.materialDoneCount(m.id) < need) return;
+            if (this._taskUnitCompletePosted) return;
+            this._taskUnitCompletePosted = true;
+            const contentVersion = params.get('content_version') || '1';
+            const unitId = params.get('unit_id') || '';
+            window.parent.postMessage({
+                type: 'taskScopeProgress',
+                plan_item_id: Number(planItemId),
+                unit_id: unitId,
+                content_version: contentVersion,
+                scope_done: 1
+            }, '*');
+            window.parent.postMessage({
+                type: 'taskUnitComplete',
+                plan_item_id: Number(planItemId),
+                unit_id: unitId,
+                content_version: contentVersion,
+                scope_done: 1
+            }, '*');
+        } catch (e) {
+            console.warn('p2 task complete report failed', e);
+        }
     }
 
     // —— 套题 ——

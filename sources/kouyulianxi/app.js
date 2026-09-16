@@ -1397,6 +1397,77 @@ class P1Practice {
         if (this.practiceHistory.length > 50) {
             this.practiceHistory = this.practiceHistory.slice(0, 50);
         }
+        this.maybeReportTaskUnitProgress(cat, q);
+    }
+
+    /** 任务模式：按 URL 裁剪的题量累计进度，做满才打勾 */
+    maybeReportTaskUnitProgress(cat, q) {
+        try {
+            if (!window.parent || window.parent === window) return;
+            const params = new URLSearchParams(window.location.search || '');
+            const planItemId = params.get('plan_item_id');
+            if (!planItemId) return;
+            const keysRaw = (params.get('keys') || '').split(',').map(function(s) { return s.trim(); }).filter(Boolean);
+            let total = 0;
+            let done = 0;
+            if (keysRaw.length) {
+                total = keysRaw.length;
+                const keySet = new Set(keysRaw);
+                const practiced = new Set();
+                (this.data.categories || []).forEach((c, catIndex) => {
+                    (c.questions || []).forEach((qq) => {
+                        const k = `${c.id}:${qq.id}`;
+                        if (keySet.has(k) && this.usedQuestions.has(`${catIndex}-${qq.id}`)) {
+                            practiced.add(k);
+                        }
+                    });
+                });
+                done = practiced.size;
+            } else if (params.get('kind') && params.get('id')) {
+                total = 10;
+                if (!this._taskComplexPracticed) this._taskComplexPracticed = new Set();
+                const ck = `${params.get('kind')}:${params.get('id')}:${cat && cat.id}:${q && q.id}`;
+                this._taskComplexPracticed.add(ck);
+                done = Math.min(total, this._taskComplexPracticed.size);
+            } else if (params.get('material')) {
+                total = 1;
+                done = 1;
+            } else if (params.get('from') != null && params.get('to') != null && params.get('from') !== '') {
+                const from = Number(params.get('from'));
+                const to = Number(params.get('to'));
+                if (!isNaN(from) && !isNaN(to) && to >= from) {
+                    total = to - from + 1;
+                    // apply 模式用题号区间；此处按本会话练习次数封顶
+                    if (!this._taskApplyPracticed) this._taskApplyPracticed = new Set();
+                    if (q && q.id != null) this._taskApplyPracticed.add(String(q.id));
+                    done = Math.min(total, this._taskApplyPracticed.size);
+                }
+            } else {
+                return;
+            }
+            if (total <= 0) return;
+            const contentVersion = params.get('content_version') || '1';
+            const unitId = params.get('unit_id') || '';
+            window.parent.postMessage({
+                type: 'taskScopeProgress',
+                plan_item_id: Number(planItemId),
+                unit_id: unitId,
+                content_version: contentVersion,
+                scope_done: done
+            }, '*');
+            if (done >= total && !this._taskUnitCompletePosted) {
+                this._taskUnitCompletePosted = true;
+                window.parent.postMessage({
+                    type: 'taskUnitComplete',
+                    plan_item_id: Number(planItemId),
+                    unit_id: unitId,
+                    content_version: contentVersion,
+                    scope_done: done
+                }, '*');
+            }
+        } catch (e) {
+            console.warn('task progress report failed', e);
+        }
     }
     
     async uploadAndTranscribe() {

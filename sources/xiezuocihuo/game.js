@@ -255,7 +255,8 @@ function _taskPostPhraseUnitComplete() {
       type: 'taskUnitComplete',
       plan_item_id: Number(planItemId),
       unit_id: params.get('unit_id') || '',
-      content_version: params.get('content_version') || '1'
+      content_version: params.get('content_version') || '1',
+      scope_done: total || 1
     }, '*');
   } catch (e) {}
 }

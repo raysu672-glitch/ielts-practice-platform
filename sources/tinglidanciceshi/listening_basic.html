@@ -533,6 +533,57 @@
         let reportedSeconds = 0;     // 已回传给主站的累计时长
         let heartbeatInterval = null;
 
+        // ==================== 任务模式（今日任务深链） ====================
+        const _taskUrlParams = new URLSearchParams(window.location.search);
+        const _taskGroupRaw = _taskUrlParams.get('group');
+        const _isTaskMode = !!(
+            _taskUrlParams.get('task_id') ||
+            _taskUrlParams.get('plan_item_id') ||
+            (_taskGroupRaw !== null && _taskGroupRaw !== '')
+        );
+        const _taskMode = _isTaskMode ? {
+            groupIndex: Math.max(0, parseInt(_taskGroupRaw || '0', 10) || 0),
+            task_id: _taskUrlParams.get('task_id'),
+            plan_item_id: _taskUrlParams.get('plan_item_id'),
+            unit_id: _taskUrlParams.get('unit_id'),
+            content_version: _taskUrlParams.get('content_version') || '1'
+        } : null;
+
+        function setupTaskModeUI() {
+            if (!_taskMode) return;
+            const g = _taskMode.groupIndex + 1;
+            let banner = document.getElementById('taskModeBanner');
+            if (!banner) {
+                banner = document.createElement('div');
+                banner.id = 'taskModeBanner';
+                banner.style.cssText = 'background:#eff6ff;border:1px solid #bfdbfe;color:#1e40af;padding:10px 14px;margin:0 0 16px;border-radius:8px;font-size:.92rem;';
+                const container = document.querySelector('.container');
+                if (container) container.insertBefore(banner, container.firstChild);
+            }
+            banner.innerHTML = '<strong>今日任务 · 本单元</strong>：第 ' + g + ' 组（' + WORDS_PER_GROUP + ' 词）· 完成四阶段后自动记完成';
+            const startScreen = document.getElementById('start-screen');
+            if (startScreen) {
+                const h2 = startScreen.querySelector('h2');
+                if (h2) h2.textContent = '今日任务 · 第 ' + g + ' 组';
+                const p = startScreen.querySelector('p');
+                if (p) p.textContent = '已按任务裁剪：仅本组单词。请点击下方对应小组开始（需点击后才能播放音频）。';
+            }
+        }
+
+        function postTaskUnitComplete() {
+            if (!_taskMode) return;
+            if (window.parent && window.parent !== window) {
+                window.parent.postMessage({
+                    type: 'taskUnitComplete',
+                    unit_id: _taskMode.unit_id,
+                    content_version: _taskMode.content_version || '1',
+                    task_id: _taskMode.task_id,
+                    plan_item_id: _taskMode.plan_item_id ? Number(_taskMode.plan_item_id) : null,
+                    scope_done: WORDS_PER_GROUP
+                }, '*');
+            }
+        }
+
         // ==================== 初始化 ====================
         function init() {
             loadProgress();
@@ -540,8 +591,14 @@
             updateStats();
             startHeartbeat();
             document.getElementById('total-count').textContent = ALL_WORDS.length;
-            renderGroupGrid();
-            selectGroup(0);
+            if (_taskMode) {
+                setupTaskModeUI();
+                renderGroupGrid();
+                selectGroup(_taskMode.groupIndex);
+            } else {
+                renderGroupGrid();
+                selectGroup(0);
+            }
         }
 
         function startHeartbeat() {
@@ -1071,7 +1128,12 @@
             const nextBtn = document.getElementById('next-group-btn');
             const titleEl = document.getElementById('complete-title');
             const descEl = document.getElementById('complete-desc');
-            if (currentGroupIndex + 1 < TOTAL_GROUPS) {
+            if (_taskMode) {
+                nextBtn.style.display = 'none';
+                titleEl.textContent = `恭喜完成本单元（第 ${currentGroupIndex + 1} 组）！`;
+                descEl.textContent = '系统已根据练习进度自动记为完成';
+                postTaskUnitComplete();
+            } else if (currentGroupIndex + 1 < TOTAL_GROUPS) {
                 nextBtn.style.display = 'inline-block';
                 titleEl.textContent = `恭喜完成第 ${currentGroupIndex + 1} 组学习！`;
                 descEl.textContent = `已完成 ${groupStatus.filter(s => s === 'completed').length}/${TOTAL_GROUPS} 组`;
@@ -1161,6 +1223,7 @@
             const grid = document.getElementById('group-grid');
             grid.innerHTML = '';
             for (let i = 0; i < TOTAL_GROUPS; i++) {
+                if (_taskMode && i !== _taskMode.groupIndex) continue;
                 const btn = document.createElement('button');
                 btn.className = 'group-btn';
                 btn.type = 'button';
@@ -1198,12 +1261,20 @@ ${startNum}-${endNum}`;
         }
 
         function startGroup(index) {
-            selectGroup(index);
-            startLearning();
-        }
+  if (_taskMode && index !== _taskMode.groupIndex) return;
+  selectGroup(index);
+  startLearning();
+}
 
         function updateGroupInfo() {
             const info = document.getElementById('group-info');
+            if (_taskMode) {
+                const g = _taskMode.groupIndex + 1;
+                const startNum = _taskMode.groupIndex * WORDS_PER_GROUP + 1;
+                const endNum = Math.min((_taskMode.groupIndex + 1) * WORDS_PER_GROUP, ALL_WORDS.length);
+                info.textContent = `今日任务 · 第 ${g} 组（词 ${startNum}-${endNum}）· 请完成四阶段`;
+                return;
+            }
             const completedCount = groupStatus.filter(s => s === 'completed').length;
             info.textContent = `共 ${TOTAL_GROUPS} 组（已完成 ${completedCount}/${TOTAL_GROUPS} 组，共 ${ALL_WORDS.length} 词）· 点击小组开始学习`;
         }
@@ -1240,6 +1311,7 @@ ${startNum}-${endNum}`;
         }
 
         function startNextGroup() {
+            if (_taskMode) return; // 任务模式禁止跳下一组
             if (currentGroupIndex + 1 < TOTAL_GROUPS) {
                 selectGroup(currentGroupIndex + 1);
                 startLearning();

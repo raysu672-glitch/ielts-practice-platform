@@ -578,7 +578,8 @@
                     unit_id: _taskMode.unit_id,
                     content_version: _taskMode.content_version || '1',
                     task_id: _taskMode.task_id,
-                    plan_item_id: _taskMode.plan_item_id ? Number(_taskMode.plan_item_id) : null
+                    plan_item_id: _taskMode.plan_item_id ? Number(_taskMode.plan_item_id) : null,
+                    scope_done: WORDS_PER_GROUP
                 }, '*');
             }
         }
