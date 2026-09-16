@@ -2185,6 +2185,9 @@ def put_plan_draft(
     conn.commit()
     # Belt-and-suspenders: due drafts/profile must merge even if caller skipped the branch.
     maybe_apply_pending_for_today(conn, student_id, today)
+    # After a live apply, ensure today has a pack (don't wait for student to open 今日任务).
+    if apply_now and eff_ymd <= today:
+        build_daily_tasks(conn, student_id, today)
     return get_plan(conn, student_id)
 
 
@@ -3608,6 +3611,44 @@ def build_daily_tasks(
     return _build_daily_tasks_time_budget(conn, student_id, task_date)
 
 
+def ensure_active_plan_daily_tasks(
+    conn: sqlite3.Connection,
+    student_id: str,
+    as_of: Optional[str] = None,
+    *,
+    lookback_days: int = 1,
+) -> None:
+    """Materialize daily packs for as_of and previous days while a live plan exists.
+
+    Daily tasks used to be created only when the student opened「今日任务」. That
+    left empty calendar days on the teacher board. Product rule: no empty days
+    while the student has pending plan items (unless that day is schedule-paused).
+    """
+    ensure_task_tables(conn)
+    sid = str(student_id or "").strip()
+    if not sid:
+        return
+    has_live = conn.execute(
+        """
+        SELECT 1 FROM plan_items
+        WHERE student_id=? AND status='pending'
+        LIMIT 1
+        """,
+        (sid,),
+    ).fetchone()
+    if not has_live:
+        return
+    as_of = as_of or china_ymd()
+    try:
+        base = datetime.strptime(as_of, "%Y-%m-%d").date()
+    except ValueError:
+        return
+    lookback_days = max(0, min(int(lookback_days or 0), 14))
+    for i in range(lookback_days + 1):
+        day = (base - timedelta(days=i)).strftime("%Y-%m-%d")
+        build_daily_tasks(conn, sid, day)
+
+
 def clear_daily_schedule(conn: sqlite3.Connection, student_id: str) -> dict[str, Any]:
     """Clear locked daily tasks and the student's live/draft plan queue."""
     daily_n = conn.execute(
@@ -3988,7 +4029,7 @@ def class_overview(
     task_date: Optional[str] = None,
     now: Optional[datetime] = None,
 ) -> dict[str, Any]:
-    """Read-only class board. Does NOT materialize daily_tasks."""
+    """Class board. Materializes today + yesterday packs for students with live plans."""
     ensure_task_tables(conn)
     if task_date:
         try:
@@ -4007,12 +4048,16 @@ def class_overview(
         ORDER BY student_id DESC
         """
     ).fetchall()
-    rows = [
-        _student_overview_row(
-            conn, r["student_id"], r["name"] or "", task_date, hour=hour
+    rows = []
+    for r in students:
+        sid = str(r["student_id"] or "")
+        # Fill missing today/yesterday packs so「昨日任务」isn't empty for lazy students.
+        ensure_active_plan_daily_tasks(conn, sid, task_date, lookback_days=1)
+        rows.append(
+            _student_overview_row(
+                conn, sid, r["name"] or "", task_date, hour=hour
+            )
         )
-        for r in students
-    ]
     rows.sort(key=lambda row: str(row.get("student_id") or ""), reverse=True)
     today_all_done = sum(
         1
@@ -4145,6 +4190,8 @@ def _enrich_daily(
 
 def get_today(conn: sqlite3.Connection, student_id: str) -> dict[str, Any]:
     task_date = china_ymd()
+    # Also materialize yesterday so carry-over / 昨日看板 stay consistent.
+    ensure_active_plan_daily_tasks(conn, student_id, task_date, lookback_days=1)
     items = build_daily_tasks(conn, student_id, task_date)
     profile = ensure_time_profile(conn, student_id)
     budget = (

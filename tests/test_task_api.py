@@ -1131,20 +1131,50 @@ class TaskApiTests(unittest.TestCase):
             )
         conn.commit()
         noon = datetime(2026, 9, 2, 12, 0, tzinfo=SHANGHAI)
-        before_daily = conn.execute(
-            "SELECT COUNT(*) AS c FROM daily_tasks WHERE student_id='2025001'"
+        today_before = conn.execute(
+            "SELECT COUNT(*) AS c FROM daily_tasks WHERE student_id='2025001' AND task_date=?",
+            (day,),
         ).fetchone()["c"]
         data = class_overview(conn, task_date=day, now=noon)
-        after_daily = conn.execute(
-            "SELECT COUNT(*) AS c FROM daily_tasks WHERE student_id='2025001'"
+        today_after = conn.execute(
+            "SELECT COUNT(*) AS c FROM daily_tasks WHERE student_id='2025001' AND task_date=?",
+            (day,),
         ).fetchone()["c"]
-        self.assertEqual(before_daily, after_daily)
+        # Existing today pack is kept; overview may also materialize yesterday.
+        self.assertEqual(today_before, today_after)
+        yday = "2026-09-01"
+        yday_n = conn.execute(
+            "SELECT COUNT(*) AS c FROM daily_tasks WHERE student_id='2025001' AND task_date=?",
+            (yday,),
+        ).fetchone()["c"]
+        self.assertGreater(yday_n, 0)
         row = data["students"][0]
         self.assertEqual(row["today_total"], 3)
         # done_fail does not count as done
         self.assertEqual(row["today_done"], 1)
         self.assertEqual(row["test_fail"], 1)
         self.assertTrue(any(b["label"] == "阅" for b in row["plan_progress_brief"]))
+
+    def test_class_overview_materializes_missing_days(self) -> None:
+        """Active plan students get today+yesterday packs even if they never opened 今日任务."""
+        conn = _connect()
+        self._apply_reading_plan(conn, 5)
+        self._enable_units_mode(conn, weekday_units=2, weekend_units=2)
+        # Wipe any packs created by profile apply so we simulate a lazy student.
+        conn.execute("DELETE FROM daily_tasks WHERE student_id='2025001'")
+        conn.commit()
+        day = "2026-09-02"
+        self.assertEqual(
+            conn.execute(
+                "SELECT COUNT(*) AS c FROM daily_tasks WHERE student_id='2025001'"
+            ).fetchone()["c"],
+            0,
+        )
+        noon = datetime(2026, 9, 2, 12, 0, tzinfo=SHANGHAI)
+        data = class_overview(conn, task_date=day, now=noon)
+        row = data["students"][0]
+        self.assertGreater(row["today_total"], 0)
+        self.assertGreater(row["yesterday_total"], 0)
 
     def test_plan_progress_brief_lists_all_modules(self) -> None:
         brief = _plan_progress_brief(
