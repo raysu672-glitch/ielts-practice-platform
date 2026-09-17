@@ -27,6 +27,7 @@ from task_api import (  # noqa: E402
     backlog_plan_item_ids,
     build_daily_tasks,
     catalog_unit_progress_for_student,
+    ensure_active_plan_daily_tasks,
     china_ymd,
     class_overview,
     clear_gendu_assignment,
@@ -1111,6 +1112,12 @@ class TaskApiTests(unittest.TestCase):
             ],
         )
         apply_draft_to_live(conn, "2025001")
+        # 让计划在 task_date 前一天(09-01)就已生效，这样「补昨日」才合理——
+        # 新规则：class_overview 不会补早于计划生效日的日期。
+        conn.execute(
+            "UPDATE plan_items SET created_at='2026-09-01T00:00:00Z' WHERE student_id='2025001'"
+        )
+        conn.commit()
         items = conn.execute(
             "SELECT id, item_type FROM plan_items WHERE student_id='2025001' ORDER BY sort_order"
         ).fetchall()
@@ -1159,6 +1166,11 @@ class TaskApiTests(unittest.TestCase):
         """Active plan students get today+yesterday packs even if they never opened 今日任务."""
         conn = _connect()
         self._apply_reading_plan(conn, 5)
+        # 让计划在 task_date 前一天(09-01)就已生效，这样「补昨日」才合理——
+        # 新规则：class_overview 不会补早于计划生效日的日期。
+        conn.execute(
+            "UPDATE plan_items SET created_at='2026-09-01T00:00:00Z' WHERE student_id='2025001'"
+        )
         self._enable_units_mode(conn, weekday_units=2, weekend_units=2)
         # Wipe any packs created by profile apply so we simulate a lazy student.
         conn.execute("DELETE FROM daily_tasks WHERE student_id='2025001'")
@@ -1175,6 +1187,32 @@ class TaskApiTests(unittest.TestCase):
         row = data["students"][0]
         self.assertGreater(row["today_total"], 0)
         self.assertGreater(row["yesterday_total"], 0)
+
+    def test_ensure_active_plan_no_backfill_before_plan_start(self) -> None:
+        """回归：计划今天刚生效时，回填只应覆盖「计划生效日」及之后，
+        不得把昨日/更早塞进「计划尚未生效」的日期，否则会制造虚假 backlog。"""
+        conn = _connect()
+        put_plan_draft(
+            conn,
+            "2025001",
+            [{"item_type": "study", "unit_id": f"reading_synonym_u{i:02d}"} for i in range(1, 4)],
+        )
+        apply_draft_to_live(conn, "2025001")
+        today = china_ymd()  # 计划此时生效（created_at ≈ now）
+        ensure_active_plan_daily_tasks(conn, "2025001", as_of=today, lookback_days=7)
+        rows = conn.execute(
+            "SELECT DISTINCT task_date FROM daily_tasks WHERE student_id='2025001'"
+        ).fetchall()
+        dates = [str(r[0]) for r in rows]
+        # 早于计划生效日的日期必须一条都没有
+        self.assertTrue(dates, "活跃计划今天应至少有一条任务")
+        self.assertGreaterEqual(
+            min(dates), today, f"不得回填早于计划生效日{today}的日期，实际={dates}"
+        )
+        # 且不产生虚假 backlog：早于今天的「未完成」不该计入（今天不算积压）
+        self.assertEqual(
+            len(backlog_plan_item_ids(conn, "2025001", before_date=today)), 0
+        )
 
     def test_plan_progress_brief_lists_all_modules(self) -> None:
         brief = _plan_progress_brief(

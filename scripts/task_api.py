@@ -3631,6 +3631,38 @@ def build_daily_tasks(
     return _build_daily_tasks_time_budget(conn, student_id, task_date)
 
 
+def _plan_effective_start(
+    conn: sqlite3.Connection,
+    student_id: str,
+) -> Optional[str]:
+    """上海日期的「计划生效日」：plan_items 最早 created_at 对应的一天。
+
+    用于限制每日任务回填范围——早于计划生效日的过去日期不该被补任务，
+    否则会给刚上线计划的学生制造虚假的「昨日任务 / backlog」。
+    ``created_at`` 是 UTC ISO 带 Z；找不到时为 None（不限制）。
+    """
+    row = conn.execute(
+        """
+        SELECT MIN(created_at) AS first_created
+        FROM plan_items
+        WHERE student_id=?
+        """,
+        (student_id,),
+    ).fetchone()
+    if not row or not row["first_created"]:
+        return None
+    raw = str(row["first_created"])
+    try:
+        dt = datetime.fromisoformat(raw.replace("Z", "+00:00"))
+    except ValueError:
+        # 拿不到可靠解析就保守退化为按日期前缀截断到天
+        ymd = raw[:10]
+        return ymd if re.fullmatch(r"\d{4}-\d{2}-\d{2}", ymd) else None
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    return dt.astimezone(SHANGHAI).strftime("%Y-%m-%d")
+
+
 def ensure_active_plan_daily_tasks(
     conn: sqlite3.Connection,
     student_id: str,
@@ -3664,8 +3696,13 @@ def ensure_active_plan_daily_tasks(
     except ValueError:
         return
     lookback_days = max(0, min(int(lookback_days or 0), 14))
+    # 只回填「计划生效日」及之后的日期。若学生计划是最近才上线，
+    # 早于计划创建日的「昨日」并没有真实的待办，补进去只会制造虚假 backlog。
+    plan_start = _plan_effective_start(conn, sid)
     for i in range(lookback_days + 1):
         day = (base - timedelta(days=i)).strftime("%Y-%m-%d")
+        if plan_start and day < plan_start:
+            continue
         build_daily_tasks(conn, sid, day)
 
 
