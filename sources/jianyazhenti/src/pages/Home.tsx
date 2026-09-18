@@ -132,6 +132,9 @@ export default function Home() {
               未完成作业（{pendingHomework.length}）
             </button>
           ) : null}
+          <Link className="btn" to="/student/jijing">
+            当季机经
+          </Link>
           <Link className="btn ghost" to="/student/overview">
             成绩总览
           </Link>
@@ -147,6 +150,20 @@ export default function Home() {
         </div>
         ) : null}
       </header>
+
+      {!partFilter ? (
+        <section className="section" id="jijing-entry">
+          <div className="jijing-entry-card">
+            <div>
+              <h2>当季机经真题</h2>
+              <p>当季写作机经真题（A 类），Task 1 / Task 2 共 39 篇，按题型与话题练习。</p>
+            </div>
+            <Link className="btn" to="/student/jijing">
+              进入题库
+            </Link>
+          </div>
+        </section>
+      ) : null}
 
       {!partFilter ? (
       <section className="section" id="homework">

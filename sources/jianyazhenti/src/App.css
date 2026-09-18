@@ -2136,6 +2136,219 @@
   box-shadow: inset 0 0 0 2px #fbbf24;
 }
 
+/* ── 写作模拟考 ─────────────────────────────────── */
+.mock-writing-tabs {
+  display: flex;
+  gap: 0.35rem;
+  padding: 0.4rem 0.7rem 0.15rem;
+  background: #243040;
+  flex-shrink: 0;
+}
+
+.mock-writing-tab {
+  flex: 1;
+  min-width: 0;
+  border: 1px solid #3d4d63;
+  background: #334255;
+  color: #e8eef6;
+  border-radius: 8px 8px 0 0;
+  padding: 0.55rem 0.7rem;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 0.5rem;
+  text-align: left;
+}
+
+.mock-writing-tab span {
+  font-weight: 700;
+}
+
+.mock-writing-tab small {
+  font-size: 0.78rem;
+  color: #b7c3d3;
+}
+
+.mock-writing-tab.active {
+  background: #cfd5dd;
+  color: #1b2430;
+  border-color: #cfd5dd;
+}
+
+.mock-writing-tab.active small {
+  color: #526070;
+}
+
+.mock-writing-main {
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+  max-width: 76rem;
+  width: 100%;
+  margin: 0 auto;
+  padding: 0.7rem 1rem 0.85rem;
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+
+.mock-writing-prompt {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 0.75rem 1rem 0.85rem;
+  box-shadow: var(--shadow);
+  flex: 0 0 auto;
+}
+
+.mock-writing-prompt-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+  margin-bottom: 0.4rem;
+}
+
+.mock-writing-task-label {
+  display: inline-block;
+  background: #1b2430;
+  color: #f8fafc;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  padding: 0.18rem 0.5rem;
+  border-radius: 6px;
+  margin-bottom: 0.35rem;
+}
+
+.mock-writing-prompt h1 {
+  margin: 0 0 0.25rem;
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+}
+
+.mock-writing-prompt-meta {
+  margin: 0;
+  color: var(--ink-soft);
+  font-size: 0.82rem;
+}
+
+.mock-writing-prompt-text {
+  margin: 0;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  font-size: 0.95rem;
+}
+
+.mock-writing-ref-grid {
+  flex: 0 0 auto;
+  display: grid;
+  grid-template-columns: 1.15fr 1.2fr 1.05fr;
+  gap: 0.7rem;
+  align-items: start;
+}
+
+.mock-writing-compose {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.9rem;
+  align-items: stretch;
+  flex: 1 1 auto;
+  min-height: 300px;
+}
+
+.mock-writing-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  min-width: 0;
+  min-height: 0;
+}
+
+.mock-writing-field > span {
+  color: var(--ink-soft);
+  font-size: 0.9rem;
+  flex: 0 0 auto;
+}
+
+.mock-writing-field textarea {
+  flex: 1 1 auto;
+  min-height: 240px;
+  padding: 0.9rem 1rem;
+  border-radius: 14px;
+  border: 1px solid var(--line);
+  font: inherit;
+  line-height: 1.6;
+  resize: none;
+}
+
+.mock-writing-field-meta {
+  display: flex;
+  justify-content: space-between;
+  color: var(--ink-soft);
+  font-size: 0.85rem;
+  flex: 0 0 auto;
+}
+
+.mock-writing-field-meta .is-ok {
+  color: #2f6d27;
+  font-weight: 600;
+}
+
+.mock-writing-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.6rem;
+  flex: 0 0 auto;
+}
+
+.mock-writing-result {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  padding: 2rem 1rem;
+}
+
+.mock-writing-result-card {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  padding: 2rem 2.4rem;
+  box-shadow: var(--shadow);
+  max-width: 30rem;
+  width: 100%;
+  text-align: center;
+}
+
+.mock-writing-result-card h2 {
+  margin: 0 0 1rem;
+  font-family: var(--font-display);
+}
+
+.mock-writing-result-card p {
+  margin: 0.4rem 0;
+  color: var(--ink-soft);
+}
+
+.mock-writing-result-actions {
+  display: flex;
+  justify-content: center;
+  gap: 0.7rem;
+  margin-top: 1.4rem;
+}
+
+@media (max-width: 980px) {
+  .mock-writing-ref-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .mock-writing-compose {
+    grid-template-columns: 1fr;
+  }
+}
+
 .mock-start-overlay {
   flex: 1;
   min-height: 0;
@@ -2573,6 +2786,119 @@ html.embedded .exam-shell {
   flex: 0 0 auto;
 }
 
+.writing-correction {
+  flex: 0 0 auto;
+  background: #fdf8f0;
+  border: 1px solid #e8d5b5;
+  border-radius: 14px;
+  padding: 0.8rem 1rem 0.9rem;
+}
+
+.writing-correction-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.writing-correction-head h2 {
+  margin: 0;
+  color: #8a5a1e;
+  font-size: 1rem;
+}
+
+.writing-correction-head span {
+  color: var(--ink-soft);
+  font-size: 0.85rem;
+}
+
+.writing-correction-note {
+  margin: 0.5rem 0 0;
+  color: var(--ink-soft);
+  font-size: 0.88rem;
+}
+
+.writing-correction-note.ok {
+  color: #3f6b35;
+}
+
+.writing-correction-list {
+  margin: 0.6rem 0 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.writing-correction-item {
+  background: #fff;
+  border: 1px solid #ecdfc8;
+  border-radius: 10px;
+  padding: 0.55rem 0.7rem 0.6rem;
+}
+
+.writing-correction-item-head {
+  display: flex;
+  gap: 0.6rem;
+  align-items: baseline;
+  flex-wrap: wrap;
+}
+
+.writing-correction-category {
+  background: #8a5a1e;
+  color: #fff;
+  border-radius: 999px;
+  padding: 0.08rem 0.55rem;
+  font-size: 0.76rem;
+  font-weight: 600;
+}
+
+.writing-correction-question {
+  color: var(--ink);
+  font-size: 0.88rem;
+  font-weight: 600;
+}
+
+.writing-correction-row {
+  display: flex;
+  gap: 0.5rem;
+  align-items: baseline;
+  margin-top: 0.35rem;
+  font-size: 0.88rem;
+}
+
+.writing-correction-tag {
+  flex: 0 0 auto;
+  color: var(--ink-soft);
+  font-size: 0.78rem;
+}
+
+.writing-correction-bad {
+  background: #fde3e1;
+  color: #b3372e;
+  padding: 0.05rem 0.35rem;
+  border-radius: 6px;
+}
+
+.writing-correction-good {
+  color: #2f6d27;
+}
+
+.writing-correction-expl {
+  margin: 0.35rem 0 0;
+  color: var(--ink-soft);
+  font-size: 0.84rem;
+}
+
+.writing-correction-hints {
+  margin: 0.3rem 0 0;
+  padding-left: 1.1rem;
+  color: var(--ink-soft);
+  font-size: 0.82rem;
+}
+
 @media (max-width: 980px) {
   .writing-ref-grid {
     grid-template-columns: 1fr;
@@ -2585,5 +2911,157 @@ html.embedded .exam-shell {
   .writing-compose {
     grid-template-columns: 1fr;
     min-height: 360px;
+  }
+}
+
+/* ── 当季机经真题 ─────────────────────────────────── */
+.jijing-shell {
+  max-width: 980px;
+}
+
+.jijing-tabs {
+  display: flex;
+  gap: 0.35rem;
+  padding: 0.4rem 0.7rem 0.15rem;
+  background: #243040;
+  border-radius: 12px 12px 0 0;
+}
+
+.jijing-tab {
+  flex: 1;
+  border: 1px solid #3d4d63;
+  background: #334255;
+  color: #e8eef6;
+  border-radius: 8px 8px 0 0;
+  padding: 0.55rem 0.7rem;
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.jijing-tab.active {
+  background: var(--panel);
+  color: var(--ink);
+  border-bottom-color: var(--panel);
+}
+
+.jijing-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin: 1rem 0 0.25rem;
+}
+
+.jijing-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+  padding: 0.6rem 0 3rem;
+}
+
+.jijing-card {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: var(--shadow);
+}
+
+.jijing-card-head {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  background: none;
+  border: none;
+  padding: 1rem 1.15rem;
+  cursor: pointer;
+  text-align: left;
+}
+
+.jijing-card-head strong {
+  display: block;
+  font-size: 1.1rem;
+  font-family: var(--font-display);
+}
+
+.jijing-card-meta {
+  color: var(--ink-soft);
+  font-size: 0.85rem;
+  margin-top: 0.15rem;
+  display: inline-block;
+}
+
+.jijing-card-toggle {
+  flex-shrink: 0;
+  color: var(--accent-deep);
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.jijing-practice {
+  border-top: 1px solid var(--line);
+  padding: 1.15rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+}
+
+.jijing-prompt {
+  background: #f7f9fc;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 0.9rem 1rem;
+}
+
+.jijing-prompt .mock-writing-task-label {
+  display: inline-block;
+  margin-bottom: 0.5rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  color: var(--accent-deep);
+  font-size: 0.85rem;
+}
+
+.jijing-chart {
+  margin: 0.25rem 0 0.75rem;
+  display: flex;
+  justify-content: center;
+}
+
+.jijing-chart img {
+  max-width: 100%;
+  max-height: 340px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+}
+
+.jijing-entry-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.25rem;
+  background: linear-gradient(120deg, #f0f7f6, #eaf3ef);
+  border: 1px solid #cfe6dd;
+  border-radius: 16px;
+  padding: 1.15rem 1.35rem;
+}
+
+.jijing-entry-card h2 {
+  margin: 0 0 0.3rem;
+  font-family: var(--font-display);
+  font-size: 1.35rem;
+}
+
+.jijing-entry-card p {
+  margin: 0;
+  color: var(--ink-soft);
+}
+
+@media (max-width: 980px) {
+  .jijing-entry-card {
+    flex-direction: column;
+    align-items: flex-start;
   }
 }

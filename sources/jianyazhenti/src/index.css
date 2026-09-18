@@ -84,6 +84,10 @@ html.embedded .mock-hist .exam-back {
   display: inline-block;
 }
 
+html.embedded .jijing-shell .portal-back {
+  display: inline-block;
+}
+
 .status {
   padding: 3rem 0;
   color: var(--ink-soft);

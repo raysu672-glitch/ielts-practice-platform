@@ -1,0 +1,262 @@
+{
+  "source": "同桌英语写作机经（A类）当季真题",
+  "fetchedAt": "2026-09-11T02:52:25.942Z",
+  "task1": [
+    {
+      "id": 1255,
+      "name": "考场真题19",
+      "qType": "曲线图",
+      "prompt": "The line graph below gives information on cinema attendance in the UK. Summarise the information by selecting and reporting the main features, and make comparisons where relevant."
+    },
+    {
+      "id": 1240,
+      "name": "考场真题18",
+      "qType": "曲线图",
+      "prompt": "The two graphs below show the average hours of daily sunshine and temperature throughout the year in two cities in Australia. Summarise the information by selecting and reporting the main features, and make comparisons where relevant."
+    },
+    {
+      "id": 1196,
+      "name": "考场真题17",
+      "qType": "柱状图",
+      "prompt": "The charts below show the information about a US bus company between 1999 and 2003. Summarise the information by selecting and reporting the main features, and make comparisons where relevant."
+    },
+    {
+      "id": 1171,
+      "name": "考场真题16",
+      "qType": "柱状图",
+      "prompt": "The chart below shows percentages of young people choosing different ways to solve the global warming in four different countries in 2008. Summarise the information by selecting and reporting the main features, and make comparisons where relevant."
+    },
+    {
+      "id": 1106,
+      "name": "考场真题15",
+      "qType": "曲线图",
+      "prompt": "The graph below shows the change in production (Million Tonnes) of three products in the forest industry in a European country. Summarise the information by selecting and reporting the main features, and make comparisons where relevant."
+    },
+    {
+      "id": 1082,
+      "name": "考场真题14",
+      "qType": "混合图",
+      "prompt": "The graphs show the tourist number to Australia and types of travels among three nations. Summarise the information by selecting and reporting the main features, and make comparisons where relevant."
+    },
+    {
+      "id": 1063,
+      "name": "考场真题13",
+      "qType": "表格",
+      "prompt": "The table below shows information about the CO2 production released by five countries that produced the most in 2006. Summarise the information by selecting and reporting the main features, and make comparisons where relevant."
+    },
+    {
+      "id": 1057,
+      "name": "考场真题12",
+      "qType": "柱状图",
+      "prompt": "The chart below shows the number (thousands) of four kinds of students in the UK in 1990, 1998 and 2005. Summarise the information by selecting and reporting the main features, and make comparisons where relevant."
+    },
+    {
+      "id": 1055,
+      "name": "考场真题11",
+      "qType": "柱状图",
+      "prompt": "The bar chart below shows percentages of three groups of Australian children taking part in four kinds of activities in 2012. Summarise the information by selecting and reporting the main features, and make comparisons where relevant."
+    },
+    {
+      "id": 1048,
+      "name": "考场真题10",
+      "qType": "流程图",
+      "prompt": "The diagram below describes the structure of a home smoker and how it works. Summarise the information by selecting and reporting the main features, and make comparisons where relevant."
+    },
+    {
+      "id": 1046,
+      "name": "考场真题09",
+      "qType": "曲线图",
+      "prompt": "The graph below shows average carbon dioxide (CO2) emissions per person in the United Kingdom, Sweden, Italy and Portugal between 1967 and 2007. Summarise the information by selecting and reporting the main features, and make comparisons where relevant."
+    },
+    {
+      "id": 1039,
+      "name": "考场真题08",
+      "qType": "地图",
+      "prompt": "The diagrams below show the changes of a town called Bridgetown 1700 and 2000. Compare and summarize the changes of the Bridgetown."
+    },
+    {
+      "id": 1037,
+      "name": "考场真题07",
+      "qType": "混合图",
+      "prompt": "The bar chart below shows the number of tourists in three nations who travel to Australia in 2005 and 2015. The graph below shows the number of tourists who use two types for holiday. Summarise the information by selecting and reporting the main features, and make comparisons where relevant."
+    },
+    {
+      "id": 1007,
+      "name": "考场真题06",
+      "qType": "流程图",
+      "prompt": "The diagrams below show the amount of energy lost in 100 units when it is generated from black coal and when it is generated from brown coal. Summarise the information by selecting and reporting the main features, and make comparisons where relevant."
+    },
+    {
+      "id": 1005,
+      "name": "考场真题05",
+      "qType": "混合图",
+      "prompt": "The charts below show the disproportions in employment and projections in country A, B and C in 1980 and 2020. Analyse each chart and make comparisons to offer your conclusion."
+    },
+    {
+      "id": 960,
+      "name": "考场真题04",
+      "qType": "表格",
+      "prompt": "The table below shows the number of mobile phones and personal computers per thousand people in six different countries in 2003. Summarise the information by selecting and reporting the main features, and make comparisons where relevant."
+    },
+    {
+      "id": 958,
+      "name": "考场真题03",
+      "qType": "曲线图",
+      "prompt": "The graph below shows the number of books bought from different sources in one European country since 2000 with a projection for 2012. Summarise the information by selecting and reporting the main features, and make comparisons where relevant."
+    },
+    {
+      "id": 956,
+      "name": "考场真题02",
+      "qType": "柱状图",
+      "prompt": "The charts below show the performance of a bus company in terms of punctuality, both actual and target, and the number of complaints from passengers. Summarise the information by selecting and reporting the main features, and make comparisons where relevant."
+    },
+    {
+      "id": 954,
+      "name": "考场真题01",
+      "qType": "柱状图",
+      "prompt": "The chart below shows the percentages of different types of household waste that were recycled in one city between 1992 and 2002. Summarise the information by selecting and reporting the main features, and make comparisons where relevant."
+    }
+  ],
+  "task2": [
+    {
+      "id": 1257,
+      "name": "考场真题20",
+      "qType": "是否同意",
+      "topic": "教育类",
+      "prompt": "Some countries spend a lot of money preparing competitors to take part in major competitions such as Olympic Games or football World Cup. Some people say that it would be better to spend this money encouraging children to take up sports from a young age. To what extent do you agree or disagree?"
+    },
+    {
+      "id": 1256,
+      "name": "考场真题19",
+      "qType": "是否同意",
+      "topic": "环境类",
+      "prompt": "Some experts suggest that increasing the cost of fuels and fuel-powered vehicles is an effective way to solve environmental problems. To what extent do you agree with this view?"
+    },
+    {
+      "id": 1241,
+      "name": "考场真题18",
+      "qType": "利弊分析",
+      "topic": "生活类",
+      "prompt": "In some countries, small town-centre shops are going out of business because people tend to drive to large out-of-town stores. As a result, people without cars have limited access to out-of-town stores, and it may result in an increase in the use of cars. Do you think the advantages of this change outweigh its disadvantages?"
+    },
+    {
+      "id": 1197,
+      "name": "考场真题17",
+      "qType": "是否同意",
+      "topic": "环境类",
+      "prompt": "The international committee should act immediately to ensure that all countries reduce fossil fuels, such as gas and oil. Do you agree or disagree?"
+    },
+    {
+      "id": 1172,
+      "name": "考场真题16",
+      "qType": "是否同意",
+      "topic": "环境类",
+      "prompt": "The companies and individuals (not governments) should pay to clean pollution. To what extent do you agree or disagree?"
+    },
+    {
+      "id": 1107,
+      "name": "考场真题15",
+      "qType": "报告类",
+      "topic": "生活类",
+      "prompt": "The world of work is changing so fast that employees cannot depend on having the same job or working conditions. What are the possible causes for the rapid change, and what suggestions could be given for preparing people?"
+    },
+    {
+      "id": 1083,
+      "name": "考场真题14",
+      "qType": "双边讨论",
+      "topic": "生活类",
+      "prompt": "In some cultures elderly people are highly valued, while in some other cultures youth are more valued. Discuss both views and give your own opinion."
+    },
+    {
+      "id": 1064,
+      "name": "考场真题13",
+      "qType": "是否同意",
+      "topic": "教育类",
+      "prompt": "Some people think that parents have a powerful influence in child’s life, while the influence from outside the home plays a bigger part of child’s development. To what extent do you agree or disagree?"
+    },
+    {
+      "id": 1058,
+      "name": "考场真题12",
+      "qType": "是否同意",
+      "topic": "教育类",
+      "prompt": "In modern age, some people think it is unnecessary to teach children the skill of handwriting. To what extent do you agree or disagree?"
+    },
+    {
+      "id": 1056,
+      "name": "考场真题11",
+      "qType": "是否同意",
+      "topic": "生活类",
+      "prompt": "In modern world, it is no longer necessary to use animals for food or use animal products, for instance, clothing and medicines. To what extent do you agree or disagree?"
+    },
+    {
+      "id": 1049,
+      "name": "考场真题10",
+      "qType": "利弊分析",
+      "topic": "生活类",
+      "prompt": "In some countries, older people are choosing to live in retirement communities with other older people rather than living with their adult children. Is it a positive or negative development?"
+    },
+    {
+      "id": 1047,
+      "name": "考场真题09",
+      "qType": "是否同意",
+      "topic": "教育类",
+      "prompt": "The best way to reduce youth crime is to educate parents about good parenting skills. To what extent do you agree or disagree?"
+    },
+    {
+      "id": 1040,
+      "name": "考场真题08",
+      "qType": "双边讨论",
+      "topic": "政府类",
+      "prompt": "Some people want government to spend money on searching for life on other planets. However, others think it is a waste of public money when the earth has so many problems. Discuss these two views and give your own opinion."
+    },
+    {
+      "id": 1038,
+      "name": "考场真题07",
+      "qType": "是否同意",
+      "topic": "生活类",
+      "prompt": "Nowadays more and more people are using smartphones and computers to communicate, so they are losing the ability to communicate with each other face to face. To what extent do you agree or disagree with the statement?"
+    },
+    {
+      "id": 1008,
+      "name": "考场真题06",
+      "qType": "报告类",
+      "topic": "教育类",
+      "prompt": "Children today find it difficult to concentrate or pay attention in schools. Why do you think causes this problem? What do we need to do to solve this problem?"
+    },
+    {
+      "id": 1006,
+      "name": "考场真题05",
+      "qType": "利弊分析",
+      "topic": "生活类",
+      "prompt": "In modern society, ambition is more and more important. How important is ambition for being successful in life? Is it positive or negative?"
+    },
+    {
+      "id": 961,
+      "name": "考场真题04",
+      "qType": "报告类",
+      "topic": "生活类",
+      "prompt": "A rise in the standard of living in a country often only seems to benefit cities rather than rural areas. What problems might this difference cause? How might these problems be reduced?"
+    },
+    {
+      "id": 959,
+      "name": "考场真题03",
+      "qType": "是否同意",
+      "topic": "环境类",
+      "prompt": "Environmental problems are too big for individual countries or individual people to address. In other words, we have reached the stage where the only way to protect the environment is at an international level. To what extent do you agree or disagree?"
+    },
+    {
+      "id": 957,
+      "name": "考场真题02",
+      "qType": "报告类",
+      "topic": "环境类",
+      "prompt": "Many people say that they believe it is important to protect the environment but make no effort to do anything about it themselves. Why do you think this is the case? What action do you think individuals should take to protect the environment?"
+    },
+    {
+      "id": 955,
+      "name": "考场真题01",
+      "qType": "利弊分析",
+      "topic": "经济类",
+      "prompt": "Competitiveness is seen as a positive quality for people to have in many societies today. How does this competitiveness affect individuals? Is it a positive or negative quality?"
+    }
+  ]
+}

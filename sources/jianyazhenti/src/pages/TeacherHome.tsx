@@ -106,6 +106,11 @@ export default function TeacherHome() {
             从预设/自建作业包勾选布置，或自由选题。当前本科已布置 {visible.length} 份。
           </span>
         </Link>
+        <Link className="portal-card" to="/student/jijing?from=teacher">
+          <span className="portal-card-kicker">当季机经</span>
+          <strong>当季机经真题</strong>
+          <span>当季写作机经真题（A 类），Task 1 / Task 2 共 39 篇，按题型与话题浏览。</span>
+        </Link>
         <Link className="portal-card portal-card-teacher" to="/teacher/bank">
           <span className="portal-card-kicker">题库</span>
           <strong>浏览全部题目</strong>

@@ -15,7 +15,9 @@ import TeacherAssignmentNew, {
 import AssignmentHub from './pages/AssignmentHub'
 import MockHub from './pages/MockHub'
 import MockExam from './pages/MockExam'
+import MockWriting from './pages/MockWriting'
 import MockHistory from './pages/MockHistory'
+import WritingJijingBank from './pages/WritingJijingBank'
 import './App.css'
 
 export default function App() {
@@ -23,10 +25,12 @@ export default function App() {
     <Routes>
       <Route path="/" element={<Portal />} />
       <Route path="/student" element={<Home />} />
+      <Route path="/student/jijing" element={<WritingJijingBank />} />
       <Route path="/student/overview" element={<Overview />} />
       <Route path="/student/history" element={<PartHistory />} />
       <Route path="/student/mock" element={<MockHub />} />
       <Route path="/student/mock/history" element={<MockHistory />} />
+      <Route path="/student/mock/writing" element={<MockWriting />} />
       <Route path="/student/mock/:subject" element={<MockExam />} />
       <Route path="/overview" element={<Navigate to="/student/overview" replace />} />
       <Route path="/teacher" element={<TeacherHome />} />
