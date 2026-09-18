@@ -893,6 +893,16 @@ const ALL_GROUPS = [
   ["homogeneous", "similar", "uniform", "consistent", "identical"],
 ];
 
+// 词条里的「｜组键」会把分组答案直接暴露给学生（如 reduce（减少｜contract））。
+// 统一去掉 ｜ 及其后的组键，只保留（中文）释义；同形异义词靠中文即可区分，不受影响。
+const SYNONYM_KEY_RE = /（([^）｜]*?)｜[^）]*）/g;
+function stripSynonymKey(w) {
+  return String(w == null ? '' : w).replace(SYNONYM_KEY_RE, '（$1）');
+}
+ALL_GROUPS.forEach((grp, gi) => {
+  ALL_GROUPS[gi] = grp.map(stripSynonymKey);
+});
+
 // ============================================================
 //  Level system
 // ============================================================
@@ -1232,8 +1242,16 @@ let groupResults = [];
 let activeSourceIdx = [];
 let currentWrongClicks = [];
 let wrongBookKeys = null;
-let activeGroups = [], allWords = [], wordToGroup = {};
-let anchorGroupIdx = null, currentChain = [], usedWords = new Set();
+let activeGroups = [], allWords = [], wordGroups = {};
+// 一个词可能同时属于多个组（同形同义，如 channel 既属「媒介」组又属「通道」组）。
+//   wordGroups[w]      —— 词 w 在本次会话内所属的组（组范围已限定在本次活跃组内）
+//   wordClaimed[w]     —— 词 w 已被哪些组认领到；仅当它在本次会话内「所有」所属组都被认领，按钮才变灰
+//   anchorGroupIdxs    —— 本轮目标组 = 参照词所属、且尚未完成的组
+let anchorGroupIdx = null, anchorGroupIdxs = [], currentChain = [], usedWords = new Set();
+let wordClaimed = {};
+// 本次会话「应当找对的词数」（每轮目标词数 - 1 个参照词），用于算分。
+// 不能再用 allWords.length - 10：同形词去重后词数会少，且共享词可能把两组并到一轮（轮数 < 10）。
+let nonAnchorExpected = 0;
 let combo = 0;
 let maxCombo = 0;
 let groupWrongCount = 0;
@@ -1259,7 +1277,9 @@ function startGame() {
   allMissedWords = [];
   groupResults = [];
   currentWrongClicks = [];
-  anchorGroupIdx = null; currentChain = []; usedWords = new Set();
+  anchorGroupIdx = null; anchorGroupIdxs = []; currentChain = [];
+  usedWords = new Set(); wordClaimed = {};
+  nonAnchorExpected = 0;
   combo = 0; maxCombo = 0; roundXP = 0;
   groupWrongCount = 0;
 
@@ -1279,14 +1299,17 @@ function startGame() {
   activeGroups = indices.map(i => ALL_GROUPS[i]);
 
   allWords = [];
-  wordToGroup = {};
+  wordGroups = {};
+  const seenWord = new Set();
   activeGroups.forEach((grp, gi) => {
     grp.forEach(w => {
-      allWords.push(w);
-      wordToGroup[w] = gi;
+      if (!wordGroups[w]) wordGroups[w] = [];
+      if (wordGroups[w].indexOf(gi) < 0) wordGroups[w].push(gi);
+      seenWord.add(w);
     });
   });
-  allWords = shuffle(allWords);
+  // 同形词在网格上只保留一个按钮（否则会出现两个长得一样的按钮）
+  allWords = shuffle(Array.from(seenWord));
 
   document.getElementById('endScreen').classList.remove('show');
   document.getElementById('mainArea').style.display = '';
@@ -1328,33 +1351,85 @@ function getBtn(w) {
   return document.getElementById('wb_' + CSS.escape(w));
 }
 
+// ============================================================
+//  同形多组支持：认领记账
+//  规则：
+//   1) 词在本次会话内的所属组 = wordGroups[w]（已限定在本次活跃组内，
+//      不在本次练习里的组不参与判断，否则共享词按钮永远不会变灰）
+//   2) 点击一个词，只给「本轮目标组」里它所属的那些组记账（不是它所有组）
+//   3) 仅当该词在本次会话内所有所属组都被认领，按钮才变灰
+// ============================================================
+function _groupHasClaim(gi, w) {
+  const set = wordClaimed[w];
+  return !!(set && set.has(gi));
+}
+function _isGroupDone(gi) {
+  const members = activeGroups[gi] || [];
+  return members.length > 0 && members.every(w => _groupHasClaim(gi, w));
+}
+function _isWordSettled(w) {
+  const gs = wordGroups[w] || [];
+  return gs.every(gi => _groupHasClaim(gi, w));
+}
+function _claimWord(w, gi) {
+  if (!wordClaimed[w]) wordClaimed[w] = new Set();
+  wordClaimed[w].add(gi);
+  if (_isWordSettled(w)) usedWords.add(w);
+}
+// 本轮目标词 = 参照词所属各目标组的并集（按展示形式去重）
+function _roundTargetWords() {
+  const seen = new Set();
+  const out = [];
+  anchorGroupIdxs.forEach(gi => {
+    (activeGroups[gi] || []).forEach(w => {
+      if (!seen.has(w)) { seen.add(w); out.push(w); }
+    });
+  });
+  return out;
+}
+// 本轮还没找到的词
+function _roundRemainingWords() {
+  return _roundTargetWords().filter(w => !anchorGroupIdxs.some(gi => _groupHasClaim(gi, w)));
+}
+
 function handleWordClick(word, event) {
   if (usedWords.has(word)) return;
-  const gi = wordToGroup[word];
+  const wgs = wordGroups[word] || [];
+  if (!wgs.length) return;
   playSound('click');
 
   if (anchorGroupIdx === null) {
-    anchorGroupIdx = gi;
+    // 目标组 = 参照词所属组中「尚未完成」的那些（已完成组不再重复计入）
+    anchorGroupIdxs = wgs.filter(gi => !_isGroupDone(gi));
+    if (!anchorGroupIdxs.length) anchorGroupIdxs = wgs.slice();
+    anchorGroupIdx = anchorGroupIdxs[0];
     currentChain = [word];
     currentWrongClicks = [];
     groupWrongCount = 0;
     const btn = getBtn(word);
     btn.classList.add('anchor');
     btn.disabled = true;
+    // 参照词本身就是本轮已找到的词
+    anchorGroupIdxs.forEach(gi => _claimWord(word, gi));
 
     document.getElementById('chainBox').classList.add('show');
     document.getElementById('actionRow').classList.add('show');
     renderChain();
-    const grpSize = activeGroups[gi].length;
-    setHint(` "${word}" 已选为参照词，共 ${grpSize} 个同义词，还剩 ${grpSize - 1} 个`);
+    const targets = _roundTargetWords();
+    setHint(` "${word}" 已选为参照词，共 ${targets.length} 个同义词，还剩 ${targets.length - 1} 个`);
     hideFeedback();
   } else {
-    if (gi === anchorGroupIdx) {
+    // 正确判定：该词属于任一「本轮目标组」即为正确（不再依赖「第几组」）
+    const hitGroups = wgs.filter(gi => anchorGroupIdxs.indexOf(gi) >= 0);
+    if (hitGroups.length) {
       rightCount++;
       recordAnswer(true, { word: word });
       combo++;
       if (combo > maxCombo) maxCombo = combo;
       currentChain.push(word);
+
+      // 同形词：给它命中的每个目标组分别记账
+      hitGroups.forEach(gi => _claimWord(word, gi));
 
       const btn = getBtn(word);
       btn.classList.add('correct');
@@ -1384,20 +1459,18 @@ function handleWordClick(word, event) {
 
       playSound('correct');
 
-      const grp = activeGroups[anchorGroupIdx];
-      const remaining = grp.filter(
-        w => !usedWords.has(w) && !currentChain.includes(w)
-      );
+      const roundTargets = _roundTargetWords();
+      const remaining = _roundRemainingWords();
       if (remaining.length === 0) {
         // 全部选对，自动进入下一组
-        showFeedback(` 这组 ${grp.length} 个同义词全部找到！自动进入下一组`, 'ok');
+        showFeedback(` 这组 ${roundTargets.length} 个同义词全部找到！自动进入下一组`, 'ok');
         playSound('complete');
         spawnParticleBurst(window.innerWidth / 2, window.innerHeight / 2, 50, ['#fbbf24','#f59e0b','#22d3a7','#8b5cf6','#38bdf8'], ['star','diamond']);
         addXP(15);
         updateStats();
         setTimeout(() => finishGroup(), 1200);
       } else {
-        setHint(` 已找到 ${currentChain.length} / ${grp.length}，还剩 ${remaining.length} 个`);
+        setHint(` 已找到 ${currentChain.length} / ${roundTargets.length}，还剩 ${remaining.length} 个`);
         showFeedback(` 正确！还有 ${remaining.length} 个同义词待发现`, 'ok');
       }
     } else {
@@ -1422,11 +1495,9 @@ function handleWordClick(word, event) {
 
       playSound('wrong');
       // 无提示版：不显示正确答案
-      const grpWrong = activeGroups[anchorGroupIdx];
-      const remainingWrong = grpWrong.filter(
-        w => !usedWords.has(w) && !currentChain.includes(w)
-      );
-      setHint(` 已找到 ${currentChain.length} / ${grpWrong.length}，还剩 ${remainingWrong.length} 个`);
+      const roundTargetsWrong = _roundTargetWords();
+      const remainingWrong = _roundRemainingWords();
+      setHint(` 已找到 ${currentChain.length} / ${roundTargetsWrong.length}，还剩 ${remainingWrong.length} 个`);
       if (groupWrongCount >= 3) {
         showFeedback(` 已选错 3 次，自动跳过这组`, 'err');
         updateStats();
@@ -1459,31 +1530,53 @@ function confirmGroup() {
 }
 
 function finishGroup() {
-  const grp = activeGroups[anchorGroupIdx];
-  const found = [...currentChain];
-  const missed = grp.filter(w => !found.includes(w));
-  const src = activeSourceIdx[anchorGroupIdx];
-  groupResults.push({
-    item_key: String(src),
-    title: grp[0],
-    words: grp.slice(),
-    marked: currentWrongClicks.slice(),
-    is_correct: missed.length === 0 && currentWrongClicks.length === 0
+  if (anchorGroupIdx === null) return;
+  const targets = anchorGroupIdxs.slice();
+
+  // 先按组统计「真正找到」的词（必须在兜底认领之前统计）
+  const perGroup = targets.map(gi => {
+    const members = activeGroups[gi];
+    return {
+      gi: gi,
+      found: members.filter(w => _groupHasClaim(gi, w)),
+      missed: members.filter(w => !_groupHasClaim(gi, w))
+    };
   });
+
+  // 兜底：本组已结束（主动确认完成 / 错满 3 次自动跳过），剩余词一律记为「该组已认领」。
+  // 否则与别组共享的词会因缺少本组认领而永远不变灰。
+  targets.forEach(gi => {
+    activeGroups[gi].forEach(w => { _claimWord(w, gi); });
+  });
+
+  perGroup.forEach(item => {
+    const gi = item.gi;
+    const src = activeSourceIdx[gi];
+    groupResults.push({
+      item_key: String(src),
+      title: activeGroups[gi][0],
+      words: activeGroups[gi].slice(),
+      marked: currentWrongClicks.slice(),
+      is_correct: item.missed.length === 0 && currentWrongClicks.length === 0
+    });
+    // 进度按「组」计：一轮可能同时完成多组（同形词把两组并到一轮）
+    groupsDone++;
+    renderDoneGroup(groupsDone, item.found, item.missed);
+    item.missed.forEach(w => {
+      if (!allMissedWords.includes(w)) allMissedWords.push(w);
+    });
+  });
+
   currentWrongClicks = [];
-  grp.forEach(w => usedWords.add(w));
-  groupsDone++;
 
-  // 记录未找到的词
-  missed.forEach(w => {
-    if (!allMissedWords.includes(w)) {
-      allMissedWords.push(w);
-    }
-  });
+  // 本轮应当找对的词数 = 目标词数 - 1（参照词本身不算「找对」）
+  nonAnchorExpected += Math.max(0, _roundTargetWords().length - 1);
 
-  renderDoneGroup(groupsDone, found, missed);
+  // 收尾：本次会话内所有所属组都认领过的词，按钮才变灰
+  allWords.forEach(w => { if (_isWordSettled(w)) usedWords.add(w); });
 
   anchorGroupIdx = null;
+  anchorGroupIdxs = [];
   currentChain = [];
 
   document.getElementById('chainBox').classList.remove('show');
@@ -1557,8 +1650,10 @@ function endGame() {
   const total = rightCount + wrongCount;
   const acc = total > 0 ? Math.round(rightCount / total * 100) : 100;
 
-  const nonAnchorWords = allWords.length - 10;
-  const nonAnchorAcc = Math.round(rightCount / nonAnchorWords * 100);
+  const nonAnchorWords = nonAnchorExpected > 0
+    ? nonAnchorExpected
+    : Math.max(1, allWords.length - activeGroups.length);
+  const nonAnchorAcc = Math.min(100, Math.round(rightCount / nonAnchorWords * 100));
 
   let rating = '';
   if (nonAnchorAcc >= 90 && wrongCount <= 2) rating = ' 完美通关！';
@@ -1569,7 +1664,7 @@ function endGame() {
   document.getElementById('endRound').textContent = `第 ${round} 轮完成`;
   document.getElementById('endScore').textContent = `${nonAnchorAcc}%`;
   document.getElementById('endDetail').innerHTML =
-    `找对 <strong>${rightCount}</strong> 个 · 选错 <strong>${wrongCount}</strong> 个 · 总词数 <strong>${nonAnchorWords}</strong>（不含10个首词）· 最高连击 <strong>${maxCombo}</strong> · 用时 <strong>${formatTime(timerSeconds)}</strong><br>${rating}`;
+    `找对 <strong>${rightCount}</strong> 个 · 选错 <strong>${wrongCount}</strong> 个 · 总词数 <strong>${nonAnchorWords}</strong>（不含参照词）· 最高连击 <strong>${maxCombo}</strong> · 用时 <strong>${formatTime(timerSeconds)}</strong><br>${rating}`;
   document.getElementById('endXp').textContent = `+${roundXP} XP`;
 
   const missedSection = document.getElementById('endMissedSection');
@@ -1653,8 +1748,18 @@ function _track_sendToParent(isExit) {
     const total = _track_rightCount + _track_wrongCount;
     if (!isExit && duration < 1 && total === 0) return;
     if (isExit && duration < 1 && total === 0) return;
-    const expectedTotal = (typeof allWords !== 'undefined' && allWords.length > 10) ? allWords.length - 10 : total;
-    const scorePercent = expectedTotal > 0 ? Math.round(_track_rightCount / expectedTotal * 100) : 0;
+    // 分母 = 本次会话「应当找对的词数」。
+    // 未做完整篇时用会话总上限（Σ组内词数 - 组数，与旧的 allWords.length - 10 等价），
+    // 否则只完成 1 组就退出也会报 100%；做完整篇时用逐轮累计值，避免「共享词合并成一轮」
+    // 反而被多算分母而误判不及格。
+    const groupWordsTotal = (typeof activeGroups !== 'undefined' && activeGroups.length)
+        ? activeGroups.reduce(function (a, g) { return a + g.length; }, 0) - activeGroups.length
+        : 0;
+    const sessionComplete = (typeof activeGroups !== 'undefined')
+        && activeGroups.length > 0 && groupsDone >= activeGroups.length;
+    let expectedTotal = sessionComplete && nonAnchorExpected > 0 ? nonAnchorExpected : groupWordsTotal;
+    if (!expectedTotal || expectedTotal <= 0) expectedTotal = total;
+    const scorePercent = expectedTotal > 0 ? Math.min(100, Math.round(_track_rightCount / expectedTotal * 100)) : 0;
     try {
         if (window.parent && window.parent.postMessage) {
             window.parent.postMessage({

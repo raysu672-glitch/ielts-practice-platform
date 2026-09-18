@@ -1536,6 +1536,16 @@ const ALL_GROUPS = [
   ["homogeneous", "similar", "uniform", "consistent", "identical"],
 ];
 
+// 词条里的「｜组键」会把分组答案直接暴露给学生（如 reduce（减少｜contract））。
+// 统一去掉 ｜ 及其后的组键，只保留（中文）释义；同形异义词靠中文即可区分，不受影响。
+const SYNONYM_KEY_RE = /（([^）｜]*?)｜[^）]*）/g;
+function stripSynonymKey(w) {
+  return String(w == null ? '' : w).replace(SYNONYM_KEY_RE, '（$1）');
+}
+ALL_GROUPS.forEach((grp, gi) => {
+  ALL_GROUPS[gi] = grp.map(stripSynonymKey);
+});
+
 // ============================================================
 //  大组结构 - 将225组分成23个大组（每组10组，最后一组5组）
 // ============================================================
@@ -2782,6 +2792,21 @@ const CHINESE_DICT = {
   "同位语，破折号，引号": "同位语结构；破折号说明；引号引用"
 };
 
+// 词库去｜后，字典里带｜的键也要归一化，否则这些词在网格上查不到释义。
+// 同一归一化键有多个释义时取最长的（信息更全）。
+(function normalizeChineseDict() {
+  const merged = {};
+  Object.keys(CHINESE_DICT).forEach(k => {
+    const nk = stripSynonymKey(k);
+    if (nk === k) return;
+    const val = CHINESE_DICT[k];
+    if (!merged[nk] || (val && val.length > merged[nk].length)) merged[nk] = val;
+  });
+  Object.keys(merged).forEach(nk => {
+    if (!CHINESE_DICT[nk]) CHINESE_DICT[nk] = merged[nk];
+  });
+})();
+
 function getChineseMeaning(word) {
   if (!word) return '';
   const trimmed = word.trim();
@@ -3223,8 +3248,13 @@ function formatTime(sec) {
 let round = 0;
 let rightCount = 0, wrongCount = 0, groupsDone = 0;
 let allMissedWords = [];
-let activeGroups = [], allWords = [], wordToGroup = {};
-let anchorGroupIdx = null, currentChain = [], usedWords = new Set();
+let activeGroups = [], allWords = [], wordGroups = {};
+// 一个词可能同时属于多个组（同形同义，如 channel 既属「媒介」组又属「通道」组）。
+//   wordGroups[w]      —— 词 w 在本次会话内所属的组（已限定在本次活跃组内）
+//   wordClaimed[w]     —— 词 w 已被哪些组认领；仅当「所有」所属组都认领，按钮才变灰
+//   anchorGroupIdxs    —— 本轮目标组 = 参照词所属、且尚未完成的组
+let anchorGroupIdx = null, anchorGroupIdxs = [], currentChain = [], usedWords = new Set();
+let wordClaimed = {};
 let combo = 0;
 let maxCombo = 0;
 
@@ -3245,7 +3275,8 @@ function startGameWithSet(groups) {
   round++;
   rightCount = 0; wrongCount = 0; groupsDone = 0;
   allMissedWords = [];
-  anchorGroupIdx = null; currentChain = []; usedWords = new Set();
+  anchorGroupIdx = null; anchorGroupIdxs = []; currentChain = [];
+  usedWords = new Set(); wordClaimed = {};
   combo = 0; maxCombo = 0; roundXP = 0;
 
   // 任务模式按单元实际组数练习（综合篇 5 组，其余 10 组）
@@ -3255,14 +3286,17 @@ function startGameWithSet(groups) {
   activeGroups = groups.slice(0, limit);
 
   allWords = [];
-  wordToGroup = {};
+  wordGroups = {};
+  const seenWord = new Set();
   activeGroups.forEach((grp, gi) => {
     grp.forEach(w => {
-      allWords.push(w);
-      wordToGroup[w] = gi;
+      if (!wordGroups[w]) wordGroups[w] = [];
+      if (wordGroups[w].indexOf(gi) < 0) wordGroups[w].push(gi);
+      seenWord.add(w);
     });
   });
-  allWords = shuffle(allWords);
+  // 同形词在网格上只保留一个按钮
+  allWords = shuffle(Array.from(seenWord));
 
   document.getElementById('endScreen').classList.remove('show');
   document.getElementById('mainArea').style.display = '';
@@ -3309,6 +3343,46 @@ function getBtn(w) {
   return document.getElementById('wb_' + CSS.escape(w));
 }
 
+// ============================================================
+//  同形多组支持：认领记账
+//   1) 词在本次会话内的所属组 = wordGroups[w]（已限定在本次活跃组内，
+//      不在本次练习里的组不参与判断，否则共享词按钮永远不会变灰）
+//   2) 点击一个词，只给「本轮目标组」里它所属的那些组记账
+//   3) 仅当该词在本次会话内所有所属组都被认领，按钮才变灰
+// ============================================================
+function _groupHasClaim(gi, w) {
+  const set = wordClaimed[w];
+  return !!(set && set.has(gi));
+}
+function _isGroupDone(gi) {
+  const members = activeGroups[gi] || [];
+  return members.length > 0 && members.every(w => _groupHasClaim(gi, w));
+}
+function _isWordSettled(w) {
+  const gs = wordGroups[w] || [];
+  return gs.every(gi => _groupHasClaim(gi, w));
+}
+function _claimWord(w, gi) {
+  if (!wordClaimed[w]) wordClaimed[w] = new Set();
+  wordClaimed[w].add(gi);
+  if (_isWordSettled(w)) usedWords.add(w);
+}
+// 本轮目标词 = 参照词所属各目标组的并集（按展示形式去重）
+function _roundTargetWords() {
+  const seen = new Set();
+  const out = [];
+  anchorGroupIdxs.forEach(gi => {
+    (activeGroups[gi] || []).forEach(w => {
+      if (!seen.has(w)) { seen.add(w); out.push(w); }
+    });
+  });
+  return out;
+}
+// 本轮还没找到的词
+function _roundRemainingWords() {
+  return _roundTargetWords().filter(w => !anchorGroupIdxs.some(gi => _groupHasClaim(gi, w)));
+}
+
 function disableAllSameWordButtons(word) {
   // 当界面中同一个词出现多次时，禁用所有同名按钮，防止重复点击
   document.querySelectorAll('#wordsGrid .word-btn').forEach(btn => {
@@ -3322,17 +3396,23 @@ function disableAllSameWordButtons(word) {
 function handleWordClick(word, event) {
   if (usedWords.has(word)) return;
   if (currentChain.includes(word)) return; // 防止同一组内重复点击同一个词
-  const gi = wordToGroup[word];
+  const wgs = wordGroups[word] || [];
+  if (!wgs.length) return;
   playSound('click');
 
   if (anchorGroupIdx === null) {
-    anchorGroupIdx = gi;
+    // 目标组 = 参照词所属组中「尚未完成」的那些
+    anchorGroupIdxs = wgs.filter(g => !_isGroupDone(g));
+    if (!anchorGroupIdxs.length) anchorGroupIdxs = wgs.slice();
+    anchorGroupIdx = anchorGroupIdxs[0];
     currentChain = [word];
     const btn = getBtn(word);
     btn.classList.add('anchor');
     btn.disabled = true;
     // 如果同一个词在界面中出现多次，一并禁用其他同名按钮
     disableAllSameWordButtons(word);
+    // 参照词本身就是本轮已找到的词
+    anchorGroupIdxs.forEach(g => _claimWord(word, g));
 
     document.getElementById('chainBox').classList.add('show');
     document.getElementById('actionRow').classList.add('show');
@@ -3340,12 +3420,17 @@ function handleWordClick(word, event) {
     setHint(`🔍 "${word}" 已选为参照词，找出所有与它同义的词！`);
     hideFeedback();
   } else {
-    if (gi === anchorGroupIdx) {
+    // 正确判定：该词属于任一「本轮目标组」即为正确
+    const hitGroups = wgs.filter(g => anchorGroupIdxs.indexOf(g) >= 0);
+    if (hitGroups.length) {
       rightCount++;
             recordAnswer(true, { word: word });
       combo++;
       if (combo > maxCombo) maxCombo = combo;
       currentChain.push(word);
+
+      // 同形词：给它命中的每个目标组分别记账
+      hitGroups.forEach(g => _claimWord(word, g));
 
       const btn = getBtn(word);
       btn.classList.add('correct');
@@ -3377,9 +3462,8 @@ function handleWordClick(word, event) {
 
       playSound('correct');
 
-      const remaining = activeGroups[anchorGroupIdx].filter(
-        w => !usedWords.has(w) && !currentChain.includes(w)
-      );
+      const roundTargets = _roundTargetWords();
+      const remaining = _roundRemainingWords();
       if (remaining.length === 0) {
         showFeedback('🎉 这组同义词已全部找到！点击"继续"', 'ok');
         playSound('complete');
@@ -3446,29 +3530,58 @@ function skipGroup() {
 }
 
 function finishGroup() {
-  const grp = activeGroups[anchorGroupIdx];
-  const found = [...currentChain];
-  const missed = grp.filter(w => !found.includes(w));
-  grp.forEach(w => usedWords.add(w));
-  groupsDone++;
+  if (anchorGroupIdx === null) return;
+  const targets = anchorGroupIdxs.slice();
 
-  renderDoneGroup(groupsDone, found, missed);
-  _taskReportScopeProgress(1);
-  try {
-    if (window.parent && window.parent !== window) {
-      window.parent.postMessage({
-        type: 'activityEvent',
-        action: 'synonym.group_done',
-        module_type: 'reading_synonym',
-        plan_item_id: (window._taskMode && window._taskMode.plan_item_id) ? Number(window._taskMode.plan_item_id) : null,
-        unit_id: (window._taskMode && window._taskMode.unit_id) || '',
-        summary: '完成同义替换一组',
-        detail: { groups_done: groupsDone, found: found.length, missed: missed.length }
-      }, '*');
-    }
-  } catch (e) {}
+  // 先按组统计「真正找到」的词（必须在兜底认领之前统计）
+  const perGroup = targets.map(gi => {
+    const members = activeGroups[gi];
+    return {
+      gi: gi,
+      found: members.filter(w => _groupHasClaim(gi, w)),
+      missed: members.filter(w => !_groupHasClaim(gi, w))
+    };
+  });
+
+  // 兜底：本组已结束（点「继续」或「跳过」），剩余词一律记为「该组已认领」。
+  // 否则与别组共享的词会因缺少本组认领而永远不变灰。
+  targets.forEach(gi => {
+    activeGroups[gi].forEach(w => { _claimWord(w, gi); });
+  });
+
+  let finishedGroups = 0;
+  perGroup.forEach(item => {
+    const gi = item.gi;
+    groupsDone++;
+    finishedGroups++;
+    renderDoneGroup(groupsDone, item.found, item.missed);
+    item.missed.forEach(w => {
+      if (!allMissedWords.includes(w)) allMissedWords.push(w);
+    });
+
+    try {
+      if (window.parent && window.parent !== window) {
+        window.parent.postMessage({
+          type: 'activityEvent',
+          action: 'synonym.group_done',
+          module_type: 'reading_synonym',
+          plan_item_id: (window._taskMode && window._taskMode.plan_item_id) ? Number(window._taskMode.plan_item_id) : null,
+          unit_id: (window._taskMode && window._taskMode.unit_id) || '',
+          summary: '完成同义替换一组',
+          detail: { groups_done: groupsDone, found: item.found.length, missed: item.missed.length }
+        }, '*');
+      }
+    } catch (e) {}
+  });
+
+  // 任务进度按「组」上报：一轮可能同时完成多组
+  _taskReportScopeProgress(finishedGroups);
+
+  // 收尾：本次会话内所有所属组都认领过的词，按钮才变灰
+  allWords.forEach(w => { if (_isWordSettled(w)) usedWords.add(w); });
 
   anchorGroupIdx = null;
+  anchorGroupIdxs = [];
   currentChain = [];
 
   document.getElementById('chainBox').classList.remove('show');
@@ -3536,7 +3649,7 @@ function hideFeedback() {
 }
 
 function showRevealCard(missedWord) {
-  const grp = activeGroups[anchorGroupIdx];
+  const grp = _roundTargetWords();
   const anchorWord = currentChain[0]; // 参照词是正确答案
   const anchorCn = getChineseMeaning(anchorWord);
 
