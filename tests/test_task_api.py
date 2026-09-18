@@ -24,6 +24,7 @@ from task_api import (  # noqa: E402
     _interleave_by_module,
     _plan_progress_brief,
     _student_overview_row,
+    _gendu_day_practice_count,
     apply_draft_to_live,
     backlog_plan_item_ids,
     build_daily_tasks,
@@ -326,6 +327,7 @@ class TaskApiTests(unittest.TestCase):
         put_time_profile(
             conn, "2025001", {"weekday_minutes": 40, "weekend_minutes": 40, "effective": "today"}
         )
+        self._backdate_plan_start(conn, "2026-08-01")
         # Force a weekday date
         weekday = "2026-08-26"  # Wednesday
         daily = build_daily_tasks(conn, "2025001", weekday)
@@ -355,6 +357,7 @@ class TaskApiTests(unittest.TestCase):
             ],
         )
         apply_draft_to_live(conn, "2025001")
+        self._backdate_plan_start(conn, "2026-08-01")
         day = "2026-08-26"
         first = build_daily_tasks(conn, "2025001", day)
         self.assertTrue(first)
@@ -549,6 +552,7 @@ class TaskApiTests(unittest.TestCase):
         put_time_profile(
             conn, "2025001", {"weekday_minutes": 90, "weekend_minutes": 90, "effective": "today"}
         )
+        self._backdate_plan_start(conn, "2026-08-01")
         day = "2026-08-26"
         daily = build_daily_tasks(conn, "2025001", day)
         module_seq = []
@@ -869,6 +873,7 @@ class TaskApiTests(unittest.TestCase):
         conn = _connect()
         self._apply_reading_plan(conn, 5)
         self._enable_units_mode(conn, weekday_units=2, weekend_units=2)
+        self._backdate_plan_start(conn, "2026-08-01")
         day1 = "2026-08-26"
         daily1 = build_daily_tasks(conn, "2025001", day1)
         self.assertEqual(len(daily1), 2)
@@ -909,6 +914,7 @@ class TaskApiTests(unittest.TestCase):
             },
         )
         day = "2026-08-26"
+        self._backdate_plan_start(conn, "2026-08-01")
         daily = build_daily_tasks(conn, "2025001", day)
         self.assertEqual(len(daily), 3)
         modules = [d["module_type"] for d in daily]
@@ -988,6 +994,7 @@ class TaskApiTests(unittest.TestCase):
         conn = _connect()
         self._apply_reading_plan(conn, 4)
         self._enable_units_mode(conn, weekday_units=2, weekend_units=1)
+        self._backdate_plan_start(conn, "2026-08-01")
         weekend = build_daily_tasks(conn, "2025001", "2026-08-29")
         self.assertEqual(len(weekend), 1)
         conn.execute("DELETE FROM daily_tasks WHERE student_id='2025001'")
@@ -1696,6 +1703,7 @@ class TaskApiTests(unittest.TestCase):
         put_gendu_assignment(
             conn, "2025001", {"start_unit_id": start_unit, "starts_on": today}
         )
+        self._backdate_plan_start(conn, "2026-09-01")
         daily = build_daily_tasks(conn, "2025001", today)
         gendu = [x for x in daily if x["module_type"] == GENDU_MODULE][0]
         pid = gendu["plan_item_id"]
@@ -1763,6 +1771,241 @@ class TaskApiTests(unittest.TestCase):
         self.assertIn(normal_pid, back)
         self.assertEqual(len(back), 1)
         self.assertTrue(all(x != pid for x in back))
+
+    def test_gendu_day_counts_across_passage_swap(self) -> None:
+        """回归（线上廉昕 2025114）：当天 3 次要按天累加，不能因换篇断成 1/3+1/3。
+
+        线上：她 20:56 在第 1 篇练 1 次（73.9% 达标）→ 被立刻换到第 2 篇 →
+        21:03/21:03 又练 2 次。她当天确实做满 3 次，但按课文单独算就是
+        1/3 与 1/3，页面显示「未完成」。
+        """
+        conn = _connect()
+        start_unit = conn.execute(
+            """
+            SELECT unit_id FROM task_units
+            WHERE module_type=? ORDER BY unit_no LIMIT 1
+            """,
+            (GENDU_MODULE,),
+        ).fetchone()["unit_id"]
+        next_unit = conn.execute(
+            """
+            SELECT unit_id FROM task_units
+            WHERE module_type=? AND unit_no>1 ORDER BY unit_no LIMIT 1
+            """,
+            (GENDU_MODULE,),
+        ).fetchone()["unit_id"]
+        today = china_ymd()
+        yesterday = (
+            datetime.strptime(today, "%Y-%m-%d").date() - timedelta(days=1)
+        ).strftime("%Y-%m-%d")
+        put_gendu_assignment(
+            conn, "2025001", {"start_unit_id": start_unit, "starts_on": yesterday}
+        )
+        self._backdate_plan_start(conn, yesterday)
+        daily = build_daily_tasks(conn, "2025001", today)
+        gendu = [x for x in daily if x["module_type"] == GENDU_MODULE][0]
+        pid = gendu["plan_item_id"]
+
+        # 第 1 次：达标
+        r1 = report_gendu_practice(
+            conn, "2025001", plan_item_id=pid, score=GENDU_PASS_SCORE + 3.9,
+            task_date=today,
+        )
+        self.assertTrue(r1["passed_lesson"])
+        self.assertEqual(r1["practice_count"], 1)
+
+        # 模拟旧版 bug：当天被换到下一篇，之后 2 次记在新课名下
+        conn.execute(
+            "UPDATE student_gendu_assignment SET current_unit_id=?, passed_current=0 "
+            "WHERE student_id='2025001'",
+            (next_unit,),
+        )
+        for score in (39.7, 50.0):
+            conn.execute(
+                """
+                INSERT INTO gendu_practice_events
+                    (student_id, unit_id, plan_item_id, task_date, score)
+                VALUES ('2025001', ?, ?, ?, ?)
+                """,
+                (next_unit, pid, today, score),
+            )
+        conn.commit()
+
+        self.assertEqual(
+            _gendu_day_practice_count(conn, "2025001", today), 3,
+            "当天练习次数应跨课文累加",
+        )
+        # 当天 3 次 → 该行必须显示完成，且进度 3/3
+        refreshed = build_daily_tasks(conn, "2025001", today)
+        g2 = [x for x in refreshed if x["module_type"] == GENDU_MODULE]
+        self.assertTrue(g2)
+        self.assertEqual(g2[0]["state"], "done_study")
+        self.assertEqual(g2[0]["scope_done"], GENDU_DAILY_PRACTICES)
+
+        # 不能留假积压
+        tomorrow = (
+            datetime.strptime(today, "%Y-%m-%d").date() + timedelta(days=1)
+        ).strftime("%Y-%m-%d")
+        self.assertEqual(
+            backlog_plan_item_ids(conn, "2025001", before_date=tomorrow), []
+        )
+
+    def test_gendu_no_advance_when_backfilling_yesterday(self) -> None:
+        """回归（线上廉昕 2025114）：回填「昨日」不得触发跟读换课。
+
+        线上实例：学生 9/17 晚把当前课跟读到 73.9%（过关），当晚系统在
+        回填 9/16 的每日任务时误判「9/16 当日几乎没练」，于是**提前换课**：
+        - 9/16 被塞进还没布置过的新课（幽灵任务 → 假积压）
+        - 9/17 已完成的旧课记录被新单位覆盖，学生看到「未完成」
+        正确行为是「次日起换课」：过关当天不换，且回填历史不得改写旧记录。
+        """
+        conn = _connect()
+        start_unit = conn.execute(
+            """
+            SELECT unit_id FROM task_units
+            WHERE module_type=? ORDER BY unit_no LIMIT 1
+            """,
+            (GENDU_MODULE,),
+        ).fetchone()["unit_id"]
+        next_unit = conn.execute(
+            """
+            SELECT unit_id FROM task_units
+            WHERE module_type=? AND unit_no>1 ORDER BY unit_no LIMIT 1
+            """,
+            (GENDU_MODULE,),
+        ).fetchone()["unit_id"]
+        today = china_ymd()
+        yesterday = (
+            datetime.strptime(today, "%Y-%m-%d").date() - timedelta(days=1)
+        ).strftime("%Y-%m-%d")
+        two_days_ago = (
+            datetime.strptime(today, "%Y-%m-%d").date() - timedelta(days=2)
+        ).strftime("%Y-%m-%d")
+        put_gendu_assignment(
+            conn, "2025001", {"start_unit_id": start_unit, "starts_on": two_days_ago}
+        )
+        # 计划早就生效（线上廉昕 plan_items 创建于 9/06），这样「回填昨日」才不
+        # 会被「不早于计划生效日」的守卫跳过，才能复现误换课。
+        self._backdate_plan_start(conn, two_days_ago)
+        # 线上廉昕是 units_per_day 排程，换课判定走 _build_daily_tasks_units。
+        self._enable_units_mode(conn, weekday_units=2, weekend_units=2)
+        build_daily_tasks(conn, "2025001", yesterday)
+        today_pack = build_daily_tasks(conn, "2025001", today)
+        gendu = [x for x in today_pack if x["module_type"] == GENDU_MODULE][0]
+        pid = gendu["plan_item_id"]
+        self.assertEqual(gendu["unit_id"], start_unit)
+
+        # 当晚过关（>=70）。report_gendu_practice 内部会 get_today →
+        # 回填 today + yesterday，旧逻辑会在回填 yesterday 时误换课。
+        r = report_gendu_practice(
+            conn, "2025001", plan_item_id=pid, score=GENDU_PASS_SCORE + 3.9,
+            task_date=today,
+        )
+        self.assertTrue(r["passed_lesson"])
+
+        # 1) 过关当天不得换课
+        asg = get_gendu_assignment(conn, "2025001", on_date=today)
+        self.assertEqual(
+            asg["current_unit_id"], start_unit,
+            "过关当天不应换课（次日起才换）",
+        )
+        # 2) 昨日不得出现「还没布置过的新课」
+        y_rows = conn.execute(
+            """
+            SELECT p.unit_id FROM daily_tasks d JOIN plan_items p ON p.id=d.plan_item_id
+            WHERE d.student_id='2025001' AND d.task_date=? AND p.module_type=?
+            """,
+            (yesterday, GENDU_MODULE),
+        ).fetchall()
+        y_units = [str(x["unit_id"]) for x in y_rows]
+        self.assertNotIn(
+            next_unit, y_units, "昨日不得被塞进当天尚未布置的新课（幽灵任务）"
+        )
+        # 3) 今天的跟读记录仍是旧课，且当晚练习没丢
+        t_row = conn.execute(
+            """
+            SELECT p.unit_id, d.gendu_practice_count FROM daily_tasks d
+            JOIN plan_items p ON p.id=d.plan_item_id
+            WHERE d.student_id='2025001' AND d.task_date=? AND p.module_type=?
+            """,
+            (today, GENDU_MODULE),
+        ).fetchone()
+        self.assertEqual(str(t_row["unit_id"]), start_unit)
+        self.assertEqual(int(t_row["gendu_practice_count"]), 1)
+
+        # 4) 次日仍然正常换课
+        tomorrow = (
+            datetime.strptime(today, "%Y-%m-%d").date() + timedelta(days=1)
+        ).strftime("%Y-%m-%d")
+        tmr = build_daily_tasks(conn, "2025001", tomorrow)
+        g_tmr = [x for x in tmr if x["module_type"] == GENDU_MODULE][0]
+        self.assertEqual(g_tmr["unit_id"], next_unit)
+
+    def test_backfill_skips_items_created_after_that_day(self) -> None:
+        """回归（线上 2025145/2025084 等）：计划后来新增的单元不得回填到昨天。
+
+        学生昨天根本没这批作业，补进去会变成「昨日任务未完成 / 积压」并标红。
+        """
+        conn = _connect()
+        today = china_ymd()
+        yesterday = (
+            datetime.strptime(today, "%Y-%m-%d").date() - timedelta(days=1)
+        ).strftime("%Y-%m-%d")
+        # 昨天已生效的旧单元
+        conn.execute(
+            """
+            INSERT INTO plan_items
+                (student_id, sort_order, item_type, unit_id, module_type,
+                 status, created_at, updated_at)
+            VALUES ('2025001', 0, 'study', 'reading_synonym_u01', 'reading_synonym',
+                    'pending', ?, ?)
+            """,
+            (f"{yesterday}T02:00:00.000Z", f"{yesterday}T02:00:00.000Z"),
+        )
+        # 今天新增的单元（created_at 就是今天）
+        conn.execute(
+            """
+            INSERT INTO plan_items
+                (student_id, sort_order, item_type, unit_id, module_type,
+                 status, created_at, updated_at)
+            VALUES ('2025001', 1, 'study', 'reading_synonym_u02', 'reading_synonym',
+                    'pending', strftime('%Y-%m-%dT%H:%M:%fZ','now'),
+                    strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+            """
+        )
+        conn.commit()
+
+        build_daily_tasks(conn, "2025001", yesterday)
+        y_units = [
+            str(r["unit_id"])
+            for r in conn.execute(
+                """
+                SELECT p.unit_id FROM daily_tasks d
+                JOIN plan_items p ON p.id = d.plan_item_id
+                WHERE d.student_id='2025001' AND d.task_date=?
+                """,
+                (yesterday,),
+            ).fetchall()
+        ]
+        self.assertIn("reading_synonym_u01", y_units)
+        self.assertNotIn(
+            "reading_synonym_u02", y_units,
+            "当天新增的单元不得被回填到昨天（幽灵任务 → 假积压）",
+        )
+        # 今天照常排进来
+        build_daily_tasks(conn, "2025001", today)
+        t_units = [
+            str(r["unit_id"])
+            for r in conn.execute(
+                """
+                SELECT p.unit_id FROM daily_tasks d
+                JOIN plan_items p ON p.id = d.plan_item_id
+                WHERE d.student_id='2025001' AND d.task_date=?
+                """,
+                (today,),
+            ).fetchall()
+        ]
+        self.assertIn("reading_synonym_u02", t_units)
 
     def test_gendu_assignment_expires_stops_pack(self) -> None:
         conn = _connect()

@@ -1785,6 +1785,41 @@ def _sync_gendu_from_live_plan(
     _ensure_gendu_plan_item(conn, student_id, start_unit_id)
 
 
+def _gendu_pass_day(
+    conn: sqlite3.Connection, student_id: str, unit_id: str
+) -> Optional[str]:
+    """当前课首次过关（≥70）的那一天（上海日期）。没有记录时返回 None。"""
+    row = conn.execute(
+        """
+        SELECT MIN(task_date) AS d FROM gendu_practice_events
+        WHERE student_id=? AND unit_id=? AND score >= ?
+        """,
+        (student_id, unit_id, GENDU_PASS_SCORE),
+    ).fetchone()
+    if not row or not row["d"]:
+        return None
+    return str(row["d"])
+
+
+def _gendu_day_practice_count(
+    conn: sqlite3.Connection, student_id: str, task_date: str
+) -> int:
+    """某一天的有效跟读次数（**跨课文累加**）。
+
+    当日完成口径是「这一天练满 3 次」，不是「当前这一篇练满 3 次」。达标后当天
+    换篇（旧版 bug）会把 1 次留在旧课、2 次记到新课，按课文单独算就成了 1/3 + 1/3，
+    学生明明练了 3 遍却永远显示未完成（线上廉昕 2025114 即此例）。
+    """
+    row = conn.execute(
+        """
+        SELECT COUNT(*) AS c FROM gendu_practice_events
+        WHERE student_id=? AND task_date=?
+        """,
+        (student_id, task_date),
+    ).fetchone()
+    return int(row["c"] or 0) if row else 0
+
+
 def advance_gendu_if_needed(
     conn: sqlite3.Connection, student_id: str, task_date: str
 ) -> bool:
@@ -1796,13 +1831,17 @@ def advance_gendu_if_needed(
     ends_on = str(asg["ends_on"])
     if task_date < starts_on or task_date > ends_on:
         return False
-    # Advance only on a day after the pass was recorded (次日起).
-    # If daily tasks for today already exist for current unit, wait — but when
-    # building a new day, passed_current means yesterday (or earlier) hit 70%.
-    # Heuristic: if today already has a daily_task for current unit with practices,
-    # don't advance mid-day. Only advance when materializing a fresh day OR when
-    # no daily row yet for current unit today.
     current_unit = str(asg["current_unit_id"])
+    # 「次日起换课」：过关当天不换课。否则回填「昨日」时会误判成新的一天而立刻
+    # 换课，把还没布置过的新课塞进历史日期（幽灵任务），并覆盖当天已完成的旧课记录。
+    pass_day = _gendu_pass_day(conn, student_id, current_unit)
+    if pass_day and pass_day >= task_date:
+        return False
+    # If daily tasks for this day already exist for current unit, wait — but when
+    # building a new day, passed_current means yesterday (or earlier) hit 70%.
+    # Heuristic: if this day already has a daily_task for current unit with practices,
+    # don't advance mid-day. Only advance when materializing a fresh day OR when
+    # no daily row yet for current unit on that day.
     today_row = conn.execute(
         """
         SELECT d.id, d.gendu_practice_count
@@ -1883,6 +1922,9 @@ def _gendu_aware_plan_items(
     ]
     if task_date < starts_on or task_date > ends_on:
         return non_gendu
+    # 历史日期不补跟读：换课后当前课在当天还不存在，补进去就是幽灵任务。
+    if task_date < china_ymd():
+        return non_gendu
     current_unit = str(asg["current_unit_id"])
     pid = _ensure_gendu_plan_item(conn, student_id, current_unit)
     row = conn.execute(
@@ -1956,8 +1998,11 @@ def report_gendu_practice(
     count = int(daily["gendu_practice_count"] or 0) + 1
     best = daily["gendu_best_score"]
     best_f = score_f if best is None else max(float(best), score_f)
+    day_total = _gendu_day_practice_count(conn, student_id, task_date)
     new_state = daily["state"]
-    if count >= GENDU_DAILY_PRACTICES and new_state not in ("done_study", "done_pass"):
+    if (
+        count >= GENDU_DAILY_PRACTICES or day_total >= GENDU_DAILY_PRACTICES
+    ) and new_state not in ("done_study", "done_pass"):
         new_state = "done_study"
     conn.execute(
         """
@@ -1969,6 +2014,19 @@ def report_gendu_practice(
         """,
         (count, best_f, new_state, int(daily["id"])),
     )
+    if day_total >= GENDU_DAILY_PRACTICES:
+        # 当天换过篇时，旧课那一行也要一起置为完成（按天口径）。
+        conn.execute(
+            """
+            UPDATE daily_tasks SET state='done_study'
+            WHERE student_id=? AND task_date=?
+              AND plan_item_id IN (
+                SELECT id FROM plan_items WHERE student_id=? AND module_type=?
+              )
+              AND state NOT IN ('done_study', 'done_pass')
+            """,
+            (student_id, task_date, student_id, GENDU_MODULE),
+        )
     if score_f >= GENDU_PASS_SCORE:
         conn.execute(
             """
@@ -1984,10 +2042,10 @@ def report_gendu_practice(
         "gendu_assignment": get_gendu_assignment(conn, student_id, on_date=task_date),
     }
     return {
-        "practice_count": count,
+        "practice_count": day_total,
         "required": GENDU_DAILY_PRACTICES,
         "best_score": best_f,
-        "day_complete": count >= GENDU_DAILY_PRACTICES,
+        "day_complete": day_total >= GENDU_DAILY_PRACTICES,
         "passed_lesson": score_f >= GENDU_PASS_SCORE
         or bool(_raw_gendu_assignment(conn, student_id).get("passed_current")),
         "today": today_data,
@@ -3411,6 +3469,8 @@ def _build_daily_tasks_time_budget(
         pid = item["id"]
         if pid in in_result:
             continue
+        if not _item_available_on(item, task_date):
+            continue
         result.append((pid, "content_refresh", True))
         in_result.add(pid)
         used += _est_minutes(conn, item)
@@ -3425,6 +3485,8 @@ def _build_daily_tasks_time_budget(
             continue
         item = dict(item_row)
         if _item_done(item):
+            continue
+        if not _item_available_on(item, task_date):
             continue
         backlog_items.append(item)
     for item in _interleave_by_module(backlog_items):
@@ -3450,6 +3512,8 @@ def _build_daily_tasks_time_budget(
         if _item_done(item):
             continue
         if item["id"] in in_result:
+            continue
+        if not _item_available_on(item, task_date):
             continue
         fresh_candidates.append(item)
     for item in _interleave_by_module(fresh_candidates):
@@ -3502,7 +3566,14 @@ def _materialize_daily_picks(
 def _ensure_gendu_in_existing_daily(
     conn: sqlite3.Connection, student_id: str, task_date: str
 ) -> None:
-    """If assignment active but today's locked pack lacks current gendu, append it."""
+    """If assignment active but today's locked pack lacks current gendu, append it.
+
+    历史日期（task_date < 今天）只读：跟读换课后不得回头改写过去某天的记录。
+    否则会把学生当天尚未布置的新课塞进历史日期（幽灵任务 → 假积压），
+    并把已完成旧课的那一天覆盖掉。
+    """
+    if task_date < china_ymd():
+        return
     asg = get_gendu_assignment(conn, student_id, on_date=task_date)
     if not asg or not asg.get("active"):
         if asg and (asg.get("expired") or asg.get("upcoming")):
@@ -3599,6 +3670,7 @@ def _build_daily_tasks_units(
         ).fetchall()
     ]
     live = _gendu_aware_plan_items(conn, student_id, task_date, live)
+    live = [it for it in live if _item_available_on(it, task_date)]
     backlog_ids = set(backlog_plan_item_ids(conn, student_id, before_date=task_date))
     released_ids = _released_plan_item_ids(conn, student_id)
     quota_map = _module_quota_map(conn, student_id, task_date, live)
@@ -3640,6 +3712,36 @@ def build_daily_tasks(
     return _build_daily_tasks_time_budget(conn, student_id, task_date)
 
 
+def _utc_to_shanghai_ymd(raw: Any) -> Optional[str]:
+    """把 UTC ISO 时间戳（``...Z``）转成上海日期；解析失败时退化为前 10 位。"""
+    if not raw:
+        return None
+    text = str(raw)
+    try:
+        dt = datetime.fromisoformat(text.replace("Z", "+00:00"))
+    except ValueError:
+        ymd = text[:10]
+        return ymd if re.fullmatch(r"\d{4}-\d{2}-\d{2}", ymd) else None
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    return dt.astimezone(SHANGHAI).strftime("%Y-%m-%d")
+
+
+def _item_created_ymd(item: dict[str, Any]) -> Optional[str]:
+    return _utc_to_shanghai_ymd(item.get("created_at"))
+
+
+def _item_available_on(item: dict[str, Any], task_date: str) -> bool:
+    """计划条目在该任务日是否已经存在。
+
+    给「条目还没创建」的历史日期补任务＝幽灵任务：学生当天根本没这批作业，
+    却会被记成「昨日任务未完成 / 积压」并标红。计划改动（新增单元、跟读换课）
+    后回填昨日都会踩到，所以补任务前必须先过这道闸。
+    """
+    created = _item_created_ymd(item)
+    return not created or created <= task_date
+
+
 def _plan_effective_start(
     conn: sqlite3.Connection,
     student_id: str,
@@ -3660,16 +3762,7 @@ def _plan_effective_start(
     ).fetchone()
     if not row or not row["first_created"]:
         return None
-    raw = str(row["first_created"])
-    try:
-        dt = datetime.fromisoformat(raw.replace("Z", "+00:00"))
-    except ValueError:
-        # 拿不到可靠解析就保守退化为按日期前缀截断到天
-        ymd = raw[:10]
-        return ymd if re.fullmatch(r"\d{4}-\d{2}-\d{2}", ymd) else None
-    if dt.tzinfo is None:
-        dt = dt.replace(tzinfo=timezone.utc)
-    return dt.astimezone(SHANGHAI).strftime("%Y-%m-%d")
+    return _utc_to_shanghai_ymd(row["first_created"])
 
 
 def ensure_active_plan_daily_tasks(
@@ -4250,13 +4343,28 @@ def _enrich_daily(
                 "est_minutes": item.get("plan_est") or item.get("unit_est") or 15,
             }
         if str(item.get("module_type") or "") == GENDU_MODULE:
+            day_total = _gendu_day_practice_count(conn, student_id, task_date)
             entry["gendu_practice_count"] = gendu_count
+            entry["gendu_day_count"] = day_total
             entry["gendu_required"] = GENDU_DAILY_PRACTICES
             entry["gendu_best_score"] = item.get("gendu_best_score")
-            entry["scope_done"] = gendu_count
+            entry["scope_done"] = min(
+                max(day_total, gendu_count), GENDU_DAILY_PRACTICES
+            )
             entry["scope_total"] = GENDU_DAILY_PRACTICES
             entry["scope_unit"] = "次"
             entry["scope_label"] = "今日跟读"
+            # 自愈：按天口径已满 3 次，但行还没置完成（历史重建留下的不一致）。
+            if (
+                day_total >= GENDU_DAILY_PRACTICES
+                and str(item["state"]) not in ("done_study", "done_pass")
+            ):
+                conn.execute(
+                    "UPDATE daily_tasks SET state='done_study' WHERE id=?",
+                    (int(item["id"]),),
+                )
+                conn.commit()
+                entry["state"] = "done_study"
         out.append(entry)
     return out
 
@@ -4573,14 +4681,7 @@ def complete_study(
     # (lesson advance is driven by ≥70% + next-day pointer).
     if unit and str(unit["module_type"]) == GENDU_MODULE:
         today = china_ymd()
-        daily = conn.execute(
-            """
-            SELECT gendu_practice_count, state FROM daily_tasks
-            WHERE student_id=? AND task_date=? AND plan_item_id=?
-            """,
-            (student_id, today, plan_item_id),
-        ).fetchone()
-        count = int(daily["gendu_practice_count"] or 0) if daily else 0
+        count = _gendu_day_practice_count(conn, student_id, today)
         if count < GENDU_DAILY_PRACTICES:
             raise ValueError(
                 f"听力跟读当日需完成 {GENDU_DAILY_PRACTICES} 次（当前 {count}/{GENDU_DAILY_PRACTICES}）"
