@@ -2391,8 +2391,15 @@ def backlog_plan_item_ids(
 
     Today's unfinished tasks do not count yet (the day is still in progress).
     ``before_date`` defaults to China today.
+
+    早于「计划生效日」的日期一律不算：那是计划尚未创建时被旧版回填逻辑塞进去的
+    幽灵行（9/17 之前 ensure_active_plan_daily_tasks 无下限回填），学生当天根本
+    没有这批任务，计成积压会一直挂着并标红。
     """
     cutoff = before_date or china_ymd()
+    plan_start = _plan_effective_start(conn, student_id)
+    if plan_start and cutoff <= plan_start:
+        return []
     rows = conn.execute(
         """
         SELECT DISTINCT d.plan_item_id
@@ -2400,6 +2407,7 @@ def backlog_plan_item_ids(
         JOIN plan_items p ON p.id = d.plan_item_id
         WHERE d.student_id=?
           AND d.task_date < ?
+          AND d.task_date >= ?
           AND p.status != 'removed'
           AND (
             (p.item_type='study' AND p.study_completed=0)
@@ -2407,7 +2415,7 @@ def backlog_plan_item_ids(
           )
         ORDER BY d.task_date, d.sort_in_day
         """,
-        (student_id, cutoff),
+        (student_id, cutoff, plan_start or ""),
     ).fetchall()
     ids = [int(r["plan_item_id"]) for r in rows]
     # 跟读单元：最近一次安排日「做满 3 次 = 当日完成」即不计积压（即使未过 70 分关）。
@@ -2422,9 +2430,10 @@ def backlog_plan_item_ids(
                 """
                 SELECT state FROM daily_tasks
                 WHERE student_id=? AND plan_item_id=? AND task_date<?
+                  AND task_date >= ?
                 ORDER BY task_date DESC LIMIT 1
                 """,
-                (student_id, pid, cutoff),
+                (student_id, pid, cutoff, plan_start or ""),
             ).fetchone()
             if latest and latest["state"] == "done_study":
                 continue
@@ -3811,7 +3820,14 @@ def _plan_progress_brief(progress: dict[str, dict[str, int]]) -> list[dict[str, 
 def _today_task_counts(
     conn: sqlite3.Connection, student_id: str, task_date: str
 ) -> tuple[int, int, int]:
-    """Return (done, total, done_fail). Read-only; empty if not materialized."""
+    """Return (done, total, done_fail). Read-only; empty if not materialized.
+
+    早于「计划生效日」的日期视为没有任务：那是旧版回填逻辑留下的幽灵行，
+    否则新学生的看板会凭空出现「昨日任务 0/N」并标红。
+    """
+    plan_start = _plan_effective_start(conn, student_id)
+    if plan_start and task_date < plan_start:
+        return 0, 0, 0
     rows = conn.execute(
         """
         SELECT state FROM daily_tasks

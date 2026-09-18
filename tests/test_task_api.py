@@ -23,6 +23,7 @@ from task_api import (  # noqa: E402
     GENDU_PASS_SCORE,
     _interleave_by_module,
     _plan_progress_brief,
+    _student_overview_row,
     apply_draft_to_live,
     backlog_plan_item_ids,
     build_daily_tasks,
@@ -827,6 +828,18 @@ class TaskApiTests(unittest.TestCase):
         put_plan_draft(conn, "2025001", items)
         apply_draft_to_live(conn, "2025001")
 
+    def _backdate_plan_start(self, conn: sqlite3.Connection, ymd: str) -> None:
+        """把「计划生效日」提前，用于模拟早就有计划的老学生。
+
+        早于计划生效日的 daily_tasks 视为幽灵行（不值班、不算积压），
+        所以构造历史任务的测试必须先把计划生效日挪到那些日期之前。
+        """
+        conn.execute(
+            "UPDATE plan_items SET created_at=? WHERE student_id='2025001'",
+            (ymd + "T00:00:00.000Z",),
+        )
+        conn.commit()
+
     def _enable_units_mode(
         self,
         conn: sqlite3.Connection,
@@ -906,6 +919,7 @@ class TaskApiTests(unittest.TestCase):
         """Unfinished weekend/heavy day must not dump all onto a smaller weekday."""
         conn = _connect()
         self._apply_reading_plan(conn, 5)
+        self._backdate_plan_start(conn, "2026-08-01")
         self._enable_units_mode(conn, weekday_units=3, weekend_units=3)
         day1 = "2026-08-25"
         build_daily_tasks(conn, "2025001", day1)
@@ -922,6 +936,7 @@ class TaskApiTests(unittest.TestCase):
         """Today's unlocked work is not backlog until the day has passed."""
         conn = _connect()
         self._apply_reading_plan(conn, 3)
+        self._backdate_plan_start(conn, "2026-09-01")
         self._enable_units_mode(conn, weekday_units=3, weekend_units=3)
         today = "2026-09-10"
         daily = build_daily_tasks(conn, "2025001", today)
@@ -946,6 +961,7 @@ class TaskApiTests(unittest.TestCase):
             ),
         )
         apply_draft_to_live(conn, "2025001")
+        self._backdate_plan_start(conn, "2026-08-01")
         put_time_profile(
             conn,
             "2025001",
@@ -1214,6 +1230,61 @@ class TaskApiTests(unittest.TestCase):
             len(backlog_plan_item_ids(conn, "2025001", before_date=today)), 0
         )
 
+    def test_backlog_ignores_legacy_ghost_rows_before_plan_start(self) -> None:
+        """回归（线上左茜文 2025144）：旧版回填留下的幽灵行不能再算积压。
+
+        线上实例：计划 9/17 11:45 创建，11:46 有幽灵行落到 9/16，
+        导致「昨日任务 3/3 · 100%」却仍显示「积压 3」并标红。
+        这里手工插入同样的历史脏数据，验证 backlog / 昨日看板都忽略它。
+        """
+        conn = _connect()
+        put_plan_draft(
+            conn,
+            "2025001",
+            [
+                {"item_type": "study", "unit_id": f"reading_synonym_u{i:02d}"}
+                for i in range(1, 4)
+            ],
+        )
+        apply_draft_to_live(conn, "2025001")
+        # 计划生效日固定为 2026-09-17（上海日）
+        conn.execute(
+            "UPDATE plan_items SET created_at='2026-09-17T03:45:56.301Z' "
+            "WHERE student_id='2025001'"
+        )
+        conn.commit()
+        today = "2026-09-18"
+        plan_item_ids = [
+            int(r["id"])
+            for r in conn.execute(
+                "SELECT id FROM plan_items WHERE student_id='2025001' ORDER BY sort_order"
+            ).fetchall()
+        ]
+        # 模拟旧版回填：把队首单元塞进计划生效日之前（9/16）
+        for sort_i, pid in enumerate(plan_item_ids):
+            conn.execute(
+                """
+                INSERT INTO daily_tasks
+                    (student_id, task_date, plan_item_id, priority_class,
+                     sort_in_day, state, locked)
+                VALUES ('2025001', '2026-09-16', ?, 'fresh', ?, 'todo', 1)
+                """,
+                (pid, sort_i),
+            )
+        conn.commit()
+        # 幽灵行不得计入积压
+        self.assertEqual(
+            backlog_plan_item_ids(conn, "2025001", before_date=today),
+            [],
+            "计划生效日之前的幽灵行不应计入积压",
+        )
+        # 幽灵日也不能冒充「昨日任务」
+        row = _student_overview_row(
+            conn, "2025001", "测试学生", today, hour=10
+        )
+        self.assertEqual(row["yesterday_total"], 0)
+        self.assertNotEqual(row["row_status"], "red")
+
     def test_plan_progress_brief_lists_all_modules(self) -> None:
         brief = _plan_progress_brief(
             {
@@ -1238,6 +1309,7 @@ class TaskApiTests(unittest.TestCase):
         ]
         put_plan_draft(conn, "2025001", items)
         apply_draft_to_live(conn, "2025001")
+        self._backdate_plan_start(conn, "2026-08-01")
         rows = conn.execute(
             "SELECT id FROM plan_items WHERE student_id='2025001' ORDER BY sort_order"
         ).fetchall()
@@ -1269,6 +1341,7 @@ class TaskApiTests(unittest.TestCase):
             ],
         )
         apply_draft_to_live(conn, "2025001")
+        self._backdate_plan_start(conn, "2026-08-01")
         rows = conn.execute(
             "SELECT id FROM plan_items WHERE student_id='2025001' ORDER BY sort_order"
         ).fetchall()
