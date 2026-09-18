@@ -979,6 +979,11 @@
     text-transform: uppercase;
     letter-spacing: 1px;
   }
+  .group-hint {
+    font-size: 12px;
+    color: var(--text-dimmer);
+    letter-spacing: 0.5px;
+  }
   .group-words {
     display: flex;
     flex-wrap: wrap;
@@ -2885,26 +2890,14 @@ function renderStudy() {
 
   const list = document.getElementById('groupsList');
   list.innerHTML = '';
+  // 预览区只显示「每组几个词」，不列出具体词条：
+  // 把同义词成组列出来，等于把答案直接摆在学生面前，练习就失去意义了。
   currentSetGroups.forEach((group, idx) => {
     const card = document.createElement('div');
     card.className = 'group-card';
     card.innerHTML = `
       <div class="group-label">第 ${idx + 1} 组 · 同义词组</div>
-      <div class="group-words">
-        ${group.map(w => {
-          const cn = getChineseMeaning(w);
-          const tooltip = cn
-            ? `<div class="tooltip">
-                 <div class="tooltip-cn">${cn}</div>
-                 <div class="tooltip-syn"><span class="tooltip-syn-label">本组同义词:</span> ${group.filter(x => x !== w).slice(0, 5).join(' · ') || '无'}</div>
-               </div>`
-            : `<div class="tooltip">
-                 <div class="tooltip-cn">暂无翻译</div>
-                 <div class="tooltip-syn"><span class="tooltip-syn-label">本组同义词:</span> ${group.filter(x => x !== w).slice(0, 5).join(' · ') || '无'}</div>
-               </div>`;
-          return `<span class="group-word">${w}${tooltip}</span>`;
-        }).join('')}
-      </div>
+      <div class="group-hint">共 ${group.length} 个词 · 开始练习后揭晓</div>
     `;
     list.appendChild(card);
   });

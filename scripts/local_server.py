@@ -3468,6 +3468,22 @@ class LocalHandler(SimpleHTTPRequestHandler):
             if not headers_sent:
                 self.send_error(HTTPStatus.INTERNAL_SERVER_ERROR, "File read error")
 
+    def end_headers(self) -> None:
+        # 静态 HTML 必须回源校验：基类只发 Last-Modified，浏览器会按启发式规则
+        # 自行缓存（可达数天）。页面里的 js/css 用 ?v= 做版本号，一旦 HTML 本身被
+        # 缓存住，学生就会一直看到旧页面，改了代码也不生效。
+        try:
+            buffered = getattr(self, "_headers_buffer", None) or []
+            is_html = any(
+                line.lower().startswith(b"content-type:") and b"text/html" in line.lower()
+                for line in buffered
+            )
+        except Exception:
+            is_html = False
+        if is_html:
+            self.send_header("Cache-Control", "no-cache")
+        super().end_headers()
+
     def jianya_catalog_payload(self) -> dict[str, Any]:
         return build_jianya_catalog(JIANYA_EXAM_DATA)
 

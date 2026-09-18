@@ -416,7 +416,7 @@ var MODULES = [
     { id: 'highschool_words', name: '高中单词', target_type: 'dynamic', targets: { 6: 85, 6.5: 95, 7: 100 }, unit: '%', url: '', icon: 'book' },
     { id: 'ielts_core', name: '雅思核心800词', target_type: 'dynamic', targets: { 6: 65, 6.5: 80, 7: 95 }, unit: '%', url: '', icon: 'star' },
     { id: 'grammar', name: '基础语法', target_type: 'dynamic', targets: { 6: 75, 6.5: 85, 7: 85 }, unit: '%', url: '', icon: 'academic' },
-    { id: 'reading_synonym', name: '阅读同义替换', target_type: 'dynamic', targets: { 6: 70, 6.5: 80, 7: 90 }, unit: '%', url: '../tongyitihuan/index.html', test_url: '../tongyitihuanceshi/index.html?v=20260827c', icon: 'eye' },
+    { id: 'reading_synonym', name: '阅读同义替换', target_type: 'dynamic', targets: { 6: 70, 6.5: 80, 7: 90 }, unit: '%', url: '../tongyitihuan/index.html?v=20260918syn', test_url: '../tongyitihuanceshi/index.html?v=20260918syn', icon: 'eye' },
     { id: 'sentence', name: '长难句分析', target_type: 'dynamic', targets: { 6: 60, 6.5: 80, 7: 80 }, unit: '%', url: '../changnanju/index.html', test_url: '../changnanjuceshi/index.html?v=20260827c', icon: 'analysis' },
     { id: 'dictation', name: '听力1000词', target_type: 'dynamic', targets: { 6: 70, 6.5: 80, 7: 90 }, unit: '%', url: '', icon: 'headphones' },
     { id: 'listening_basic', name: '听力基础词汇', target_type: 'dynamic', targets: { 6: 70, 6.5: 80, 7: 90 }, unit: '%', url: '', icon: 'headphones' },
