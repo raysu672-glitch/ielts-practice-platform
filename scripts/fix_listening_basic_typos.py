@@ -1,12 +1,25 @@
 #!/usr/bin/env python3
-"""Fix known typos in 听力基础词汇 (modules.js, listening_basic.html, audio filenames)."""
+"""Fix known typos in 听力基础词汇 (modules.js, listening_basic.html, audio).
+
+注意：音频部分必须**重新生成**，不能只重命名文件。
+早期版本这里只做 `src.rename(dst)`，于是 land.mp3 里念的仍然是生成时的拼错词
+"iand"（听起来像 "End"），学生反馈读音不对。详见
+scripts/repair_basic_words_audio.py 的模块说明。
+"""
 from __future__ import annotations
 
+import asyncio
 import json
 import re
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
+# 词表规模守卫：用于发现 ALL_WORDS 被意外破坏
+EXPECTED_WORD_COUNT = 2037
+# 与 scripts/gen_tts_words.py 保持一致
+VOICE = "en-GB-SoniaNeural"
+RATE = "+0%"
+VOLUME = "+0%"
 MODULES = ROOT / "sources" / "tinglidanciceshi" / "js" / "modules.js"
 LISTENING_BASIC = ROOT / "sources" / "tinglidanciceshi" / "listening_basic.html"
 AUDIO_DIR = ROOT / "sources" / "tinglidanciceshi" / "audio" / "basic_words"
@@ -144,22 +157,35 @@ def fix_listening_basic_html() -> int:
 
 
 def fix_audio() -> tuple[int, list[str]]:
+    """按正确拼写重新生成音频；旧名的 mp3 直接删除。
+
+    只重命名是不够的——文件名换了，音频内容还是拼错词的读音。
+    """
     if not AUDIO_DIR.is_dir():
         return 0, ["audio dir missing"]
-    renamed = 0
+    try:
+        import edge_tts
+    except ImportError:
+        return 0, ["edge-tts 未安装，音频未重新生成（pip install edge-tts）"]
+
+    async def gen(word: str) -> None:
+        await edge_tts.Communicate(word, VOICE, rate=RATE, volume=VOLUME).save(
+            str(AUDIO_DIR / f"{word}.mp3")
+        )
+
+    regenerated = 0
     issues: list[str] = []
     for old, new in TYPO_MAP.items():
-        src = AUDIO_DIR / f"{old}.mp3"
-        dst = AUDIO_DIR / f"{new}.mp3"
-        if not src.is_file():
-            issues.append(f"missing audio: {old}.mp3")
+        old_path = AUDIO_DIR / f"{old}.mp3"
+        try:
+            asyncio.run(gen(new))
+        except Exception as exc:  # noqa: BLE001 - 网络抖动
+            issues.append(f"regenerate failed: {new}.mp3 ({exc})")
             continue
-        if dst.is_file() and dst != src:
-            issues.append(f"target exists, skip: {new}.mp3")
-            continue
-        src.rename(dst)
-        renamed += 1
-    return renamed, issues
+        regenerated += 1
+        if old_path.is_file():
+            old_path.unlink()
+    return regenerated, issues
 
 
 def verify() -> None:
@@ -172,8 +198,11 @@ def verify() -> None:
     for old in TYPO_MAP:
         if f'"word":{json.dumps(old, ensure_ascii=False)}' in html:
             raise SystemExit(f"html still has typo: {old}")
-    if len(words) != 2041:
-        raise SystemExit(f"word count changed: {len(words)}")
+    if len(words) != EXPECTED_WORD_COUNT:
+        raise SystemExit(
+            f"word count changed: {len(words)} != {EXPECTED_WORD_COUNT}；"
+            "若词表是刻意调整的，请同步更新 EXPECTED_WORD_COUNT。"
+        )
 
 
 def main() -> None:
@@ -183,7 +212,7 @@ def main() -> None:
     verify()
     print(f"modules.js: {n_mod} words fixed")
     print(f"listening_basic.html: {n_html} entries fixed")
-    print(f"audio: {n_audio} files renamed")
+    print(f"audio: {n_audio} files regenerated")
     if audio_issues:
         print("audio notes:")
         for line in audio_issues:

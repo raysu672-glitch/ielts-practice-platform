@@ -1,4 +1,16 @@
 #!/bin/bash
+# ⚠️ 已废弃 / 危险 —— 不要再用它来「修」拼写错误的音频。
+#
+# 本脚本只重命名 mp3 文件，**不会重新生成音频内容**。早期 land/leisure/steel
+# 等 50 个词的音频就是这么坏的：文件名换成了正确拼写，但 mp3 里念的还是
+# generation 时的拼错词（iand / ieisure / steei ...）。
+#
+# 正确做法：
+#   python scripts/fix_listening_basic_typos.py        # 词表 + 重新生成音频
+#   python scripts/repair_basic_words_audio.py --generate --upload
+#
+# 以下内容仅作历史记录保留，请勿执行。
+#
 # 听力基础词汇音频重命名（拼写修正后同步服务器文件名）
 # 用法（SSH 登录服务器后）：
 #   cd /var/www/ielts && bash scripts/rename_basic_words_audio_server.sh
@@ -6,6 +18,10 @@
 #   AUDIO_DIR=/var/www/ielts/sources/tinglidanciceshi/audio/basic_words bash rename_basic_words_audio_server.sh
 
 set -euo pipefail
+
+echo "错误：该脚本已废弃（只改名不重新生成音频，会留下错误读音）。" >&2
+echo "请改用 python scripts/repair_basic_words_audio.py --generate --upload" >&2
+exit 1
 
 AUDIO_DIR="${AUDIO_DIR:-/var/www/ielts/sources/tinglidanciceshi/audio/basic_words}"
 
