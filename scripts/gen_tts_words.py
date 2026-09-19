@@ -52,7 +52,7 @@ async def generate_one(word: str, out_path: Path, semaphore: asyncio.Semaphore) 
             return False
 
 
-async def main(html_file: Path, out_dir: Path) -> None:
+async def main(html_file: Path, out_dir: Path, force: bool = False) -> None:
     manifest_file = out_dir / "_manifest.json"
     # 提取词汇
     print(f"Reading words from: {html_file}")
@@ -67,7 +67,7 @@ async def main(html_file: Path, out_dir: Path) -> None:
     else:
         done = set()
 
-    pending = [(w, out_dir / f"{w}.mp3") for w in words if w not in done]
+    pending = [(w, out_dir / f"{w}.mp3") for w in words if force or w not in done]
     print(f"Already done: {len(done)}, Pending: {len(pending)}")
 
     if not pending:
@@ -108,6 +108,11 @@ if __name__ == "__main__":
         action="store_true",
         help="Generate 听力基础词汇 audio into audio/basic_words/",
     )
+    parser.add_argument(
+        "--force",
+        action="store_true",
+        help="忽略 manifest，重新生成全部音频（用于统一语速/修掉历史坏音频）",
+    )
     args = parser.parse_args()
     if args.basic:
         html_file = BASE_DIR / "sources" / "tinglidanciceshi" / "listening_basic.html"
@@ -115,4 +120,4 @@ if __name__ == "__main__":
     else:
         html_file = HTML_FILE
         out_dir = OUT_DIR
-    asyncio.run(main(html_file, out_dir))
+    asyncio.run(main(html_file, out_dir, force=args.force))
