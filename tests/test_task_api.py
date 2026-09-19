@@ -41,6 +41,7 @@ from task_api import (  # noqa: E402
     get_plan,
     get_today,
     insert_stage_test,
+    is_weekend,
     LISTENING_GENDU_LESSONS,
     normalize_stage_test_positions,
     preview_daily_pack_items,
@@ -53,6 +54,18 @@ from task_api import (  # noqa: E402
     submit_stage_test,
     update_scope_progress,
 )
+
+
+def _recent_weekday() -> str:
+    """返回一个确定的工作日（若今天是周末则回退到周五）。
+
+    部分排程用例断言的是工作日预算，直接用「今天」会在周末跑到
+    weekend_minutes 分支而必然失败；这里让用例与运行当天的星期解耦。
+    """
+    day = datetime.strptime(china_ymd(), "%Y-%m-%d")
+    while day.weekday() >= 5:
+        day -= timedelta(days=1)
+    return day.strftime("%Y-%m-%d")
 
 
 def _connect() -> sqlite3.Connection:
@@ -788,11 +801,13 @@ class TaskApiTests(unittest.TestCase):
         items = [{"item_type": "study", "unit_id": f"reading_synonym_u{i:02d}"} for i in range(1, 9)]
         put_plan_draft(conn, "2025001", items)
         apply_draft_to_live(conn, "2025001")
+        # 固定在某个工作日试算，确保命中的是 weekday_minutes 分支
+        weekday = _recent_weekday()
         low = preview_daily_pack_items(
-            conn, "2025001", items, weekday_minutes=40, weekend_minutes=90
+            conn, "2025001", items, task_date=weekday, weekday_minutes=40, weekend_minutes=90
         )
         high = preview_daily_pack_items(
-            conn, "2025001", items, weekday_minutes=120, weekend_minutes=90
+            conn, "2025001", items, task_date=weekday, weekday_minutes=120, weekend_minutes=90
         )
         self.assertEqual(low["budget_minutes"], 40)
         self.assertEqual(high["budget_minutes"], 120)
@@ -803,10 +818,12 @@ class TaskApiTests(unittest.TestCase):
         items = [{"item_type": "study", "unit_id": f"reading_synonym_u{i:02d}"} for i in range(1, 9)]
         put_plan_draft(conn, "2025001", items)
         apply_draft_to_live(conn, "2025001")
+        day = china_ymd()
+        # 今天生效的预算取 weekday_minutes 还是 weekend_minutes，取决于运行当天是星期几
+        expected_budget = 240 if is_weekend(day) else 120
         put_time_profile(
             conn, "2025001", {"weekday_minutes": 40, "weekend_minutes": 90, "effective": "today"}
         )
-        day = china_ymd()
         daily40 = build_daily_tasks(conn, "2025001", day)
         self.assertGreaterEqual(len(daily40), 1)
         put_time_profile(
@@ -821,7 +838,7 @@ class TaskApiTests(unittest.TestCase):
         self.assertEqual(n_locked, 0)
         daily120 = build_daily_tasks(conn, "2025001", day)
         today = get_today(conn, "2025001")
-        self.assertEqual(today["budget_minutes"], 120)
+        self.assertEqual(today["budget_minutes"], expected_budget)
         self.assertGreater(len(daily120), len(daily40))
 
     def _apply_reading_plan(self, conn: sqlite3.Connection, count: int) -> None:
