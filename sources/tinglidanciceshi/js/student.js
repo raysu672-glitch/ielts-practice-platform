@@ -481,6 +481,10 @@ async function completeCurrentTaskStudy(payload) {
     try {
         await _taskScopeProgressChain;
     } catch (e) { /* 进度失败仍尝试打勾；服务端会校验 */ }
+    // 进度上报满时，上面的 scope 流程已自动打勾并消费掉任务上下文（置为 null）；
+    // 分页面此时往往还会再发一次 taskUnitComplete，若继续提交会重复打勾、
+    // 在活动日志里留下一模一样的两条记录。此处静默返回，UI 仍交给分页面的按钮。
+    if (!window._currentTaskContext) return;
     const body = {
         plan_item_id: planItemId,
         content_version: contentVersion
