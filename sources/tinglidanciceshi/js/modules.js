@@ -421,12 +421,12 @@ var MODULES = [
     { id: 'dictation', name: '听力1000词', target_type: 'dynamic', targets: { 6: 70, 6.5: 80, 7: 90 }, unit: '%', url: '', icon: 'headphones' },
     { id: 'listening_basic', name: '听力基础词汇', target_type: 'dynamic', targets: { 6: 70, 6.5: 80, 7: 90 }, unit: '%', url: '', icon: 'headphones' },
     { id: 'listening_synonym', name: '听力同义替换', target_type: 'dynamic', targets: { 6: 70, 6.5: 80, 7: 90 }, unit: '%', url: '../daanjutingxie/index.html', test_url: '../daanjutingxieceshi/index.html?v=20260827c', icon: 'headphones' },
-    { id: 'writing_phrase', name: '写作词伙', target_type: 'dynamic', targets: { 6: 50, 6.5: 70, 7: 90 }, unit: '%', url: '../xiezuocihuo/index.html', test_url: '../xiezuocihuoceshi/index.html?v=20260827c', icon: 'writing' },
-    { id: 'writing_translate', name: '写作句子翻译', target_type: 'dynamic', targets: { 6: 50, 6.5: 70, 7: 90 }, unit: '%', url: '../juzifanyixin/index.html', test_url: '../juzifanyixinceshi/index.html?v=20260827c', icon: 'translate' },
+    { id: 'writing_phrase', name: '写作词伙', target_type: 'dynamic', targets: { 6: 50, 6.5: 70, 7: 90 }, unit: '%', url: '../xiezuocihuo/index.html?v=20260920phrasealt', test_url: '../xiezuocihuoceshi/index.html?v=20260920phrasealt', icon: 'writing' },
+    { id: 'writing_translate', name: '写作句子翻译', target_type: 'dynamic', targets: { 6: 50, 6.5: 70, 7: 90 }, unit: '%', url: '../juzifanyixin/index.html', test_url: '../juzifanyixinceshi/index.html?v=20260920grade', icon: 'translate' },
     { id: 'writing_correction', name: '作文批改', target_type: 'dynamic', targets: { 6: 1, 6.5: 1, 7: 1 }, unit: '次', url: '../xiezuopigai/ielts-student-practice.html', test_url: '', icon: 'edit' },
     
     // 二、听力跟读：练习含 P1/P4；测试只计 P4 讲座识别率
-    { id: 'listening_p4_speed', name: '听力跟读', target_type: 'dynamic', targets: { 6: 70, 6.5: 80, 7: 90 }, unit: '%', url: '../P4gendu/index.html', test_url: '../P4gendu/index.html?part=p4', icon: 'mic' },
+    { id: 'listening_p4_speed', name: '听力跟读', target_type: 'dynamic', targets: { 6: 70, 6.5: 80, 7: 90 }, unit: '%', url: '../P4gendu/index.html', test_url: '../P4genduceshi/index.html', icon: 'mic' },
     
     // 三、每项需要答对个数
     { id: 'reading_p1', name: '阅读Part1', target_type: 'dynamic', targets: { 6: 9, 6.5: 11, 7: 12 }, unit: '个', url: '/jianyazhenti/student?embed=1&subject=reading&part=1', test_url: '/jianyazhenti/student?embed=1&subject=reading&part=1', icon: 'eye' },

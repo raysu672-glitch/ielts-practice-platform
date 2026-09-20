@@ -242,7 +242,8 @@
   .clr-red    { color: #f85149; }
   .clr-blue   { color: #58a6ff; }
   .clr-yellow { color: #d29922; }
-</style></head><body><div class="container" id="app"></div><script>
+</style></head><body><div class="container" id="app"></div><script src="../shared/phrase_answer.js?v=20260920phrasealt"></script>
+<script>
 /* ========== 词伙数据（合并全部） ========== */
 var foundationVocab = [
   { zh: "一系列的问题", en: "a barrage of problems" },
@@ -336,19 +337,6 @@ function shuffle(arr) {
   return a;
 }
 
-/* ========== 判断答案（忽略大小写、规范化空格和标点） ========== */
-function normalize(s) {
-  return s.toLowerCase()
-    .replace(/\s+/g, ' ')
-    .replace(/[\/\(\)]/g, ' ')
-    .replace(/[.,;:!?'\u2018\u2019\u201c\u201d]/g, '')
-    .replace(/\s+/g, ' ')
-    .trim();
-}
-function isCorrect(user, answer) {
-  return normalize(user) === normalize(answer);
-}
-
 /* ========== 状态 ========== */
 var TOTAL = 20;
 var questions = [];
@@ -427,7 +415,7 @@ function renderQuiz() {
     var val = input.value;
     if (!val.trim()) return;
 
-    var correct = isCorrect(val, q.en);
+    var correct = phraseIsCorrect(val, q.en);
 
     btn.disabled = true;
     input.disabled = true;
@@ -440,7 +428,7 @@ function renderQuiz() {
     } else {
       input.className = 'wrong';
       fb.className = 'feedback wrong-msg';
-      fb.innerHTML = ' 正确答案：<b>' + q.en + '</b>';
+      fb.innerHTML = ' 正确答案：<b>' + phraseDisplayAnswer(q.en) + '</b>';
     }
 
     results.push({ item_key: q.en, zh: q.zh, en: q.en, user: val.trim(), correct: correct });
@@ -482,7 +470,7 @@ function renderResult() {
         '<td>' + (i + 1) + '</td>' +
         '<td>' + icon + '</td>' +
         '<td>' + r.zh + '</td>' +
-        '<td class="correct-answer">' + r.en + '</td>' +
+        '<td class="correct-answer">' + phraseDisplayAnswer(r.en) + '</td>' +
         '<td class="user-input">' + userShow + '</td>' +
       '</tr>';
   }

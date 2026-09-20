@@ -396,6 +396,108 @@ function escapeHtml(s) {
     });
 }
 
+// 解析阶段测对应的模块配置：子模块（speaking_complex / speaking_p2_apply 等）
+// 在 modules.js 里没有独立条目，回退到父模块（speaking）
+function resolveStageTestModule(moduleType) {
+    const normalized = normalizeModuleType(moduleType);
+    let mod = getModuleById(normalized);
+    if (!mod) {
+        const parentId = String(normalized || '').split('_')[0];
+        mod = parentId ? getModuleById(parentId) : null;
+    }
+    return mod || null;
+}
+
+// 阶段测：打开模块的真实测试页，分数由测试页真实判分后回传（不再手填）
+// 打开前把 plan_item_id 写进 _currentTaskContext，openGenericIframe 会自动透传给测试页；
+// 测试页完成时 postMessage('genericTestComplete')，由 maybeSubmitStageTest 回写计划条目。
+// 另用一个独立的 _pendingStageTest 标记，避免与模块页自己的测试串味。
+async function openStageTest(it) {
+    const moduleType = normalizeModuleType(it.module_type);
+    const mod = resolveStageTestModule(moduleType);
+    const modId = (mod && mod.id) || moduleType;
+    const modName = (mod && mod.name) || it.title || moduleType;
+    window._currentTaskContext = {
+        plan_item_id: it.plan_item_id,
+        unit_id: it.unit_id,
+        content_version: it.content_version || '1',
+        daily_task_id: it.daily_task_id,
+        stage_test: true
+    };
+    window._pendingStageTest = { plan_item_id: it.plan_item_id };
+    // 单词听写没有独立测试页，走内置随机测（50 词），完成回调在 finishTest 里提交
+    if (typeof isBuiltinDictationModule === 'function' && isBuiltinDictationModule(modId) &&
+        typeof startTest === 'function') {
+        await startTest('random', modId);
+        return;
+    }
+    const testUrl = (mod && mod.test_url) || '';
+    if (!testUrl) {
+        window._currentTaskContext = null;
+        window._pendingStageTest = null;
+        showToast('该模块测试尚未接入，请联系助教', 'info');
+        return;
+    }
+    await openGenericIframe(modId, modName, testUrl, 'test');
+}
+
+// 阶段测结果回写：分数来自测试页真实判分，阈值由服务端按学生目标分档决定（前端不再传 threshold）
+var _stageTestSubmitting = false;
+async function maybeSubmitStageTest(result) {
+    const pending = window._pendingStageTest || {};
+    const planItemId = pending.plan_item_id;
+    if (!planItemId) return;
+    if (_stageTestSubmitting) return;
+    const r = result || {};
+    _stageTestSubmitting = true;
+    window._pendingStageTest = null;
+    window._currentTaskContext = null;
+    try {
+        const res = await apiFetch('/api/task/me/submit-test', {
+            method: 'POST',
+            body: JSON.stringify({
+                plan_item_id: planItemId,
+                score: Number(r.score) || 0,
+                correct_count: Number(r.correct_count) || 0,
+                total_count: Number(r.total_count) || 0,
+                duration_seconds: Number(r.duration_seconds) || 0
+            })
+        });
+        if (res.error) {
+            showToast((res.error && res.error.message) || '阶段测提交失败', 'error');
+        } else {
+            const d = res.data || {};
+            const shown = d.score != null ? d.score : (Number(r.score) || 0);
+            showToast(d.passed ? '阶段测已过关' : ('阶段测未过关（' + shown + ' 分），可改日重测'),
+                d.passed ? 'success' : 'error');
+        }
+    } catch (e) {
+        console.error('阶段测提交异常:', e);
+    } finally {
+        _stageTestSubmitting = false;
+        try { loadTodayTasks(); } catch (e) {}
+    }
+}
+
+// 模块页 / 错题本自己发起的测试：先清掉任务流可能残留的阶段测标记，
+// 否则测试页回传的分数会被误判成某个阶段测的成绩
+function clearPendingStageTest() {
+    window._pendingStageTest = null;
+    if (window._currentTaskContext && window._currentTaskContext.stage_test) {
+        window._currentTaskContext = null;
+    }
+}
+
+function startModuleTest(moduleId) {
+    clearPendingStageTest();
+    return startTest('random', moduleId);
+}
+
+function openModuleTabTest(moduleId, moduleName, testUrl) {
+    clearPendingStageTest();
+    return openGenericIframe(moduleId, moduleName, testUrl, 'test');
+}
+
 function openTaskItem(planItemId) {
     const items = window._todayTaskItems || [];
     const it = items.find(function(x) { return x.plan_item_id === planItemId; });
@@ -404,29 +506,7 @@ function openTaskItem(planItemId) {
         return;
     }
     if (it.item_type === 'test') {
-        // MVP: simple stage test via prompt score
-        const raw = window.prompt('阶段测得分（MVP 手填，正式版接测试页）', '85');
-        if (raw == null) return;
-        const score = Number(raw);
-        if (isNaN(score)) {
-            showToast('请输入数字', 'error');
-            return;
-        }
-        apiFetch('/api/task/me/submit-test', {
-            method: 'POST',
-            body: JSON.stringify({
-                plan_item_id: planItemId,
-                score: score,
-                threshold: 80
-            })
-        }).then(function(result) {
-            if (result.error) {
-                showToast((result.error && result.error.message) || '提交失败', 'error');
-                return;
-            }
-            showToast(result.data && result.data.passed ? '已过关' : '未过关', result.data && result.data.passed ? 'success' : 'error');
-            loadTodayTasks();
-        });
+        openStageTest(it);
         return;
     }
     let url = it.study_url || '';
@@ -662,7 +742,8 @@ function loadJianyaMockFrame(force) {
 function loadLubokeStudentFrame() {
     var frame = document.getElementById('lubokeStudentIframe');
     if (!frame) return;
-    var next = '/luboke/?embed=1';
+    // 带版本号，避免浏览器复用旧缓存页面导致前端改动不生效
+    var next = '/luboke/?embed=1&v=20260920collapse3';
     if (frame.getAttribute('data-src') !== next) {
         frame.src = next;
         frame.setAttribute('data-src', next);
@@ -801,7 +882,7 @@ async function loadProgressTable() {
 
         if (isBuiltinDictationModule(m.id)) {
             html += '<button class="btn btn-study" onclick="openListeningIframe(\'' + m.id + '\')">学习</button>';
-            html += '<button class="btn btn-sm btn-secondary" onclick="startTest(\'random\', \'' + m.id + '\')">测试</button>';
+            html += '<button class="btn btn-sm btn-secondary" onclick="startModuleTest(\'' + m.id + '\')">测试</button>';
             html += '<button class="btn btn-sm btn-success" onclick="openWrongBook(\'' + m.id + '\')">' + wrongBookButtonLabel(m.id) + '</button>';
         } else if (m.id === 'writing_correction') {
             const writingUnseen = Number(window._writingUnseenCount || 0);
@@ -816,7 +897,7 @@ async function loadProgressTable() {
             }
             if (!isStudyOnlyModule(m)) {
                 if (m.test_url) {
-                    html += '<button class="btn btn-sm btn-secondary" onclick="openGenericIframe(\'' + m.id + '\', \'' + m.name + '\', \'' + m.test_url + '\', \'test\')">测试</button>';
+                    html += '<button class="btn btn-sm btn-secondary" onclick="openModuleTabTest(\'' + m.id + '\', \'' + m.name + '\', \'' + m.test_url + '\')">测试</button>';
                 } else {
                     html += '<button class="btn btn-sm btn-secondary" disabled title="该模块暂未配置测试页面">测试待接入</button>';
                 }
@@ -1083,6 +1164,7 @@ function startWrongBookTest(moduleId) {
     const m = getModuleById(moduleId);
     if (!m) return;
     window._wrongBookReturn = moduleId;
+    clearPendingStageTest();
     if (isBuiltinDictationModule(moduleId)) {
         startTest('wrong_words', moduleId);
         return;
@@ -1522,7 +1604,9 @@ async function finishTest() {
     const isPassed = score >= threshold;
 
     const durationSeconds = practiceElapsedSeconds(testStartTime);
-    const insertResult = await saveModuleTestRecord({
+    // 阶段测的明细由 maybeSubmitStageTest 写成一条 stage_test 记录，这里不再重复写
+    const isStageTest = !!(window._pendingStageTest && window._pendingStageTest.plan_item_id);
+    const insertResult = isStageTest ? { skipped: true, error: null } : await saveModuleTestRecord({
         student_id: currentStudent.student_id,
         module_type: dictation.id,
         module_name: dictation.name,
@@ -1547,7 +1631,15 @@ async function finishTest() {
 
     testFinished = true;
     stopPracticeClock();
-    
+
+    // 阶段测：听写走内置随机测（无独立测试页），同样用真实得分与题数回写计划条目
+    await maybeSubmitStageTest({
+        score: score,
+        correct_count: correctCount,
+        total_count: testResults.length,
+        duration_seconds: durationSeconds
+    });
+
     let newWrongCount = 0;
     const applyResult = await applyDictationWrongBookResults(testResults, dictation.id);
     if (applyResult && applyResult.error) {
@@ -2437,8 +2529,8 @@ function buildPhraseWordPool(q) {
     const pool = document.getElementById('phraseWordPool');
     pool.innerHTML = '';
     
-    // 正确答案的单词
-    const correctWords = q.en.split(' ');
+    // 正确答案的单词（多写法题只按主答案出块，避免 `steadily/solidly` 这种块）
+    const correctWords = phrasePrimaryAnswer(q.en).split(/\s+/).filter(Boolean);
     const allWords = correctWords.slice();
     
     // 从其他词伙中获取干扰词
@@ -2446,7 +2538,7 @@ function buildPhraseWordPool(q) {
     phraseCategories.forEach(function(cat) {
         cat.vocab.forEach(function(v) {
             if (v.en !== q.en) {
-                v.en.split(' ').forEach(function(w) {
+                phrasePrimaryAnswer(v.en).split(/\s+/).forEach(function(w) {
                     if (otherWords.indexOf(w) === -1) {
                         otherWords.push(w);
                     }
@@ -2456,7 +2548,7 @@ function buildPhraseWordPool(q) {
     });
     foundationPhrases.forEach(function(v) {
         if (v.en !== q.en) {
-            v.en.split(' ').forEach(function(w) {
+            phrasePrimaryAnswer(v.en).split(/\s+/).forEach(function(w) {
                 if (otherWords.indexOf(w) === -1) {
                     otherWords.push(w);
                 }
@@ -2539,13 +2631,14 @@ function phraseCheckAnswer() {
     
     const q = phraseState.vocab[phraseState.currentIndex];
     
-    // 比较答案（忽略顺序）
+    // 比较答案（忽略顺序；多写法题任一写法命中即算对）
     const userSorted = phraseState.selectedWords.map(function(e) { return e.word.toLowerCase(); }).sort().join(' ');
-    const correctSorted = q.en.toLowerCase().split(' ').sort().join(' ');
+    const acceptSets = phraseAcceptedWordSets(q.en);
+    const matched = acceptSets.some(function(ws) { return ws.join(' ') === userSorted; });
     
     phraseState.totalAnswered++;
     
-    if (userSorted === correctSorted) {
+    if (matched) {
         phraseState.correctCount++;
         document.getElementById('phraseHint').textContent = ' 正确！';
         document.getElementById('phraseHint').style.color = '#28a745';
@@ -2555,7 +2648,7 @@ function phraseCheckAnswer() {
             loadPhraseQuestion();
         }, 800);
     } else {
-        document.getElementById('phraseHint').textContent = ' 正确答案：' + q.en;
+        document.getElementById('phraseHint').textContent = ' 正确答案：' + phraseDisplayAnswer(q.en);
         document.getElementById('phraseHint').style.color = '#dc3545';
         
         setTimeout(function() {
@@ -2945,20 +3038,25 @@ window.addEventListener('message', async function(event) {
             const endedAt = data.endedAt || data.ended_at || new Date().toISOString();
             const startedAt = data.startedAt || data.started_at || new Date(new Date(endedAt).getTime() - durationSeconds * 1000).toISOString();
             const scorePercent = data.scorePercent != null ? data.scorePercent : data.score;
+            const correctCount = data.correctCount || data.correct_count || data.rightCount || 0;
+            const totalCount = data.totalCount || data.total_count || 0;
             let passThreshold = data.passThreshold != null ? data.passThreshold : data.pass_threshold;
             let isPassed = data.isPassed != null ? data.isPassed : data.is_passed;
             if (moduleType === 'listening_p4_speed') {
                 passThreshold = await getPassThreshold(moduleType, currentStudent);
                 isPassed = Number(scorePercent) >= Number(passThreshold);
             }
-            const result = await saveModuleTestRecord({
+            // 阶段测的明细由 maybeSubmitStageTest 写成一条 stage_test 记录，
+            // 这里不再重复写 module_test——否则一次测试算两次、看板「总测试次数」虚高
+            const isStageTest = !!(window._pendingStageTest && window._pendingStageTest.plan_item_id);
+            const result = isStageTest ? { skipped: true, error: null } : await saveModuleTestRecord({
                 student_id: currentStudent.student_id,
                 module_type: moduleType,
                 module_name: current.name || (module ? module.name : moduleType),
                 test_type: data.testType || data.test_type || 'module_test',
                 score_percent: scorePercent,
-                correct_count: data.correctCount || data.correct_count || data.rightCount || 0,
-                total_count: data.totalCount || data.total_count || 0,
+                correct_count: correctCount,
+                total_count: totalCount,
                 duration_seconds: durationSeconds,
                 started_at: startedAt,
                 ended_at: endedAt,
@@ -2971,7 +3069,7 @@ window.addEventListener('message', async function(event) {
                 console.error('保存测试记录失败:', result.error);
                 showToast('保存测试记录失败', 'error');
             } else {
-                if (!result.skipped) showToast('测试记录已保存');
+                if (!result.skipped && !isStageTest) showToast('测试记录已保存');
                 if (module && hasWrongBook(module)) {
                     const applyItems = extractWrongItemResults(moduleType, data.details || []);
                     if (applyItems.length > 0) {
@@ -2987,6 +3085,13 @@ window.addEventListener('message', async function(event) {
                 }
                 try { loadProgressTable(); } catch(e) {}
             }
+            // 阶段测：任务流进来的测试，用测试页真实得分回写计划条目（阈值由服务端决定）
+            await maybeSubmitStageTest({
+                score: scorePercent,
+                correct_count: correctCount,
+                total_count: totalCount,
+                duration_seconds: durationSeconds
+            });
         }
     } catch (e) {
         console.error('处理模块上报失败:', e);

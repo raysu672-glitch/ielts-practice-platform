@@ -1,0 +1,17 @@
+---
+description: 推送阿里云的强制六步发布清单，禁止跳步
+alwaysApply: true
+---
+
+# 阿里云发布清单（强制）
+
+用户要求部署/推送阿里云、上线、发布时，**必须按序执行且不可跳步**。禁止先改线上再回写本地；禁止未 push 就部署。
+
+1. **备份数据库**：从服务器拉下线上 DB 到本地 `backups/aliyun_YYYYMMDD_HHMMSS/`（至少 `data/ielts_local.db`；若存在一并备份其他 `data/*.db`），并保留校验（如 SHA256）。`deploy.py` 的整站 tar 备份不能替代本步。
+2. **本地跑测试**：`python -m compileall scripts tests`；`python -m unittest discover -s tests -p "test_*.py" -v`；`node tests/run_js_tests.js`。失败则停止。
+3. **推 GitHub**：变更 commit 后 `git push origin main`（或经 PR 合并进 `main`）。
+4. **服务器拉取/部署**：优先等 `main` 上 GitHub Actions 自动跑 `scripts/deploy.py`；必要时本地执行同一脚本。默认部署不得覆盖线上 DB / `config/ai.env` / 音频。
+5. **检查 /api/health**：确认线上返回 `ok: true`（域名或服务器本机 `49182`）。
+6. **学生端 + 教师端各测一遍**：学生 `/tinglidanciceshi/`；教师 `/tinglidanciceshi/?role=teacher`。至少确认页面可开、登录入口可用。
+
+任一步失败：停止发布，修复后从失败步重跑。细节命令见 `DEPLOY.md`。

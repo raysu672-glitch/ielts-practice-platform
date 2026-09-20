@@ -137,7 +137,7 @@
 </head>
 <body>
   <div class="container" id="app"></div>
-  <script src="match.js"></script>
+  <script src="match.js?v=20260920grade"></script>
   <script>
 var TOTAL = 10;
 var DATA_URL = '../juzifanyixin/translation_data.json';
@@ -278,7 +278,10 @@ function renderQuiz() {
     var val = input.value;
     if (!String(val).trim()) return;
     checked = true;
-    var correct = window.TranslateMatch.isChineseMatch(val, q.zh);
+    // 判分走「规则四径」（内容覆盖 / 语序 / 逻辑关系 / 关键信息），
+    // 不再是逐字全等。见 match.js 顶部注释与 gradeChinese()。
+    var grade = window.TranslateMatch.gradeChinese(val, q.zh);
+    var correct = grade.ok;
     input.disabled = true;
     if (correct) {
       score++;
@@ -288,8 +291,13 @@ function renderQuiz() {
     } else {
       input.className = 'wrong';
       document.getElementById('feedback').className = 'feedback wrong-msg';
+      // 告诉学生差在哪：漏译 / 语序 / 少了逻辑词 / 漏了关键信息
+      var why = grade.reasons.length
+        ? '<div class="answer-box">' + grade.reasons.map(escapeHtml).join('<br>') + '</div>'
+        : '';
       document.getElementById('feedback').innerHTML =
-        '不正确<div class="answer-box">正确答案：<b>' + escapeHtml(q.zh) + '</b></div>';
+        '不正确' + why +
+        '<div class="answer-box">正确答案：<b>' + escapeHtml(q.zh) + '</b></div>';
     }
     results.push({
       item_key: String(q.id),

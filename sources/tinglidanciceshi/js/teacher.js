@@ -1209,8 +1209,8 @@ function renderStudentSituationTaskCard(task) {
     var todayTotal = Number(task.today_total) || 0;
     var todayCell = todayTotal > 0 ? (todayDone + '/' + todayTotal) : '无任务';
     var backlog = Number(task.backlog) || 0;
+    var stagePending = Number(task.stage_test_pending) || 0;
     var todayMins = Number(task.today_minutes) || 0;
-    var budget = Number(task.budget_minutes) || 0;
     var statusEmoji = (typeof taskOverviewStatusEmoji === 'function')
         ? taskOverviewStatusEmoji(task.row_status)
         : '';
@@ -1218,8 +1218,15 @@ function renderStudentSituationTaskCard(task) {
     html += '<h4 style="margin:0 0 12px;">任务执行</h4>';
     html += '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:12px;text-align:center;margin-bottom:10px;">';
     html += '<div><div style="font-size:1.2rem;font-weight:700;">' + statusEmoji + ' ' + escapeHtml(todayCell) + '</div><div style="color:#666;font-size:0.85rem;">今日任务</div></div>';
-    html += '<div><div style="font-size:1.2rem;font-weight:700;">' + todayMins + (budget ? ('/' + budget) : '') + ' 分</div><div style="color:#666;font-size:0.85rem;">今日时长/配额</div></div>';
-    html += '<div><div style="font-size:1.2rem;font-weight:700;' + (backlog >= 3 ? 'color:#dc2626;' : '') + '">' + (backlog > 0 ? backlog : '0') + '</div><div style="color:#666;font-size:0.85rem;">积压单元</div></div>';
+    html += '<div><div style="font-size:1.2rem;font-weight:700;">' + todayMins + ' 分</div><div style="color:#666;font-size:0.85rem;">今日已练</div></div>';
+    html += '<div><div style="font-size:1.2rem;font-weight:700;' + (backlog >= 3 ? 'color:#dc2626;' : '') + '">' + (backlog > 0 ? backlog : '0') + '</div><div style="color:#666;font-size:0.85rem;">积压（昨日）</div></div>';
+    html += '<div><div style="font-size:1.2rem;font-weight:700;' + (stagePending > 0 ? 'color:#b45309;cursor:pointer;text-decoration:underline;' : '') + '"' +
+        (stagePending > 0 ? (' onclick="openStageTestsDetail(\'' + escapeJsString(task.student_id || '') + '\')"') : '') + '>' +
+        stagePending +
+        (Number(task.stage_test_needs_attention) > 0
+            ? '<span style="font-size:0.72rem;color:#dc2626;font-weight:600;">（多次未过）</span>'
+            : '') +
+        '</div><div style="color:#666;font-size:0.85rem;">待通过阶段测</div></div>';
     html += '<div><div style="font-size:1.05rem;font-weight:600;line-height:1.35;">' + escapeHtml(studentSituationPlanBrief(task)) + '</div><div style="color:#666;font-size:0.85rem;margin-top:4px;">计划进度</div></div>';
     html += '</div></div>';
     return html;
@@ -2181,6 +2188,7 @@ var _taskOverviewFilters = {
     backlog: false,
     refresh: false,
     testFail: false,
+    stageTests: false,
     attention: false,
     noPlan: false
 };
@@ -2695,6 +2703,7 @@ function renderTaskOverviewFilterChips() {
         { key: 'yesterdayIncomplete', label: '昨日未完成' },
         { key: 'incomplete', label: '今日未完成' },
         { key: 'backlog', label: '有积压' },
+        { key: 'stageTests', label: '有阶段测待通过' },
         { key: 'attention', label: '需关注' },
         { key: 'noPlan', label: '无计划' }
     ];
@@ -2760,6 +2769,7 @@ function filterTaskOverviewRows(rows) {
             if (!r.yesterday_incomplete) return false;
         }
         if (_taskOverviewFilters.backlog && !(r.backlog > 0)) return false;
+        if (_taskOverviewFilters.stageTests && !(Number(r.stage_test_pending) > 0)) return false;
         if (_taskOverviewFilters.attention && r.row_status !== 'red') return false;
         if (_taskOverviewFilters.noPlan && r.plan_status !== 'none') return false;
         return true;
@@ -2819,14 +2829,15 @@ function renderTaskClassOverview() {
         wrap.innerHTML = '<div style="padding:16px;color:#64748b;">无匹配学生</div>';
         return;
     }
-    var html = '<table style="width:100%;border-collapse:collapse;font-size:13px;min-width:720px;">' +
+    var html = '<table style="width:100%;border-collapse:collapse;font-size:13px;min-width:820px;">' +
         '<thead><tr style="background:#f8fafc;text-align:left;">' +
-        '<th style="padding:8px 6px;">状态</th>' +
+        '<th style="padding:8px 6px;" title="只看昨天任务：一条没做=🔴，没做完=🟡，全做完=🟢">状态</th>' +
         '<th style="padding:8px 6px;">学号</th>' +
         '<th style="padding:8px 6px;">姓名</th>' +
         '<th style="padding:8px 6px;">昨日任务</th>' +
         '<th style="padding:8px 6px;">昨日学习时长</th>' +
-        '<th style="padding:8px 6px;">积压</th>' +
+        '<th style="padding:8px 6px;" title="昨天派的任务（含前天积压过来的）里还没做完的条数；阶段测也算在内">积压</th>' +
+        '<th style="padding:8px 6px;" title="清单里还没通过的阶段测；带「多次未过」表示累计已考 3 次以上仍未过，建议助教介入">待通过阶段测</th>' +
         '<th style="padding:8px 6px;">计划进度</th>' +
         '</tr></thead><tbody>';
     rows.forEach(function(r) {
@@ -2863,22 +2874,139 @@ function renderTaskClassOverview() {
         var timeCell = (yMins > 0 || tMins > 0)
             ? (formatMinutesHm(yMins) + ' / ' + formatMinutesHm(tMins))
             : '—';
+        var sidJs = sid.replace(/'/g, "\\'");
+        var stN = Number(r.stage_test_pending) || 0;
+        var stAttention = Number(r.stage_test_needs_attention) || 0;
+        var stCell = stN > 0
+            ? ('<span style="color:#b45309;font-weight:600;text-decoration:underline;" ' +
+               'onclick="event.stopPropagation();openStageTestsDetail(\'' + sidJs + '\')">' +
+               stN + ' 项</span>' +
+               (stAttention > 0
+                   ? (' <span style="color:#dc2626;font-weight:600;font-size:11px;" ' +
+                      'title="累计已考 3 次以上仍未过——不限重测次数，学生可以继续考，但建议助教介入看看是不是内容或达标线有问题">' +
+                      '多次未过</span>')
+                   : ''))
+            : '<span style="color:#94a3b8;">—</span>';
         html += '<tr style="border-top:1px solid #f1f5f9;cursor:pointer;' +
             taskOverviewRowBg(r.row_status) + '" ' +
-            'onclick="openStudentPlanFromOverview(\'' + sid.replace(/'/g, "\\'") + '\')">' +
+            'onclick="openStudentPlanFromOverview(\'' + sidJs + '\')">' +
             '<td style="padding:8px 6px;">' + taskOverviewStatusEmoji(r.row_status) + '</td>' +
             '<td style="padding:8px 6px;">' + sid + '</td>' +
             '<td style="padding:8px 6px;">' + escapeTeacherAttr(r.name || '') + pendingTag + '</td>' +
             '<td style="padding:8px 6px;">' + yCell + '</td>' +
             '<td style="padding:8px 6px;" title="昨日时长 / 累计总时长">' + timeCell + '</td>' +
-            '<td style="padding:8px 6px;' + (r.backlog >= 3 ? 'color:#dc2626;font-weight:600;' : '') + '">' +
+            '<td style="padding:8px 6px;' + (r.backlog >= 3 ? 'color:#dc2626;font-weight:600;' : '') + '" ' +
+            'title="昨天派的任务（含前天积压过来的）里还没做完的条数；阶段测也算在内">' +
             (r.backlog > 0 ? r.backlog : '—') + '</td>' +
+            '<td style="padding:8px 6px;" title="清单里还没通过的阶段测，点开看明细；「多次未过」= 累计已考 3 次以上仍未过">' +
+            stCell + '</td>' +
             '<td style="padding:8px 6px;white-space:normal;max-width:280px;line-height:1.35;word-break:break-word;">' +
             escapeTeacherAttr(brief) + '</td>' +
             '</tr>';
     });
     html += '</tbody></table>';
     wrap.innerHTML = html;
+}
+
+/** 「待通过阶段测」明细弹层：阶段测已计入昨日完成/积压，这里仍单独展示明细。 */
+function renderStageTestsDetailTable(tests) {
+    var html = '<p style="margin:0 0 10px;color:#64748b;font-size:12px;">共 ' + tests.length +
+        ' 项。<strong>阶段测不限重测次数</strong>，学生想考几次都行；「已考」是累计提交次数，' +
+        '「最高分」是历史最好成绩。标红「已考 N 次仍未过」的表示反复考不过，建议助教介入' +
+        '（看看是内容太难还是达标线偏高）。</p>';
+    html += '<table style="width:100%;border-collapse:collapse;font-size:13px;">' +
+        '<thead><tr style="background:#f8fafc;text-align:left;">' +
+        '<th style="padding:7px 6px;">模块</th>' +
+        '<th style="padding:7px 6px;">阶段测</th>' +
+        '<th style="padding:7px 6px;text-align:right;">已考</th>' +
+        '<th style="padding:7px 6px;text-align:right;">最高分</th>' +
+        '<th style="padding:7px 6px;">状态</th>' +
+        '</tr></thead><tbody>';
+    tests.forEach(function(t) {
+        var mt = t.module_type || '';
+        var label = (typeof taskLibraryModuleLabel === 'function')
+            ? taskLibraryModuleLabel(mt)
+            : mt;
+        var state;
+        if (t.needs_attention) {
+            state = '<span style="color:#dc2626;font-weight:600;">已考 ' + (Number(t.attempts) || 0) +
+                ' 次仍未过</span>';
+        } else if (t.never_attempted) {
+            state = '<span style="color:#64748b;">还没考过</span>';
+        } else {
+            state = '<span style="color:#b45309;">考过未通过（可继续重考）</span>';
+        }
+        var best = (t.best_score === null || t.best_score === undefined)
+            ? '—'
+            : String(Math.round(Number(t.best_score)));
+        html += '<tr style="border-top:1px solid #f1f5f9;">' +
+            '<td style="padding:7px 6px;white-space:nowrap;">' + escapeTeacherAttr(label) + '</td>' +
+            '<td style="padding:7px 6px;">' + escapeTeacherAttr(t.title || '') + '</td>' +
+            '<td style="padding:7px 6px;text-align:right;">' + (Number(t.attempts) || 0) + '</td>' +
+            '<td style="padding:7px 6px;text-align:right;">' + best + '</td>' +
+            '<td style="padding:7px 6px;">' + state + '</td>' +
+            '</tr>';
+    });
+    html += '</tbody></table>';
+    return html;
+}
+
+function closeStageTestsDetail() {
+    var box = document.getElementById('stageTestsDetailOverlay');
+    if (box) box.style.display = 'none';
+}
+
+function openStageTestsDetail(studentId) {
+    if (!studentId) return;
+    var name = '';
+    ((_taskOverviewData || {}).students || []).forEach(function(r) {
+        if (String(r.student_id) === String(studentId)) name = r.name || '';
+    });
+    var box = document.getElementById('stageTestsDetailOverlay');
+    if (!box) {
+        box = document.createElement('div');
+        box.id = 'stageTestsDetailOverlay';
+        box.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;' +
+            'background:rgba(15,23,42,0.45);z-index:9999;display:flex;' +
+            'align-items:center;justify-content:center;padding:24px;';
+        box.addEventListener('click', function(ev) {
+            if (ev.target === box) closeStageTestsDetail();
+        });
+        document.body.appendChild(box);
+    }
+    box.style.display = 'flex';
+    box.innerHTML = '<div style="background:#fff;border-radius:12px;max-width:780px;width:100%;' +
+        'max-height:80vh;overflow:auto;">' +
+        '<div style="display:flex;align-items:center;justify-content:space-between;' +
+        'padding:14px 16px;border-bottom:1px solid #e5e7eb;">' +
+        '<strong style="font-size:15px;">待通过阶段测 · ' + escapeTeacherAttr(studentId) +
+        ' ' + escapeTeacherAttr(name) + '</strong>' +
+        '<button type="button" class="btn btn-secondary" style="padding:3px 10px;font-size:12px;" ' +
+        'onclick="closeStageTestsDetail()">关闭</button>' +
+        '</div><div id="stageTestsDetailBody" style="padding:14px 16px;color:#64748b;">加载中…</div></div>';
+    teacherApiGet('/api/task/students/' + encodeURIComponent(studentId) + '/stage-tests')
+        .then(function(res) {
+            var body = document.getElementById('stageTestsDetailBody');
+            if (!body) return;
+            if (res.error) {
+                body.innerHTML = '<span style="color:#b45309;">加载失败：' +
+                    escapeTeacherAttr((res.error && res.error.message) || '接口不可用') +
+                    '</span>';
+                return;
+            }
+            var tests = ((res.data || {}).tests) || [];
+            if (!tests.length) {
+                body.innerHTML = '<p style="margin:0;color:#16a34a;">没有待通过的阶段测</p>';
+                return;
+            }
+            body.innerHTML = renderStageTestsDetailTable(tests);
+        })
+        .catch(function() {
+            var body = document.getElementById('stageTestsDetailBody');
+            if (body) {
+                body.innerHTML = '<span style="color:#b45309;">加载失败：网络异常，请稍后重试</span>';
+            }
+        });
 }
 
 function renderTaskPlanList() {

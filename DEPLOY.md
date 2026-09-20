@@ -25,7 +25,7 @@ Get-FileHash "$dir\*.db" -Algorithm SHA256 | Tee-Object -FilePath "$dir\SHA256SU
 ```powershell
 python -m compileall scripts tests
 python -m unittest discover -s tests -p "test_*.py" -v
-node tests/test_tracking_utils.js
+node tests/run_js_tests.js
 ```
 
 任一项失败则停止，不得继续 push / 部署。

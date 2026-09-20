@@ -153,6 +153,7 @@ from student_api import (  # noqa: E402
     load_word_mastery,
     load_wrong_book_items,
     load_wrong_words,
+    threshold_for_module as student_threshold_for_module,
     upsert_speaking_best_score,
     upsert_word_mastery,
 )
@@ -198,6 +199,7 @@ from task_api import (  # noqa: E402
     clear_daily_schedule as task_clear_daily_schedule,
     report_gendu_practice as task_report_gendu_practice,
     seed_mvp_units,
+    stage_tests_pending as task_stage_tests_pending,
     submit_stage_test as task_submit_stage_test,
     update_scope_progress as task_update_scope_progress,
 )
@@ -412,6 +414,14 @@ def migrate_teachers_profile_columns(conn: sqlite3.Connection) -> None:
         )
     for sql in alterations:
         conn.execute(sql)
+
+
+def _as_int(value: Any, default: int = 0) -> int:
+    """把请求体里的值安全转成非负整数；非法值回落到 default。"""
+    try:
+        return max(0, int(float(value)))
+    except (TypeError, ValueError):
+        return default
 
 
 def _drop_default_password_column(conn: sqlite3.Connection, table: str) -> None:
@@ -2567,6 +2577,24 @@ class LocalHandler(SimpleHTTPRequestHandler):
                 return
             self.send_json({"data": data, "error": None})
 
+    def handle_task_student_stage_tests(self) -> None:
+        """教师端「待通过阶段测」展开明细。"""
+        if not self.require_teacher_session():
+            return
+        parsed = urllib.parse.urlparse(self.path)
+        parts = [p for p in parsed.path.split("/") if p]
+        # ['api','task','students', sid, 'stage-tests']
+        if len(parts) < 5 or not parts[3]:
+            self.send_json(
+                {"data": None, "error": {"message": "缺少 student_id"}}, status=400
+            )
+            return
+        student_id = parts[3]
+        with closing(connect(self.db_path)) as conn:
+            ensure_task_tables(conn)
+            data = task_stage_tests_pending(conn, student_id)
+            self.send_json({"data": {"student_id": student_id, "tests": data}, "error": None})
+
     def handle_task_units_get(self) -> None:
         if not self.require_logged_in_session():
             return
@@ -2809,13 +2837,32 @@ class LocalHandler(SimpleHTTPRequestHandler):
             return
         try:
             score = float(payload.get("score"))
-            threshold = float(payload.get("threshold", 80))
         except (TypeError, ValueError):
-            self.send_json({"data": None, "error": {"message": "score/threshold 无效"}}, status=400)
+            self.send_json({"data": None, "error": {"message": "score 无效"}}, status=400)
             return
         try:
             with closing(connect(self.db_path)) as conn:
                 ensure_task_tables(conn)
+                # 阈值由服务端按「学生目标分档 × 模块」决定，忽略请求体里的 threshold。
+                # 否则学生改一下请求里的 threshold=0 就能让任意测试"通过"，
+                # 达标线形同虚设（前端传值只作为查不到标准时的兜底）。
+                item = conn.execute(
+                    "SELECT module_type FROM plan_items WHERE id=? AND student_id=?",
+                    (int(plan_item_id), session["id"]),
+                ).fetchone()
+                if not item:
+                    self.send_json(
+                        {"data": None, "error": {"message": "计划条目不存在"}}, status=404
+                    )
+                    return
+                threshold = student_threshold_for_module(
+                    conn, session["id"], str(item["module_type"] or "")
+                )
+                if threshold is None:
+                    try:
+                        threshold = float(payload.get("threshold") or 80)
+                    except (TypeError, ValueError):
+                        threshold = 80.0
                 data = task_submit_stage_test(
                     conn,
                     session["id"],
@@ -2823,6 +2870,9 @@ class LocalHandler(SimpleHTTPRequestHandler):
                     score,
                     threshold=threshold,
                     details=payload.get("details"),
+                    correct_count=_as_int(payload.get("correct_count")),
+                    total_count=_as_int(payload.get("total_count")),
+                    duration_seconds=_as_int(payload.get("duration_seconds")),
                 )
                 self.send_json({"data": data, "error": None})
         except ValueError as exc:
@@ -3130,6 +3180,11 @@ class LocalHandler(SimpleHTTPRequestHandler):
             return
         if parsed.path.rstrip("/") == "/api/task/me/today":
             self.handle_task_me_today()
+            return
+        if parsed.path.startswith("/api/task/students/") and parsed.path.rstrip("/").endswith(
+            "/stage-tests"
+        ):
+            self.handle_task_student_stage_tests()
             return
         if parsed.path.startswith("/api/task/students/") and parsed.path.rstrip("/").endswith(
             "/gendu-assignment"

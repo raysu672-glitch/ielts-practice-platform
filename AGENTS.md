@@ -7,7 +7,7 @@
 ### 发布流程（强制）
 推送阿里云必须按序执行，禁止跳步；禁止先改线上再回写本地；禁止未 push 就部署：
 1. 备份数据库（拉线上 DB 到本地 `backups/aliyun_*`，不能只靠 deploy 整站 tar）
-2. 本地跑测试（`compileall` + unittest + `node tests/test_tracking_utils.js`）
+2. 本地跑测试（`compileall` + unittest + `node tests/run_js_tests.js`）
 3. 推 GitHub（`main`）
 4. 服务器拉取/部署（Actions 或 `scripts/deploy.py`）
 5. 检查 `/api/health`（`ok: true`）
@@ -31,7 +31,7 @@
 
 ### Lint / 测试
 - 本仓库没有 ESLint/ruff 等 lint 配置；README 所称“语法检查”即 `python3 -m compileall scripts tests`。
-- 回归测试命令见 `README.md`（`python3 -m unittest discover -s tests -p "test_*.py"` 与 `node tests/test_tracking_utils.js`）。
+- 回归测试命令见 `README.md`（`python3 -m unittest discover -s tests -p "test_*.py"` 与 `node tests/run_js_tests.js`）。
 
 ### 不要提交
 - `data/*.db`、音频文件（`*.mp3/wav/m4a/ogg` 及 `sources/tinglidanciceshi/audio/` 等）已被 `.gitignore` 排除，服务器缺音频时页面会退化到浏览器 TTS。

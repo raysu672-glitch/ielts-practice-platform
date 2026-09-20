@@ -157,5 +157,5 @@ python scripts/deploy.py --repair-tracking-data
 ```powershell
 python -m compileall scripts tests
 python -m unittest discover -s tests -p "test_*.py" -v
-node tests/test_tracking_utils.js
+node tests/run_js_tests.js
 ```

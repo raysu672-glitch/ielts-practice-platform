@@ -215,8 +215,13 @@ def list_student_activity(
     on_date: str = "",
     page: int = 1,
     page_size: int = 30,
+    paginate: bool = False,
 ) -> dict[str, Any]:
-    """List activity for a student. Prefer on_date + page for teacher timeline UI."""
+    """List activity for a student.
+
+    Empty on_date = all retained events (newest first).
+    Teacher timeline should pass paginate=True for stable OFFSET paging.
+    """
     ensure_activity_tables(conn)
     sid = str(student_id or "").strip()
     empty = {
@@ -252,8 +257,8 @@ def list_student_activity(
         ).fetchone()["c"]
     )
 
-    # Paged mode when on_date is set (or page explicitly requested via page_size path)
-    use_page = bool(on_date) or page > 1
+    # Paged mode: teacher UI, date filter, or explicit page>1. Cursor (before_id) keeps limit mode.
+    use_page = before_id is None and (paginate or bool(on_date) or page > 1)
     if use_page:
         page = max(1, int(page or 1))
         page_size = max(1, min(int(page_size or 30), 100))

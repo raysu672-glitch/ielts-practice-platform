@@ -18,7 +18,7 @@ AI_ENV_PATH = ROOT / "config" / "ai.env"
 AI_ENV_EXAMPLE_PATH = ROOT / "config" / "ai.env.example"
 
 DEFAULT_AI_BASE_URL = "https://api.deepseek.com"
-DEFAULT_AI_MODEL = "deepseek-v4-flash"
+DEFAULT_AI_MODEL = "deepseek-flash"
 
 
 def load_env_file(path: Path | str, *, override: bool = False) -> bool:

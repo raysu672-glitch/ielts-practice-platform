@@ -1,6 +1,6 @@
 /* ── 规范化字符串：去除空格和标点符号 ── */
 function normalize(str) {
-  return str.toLowerCase().replace(/[\s\.,!?;:'"()\-]/g, '');
+  return String(str || '').toLowerCase().replace(/[\s\.,!?;:'"()\-\/]/g, '');
 }
 
 /* ── 基础词伙（原始数据）── */
@@ -369,7 +369,7 @@ function populateStudyPage() {
     card.className = 'study-card';
     card.id = 'studyCard_' + idx;
     card.appendChild(createTextElement('div', 'study-card-zh', item.zh));
-    card.appendChild(createTextElement('div', 'study-card-en', item.en));
+    card.appendChild(createTextElement('div', 'study-card-en', phraseDisplayAnswer(item.en)));
     card.onclick = function() { jumpToStudyItem(idx); };
     grid.appendChild(card);
   });
@@ -394,7 +394,7 @@ function showStudyCard(idx) {
   card.classList.add('active');
 
   document.getElementById('studyLearnZh').textContent = item.zh;
-  document.getElementById('studyLearnEnRef').textContent = item.en;
+  document.getElementById('studyLearnEnRef').textContent = phraseDisplayAnswer(item.en);
 
   var roundLabel = document.getElementById('studyRoundLabel');
   roundLabel.textContent = '第 ' + studyRound + ' 遍（共需2遍）';
@@ -425,7 +425,7 @@ function submitStudyInput() {
   var hint     = document.getElementById('studyHint');
   var feedback = document.getElementById('studyFeedback');
 
-  if (normalize(val) === normalize(item.en)) {
+  if (phraseMatchesAny(val, item.en)) {
     input.classList.add('correct');
     feedback.style.color = '#3fb950';
     if (studyRound === 1) {
@@ -451,7 +451,7 @@ function submitStudyInput() {
     }
   } else {
     input.classList.add('wrong');
-    hint.textContent = ' 再试一次，参考英文：' + item.en;
+    hint.textContent = ' 再试一次，参考英文：' + phraseDisplayAnswer(item.en);
     hint.style.color = '#f85149';
     feedback.textContent = '';
     setTimeout(function() {
@@ -661,7 +661,7 @@ function showFogModal(word, btn) {
 
   document.getElementById('fogConfirmBtn').onclick = function() {
     if (fogCloseCalled) return;
-    if (normalize(input.value) === normalize(word)) {
+    if (phraseMatchesAny(input.value, word)) {
       result.className = 'fog-result success';
       result.textContent = ' 正确！';
       setTimeout(function() { close(true); }, 400);
@@ -728,7 +728,7 @@ function enterFeverMode() {
     updateFeverTimer();
     if (feverTimeLeft <= 0) {
       clearInterval(feverTimer);
-      handleWrong(vocab[currentIndex].en);
+      handleWrong(phraseDisplayAnswer(vocab[currentIndex].en));
       exitFeverMode();
     }
   }, 1000);
@@ -791,13 +791,14 @@ function buildWordPool(q) {
   var pool = document.getElementById('wordPool');
   pool.replaceChildren();
 
-  var correctWords = q.en.split(' ');
+  // 词块按「主答案」出，避免 `climb steadily/solidly` 这种带 `/` 的块
+  var correctWords = phrasePrimaryAnswer(q.en).split(/\s+/).filter(Boolean);
   var allWords = correctWords.slice();
 
   var otherWords = [];
   vocab.forEach(function(v, i) {
     if (i !== currentIndex) {
-      v.en.split(' ').forEach(function(w) { otherWords.push(w); });
+      phrasePrimaryAnswer(v.en).split(/\s+/).forEach(function(w) { otherWords.push(w); });
     }
   });
   otherWords.sort(function() { return Math.random() - 0.5; });
@@ -885,19 +886,20 @@ function checkAnswer() {
   var q = vocab[currentIndex];
   if (feverMode) {
     var userAnswer = document.getElementById('feverInput').value.trim().replace(/\s+/g, ' ');
-    if (normalize(userAnswer) === normalize(q.en)) {
+    if (phraseMatchesAny(userAnswer, q.en)) {
       handleCorrect();
     } else {
-      handleWrong(q.en);
+      handleWrong(phraseDisplayAnswer(q.en));
     }
   } else {
     if (selectedWords.length === 0) { isProcessing = false; return; }
     var userSorted = selectedWords.map(function(e) { return normalize(e.word); }).sort().join(' ');
-    var ansSorted  = q.en.split(' ').map(function(w) { return normalize(w); }).sort().join(' ');
-    if (userSorted === ansSorted) {
+    var sets = phraseAcceptedWordSets(q.en);
+    var hit = sets.some(function(ws) { return ws.join(' ') === userSorted; });
+    if (hit) {
       handleCorrect();
     } else {
-      handleWrong(q.en);
+      handleWrong(phraseDisplayAnswer(q.en));
     }
   }
 }
@@ -1284,8 +1286,11 @@ document.getElementById('feverInput').addEventListener('input', function() {
   var q = vocab[currentIndex];
   if (!q) return;
   var val = this.value.toLowerCase();
-  var ans = q.en.toLowerCase();
-  this.style.borderColor = ans.indexOf(val) === 0
+  // 多写法题（`a/b`）只要前缀能对上任一可接受写法就点亮
+  var ans = phraseAcceptList(q.en).length ? q.en : phrasePrimaryAnswer(q.en);
+  var prefixes = String(ans).split('/').map(function (s) { return s.trim().toLowerCase(); }).filter(Boolean);
+  var ok = prefixes.some(function (p) { return p.indexOf(val) === 0; });
+  this.style.borderColor = ok
     ? 'rgba(255,215,0,0.6)'
     : 'rgba(248,81,73,0.6)';
 });

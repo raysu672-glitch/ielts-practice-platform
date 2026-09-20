@@ -48,6 +48,26 @@ export interface Assignment {
   myStatus?: 'missing' | 'partial' | 'submitted'
 }
 
+export interface WritingErrorItem {
+  id: string
+  category: string
+  sentenceIndex: number
+  matchedText: string
+  question: string
+  hints: string[]
+  explanation: string
+  corrected: string
+}
+
+export interface WritingCorrection {
+  errors: WritingErrorItem[]
+  count: number
+  checkedAt: string
+  originalEssay: string
+  aiFailed?: boolean
+  aiMessage?: string
+}
+
 export interface AssignmentSubmission {
   assignmentId: string
   studentId: string
@@ -56,6 +76,7 @@ export interface AssignmentSubmission {
   sId: number
   status: 'submitted'
   answers: Record<string, string>
+  correction?: WritingCorrection
   correct: number
   total: number
   wrong: number
@@ -284,7 +305,7 @@ export async function saveAssignmentAnswers(
   bookId: number,
   subject: PackSubject,
   sId: number,
-  answers: Record<string, string>,
+  answers: AssignmentSubmission['answers'],
 ): Promise<void> {
   await api<Record<string, string>>('/api/jianya/drafts', {
     method: 'PUT',
@@ -338,6 +359,7 @@ export async function saveSubmission(input: {
   subject: PackSubject
   sId: number
   answers: Record<string, string>
+  correction?: WritingCorrection
   graded: GradeResult
 }): Promise<AssignmentSubmission> {
   const pct = input.graded.total
@@ -351,10 +373,60 @@ export async function saveSubmission(input: {
       subject: input.subject,
       sId: input.sId,
       answers: input.answers,
+      correction: input.correction,
       graded: input.graded,
       pct,
     }),
   })
+}
+
+type GrammarCheckEnvelope = {
+  success?: boolean
+  message?: string
+  data?: Array<{
+    id?: string
+    category?: string
+    sentenceIndex?: number
+    matchedText?: string
+    question?: string
+    hints?: string[]
+    explanation?: string
+    corrected?: string
+  }>
+  meta?: { aiFailed?: boolean; aiMessage?: string }
+}
+
+export async function checkWritingGrammar(essay: string): Promise<{
+  errors: WritingErrorItem[]
+  aiFailed: boolean
+  aiMessage: string
+}> {
+  const r = await fetch('/api/writing/grammar-check', {
+    method: 'POST',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ essay, existingErrors: [] }),
+  })
+  const body = (await r.json().catch(() => ({}))) as GrammarCheckEnvelope
+  if (!r.ok) {
+    throw new Error(body.message || `批改服务错误 ${r.status}`)
+  }
+  const rows = Array.isArray(body.data) ? body.data : []
+  const errors: WritingErrorItem[] = rows.map((row, idx) => ({
+    id: String(row.id ?? `err-${idx}`),
+    category: String(row.category ?? '语法错误'),
+    sentenceIndex: Number.isFinite(row.sentenceIndex) ? Number(row.sentenceIndex) : 0,
+    matchedText: String(row.matchedText ?? ''),
+    question: String(row.question ?? ''),
+    hints: Array.isArray(row.hints) ? row.hints.map((h) => String(h)) : [],
+    explanation: String(row.explanation ?? ''),
+    corrected: String(row.corrected ?? ''),
+  }))
+  return {
+    errors,
+    aiFailed: Boolean(body.meta?.aiFailed),
+    aiMessage: String(body.meta?.aiMessage ?? ''),
+  }
 }
 
 export function assignmentPartPath(

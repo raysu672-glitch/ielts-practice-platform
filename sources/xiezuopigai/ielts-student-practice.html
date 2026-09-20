@@ -1938,6 +1938,27 @@ Nowadays, many people choose to live in big cities because they can find better 
         return null;
       }
     }
+    // 写作作业模式：从「写作作业」页跳转过来，学生改完语法错误后回写作业提交。
+    function isAssignmentMode() {
+      return new URLSearchParams(location.search).get("assignment") === "1";
+    }
+    function readAssignmentPayload() {
+      try {
+        const raw = sessionStorage.getItem("ielts_assignment_payload");
+        if (!raw) return null;
+        const data = JSON.parse(raw);
+        return data && typeof data === "object" ? data : null;
+      } catch (e) {
+        return null;
+      }
+    }
+    function clearAssignmentModeFromUrl() {
+      try { sessionStorage.removeItem("ielts_assignment_payload"); } catch (e) {}
+      const url = new URL(location.href);
+      if (!url.searchParams.has("assignment")) return;
+      url.searchParams.delete("assignment");
+      history.replaceState(null, "", url.pathname + url.search + url.hash);
+    }
     function applyRewriteStartPage(payload) {
       const topic = String((payload && payload.topic) || "").trim();
       const nextAttempt = Number(payload && payload.nextAttempt) || 0;
@@ -1990,6 +2011,50 @@ Nowadays, many people choose to live in big cities because they can find better 
       if (!url.searchParams.has("rewrite")) return;
       url.searchParams.delete("rewrite");
       history.replaceState(null, "", url.pathname + url.search + url.hash);
+    }
+    function applyAssignmentStartPage(payload) {
+      const topic = String((payload && payload.topic) || "").trim();
+      const essay = String((payload && payload.essay) || "").trim();
+      const title = document.querySelector("#startTitle");
+      const banner = document.querySelector("#rewriteBanner");
+      const topicField = document.querySelector("#topicField");
+      const topicReadonlyWrap = document.querySelector("#topicReadonlyWrap");
+      const topicReadonly = document.querySelector("#topicReadonly");
+      const essayLabel = document.querySelector("#essayInputLabel");
+      const uploadActions = document.querySelector("#uploadActions");
+      const startBtn = document.querySelector("#startBtn");
+      const essayInput = document.querySelector("#essayInput");
+      const startHint = document.querySelector("#startHint");
+
+      if (title) title.textContent = "写作作业 · 语法改错";
+      if (banner) {
+        banner.style.display = "block";
+        banner.textContent = "请逐句修改作文中的语法错误；全部改对后才能提交作业。";
+      }
+      if (topicField) topicField.style.display = "none";
+      if (topicReadonlyWrap) topicReadonlyWrap.style.display = "block";
+      if (topicReadonly) topicReadonly.textContent = topic || "（未提供题目）";
+      if (essayLabel) essayLabel.textContent = "英文作文（已从作业带入，可继续修改）";
+      if (uploadActions) uploadActions.style.display = "none";
+      if (startBtn) startBtn.textContent = "开始改错";
+      if (essayInput) {
+        essayInput.value = essay;
+        essayInput.placeholder = "作文已从作业带入；如需调整可直接编辑。";
+      }
+      if (startHint) {
+        startHint.textContent = "题目与作文已带入；点「开始改错」逐句修正语法错误。";
+      }
+
+      state.topic = topic;
+      state.essay = essay;
+      if (payload && payload.studentId) state.studentId = String(payload.studentId).trim();
+      const nameInput = document.querySelector("#studentName");
+      const nameField = document.querySelector("#studentNameField");
+      if (state.studentId) {
+        state.studentName = String(payload && payload.studentName || state.studentId).trim();
+        if (nameInput) nameInput.value = state.studentName;
+        if (nameField) nameField.style.display = "none";
+      }
     }
 
     // ===== 状态 =====
@@ -2969,16 +3034,20 @@ Nowadays, many people choose to live in big cities because they can find better 
     async function startPractice() {
       const platform = getPlatformStudent();
       const rewrite = isRewriteMode();
+      const assignment = isAssignmentMode();
       const nameInput = document.querySelector("#studentName");
       const name = (state.studentName || platform.studentName || (nameInput && nameInput.value) || "").trim();
       const rewritePayload = rewrite ? readRewritePayload() : null;
+      const assignmentPayload = assignment ? readAssignmentPayload() : null;
       const lockedTopic = rewrite
         ? (state.topic || (rewritePayload && rewritePayload.topic) || "").trim()
-        : "";
+        : assignment
+          ? (state.topic || (assignmentPayload && assignmentPayload.topic) || "").trim()
+          : "";
       const topic = lockedTopic || (document.querySelector("#topicInput")?.value || "").trim();
       const text = document.querySelector("#essayInput").value.trim();
 
-      if (!platform.studentId && !name) {
+      if (!platform.studentId && !state.studentId && !name) {
         showToast("请输入你的名字");
         return;
       }
@@ -2999,7 +3068,7 @@ Nowadays, many people choose to live in big cities because they can find better 
         return;
       }
 
-      state.studentId = platform.studentId || state.studentId || "";
+      state.studentId = platform.studentId || state.studentId || (assignmentPayload && assignmentPayload.studentId) || "";
       state.studentName = name || platform.studentName || state.studentId || "学生";
       state.topic = topic;
       state.essay = text;
@@ -3239,27 +3308,27 @@ Nowadays, many people choose to live in big cities because they can find better 
         return;
       }
       saveProgress();
-      
-      // 保存数据到后端
-      try {
-        const checkpoints = [];
-        state.sentences.forEach((sentence, si) => {
-          sentence.checkpoints.forEach((cp, ci) => {
-            const id = checkpointId(si, ci);
-            const behavior = state.behaviors[id] || {};
-            checkpoints.push({
-              sentenceIndex: si,
-              checkpointIndex: ci,
-              category: cp.category,
-              errorText: cp.highlight,
-              correctedText: cp.answer,
-              hintLevelUsed: behavior.hintLevelUsed ?? -1,
-              timeSpent: behavior.timeSpent ?? 0,
-              studentAnswer: state.answers[id] || ""
-            });
+
+      const checkpoints = [];
+      state.sentences.forEach((sentence, si) => {
+        sentence.checkpoints.forEach((cp, ci) => {
+          const id = checkpointId(si, ci);
+          const behavior = state.behaviors[id] || {};
+          checkpoints.push({
+            sentenceIndex: si,
+            checkpointIndex: ci,
+            category: cp.category,
+            errorText: cp.highlight,
+            correctedText: cp.answer,
+            hintLevelUsed: behavior.hintLevelUsed ?? -1,
+            timeSpent: behavior.timeSpent ?? 0,
+            studentAnswer: state.answers[id] || ""
           });
         });
+      });
 
+      // 保存数据到后端
+      try {
         const totalStats = {};
         checkpoints.forEach(cp => {
           totalStats[cp.category] = (totalStats[cp.category] || 0) + 1;
@@ -3288,8 +3357,104 @@ Nowadays, many people choose to live in big cities because they can find better 
         console.error("保存练习数据失败:", e);
       }
 
+      // 写作作业模式：回写作业提交（含中文思路、修正后作文、AI 批改报告）
+      let backTo = "";
+      if (isAssignmentMode()) {
+        const payload = readAssignmentPayload();
+        if (payload && payload.assignmentId) {
+          const report = buildCorrectionReport(checkpoints);
+          const correctedEssay = correctedEssayFromSentences();
+          const ok = await submitAssignment(
+            payload.assignmentId,
+            Number(payload.bookId) || 0,
+            Number(payload.sId) || 0,
+            String(payload.outline || "").trim(),
+            correctedEssay,
+            report
+          );
+          if (!ok) {
+            showToast("作业提交失败，请检查网络后联系老师");
+            return;
+          }
+          clearAssignmentModeFromUrl();
+        }
+        backTo = (payload && payload.returnTo) || "";
+      }
+
       showStage("report");
       renderReport();
+      if (backTo) showAssignmentReturn(backTo);
+    }
+
+    /** 把每个检查点的参考答案综合成结构化批改报告（复用写作作业报告的字段） */
+    function buildCorrectionReport(checkpoints) {
+      const errors = checkpoints.map((cp, idx) => ({
+        id: `err-${idx}`,
+        category: cp.category,
+        sentenceIndex: cp.sentenceIndex,
+        matchedText: cp.errorText,
+        question: "请修改该处语法错误",
+        hints: [],
+        explanation: "",
+        corrected: cp.correctedText
+      }));
+      return {
+        errors,
+        count: errors.length,
+        checkedAt: new Date().toISOString(),
+        originalEssay: state.essay || "",
+        aiFailed: false,
+        aiMessage: ""
+      };
+    }
+
+    /** 依据逐句递进修正后的 checkpoint.answer 重建修正后全文（失败则回退原 essay） */
+    function correctedEssayFromSentences() {
+      try {
+        return state.sentences.map((s) => {
+          if (!s.checkpoints || s.checkpoints.length === 0) return s.text;
+          return s.checkpoints[s.checkpoints.length - 1].answer || s.text;
+        }).join(" ").trim() || state.essay;
+      } catch (e) {
+        return state.essay;
+      }
+    }
+
+    /** 调用 jianya 提交接口，带上 correction 与 outline / 修正后 essay */
+    async function submitAssignment(assignmentId, bookId, sId, outline, essay, correction) {
+      try {
+        const resp = await fetch("/api/jianya/submissions", {
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            assignmentId,
+            bookId,
+            subject: "writing",
+            sId,
+            answers: { outline, essay },
+            correction,
+            graded: { total: 1, correct: 0, wrong: 0, blank: 0, score: 0, items: [] }
+          })
+        });
+        const data = await resp.json().catch(() => null);
+        if (!resp.ok || (data && data.error)) {
+          console.error("作业提交失败:", data && data.error);
+          return false;
+        }
+        try {
+          if (window.parent && window.parent !== window) {
+            window.parent.postMessage(
+              { type: "jianyaAssignmentSubmitted", assignmentId },
+              window.location.origin
+            );
+          }
+        } catch (e) {}
+        return true;
+      } catch (e) {
+        console.error("作业提交异常:", e);
+        return false;
+      }
     }
 
     function resetApp() {
@@ -3365,6 +3530,33 @@ Nowadays, many people choose to live in big cities because they can find better 
     document.querySelector("#backToStartBtn").addEventListener("click", () => {
       resetApp();
     });
+
+    // 写作作业模式：报告页显示「完成作业」，把按钮改成返回作业详情
+    function showAssignmentReturn(backTo) {
+      const actions = document.querySelector("#reportStage .upload-actions");
+      if (!actions) return;
+      actions.innerHTML = "";
+      const btn = document.createElement("button");
+      btn.className = "btn primary";
+      btn.textContent = "完成作业，返回作业详情";
+      btn.style.width = "100%";
+      btn.addEventListener("click", () => {
+        try {
+          if (window.parent && window.parent !== window) {
+            window.parent.postMessage(
+              { type: "jianyaAssignmentSubmitted", assignmentId: "" },
+              window.location.origin
+            );
+          }
+        } catch (e) {}
+        if (backTo) {
+          window.location.href = backTo;
+        } else {
+          resetApp();
+        }
+      });
+      actions.appendChild(btn);
+    }
 
     // ===== 针对性练习 =====
     document.querySelector("#generateExercisesBtn").addEventListener("click", async () => {
@@ -3507,6 +3699,18 @@ Nowadays, many people choose to live in big cities because they can find better 
           studentName: platform.studentName
         };
         applyRewriteStartPage(payload);
+        showStage("start");
+        return true;
+      }
+      // 写作作业模式：预填题目与作文，学生改完语法错误后回写作业提交
+      if (isAssignmentMode()) {
+        localStorage.removeItem("ielts_practice_state");
+        const payload = readAssignmentPayload();
+        if (!payload || !payload.assignmentId) {
+          showToast("缺少作业信息，请返回作业页重新进入");
+          return true;
+        }
+        applyAssignmentStartPage(payload);
         showStage("start");
         return true;
       }

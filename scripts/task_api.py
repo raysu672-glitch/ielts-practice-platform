@@ -18,15 +18,22 @@ SHANGHAI = ZoneInfo("Asia/Shanghai")
 DEFAULT_WEEKDAY_MINUTES = 40
 DEFAULT_WEEKEND_MINUTES = 90
 DEFAULT_UNITS_PER_DAY = 1
-PACK_TOLERANCE = 1.15
+# 按分钟装箱（time_budget）已下线：装箱只按「每科每日单元配额」（units_per_day）。
+# PACK_MODE_TIME_BUDGET 只作历史值保留，用于读旧档案 / 老数据兼容判断，不再可选。
 PACK_MODE_TIME_BUDGET = "time_budget"
 PACK_MODE_UNITS_PER_DAY = "units_per_day"
-PACK_MODES = (PACK_MODE_TIME_BUDGET, PACK_MODE_UNITS_PER_DAY)
+PACK_MODES = (PACK_MODE_UNITS_PER_DAY,)
 UNITS_PREVIEW_DAYS = 14
 GENDU_MODULE = "listening_p4_speed"
 GENDU_PASS_SCORE = 70
 GENDU_DAILY_PRACTICES = 3
 GENDU_ASSIGNMENT_DAYS = 30  # starts_on .. starts_on+29 inclusive
+# 阶段测**不限重测次数**（2026-09-20 决议）：学生想考几次就考几次，当天可连续重考。
+# 原先的「每天 2 次」上限已删除——它把「考不过」的学生直接锁死：既过不了、又不让再考。
+#
+# 保留下来的只有「考太多次还没过 → 请助教介入」的提示线，纯展示用，不做任何拦截。
+# 达到这条线时，教师端「待通过阶段测」列会显示「N 项 多次未过」徽章。
+STAGE_TEST_ATTENTION_FAILS = 3
 
 READING_SETS = [
     (1, "入门基础篇"),
@@ -168,6 +175,12 @@ def is_weekend(ymd: str) -> bool:
     return d.weekday() >= 5
 
 
+def _prev_ymd(ymd: str) -> str:
+    """``ymd`` 的前一天（看板回看「昨天」用）。"""
+    d = datetime.strptime(ymd, "%Y-%m-%d").date()
+    return (d - timedelta(days=1)).strftime("%Y-%m-%d")
+
+
 def default_effective_from(now: Optional[datetime] = None) -> str:
     """Default pending/draft effective date: tomorrow (Asia/Shanghai)."""
     today = datetime.strptime(china_ymd(now), "%Y-%m-%d").date()
@@ -219,7 +232,7 @@ def ensure_task_tables(conn: sqlite3.Connection) -> None:
             weekday_minutes INTEGER NOT NULL DEFAULT 40,
             weekend_minutes INTEGER NOT NULL DEFAULT 90,
             stage_test_every_n INTEGER NOT NULL DEFAULT 3,
-            pack_mode TEXT NOT NULL DEFAULT 'time_budget',
+            pack_mode TEXT NOT NULL DEFAULT 'units_per_day',
             pending_weekday_minutes INTEGER,
             pending_weekend_minutes INTEGER,
             pending_stage_test_every_n INTEGER,
@@ -256,6 +269,8 @@ def ensure_task_tables(conn: sqlite3.Connection) -> None:
             test_attempt_count_today INTEGER NOT NULL DEFAULT 0,
             test_attempt_ymd TEXT,
             need_refresh INTEGER NOT NULL DEFAULT 0,
+            restudy_count INTEGER NOT NULL DEFAULT 0,
+            refresh_reason TEXT,
             last_completed_at TEXT,
             created_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
             updated_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
@@ -372,7 +387,7 @@ def _migrate_task_effective_columns(conn: sqlite3.Connection) -> None:
             )
         if "pack_mode" not in cols:
             conn.execute(
-                "ALTER TABLE student_time_profiles ADD COLUMN pack_mode TEXT NOT NULL DEFAULT 'time_budget'"
+                "ALTER TABLE student_time_profiles ADD COLUMN pack_mode TEXT NOT NULL DEFAULT 'units_per_day'"
             )
         if "pending_pack_mode" not in cols:
             conn.execute(
@@ -461,6 +476,18 @@ def _migrate_task_effective_columns(conn: sqlite3.Connection) -> None:
             conn.execute(
                 "ALTER TABLE daily_tasks ADD COLUMN gendu_best_score REAL"
             )
+    if "plan_items" in tables:
+        pi_cols = {r[1] for r in conn.execute("PRAGMA table_info(plan_items)").fetchall()}
+        # 「测不过 → 重学」已自动触发过几次（2026-09-20）。用来封顶，避免
+        # 「考不过→重学→再考不过→再重学」无限循环，把清单卡在同一批单元上。
+        if "restudy_count" not in pi_cols:
+            conn.execute(
+                "ALTER TABLE plan_items ADD COLUMN restudy_count INTEGER NOT NULL DEFAULT 0"
+            )
+        # need_refresh 的「原因」：'restudy' = 阶段测没过要重学；其它/NULL = 换题内容更新。
+        # 两者共用 need_refresh 这一个开关，但学生端文案不同（「需重学」/「内容已更新」）。
+        if "refresh_reason" not in pi_cols:
+            conn.execute("ALTER TABLE plan_items ADD COLUMN refresh_reason TEXT")
 
 
 def _draft_meta_effective_from(meta: Optional[dict[str, Any]], today: str) -> Optional[str]:
@@ -498,13 +525,26 @@ def _profile_pending_due(row: dict[str, Any], task_date: str) -> bool:
     return True
 
 
+def _units_or_default(value: Any) -> int:
+    """配额取值：None 才回落到默认，**0 是合法配额**（当天不排这科）。
+
+    不能用 `value or DEFAULT`：0 是 falsy，会被静默改成 1，于是
+        ① `_quotas_have_pending` 判不出「0 → 1」的变更，老师把某科从
+           「仅周末」改回「周中也排」时改不动；
+        ② `_serialize_quota_rows` 认为排程没变，当天任务不重建。
+    """
+    if value is None:
+        return DEFAULT_UNITS_PER_DAY
+    return max(0, int(value))
+
+
 def _quotas_have_pending(quotas: list[dict[str, Any]]) -> bool:
     for q in quotas:
         if q.get("pending_weekday_units") is not None:
-            if int(q["pending_weekday_units"]) != int(q.get("weekday_units") or DEFAULT_UNITS_PER_DAY):
+            if int(q["pending_weekday_units"]) != _units_or_default(q.get("weekday_units")):
                 return True
         if q.get("pending_weekend_units") is not None:
-            if int(q["pending_weekend_units"]) != int(q.get("weekend_units") or DEFAULT_UNITS_PER_DAY):
+            if int(q["pending_weekend_units"]) != _units_or_default(q.get("weekend_units")):
                 return True
     return False
 
@@ -1032,13 +1072,18 @@ def _quota_row_units(
     if not row:
         return DEFAULT_UNITS_PER_DAY
     weekend = is_weekend(task_date)
+    # 注意：0 是合法配额（当天不排这科），不能用 `or` 兜底，否则 0 会被当成未设置。
     if weekend:
         if prefer_pending and row.get("pending_weekend_units") is not None:
             return max(0, int(row["pending_weekend_units"]))
-        return max(0, int(row.get("weekend_units") or DEFAULT_UNITS_PER_DAY))
+        if row.get("weekend_units") is not None:
+            return max(0, int(row["weekend_units"]))
+        return DEFAULT_UNITS_PER_DAY
     if prefer_pending and row.get("pending_weekday_units") is not None:
         return max(0, int(row["pending_weekday_units"]))
-    return max(0, int(row.get("weekday_units") or DEFAULT_UNITS_PER_DAY))
+    if row.get("weekday_units") is not None:
+        return max(0, int(row["weekday_units"]))
+    return DEFAULT_UNITS_PER_DAY
 
 
 def _pending_quotas_apply_on(
@@ -1111,20 +1156,6 @@ def _module_quota_map(
     return out
 
 
-def _effective_pack_mode(
-    profile: dict[str, Any],
-    *,
-    mode_override: Optional[str] = None,
-    prefer_pending: bool = False,
-) -> str:
-    if mode_override in PACK_MODES:
-        return mode_override
-    if prefer_pending and profile.get("pending_pack_mode") in PACK_MODES:
-        return str(profile["pending_pack_mode"])
-    mode = profile.get("pack_mode") or PACK_MODE_TIME_BUDGET
-    return mode if mode in PACK_MODES else PACK_MODE_TIME_BUDGET
-
-
 def apply_pending_quotas(conn: sqlite3.Connection, student_id: str) -> None:
     rows = list_module_quotas(conn, student_id)
     for row in rows:
@@ -1153,8 +1184,8 @@ def _serialize_quota_rows(rows: list[dict[str, Any]]) -> str:
         [
             {
                 "module_type": r.get("module_type"),
-                "weekday_units": int(r.get("weekday_units") or DEFAULT_UNITS_PER_DAY),
-                "weekend_units": int(r.get("weekend_units") or DEFAULT_UNITS_PER_DAY),
+                "weekday_units": _units_or_default(r.get("weekday_units")),
+                "weekend_units": _units_or_default(r.get("weekend_units")),
             }
             for r in rows
         ],
@@ -1173,7 +1204,7 @@ def ensure_time_profile(conn: sqlite3.Connection, student_id: str) -> dict[str, 
     ).fetchone()
     if row:
         d = dict(row)
-        d["pack_mode"] = d.get("pack_mode") or PACK_MODE_TIME_BUDGET
+        d["pack_mode"] = d.get("pack_mode") or PACK_MODE_UNITS_PER_DAY
         d["module_quotas"] = list_module_quotas(conn, student_id)
         return d
     conn.execute(
@@ -1189,7 +1220,7 @@ def ensure_time_profile(conn: sqlite3.Connection, student_id: str) -> dict[str, 
             "SELECT * FROM student_time_profiles WHERE student_id=?", (student_id,)
         ).fetchone()
     )
-    d["pack_mode"] = d.get("pack_mode") or PACK_MODE_TIME_BUDGET
+    d["pack_mode"] = d.get("pack_mode") or PACK_MODE_UNITS_PER_DAY
     d["module_quotas"] = list_module_quotas(conn, student_id)
     return d
 
@@ -1211,10 +1242,6 @@ def apply_pending_profile(conn: sqlite3.Connection, student_id: str, task_date: 
         updates.append("stage_test_every_n=?")
         params.append(row["pending_stage_test_every_n"])
         updates.append("pending_stage_test_every_n=NULL")
-    if row.get("pending_pack_mode") is not None:
-        updates.append("pack_mode=?")
-        params.append(row["pending_pack_mode"])
-        updates.append("pending_pack_mode=NULL")
     if updates:
         params.append(student_id)
         conn.execute(
@@ -1238,8 +1265,8 @@ def put_time_profile(
     weekend = payload.get("weekend_minutes")
     every_n = payload.get("stage_test_every_n")
     pack_mode = payload.get("pack_mode")
-    if pack_mode is not None and pack_mode not in PACK_MODES:
-        raise ValueError("pack_mode 须为 time_budget 或 units_per_day")
+    if pack_mode is not None and pack_mode != PACK_MODE_UNITS_PER_DAY:
+        raise ValueError("pack_mode 只支持 units_per_day（按分钟装箱已下线）")
     effective_from = normalize_effective_from(payload.get("effective_from"))
     conn.execute(
         """
@@ -1247,12 +1274,11 @@ def put_time_profile(
             pending_weekday_minutes = COALESCE(?, pending_weekday_minutes),
             pending_weekend_minutes = COALESCE(?, pending_weekend_minutes),
             pending_stage_test_every_n = COALESCE(?, pending_stage_test_every_n),
-            pending_pack_mode = COALESCE(?, pending_pack_mode),
             pending_effective_from = ?,
             updated_at = strftime('%Y-%m-%dT%H:%M:%fZ','now')
         WHERE student_id = ?
         """,
-        (weekday, weekend, every_n, pack_mode, effective_from, student_id),
+        (weekday, weekend, every_n, effective_from, student_id),
     )
     module_quotas = payload.get("module_quotas")
     if isinstance(module_quotas, list):
@@ -1301,10 +1327,15 @@ def _parse_json_list(raw: Any) -> list[Any]:
 
 
 def _plan_progress(conn: sqlite3.Connection, student_id: str) -> dict[str, dict[str, int]]:
-    """module_type -> {study_x, study_y, pass_a, pass_b}."""
+    """module_type -> {study_x, study_y, pass_a, pass_b, restudy_n}.
+
+    ``restudy_n`` 是历史字段：一度用于「考挂 → 覆盖单元重学」（2026-09-20 已废除，
+    改为只留阶段测挂着）。保留字段与教师端「·重N」显示，兼容早期数据，正常恒为 0。
+    """
     rows = conn.execute(
         """
-        SELECT module_type, item_type, status, study_completed, test_passed
+        SELECT module_type, item_type, status, study_completed, test_passed,
+               COALESCE(need_refresh, 0) AS need_refresh, refresh_reason
         FROM plan_items WHERE student_id=? AND status!='removed'
         """,
         (student_id,),
@@ -1313,11 +1344,19 @@ def _plan_progress(conn: sqlite3.Connection, student_id: str) -> dict[str, dict[
     for row in rows:
         mt = row["module_type"] or ""
         if mt not in prog:
-            prog[mt] = {"study_x": 0, "study_y": 0, "pass_a": 0, "pass_b": 0}
+            prog[mt] = {
+                "study_x": 0,
+                "study_y": 0,
+                "pass_a": 0,
+                "pass_b": 0,
+                "restudy_n": 0,
+            }
         if row["item_type"] == "study":
             prog[mt]["study_y"] += 1
             if row["study_completed"]:
                 prog[mt]["study_x"] += 1
+            elif row["need_refresh"] and str(row["refresh_reason"] or "") == "restudy":
+                prog[mt]["restudy_n"] += 1
         elif row["item_type"] == "test":
             prog[mt]["pass_b"] += 1
             if row["test_passed"]:
@@ -2125,9 +2164,6 @@ def get_plan(conn: sqlite3.Connection, student_id: str) -> dict[str, Any]:
 
 
 def _profile_has_real_pending(tp: dict[str, Any]) -> bool:
-    if tp.get("pending_pack_mode") is not None:
-        if str(tp["pending_pack_mode"]) != str(tp.get("pack_mode") or PACK_MODE_TIME_BUDGET):
-            return True
     if tp.get("pending_weekday_minutes") is not None:
         if int(tp["pending_weekday_minutes"]) != int(tp.get("weekday_minutes") or 0):
             return True
@@ -2322,7 +2358,6 @@ def maybe_apply_pending_for_today(conn: sqlite3.Connection, student_id: str, tas
             "pending_weekday_minutes",
             "pending_weekend_minutes",
             "pending_stage_test_every_n",
-            "pending_pack_mode",
             "pending_effective_from",
         )
     ):
@@ -2332,7 +2367,6 @@ def maybe_apply_pending_for_today(conn: sqlite3.Connection, student_id: str, tas
                 pending_weekday_minutes=NULL,
                 pending_weekend_minutes=NULL,
                 pending_stage_test_every_n=NULL,
-                pending_pack_mode=NULL,
                 pending_effective_from=NULL,
                 updated_at=strftime('%Y-%m-%dT%H:%M:%fZ','now')
             WHERE student_id=?
@@ -2353,7 +2387,6 @@ def maybe_apply_pending_for_today(conn: sqlite3.Connection, student_id: str, tas
     if _profile_pending_due(row, task_date):
         old_wd = int(row["weekday_minutes"])
         old_we = int(row["weekend_minutes"])
-        old_mode = row.get("pack_mode") or PACK_MODE_TIME_BUDGET
         old_quotas = list_module_quotas(conn, student_id)
         apply_pending_profile(conn, student_id, task_date)
         conn.execute(
@@ -2364,7 +2397,6 @@ def maybe_apply_pending_for_today(conn: sqlite3.Connection, student_id: str, tas
         schedule_changed = (
             int(merged["weekday_minutes"]) != old_wd
             or int(merged["weekend_minutes"]) != old_we
-            or (merged.get("pack_mode") or PACK_MODE_TIME_BUDGET) != old_mode
             or _quotas_changed(old_quotas, merged.get("module_quotas") or [])
         )
         if schedule_changed:
@@ -2439,6 +2471,32 @@ def _item_done(item: dict[str, Any]) -> bool:
     return bool(item.get("test_passed"))
 
 
+def _paused_modules(
+    conn: sqlite3.Connection, student_id: str, on_date: str
+) -> set[str]:
+    """配额被显式设为 0 的模块 = 助教已暂停该科。
+
+    判定用「周中与周末都为 0」：只把单边设为 0 是「那几天不排」（例如工作日不排、
+    周末排），不算暂停，否则积压数会随星期来回跳。这类被暂停模块的未完成条目既不会
+    被派发、也不该算作积压（否则会变成永远清不掉的「假积压」）。
+    """
+    paused: set[str] = set()
+    for row in list_module_quotas(conn, student_id):
+        wd, we = row.get("weekday_units"), row.get("weekend_units")
+        if wd is None or we is None:
+            # 未设置 = 按默认 1 条/天排，不算暂停
+            continue
+        if max(0, int(wd)) <= 0 and max(0, int(we)) <= 0:
+            mt = str(row.get("module_type") or "")
+            if mt:
+                paused.add(mt)
+    # 跟读在有效期内会被强制保留 1 条/天（见 build_daily_tasks），不算暂停。
+    asg = _raw_gendu_assignment(conn, student_id)
+    if asg and str(asg["starts_on"]) <= on_date <= str(asg["ends_on"]):
+        paused.discard(GENDU_MODULE)
+    return paused
+
+
 def backlog_plan_item_ids(
     conn: sqlite3.Connection,
     student_id: str,
@@ -2450,6 +2508,10 @@ def backlog_plan_item_ids(
     Today's unfinished tasks do not count yet (the day is still in progress).
     ``before_date`` defaults to China today.
 
+    **用途限定**：这是给打包器挑「优先补做」候选集的，口径是「以前派过、仍未完成」。
+    看板展示的「积压」数字已改为 ``day_unfinished_count``（回看昨天那批任务），
+    两者口径刻意不同，不要互相替换。
+
     早于「计划生效日」的日期一律不算：那是计划尚未创建时被旧版回填逻辑塞进去的
     幽灵行（9/17 之前 ensure_active_plan_daily_tasks 无下限回填），学生当天根本
     没有这批任务，计成积压会一直挂着并标红。
@@ -2460,7 +2522,7 @@ def backlog_plan_item_ids(
         return []
     rows = conn.execute(
         """
-        SELECT DISTINCT d.plan_item_id
+        SELECT DISTINCT d.plan_item_id, p.module_type, p.item_type
         FROM daily_tasks d
         JOIN plan_items p ON p.id = d.plan_item_id
         WHERE d.student_id=?
@@ -2475,15 +2537,18 @@ def backlog_plan_item_ids(
         """,
         (student_id, cutoff, plan_start or ""),
     ).fetchall()
-    ids = [int(r["plan_item_id"]) for r in rows]
+    # 配额被设为 0 的模块（助教暂停）不计积压：它们的条目本来就不会被派发，
+    # 计进来只会一直挂着、学生怎么做都清不掉，还会把看板标红。
+    paused = _paused_modules(conn, student_id, cutoff)
     # 跟读单元：最近一次安排日「做满 3 次 = 当日完成」即不计积压（即使未过 70 分关）。
     # study_completed 只在过 70 分、次日切课时才置 1，否则会误报为积压。
     out: list[int] = []
-    for pid in ids:
-        it = conn.execute(
-            "SELECT module_type, item_type FROM plan_items WHERE id=?", (pid,)
-        ).fetchone()
-        if it and str(it["module_type"]) == GENDU_MODULE and it["item_type"] == "study":
+    for r in rows:
+        pid = int(r["plan_item_id"])
+        mt = str(r["module_type"] or "")
+        if mt in paused:
+            continue
+        if mt == GENDU_MODULE and str(r["item_type"] or "") == "study":
             latest = conn.execute(
                 """
                 SELECT state FROM daily_tasks
@@ -2815,6 +2880,7 @@ def _aligned_units_schedule(
                 quota_map=quota_resolver(today),
                 backlog_ids=backlog,
                 released_ids=released,
+                released_means_done=True,  # 试算：把已派过的当作已完成
             )
             schedule.append(
                 {
@@ -2846,82 +2912,6 @@ def _aligned_units_schedule(
     while schedule and not (schedule[-1].get("items") or []):
         schedule.pop()
     return schedule
-
-
-def _simulate_daily_pack(
-    conn: sqlite3.Connection,
-    plan_items: list[dict[str, Any]],
-    backlog_items: list[dict[str, Any]],
-    budget: int,
-    tolerance: float,
-) -> dict[str, Any]:
-    result: list[dict[str, Any]] = []
-    used = 0.0
-    in_result: set[int] = set()
-
-    def _try_add(item: dict[str, Any], prio: str) -> bool:
-        nonlocal used
-        pid = int(item["id"])
-        if pid in in_result:
-            return False
-        est = _est_minutes(conn, item)
-        if used > 0 and used + est > tolerance:
-            return False
-        if used == 0 and est > budget:
-            result.append({"item": item, "priority_class": prio})
-            in_result.add(pid)
-            return True
-        result.append({"item": item, "priority_class": prio})
-        in_result.add(pid)
-        used += est
-        return True
-
-    for item in _interleave_by_module(backlog_items):
-        if used >= tolerance:
-            break
-        _try_add(item, "carry_over")
-
-    fresh = [it for it in plan_items if not _item_done(it) and int(it["id"]) not in in_result]
-    for item in _interleave_by_module(fresh):
-        if used >= tolerance:
-            break
-        pid = int(item["id"])
-        if pid in in_result:
-            continue
-        est = _est_minutes(conn, item)
-        if used > 0 and used + est > tolerance:
-            break
-        if used == 0 and est > budget:
-            result.append({"item": item, "priority_class": "fresh"})
-            in_result.add(pid)
-            break
-        result.append({"item": item, "priority_class": "fresh"})
-        in_result.add(pid)
-        used += est
-        if used >= tolerance:
-            break
-
-    modules = {r["item"].get("module_type") for r in result if r["item"].get("module_type")}
-    out_items = []
-    for r in result:
-        it = r["item"]
-        title = it.get("unit_title") or it.get("test_title") or it.get("unit_id") or "任务"
-        if it.get("item_type") == "test":
-            title = it.get("test_title") or title
-        out_items.append(
-            {
-                "title": title,
-                "module_type": it.get("module_type"),
-                "item_type": it.get("item_type"),
-                "est_minutes": _est_minutes(conn, it),
-                "priority_class": r["priority_class"],
-            }
-        )
-    return {
-        "est_total_minutes": sum(x["est_minutes"] for x in out_items),
-        "rotated": len(modules) > 1,
-        "items": out_items,
-    }
 
 
 def _quota_overrides_from_payload(
@@ -2966,11 +2956,6 @@ def preview_daily_pack_items(
     """
     task_date = task_date or china_ymd()
     profile = ensure_time_profile(conn, student_id)
-    mode = _effective_pack_mode(
-        profile,
-        mode_override=pack_mode,
-        prefer_pending=pack_mode is None,
-    )
     plan_items = _hydrate_plan_items_with_live(
         conn, student_id, _plan_items_from_payload(conn, items)
     )
@@ -2987,60 +2972,43 @@ def preview_daily_pack_items(
             override_from = str(raw_eff)
         except (TypeError, ValueError):
             override_from = task_date
-    if mode == PACK_MODE_UNITS_PER_DAY:
 
-        def _quota_for(day: str) -> dict[str, int]:
-            return _resolve_units_quota_map(
-                conn,
-                student_id,
-                day,
-                plan_items,
-                quota_overrides=quota_overrides or None,
-                override_from=override_from,
-            )
-
-        schedule = _aligned_units_schedule(
+    def _quota_for(day: str) -> dict[str, int]:
+        return _resolve_units_quota_map(
             conn,
             student_id,
+            day,
             plan_items,
-            start_date=task_date,
-            quota_resolver=_quota_for,
+            quota_overrides=quota_overrides or None,
+            override_from=override_from,
         )
-        quota_map = _quota_for(task_date)
-        today_row = next(
-            (d for d in schedule if d.get("task_date") == task_date),
-            schedule[0] if schedule else None,
-        )
-        today_items = (today_row or {}).get("items") or []
-        return {
-            "source": "draft_items_aligned",
-            "task_date": task_date,
-            "pack_mode": PACK_MODE_UNITS_PER_DAY,
-            "module_quotas": quota_map,
-            "schedule": schedule,
-            "items": today_items,
-            "units_total": len(today_items),
-            "est_total_minutes": sum(int(x.get("est_minutes") or 0) for x in today_items),
-            "rotated": len({x.get("module_type") for x in today_items if x.get("module_type")})
-            > 1,
-            "aligned": True,
-            "quota_override_from": override_from,
-        }
-    budget = _budget_minutes(
-        profile,
-        task_date,
-        weekday_override=weekday_minutes,
-        weekend_override=weekend_minutes,
-        prefer_pending=weekday_minutes is None and weekend_minutes is None,
+
+    schedule = _aligned_units_schedule(
+        conn,
+        student_id,
+        plan_items,
+        start_date=task_date,
+        quota_resolver=_quota_for,
     )
-    tolerance = budget * PACK_TOLERANCE
-    sim = _simulate_daily_pack(conn, plan_items, [], budget, tolerance)
+    quota_map = _quota_for(task_date)
+    today_row = next(
+        (d for d in schedule if d.get("task_date") == task_date),
+        schedule[0] if schedule else None,
+    )
+    today_items = (today_row or {}).get("items") or []
     return {
-        "source": "draft_items",
+        "source": "draft_items_aligned",
         "task_date": task_date,
-        "pack_mode": PACK_MODE_TIME_BUDGET,
-        "budget_minutes": budget,
-        **sim,
+        "pack_mode": PACK_MODE_UNITS_PER_DAY,
+        "module_quotas": quota_map,
+        "schedule": schedule,
+        "items": today_items,
+        "units_total": len(today_items),
+        "est_total_minutes": sum(int(x.get("est_minutes") or 0) for x in today_items),
+        "rotated": len({x.get("module_type") for x in today_items if x.get("module_type")})
+        > 1,
+        "aligned": True,
+        "quota_override_from": override_from,
     }
 
 
@@ -3059,11 +3027,6 @@ def preview_daily_pack(
     task_date = task_date or china_ymd()
     maybe_apply_pending_for_today(conn, student_id, task_date)
     profile = ensure_time_profile(conn, student_id)
-    mode = _effective_pack_mode(
-        profile,
-        mode_override=pack_mode,
-        prefer_pending=pack_mode is None,
-    )
     quota_overrides = _quota_overrides_from_payload(module_quotas)
 
     if source == "live":
@@ -3074,10 +3037,10 @@ def preview_daily_pack(
         if existing and int(existing["c"]) > 0:
             daily = _enrich_daily(conn, student_id, task_date)
             modules = {d.get("module_type") for d in daily if d.get("module_type")}
-            base = {
+            return {
                 "source": "live_locked",
                 "task_date": task_date,
-                "pack_mode": mode,
+                "pack_mode": PACK_MODE_UNITS_PER_DAY,
                 "est_total_minutes": sum(d.get("est_minutes") or 0 for d in daily),
                 "rotated": len(modules) > 1,
                 "units_total": len(daily),
@@ -3092,10 +3055,6 @@ def preview_daily_pack(
                     for d in daily
                 ],
             }
-            if mode == PACK_MODE_UNITS_PER_DAY:
-                return base
-            budget = _budget_minutes(profile, task_date)
-            return {**base, "budget_minutes": budget}
 
     if source == "draft":
         rows = conn.execute(
@@ -3109,7 +3068,6 @@ def preview_daily_pack(
             (student_id,),
         ).fetchall()
         plan_items = _plan_items_from_draft_rows(rows)
-        backlog_items: list[dict[str, Any]] = []
     else:
         plan_items = [
             dict(r)
@@ -3124,113 +3082,84 @@ def preview_daily_pack(
                 (student_id,),
             ).fetchall()
         ]
-        backlog_items = []
-        for pid in backlog_plan_item_ids(conn, student_id, before_date=china_ymd()):
-            item_row = conn.execute("SELECT * FROM plan_items WHERE id=?", (pid,)).fetchone()
-            if item_row and item_row["status"] == "pending":
-                item = dict(item_row)
-                if not _item_done(item):
-                    backlog_items.append(item)
 
-    if mode == PACK_MODE_UNITS_PER_DAY:
-        prefer = not quota_overrides and pack_mode is None and source == "draft"
+    prefer = not quota_overrides and pack_mode is None and source == "draft"
 
-        def _quota_for(day: str) -> dict[str, int]:
-            if source == "draft":
-                return _module_quota_map(
-                    conn,
-                    student_id,
-                    day,
-                    plan_items,
-                    quota_overrides=quota_overrides,
-                    prefer_pending=prefer,
-                )
-            return _resolve_units_quota_map(
+    def _quota_for(day: str) -> dict[str, int]:
+        if source == "draft":
+            return _module_quota_map(
                 conn,
                 student_id,
                 day,
                 plan_items,
-                quota_overrides=quota_overrides or None,
-                override_from=(
-                    profile.get("pending_effective_from") or task_date
-                    if quota_overrides
-                    else None
-                ),
+                quota_overrides=quota_overrides,
+                prefer_pending=prefer,
             )
-
-        if source == "draft":
-            # Saved draft only: ideal from scratch (no live released state).
-            quota_map = _quota_for(task_date)
-            sim = _simulate_units_pack(
-                conn,
-                plan_items,
-                task_date=task_date,
-                quota_map=quota_map,
-                backlog_items=[],
-                released_ids=set(),
-            )
-            schedule = _preview_units_schedule(
-                conn,
-                plan_items,
-                task_date,
-                quota_resolver=_quota_for,
-            )
-            return {
-                "source": "draft",
-                "task_date": task_date,
-                "pack_mode": PACK_MODE_UNITS_PER_DAY,
-                "module_quotas": quota_map,
-                "schedule": schedule,
-                **sim,
-            }
-
-        # Live plan: same algorithm as student today + upcoming.
-        schedule = _aligned_units_schedule(
+        return _resolve_units_quota_map(
             conn,
             student_id,
+            day,
             plan_items,
-            start_date=task_date,
+            quota_overrides=quota_overrides or None,
+            override_from=(
+                profile.get("pending_effective_from") or task_date
+                if quota_overrides
+                else None
+            ),
+        )
+
+    if source == "draft":
+        # Saved draft only: ideal from scratch (no live released state).
+        quota_map = _quota_for(task_date)
+        sim = _simulate_units_pack(
+            conn,
+            plan_items,
+            task_date=task_date,
+            quota_map=quota_map,
+            backlog_items=[],
+            released_ids=set(),
+        )
+        schedule = _preview_units_schedule(
+            conn,
+            plan_items,
+            task_date,
             quota_resolver=_quota_for,
         )
-        quota_map = _quota_for(task_date)
-        today_row = next(
-            (d for d in schedule if d.get("task_date") == task_date),
-            schedule[0] if schedule else None,
-        )
-        today_items = (today_row or {}).get("items") or []
         return {
-            "source": "live_aligned",
+            "source": "draft",
             "task_date": task_date,
             "pack_mode": PACK_MODE_UNITS_PER_DAY,
             "module_quotas": quota_map,
             "schedule": schedule,
-            "items": today_items,
-            "units_total": len(today_items),
-            "est_total_minutes": sum(int(x.get("est_minutes") or 0) for x in today_items),
-            "rotated": len({x.get("module_type") for x in today_items if x.get("module_type")})
-            > 1,
-            "aligned": True,
+            **sim,
         }
 
-    budget = _budget_minutes(
-        profile,
-        task_date,
-        weekday_override=weekday_minutes,
-        weekend_override=weekend_minutes,
-        prefer_pending=(
-            weekday_minutes is None
-            and weekend_minutes is None
-            and source == "draft"
-        ),
+    # Live plan: same algorithm as student today + upcoming.
+    schedule = _aligned_units_schedule(
+        conn,
+        student_id,
+        plan_items,
+        start_date=task_date,
+        quota_resolver=_quota_for,
     )
-    tolerance = budget * PACK_TOLERANCE
-    sim = _simulate_daily_pack(conn, plan_items, backlog_items, budget, tolerance)
+    quota_map = _quota_for(task_date)
+    today_row = next(
+        (d for d in schedule if d.get("task_date") == task_date),
+        schedule[0] if schedule else None,
+    )
+    today_items = (today_row or {}).get("items") or []
     return {
-        "source": source if source != "live" else "live",
+        "source": "live_aligned",
         "task_date": task_date,
-        "pack_mode": PACK_MODE_TIME_BUDGET,
-        "budget_minutes": budget,
-        **sim,
+        "pack_mode": PACK_MODE_UNITS_PER_DAY,
+        "module_quotas": quota_map,
+        "schedule": schedule,
+        "items": today_items,
+        "units_total": len(today_items),
+        "est_total_minutes": sum(int(x.get("est_minutes") or 0) for x in today_items),
+        "rotated": len({x.get("module_type") for x in today_items if x.get("module_type")})
+        > 1,
+        "aligned": True,
     }
 
 
@@ -3253,6 +3182,17 @@ def _module_order_from_items(items: list[dict[str, Any]]) -> list[str]:
     return order
 
 
+def _is_fresh_priority_day(task_date: str) -> bool:
+    """quota == 1 时的轮转开关：偶数日优先新单元，奇数日优先消化积压。
+
+    用日期奇偶而不是查库状态，保持打包函数纯粹、可预测（同样的输入永远同样的输出）。
+    """
+    try:
+        return int(str(task_date)[-2:]) % 2 == 0
+    except (TypeError, ValueError):
+        return True
+
+
 def _units_pack_picks(
     plan_items: list[dict[str, Any]],
     *,
@@ -3260,12 +3200,34 @@ def _units_pack_picks(
     quota_map: dict[str, int],
     backlog_ids: set[int],
     released_ids: set[int],
+    released_means_done: bool = False,
 ) -> list[tuple[dict[str, Any], str, bool]]:
     """Return (item, priority_class, forced) for one calendar day.
 
     Per module: take up to ``quota`` items — backlog first (oldest sort_order),
     then fresh. Backlog beyond today's quota stays for later days (not dumped
     all at once after a heavy weekend).
+
+    新单元保底：积压把名额占满时让出一个给新单元。否则学生只要有一次没做完，
+    同一批任务就会被无限重发、新内容再也进不来（线上 2025085 连续 10 天条目
+    完全相同，完成率 0%）。``quota == 1`` 时两支按日期轮流——直接让给新单元
+    会让积压永远消化不了。
+
+    **阶段测免额（2026-09-20 决议）**：``quota`` 只管学习单元，阶段测**不占**每日
+    配额，也不受它限制。学生反馈「阶段测过不去、占着名额，新单元进不来」，
+    所以把测从配额里摘出来：没过的测一直挂在任务列表里，考过就消失。
+    两条附加约束：
+
+    1. **模块仍然要排**（``quota > 0``）：助教把某科设成当天不排（配额 0）时，
+       那一科的测也不派，与「这天不排这科」保持一致；
+    2. **覆盖单元要先学完**：一条测只有在其 ``test_unit_ids`` 覆盖的学习单元
+       都已经完成、或者**就在今天这批里一起派下去**时才派。这样它是跟着
+       「最后一个覆盖单元」同一天出现的（学完就考），不会在只学了一半时
+       就看见覆盖更大范围的测、提前考挂。
+
+    ``released_means_done`` 只给「多日试算」预览用：预览里 `plan_items` 是快照，
+    模拟日做完的单元不会真的写上 ``study_completed``，只能靠 ``released_ids``
+    充当「假设已完成」，否则预览里永远看不到阶段测。
     """
     active = [
         dict(it)
@@ -3278,27 +3240,52 @@ def _units_pack_picks(
             refresh.append(it)
     refresh_ids = {int(it["id"]) for it in refresh}
 
+    # 覆盖单元是否已学完。用完整的 plan_items 而不是 active——已完成的单元不在 active 里。
+    unit_done: dict[str, bool] = {}
+    for it in plan_items:
+        if it.get("item_type") != "study":
+            continue
+        uid = str(it.get("unit_id") or "")
+        if not uid:
+            continue
+        ok = _item_done(it) or (
+            released_means_done and int(it.get("id") or 0) in released_ids
+        )
+        unit_done[uid] = ok if uid not in unit_done else (unit_done[uid] and ok)
+
     pool: list[dict[str, Any]] = []
     meta: dict[int, tuple[str, bool]] = {}
-    for mt in _module_order_from_items(active):
+    module_order = _module_order_from_items(active)
+
+    # ---- 第一遍：学习单元（受 quota 约束） ----
+    for mt in module_order:
         quota = max(0, int(quota_map.get(mt, DEFAULT_UNITS_PER_DAY)))
-        mod_items = [
+        mod_studies = [
             it
             for it in active
-            if str(it.get("module_type") or "other") == mt and int(it["id"]) not in refresh_ids
+            if str(it.get("module_type") or "other") == mt
+            and it.get("item_type") != "test"
+            and int(it["id"]) not in refresh_ids
         ]
         backlog_mod = [
-            it for it in mod_items if int(it["id"]) in backlog_ids
+            it for it in mod_studies if int(it["id"]) in backlog_ids
         ]
         backlog_mod.sort(key=lambda x: int(x.get("sort_order") or 0))
         fresh_mod = [
             it
-            for it in mod_items
+            for it in mod_studies
             if int(it["id"]) not in backlog_ids and int(it["id"]) not in released_ids
         ]
         fresh_mod.sort(key=lambda x: int(x.get("sort_order") or 0))
         take_backlog = backlog_mod[:quota]
         slots = max(0, quota - len(take_backlog))
+        if take_backlog and slots == 0 and fresh_mod:
+            if quota >= 2:
+                take_backlog = take_backlog[:-1]
+            elif _is_fresh_priority_day(task_date):
+                # quota 只有 1：偶数日让给新单元，奇数日消化积压，两边都往前走
+                take_backlog = []
+            slots = max(0, quota - len(take_backlog))
         for it in take_backlog:
             pid = int(it["id"])
             meta[pid] = ("carry_over", False)
@@ -3306,6 +3293,44 @@ def _units_pack_picks(
         for it in fresh_mod[:slots]:
             pid = int(it["id"])
             meta[pid] = ("fresh", False)
+            pool.append(it)
+
+    # 今天这批里派下去的学习单元也算「已覆盖」，供第二遍判断测是否就绪。
+    taken_units = {
+        str(it.get("unit_id") or "")
+        for it in pool
+        if it.get("item_type") == "study"
+    }
+
+    # ---- 第二遍：阶段测（免额，但模块当天要排、覆盖单元要就绪） ----
+    for mt in module_order:
+        quota = max(0, int(quota_map.get(mt, DEFAULT_UNITS_PER_DAY)))
+        if quota <= 0:
+            continue
+        mod_tests = [
+            it
+            for it in active
+            if str(it.get("module_type") or "other") == mt
+            and it.get("item_type") == "test"
+            and int(it["id"]) not in refresh_ids
+        ]
+        mod_tests.sort(key=lambda x: int(x.get("sort_order") or 0))
+        for it in mod_tests:
+            covered = _parse_json_list(it.get("test_unit_ids")) or []
+            ready = True
+            for uid in covered:
+                if uid not in unit_done:
+                    continue  # 清单里没有这个单元（换题/移除），不阻塞
+                if unit_done[uid] or uid in taken_units:
+                    continue
+                ready = False
+                break
+            if not ready:
+                continue
+            pid = int(it["id"])
+            # 归到 carry_over：它是「以前派过、还没搞定」的，与积压同性质，
+            # 打包器据此优先补做。免额，所以不参与上面的 slots 计算。
+            meta[pid] = ("carry_over", False)
             pool.append(it)
 
     result: list[tuple[dict[str, Any], str, bool]] = []
@@ -3355,6 +3380,7 @@ def _simulate_units_pack(
         quota_map=quota_map,
         backlog_ids=backlog_ids,
         released_ids=released,
+        released_means_done=True,  # 试算：把已派过的当作已完成
     )
     out_items = _units_pack_to_preview_items(conn, picks)
     modules = {x.get("module_type") for x in out_items if x.get("module_type")}
@@ -3414,6 +3440,7 @@ def _preview_units_schedule(
             quota_map=quota_map,
             backlog_ids=backlog_ids,
             released_ids=released,
+            released_means_done=True,  # 试算：假设每天的任务都做完
         )
         items = _units_pack_to_preview_items(conn, picks)
         schedule.append({"task_date": day, "items": items, "units_total": len(items)})
@@ -3423,126 +3450,6 @@ def _preview_units_schedule(
         if not picks and all(_item_done(it) or int(it["id"]) in released for it in plan_items):
             break
     return schedule
-
-
-def _build_daily_tasks_time_budget(
-    conn: sqlite3.Connection,
-    student_id: str,
-    task_date: Optional[str] = None,
-) -> list[dict[str, Any]]:
-    task_date = task_date or china_ymd()
-    profile = ensure_time_profile(conn, student_id)
-    budget = (
-        int(profile["weekend_minutes"])
-        if is_weekend(task_date)
-        else int(profile["weekday_minutes"])
-    )
-    tolerance = budget * PACK_TOLERANCE
-
-    existing = conn.execute(
-        """
-        SELECT * FROM daily_tasks WHERE student_id=? AND task_date=?
-        ORDER BY sort_in_day
-        """,
-        (student_id, task_date),
-    ).fetchall()
-    if existing:
-        # Already materialized for today — return as-is (MVP locked)
-        return _enrich_daily(conn, student_id, task_date)
-
-    result: list[tuple[int, str, bool]] = []  # plan_item_id, priority, forced
-    used = 0.0
-    in_result: set[int] = set()
-
-    # 1) content refresh
-    refresh_rows = conn.execute(
-        """
-        SELECT * FROM plan_items
-        WHERE student_id=? AND status='pending' AND item_type='study'
-          AND need_refresh=1 AND study_completed=0
-        ORDER BY sort_order
-        """,
-        (student_id,),
-    ).fetchall()
-    for row in refresh_rows:
-        item = dict(row)
-        pid = item["id"]
-        if pid in in_result:
-            continue
-        if not _item_available_on(item, task_date):
-            continue
-        result.append((pid, "content_refresh", True))
-        in_result.add(pid)
-        used += _est_minutes(conn, item)
-
-    # 2) backlog carry-over (interleave when multiple subjects)
-    backlog_items: list[dict[str, Any]] = []
-    for pid in backlog_plan_item_ids(conn, student_id, before_date=task_date):
-        if pid in in_result:
-            continue
-        item_row = conn.execute("SELECT * FROM plan_items WHERE id=?", (pid,)).fetchone()
-        if not item_row or item_row["status"] != "pending":
-            continue
-        item = dict(item_row)
-        if _item_done(item):
-            continue
-        if not _item_available_on(item, task_date):
-            continue
-        backlog_items.append(item)
-    for item in _interleave_by_module(backlog_items):
-        pid = item["id"]
-        if pid in in_result:
-            continue
-        result.append((pid, "carry_over", False))
-        in_result.add(pid)
-        used += _est_minutes(conn, item)
-
-    # 3) pack fresh items — multi-subject plans rotate by module (not strict global queue)
-    live = conn.execute(
-        """
-        SELECT * FROM plan_items
-        WHERE student_id=? AND status='pending'
-        ORDER BY sort_order
-        """,
-        (student_id,),
-    ).fetchall()
-    fresh_candidates: list[dict[str, Any]] = []
-    for row in live:
-        item = dict(row)
-        if _item_done(item):
-            continue
-        if item["id"] in in_result:
-            continue
-        if not _item_available_on(item, task_date):
-            continue
-        fresh_candidates.append(item)
-    for item in _interleave_by_module(fresh_candidates):
-        est = _est_minutes(conn, item)
-        if used > 0 and used + est > tolerance:
-            break
-        if used == 0 and est > budget:
-            result.append((item["id"], "fresh", False))
-            in_result.add(item["id"])
-            break
-        result.append((item["id"], "fresh", False))
-        in_result.add(item["id"])
-        used += est
-        if used >= tolerance:
-            break
-
-    for sort_i, (pid, prio, forced) in enumerate(result):
-        conn.execute(
-            """
-            INSERT INTO daily_tasks (
-                student_id, task_date, plan_item_id, priority_class,
-                sort_in_day, state, locked, forced
-            ) VALUES (?, ?, ?, ?, ?, 'todo', 1, ?)
-            """,
-            (student_id, task_date, pid, prio, sort_i, 1 if forced else 0),
-        )
-
-    conn.commit()
-    return _enrich_daily(conn, student_id, task_date)
 
 
 def _materialize_daily_picks(
@@ -3631,6 +3538,60 @@ def _ensure_gendu_in_existing_daily(
     conn.commit()
 
 
+def _ensure_refresh_in_existing_daily(
+    conn: sqlite3.Connection, student_id: str, task_date: str
+) -> int:
+    """把「换题导致 ``need_refresh``」的单元补进**当天已锁定**的任务包，返回补进去的条数。
+
+    打包只在当天第一次打开时发生，之后当天的列表就锁定了（跟读走的是同一套
+    ``_ensure_gendu_in_existing_daily``）。助教当天换题、或内容版本更新时，规范要求
+    「换题后立刻插回今日并优先」，所以这里要补进当前这一天。
+
+    只补今天：历史日期只读，回头改写会把新任务塞进过去某天（幽灵任务 → 假积压）。
+    """
+    if task_date != china_ymd():
+        return 0
+    existing = conn.execute(
+        "SELECT COUNT(*) AS c FROM daily_tasks WHERE student_id=? AND task_date=?",
+        (student_id, task_date),
+    ).fetchone()["c"]
+    if not int(existing or 0):
+        # 当天还没打包，build_daily_tasks 自然会带上这些条目，不用补。
+        return 0
+    rows = conn.execute(
+        """
+        SELECT p.id FROM plan_items p
+        WHERE p.student_id=? AND p.status='pending' AND p.item_type='study'
+          AND COALESCE(p.need_refresh,0)=1 AND COALESCE(p.study_completed,0)=0
+          AND NOT EXISTS (
+            SELECT 1 FROM daily_tasks d
+            WHERE d.student_id=p.student_id AND d.task_date=? AND d.plan_item_id=p.id
+          )
+        ORDER BY p.sort_order
+        """,
+        (student_id, task_date),
+    ).fetchall()
+    if not rows:
+        return 0
+    max_sort = conn.execute(
+        "SELECT COALESCE(MAX(sort_in_day), -1) AS m FROM daily_tasks "
+        "WHERE student_id=? AND task_date=?",
+        (student_id, task_date),
+    ).fetchone()["m"]
+    for i, r in enumerate(rows):
+        conn.execute(
+            """
+            INSERT INTO daily_tasks (
+                student_id, task_date, plan_item_id, priority_class,
+                sort_in_day, state, locked, forced
+            ) VALUES (?, ?, ?, 'content_refresh', ?, 'todo', 1, 1)
+            """,
+            (student_id, task_date, int(r["id"]), int(max_sort) + 1 + i),
+        )
+    conn.commit()
+    return len(rows)
+
+
 def _build_daily_tasks_units(
     conn: sqlite3.Connection,
     student_id: str,
@@ -3654,6 +3615,9 @@ def _build_daily_tasks_units(
     ).fetchall()
     if existing:
         _ensure_gendu_in_existing_daily(conn, student_id, task_date)
+        # 助教今天刚换题时，当天列表已锁定，不补进去就要等到明天
+        # （详见 _ensure_refresh_in_existing_daily）。
+        _ensure_refresh_in_existing_daily(conn, student_id, task_date)
         return _enrich_daily(conn, student_id, task_date)
 
     live = [
@@ -3705,11 +3669,7 @@ def build_daily_tasks(
         if existing:
             return _enrich_daily(conn, student_id, task_date)
         return []
-    profile = ensure_time_profile(conn, student_id)
-    mode = _effective_pack_mode(profile)
-    if mode == PACK_MODE_UNITS_PER_DAY:
-        return _build_daily_tasks_units(conn, student_id, task_date)
-    return _build_daily_tasks_time_budget(conn, student_id, task_date)
+    return _build_daily_tasks_units(conn, student_id, task_date)
 
 
 def _utc_to_shanghai_ymd(raw: Any) -> Optional[str]:
@@ -3862,16 +3822,9 @@ _MODULE_BRIEF_LABELS = {
 _SPEAKING_PREFIX = "speaking_"
 
 # Wireframe defaults (§5.1)
-_OVERVIEW_EVENING_HOUR = 20
-_OVERVIEW_ZERO_DONE_HOUR = 16
-_OVERVIEW_YELLOW_HOUR = 14
-_OVERVIEW_YELLOW_MINUTES_HOUR = 18
-_OVERVIEW_RED_RATE = 0.5
-_OVERVIEW_BACKLOG_RED = 3
-_OVERVIEW_TEST_FAIL_RED = 2
-_OVERVIEW_GHOST_DAYS = 7
-_OVERVIEW_MINUTES_RED_RATIO = 0.25
-_OVERVIEW_MINUTES_YELLOW_RATIO = 0.5
+# 红黄灯已简化为「只看昨天任务完成情况」（2026-09-20）。原先的时段阈值、完成率比例、
+# 积压阈值、反复考不过阈值、连续零完成天数等常量随旧规则一并删除，
+# 避免以后有人照着它们把旧判定加回来。
 
 
 def _is_speaking_module(mt: str) -> bool:
@@ -3879,23 +3832,30 @@ def _is_speaking_module(mt: str) -> bool:
 
 
 def _plan_progress_brief(progress: dict[str, dict[str, int]]) -> list[dict[str, Any]]:
-    """List all plan-track study X/Y abbrevs (no +N truncation)."""
-    buckets: list[tuple[str, str, int, int]] = []
+    """List all plan-track study X/Y abbrevs (no +N truncation).
+
+    「需重学」的单元用 `·重N` 后缀标出来：它把 study_x 往回压了一格，
+    不标的话老师只会看到进度倒退、不知道该学生正在补测覆盖过的内容。
+    """
+    buckets: list[tuple[str, str, int, int, int]] = []
     speak_x = 0
     speak_y = 0
+    speak_re = 0
     for mt, p in (progress or {}).items():
         sx = int(p.get("study_x") or 0)
         sy = int(p.get("study_y") or 0)
         if sy <= 0:
             continue
+        re_n = int(p.get("restudy_n") or 0)
         if _is_speaking_module(mt):
             speak_x += sx
             speak_y += sy
+            speak_re += re_n
             continue
         label = _MODULE_BRIEF_LABELS.get(mt, mt[:2] if mt else "?")
-        buckets.append((mt, label, sx, sy))
+        buckets.append((mt, label, sx, sy, re_n))
     if speak_y > 0:
-        buckets.append(("speaking", "口", speak_x, speak_y))
+        buckets.append(("speaking", "口", speak_x, speak_y, speak_re))
     # Prefer modules with incomplete work, then higher remaining
     buckets.sort(key=lambda b: (0 if b[2] < b[3] else 1, -(b[3] - b[2]), b[1]))
     return [
@@ -3904,9 +3864,10 @@ def _plan_progress_brief(progress: dict[str, dict[str, int]]) -> list[dict[str, 
             "label": label,
             "study_x": sx,
             "study_y": sy,
-            "text": f"{label}{sx}/{sy}",
+            "restudy_n": re_n,
+            "text": f"{label}{sx}/{sy}" + (f"·重{re_n}" if re_n else ""),
         }
-        for mt, label, sx, sy in buckets
+        for mt, label, sx, sy, re_n in buckets
     ]
 
 
@@ -3914,6 +3875,9 @@ def _today_task_counts(
     conn: sqlite3.Connection, student_id: str, task_date: str
 ) -> tuple[int, int, int]:
     """Return (done, total, done_fail). Read-only; empty if not materialized.
+
+    **不含阶段测**（2026-09-20 第四次修订）：测不算任务量，既不进分子也不进分母，
+    与 ``day_task_progress`` 同口径。测的进度看「待通过阶段测」那一列。
 
     早于「计划生效日」的日期视为没有任务：那是旧版回填逻辑留下的幽灵行，
     否则新学生的看板会凭空出现「昨日任务 0/N」并标红。
@@ -3923,8 +3887,9 @@ def _today_task_counts(
         return 0, 0, 0
     rows = conn.execute(
         """
-        SELECT state FROM daily_tasks
-        WHERE student_id=? AND task_date=?
+        SELECT d.state FROM daily_tasks d
+        JOIN plan_items p ON p.id = d.plan_item_id
+        WHERE d.student_id=? AND d.task_date=? AND p.item_type != 'test'
         """,
         (student_id, task_date),
     ).fetchall()
@@ -3964,106 +3929,219 @@ def _test_fail_count(conn: sqlite3.Connection, student_id: str, task_date: str) 
     return int(row["c"] or 0)
 
 
-def _has_hard_test_fail(conn: sqlite3.Connection, student_id: str, task_date: str) -> bool:
-    """R5: any unpassed test with today's attempts >= 2, or fail count >= threshold."""
+def _stage_needs_attention_count(
+    conn: sqlite3.Connection, student_id: str, task_date: str
+) -> int:
+    """今天「累计考了 ≥ ``STAGE_TEST_ATTENTION_FAILS`` 次还没过」的阶段测条数。
+
+    **不限重测次数**之后，不存在「今天考不动了」这回事，但「同一个测反复考很多次
+    还过不了」对学生是纯粹的消耗（线上实测：翻译题 11 次全 0 分），老师需要看得见。
+
+    它**不参与红黄灯**（2026-09-20 决议：灯只看昨天任务完成情况），只做列上徽章。
+
+    口径说明：这里数的是 ``test_records`` 的**累计提交次数**，不是
+    ``test_attempt_count_today``（那个跨天归零，看不出反复考）。``task_date``
+    只用于与看板调用签名保持一致，实际不参与筛选。
+    """
+    del task_date  # 累计次数与具体哪一天无关
     rows = conn.execute(
         """
-        SELECT test_attempt_count_today, test_attempt_ymd
-        FROM plan_items
-        WHERE student_id=? AND status='pending' AND item_type='test' AND test_passed=0
+        SELECT p.test_title, p.module_type FROM plan_items p
+        WHERE p.student_id=? AND p.item_type='test' AND p.status='pending'
+          AND COALESCE(p.test_passed,0)=0
         """,
         (student_id,),
     ).fetchall()
-    if len(rows) >= _OVERVIEW_TEST_FAIL_RED:
-        return True
+    n = 0
     for r in rows:
-        attempts = int(r["test_attempt_count_today"] or 0)
-        if r["test_attempt_ymd"] == task_date and attempts >= _OVERVIEW_TEST_FAIL_RED:
-            return True
-    return False
+        title = str(r["test_title"] or "") or "阶段测"
+        module_type = str(r["module_type"] or "") or "reading_synonym"
+        rec = conn.execute(
+            """
+            SELECT COUNT(*) AS attempts FROM test_records
+            WHERE student_id=? AND test_type='stage_test'
+              AND module_type=? AND module_name=?
+            """,
+            (student_id, module_type, title),
+        ).fetchone()
+        if int((rec["attempts"] if rec else 0) or 0) >= STAGE_TEST_ATTENTION_FAILS:
+            n += 1
+    return n
 
 
-def _ghost_zero_streak(
-    conn: sqlite3.Connection, student_id: str, task_date: str, days: int = _OVERVIEW_GHOST_DAYS
-) -> bool:
-    """R6: consecutive calendar days with tasks and 0% completion."""
-    end = datetime.strptime(task_date, "%Y-%m-%d").date()
-    for i in range(days):
-        day = (end - timedelta(days=i)).strftime("%Y-%m-%d")
-        done, total, _fail = _today_task_counts(conn, student_id, day)
-        if total < 1:
-            return False
-        if done > 0:
-            return False
-    return True
+def day_task_progress(
+    conn: sqlite3.Connection, student_id: str, task_date: str
+) -> tuple[int, int]:
+    """某一天派下去的任务完成情况 ``(done, total)``，**阶段测按普通任务一样计**。
+
+    「完成」的判定有两条，满足其一即可：
+
+    1. daily 行 ``state`` 是 ``done_study`` / ``done_pass``；
+    2. 条目本身已达标（study 看 ``study_completed``，test 看 ``test_passed``）。
+
+    第 2 条是必须的：跟读（``listening_p4_speed``）的达标靠练习事件对账后写
+    ``study_completed``，**不会**回头改 daily 行，于是会出现「练到 76 分达标了，
+    但那天的 daily 行还是 todo」。只看 ``state`` 会把这天误判成没做、直接标红。
+
+    阶段测（2026-09-20 第四次修订）：**不算任务量，直接跳过**——既不进分母也不进分子。
+    决议原文：「任务阶段测试不算任务量」。理由和「免额」是同一套：测过不了就会一直
+    挂在任务列表里，如果还算完成率，学生的「昨日任务」就永远是 N-1/N，天天黄灯、
+    甚至 0/N 红灯，比不显示还糟。测的进度改由「待通过阶段测」那一列单独呈现。
+
+    早于「计划生效日」的日期返回 ``(0, 0)``：那是旧版回填的幽灵行，不是真任务。
+    """
+    plan_start = _plan_effective_start(conn, student_id)
+    if plan_start and task_date < plan_start:
+        return 0, 0
+    rows = conn.execute(
+        """
+        SELECT d.state, p.item_type, p.study_completed, p.test_passed
+        FROM daily_tasks d
+        JOIN plan_items p ON p.id = d.plan_item_id
+        WHERE d.student_id=? AND d.task_date=?
+        """,
+        (student_id, task_date),
+    ).fetchall()
+    done = 0
+    total = 0
+    for r in rows:
+        item_type = str(r["item_type"] or "")
+        if item_type == "test":
+            continue  # 阶段测不算任务量（见 docstring）
+        total += 1
+        state = str(r["state"] or "")
+        if state in ("done_study", "done_pass"):
+            done += 1
+        elif int(r["study_completed"] or 0):
+            done += 1
+    return done, total
+
+
+def day_unfinished_count(
+    conn: sqlite3.Connection, student_id: str, task_date: str
+) -> int:
+    """看板「积压」数字：``task_date`` 这一天派下去、还没做完的条数。
+
+    口径（2026-09-20 第三次修订）：积压 = **昨天**那批任务里没做完的。
+    昨天派的任务本来就含「前天积压过来的 carry_over」，所以这些也一并算数；
+    只要昨天那批都做完了，积压就是 0——**今天还没做完是正常的，不算积压**。
+
+    **不含阶段测**（2026-09-20 第四次修订）：测不算任务量，所以既不进分子也不进分母
+    （见 ``day_task_progress``）。测欠着不放在这里显示，改由「待通过阶段测」列呈现。
+
+    调用方传昨天（``_prev_ymd(task_date)``），不要传今天。
+    「做完」的判定见 ``day_task_progress``（plan 已达标也算做完）。
+
+    与 ``backlog_plan_item_ids`` 的分工：
+      - ``backlog_plan_item_ids`` 给**打包器**用（决定今天优先补做谁），口径是
+        「今天以前派过、仍未完成」，保持历史语义不变；
+      - 本函数给**看板展示**用，只回看一天。两者刻意不同，不要互相替换。
+    """
+    done, total = day_task_progress(conn, student_id, task_date)
+    return max(0, total - done)
+
+
+def stage_tests_pending(
+    conn: sqlite3.Connection, student_id: str, *, limit: int = 300
+) -> list[dict[str, Any]]:
+    """清单里还没通过的阶段测明细，供教师端「待通过阶段测」展开查看。
+
+    ``test_records`` 没有 plan_item_id，但阶段测写入时会把 ``test_title``
+    存进 ``module_name``，这里按 (module_type, module_name) 关联出已考次数与最高分。
+    """
+    rows = conn.execute(
+        """
+        SELECT id, module_type, test_title, unit_id, sort_order,
+               test_unit_ids, test_attempt_count_today, test_attempt_ymd
+        FROM plan_items
+        WHERE student_id=? AND status='pending'
+          AND item_type='test' AND COALESCE(test_passed,0)=0
+        ORDER BY sort_order
+        LIMIT ?
+        """,
+        (student_id, int(limit)),
+    ).fetchall()
+    today = china_ymd()
+    out: list[dict[str, Any]] = []
+    for r in rows:
+        title = str(r["test_title"] or "") or "阶段测"
+        # 与 submit_stage_test 的写入保持同一 fallback，否则关联不上。
+        module_type = str(r["module_type"] or "") or "reading_synonym"
+        rec = conn.execute(
+            """
+            SELECT COUNT(*) AS attempts, MAX(score) AS best, MAX(created_at) AS last_at
+            FROM test_records
+            WHERE student_id=? AND test_type='stage_test'
+              AND module_type=? AND module_name=?
+            """,
+            (student_id, module_type, title),
+        ).fetchone()
+        attempts = int((rec["attempts"] if rec else 0) or 0)
+        best = rec["best"] if rec else None
+        attempted_today = (
+            int(r["test_attempt_count_today"] or 0)
+            if r["test_attempt_ymd"] == today
+            else 0
+        )
+        out.append(
+            {
+                "plan_item_id": int(r["id"]),
+                "module_type": str(r["module_type"] or ""),
+                "title": title,
+                "unit_ids": _parse_json_list(r["test_unit_ids"]),
+                "attempts": attempts,
+                "best_score": float(best) if best is not None else None,
+                "last_attempt_at": (rec["last_at"] if rec else None),
+                "attempted_today": attempted_today,
+                # 不限重测次数：不再有「今天还能考几次」的概念，随时可再考。
+                # 「累计考了很多次还没过」——请助教介入的提示。不参与红黄灯，
+                # 但要在「待通过阶段测」列上看得见，否则老师只能逐条点开才发现。
+                "needs_attention": attempts >= STAGE_TEST_ATTENTION_FAILS,
+                "never_attempted": attempts == 0,
+            }
+        )
+    return out
 
 
 def _row_status_for_overview(
     *,
     plan_status: str,
-    today_done: int,
-    today_total: int,
-    today_minutes: int,
-    budget_minutes: int,
-    backlog: int,
-    content_refresh: int,
-    test_fail: int,
-    hard_test_fail: bool,
-    ghost: bool,
-    pending_plan_change: bool,
-    hour: int,
+    yesterday_done: int,
+    yesterday_total: int,
     schedule_paused: bool = False,
     schedule_pause_upcoming: bool = False,
 ) -> str:
+    """看板红黄灯：**只看昨天那批任务的完成情况**（2026-09-20 决议）。
+
+    规则只有两条，别的判定（时段、完成率、积压条数、时长比例、换题重学、
+    反复考不过、连续零完成、待生效排程）全部取消：
+
+      - 昨天有任务、且**一条都没做**  → 红（掉队）
+      - 昨天有任务、**做了一部分没做完** → 黄（需提醒）
+      - 昨天任务全做完 / 昨天没排任务 → 绿
+
+    为什么改用「昨天」：今天的任务还在进行中，上午没做完是正常的，用它判红会
+    整天误报；而昨天已经结束，做没做完是一锤定音的事实，不会随时间漂移。
+
+    阶段测**不算任务量，不参与红黄灯**（2026-09-20 第四次修订）：测既不进
+    ``yesterday_total`` 也不进 ``yesterday_done``，口径与 ``day_task_progress``
+    完全一致，也就是看板「昨日任务 N/M」那一列——老师看到 0/3 就是红灯，不打架。
+    为什么反过来：测过不了会一直挂在任务列表里，若还算完成率，这部分学生的
+    「昨日任务」就永远是 N-1/N，天天黄灯、甚至 0/N 红灯，学生怎么做都翻不了身。
+    测的进度改由「待通过阶段测」列单独呈现（含 `多次未过` 徽章）。
+    """
     if schedule_paused or schedule_pause_upcoming:
         # 已标明暂停原因，不占用「建议跟进」黄灯
         return "none"
     if plan_status in ("none", "all_paused"):
         return "none"
-    rate = (today_done / today_total) if today_total > 0 else None
-    # Red
-    if (
-        hour >= _OVERVIEW_EVENING_HOUR
-        and rate is not None
-        and rate < _OVERVIEW_RED_RATE
-        and today_total >= 1
-    ):
-        return "red"
-    if hour >= _OVERVIEW_ZERO_DONE_HOUR and rate == 0.0 and today_total >= 2:
-        return "red"
-    if backlog >= _OVERVIEW_BACKLOG_RED:
-        return "red"
-    if content_refresh >= 1:
-        return "red"
-    if hard_test_fail:
-        return "red"
-    if ghost:
-        return "red"
-    if (
-        hour >= _OVERVIEW_EVENING_HOUR
-        and today_total >= 1
-        and budget_minutes > 0
-        and today_minutes < budget_minutes * _OVERVIEW_MINUTES_RED_RATIO
-    ):
-        return "red"
-    # Yellow
-    if hour >= _OVERVIEW_YELLOW_HOUR and rate is not None and rate < _OVERVIEW_RED_RATE:
-        return "yellow"
-    if backlog in (1, 2):
-        return "yellow"
-    if test_fail == 1:
-        return "yellow"
-    if (
-        hour >= _OVERVIEW_YELLOW_MINUTES_HOUR
-        and today_total >= 1
-        and budget_minutes > 0
-        and today_minutes < budget_minutes * _OVERVIEW_MINUTES_YELLOW_RATIO
-    ):
-        return "yellow"
-    if pending_plan_change:
-        return "yellow"
-    if today_total > 0:
+    if yesterday_total <= 0:
+        # 昨天没排任务（如新学生、计划暂停中）——没有可比事实，不判红黄。
         return "green"
+    if yesterday_done <= 0:
+        return "red"
+    if yesterday_done < yesterday_total:
+        return "yellow"
     return "green"
 
 
@@ -4073,15 +4151,18 @@ def _student_overview_row(
     name: str,
     task_date: str,
     *,
+    # 保留 hour 只为兼容调用方/测试签名：红黄灯自 2026-09-20 起只看昨天任务，
+    # 与当前时刻无关（不再有时段阈值），这里已不再使用。
     hour: int,
 ) -> dict[str, Any]:
     plan_status = effective_plan_status(conn, student_id)
     progress = _plan_progress(conn, student_id)
     today_done, today_total, _today_fail = _today_task_counts(conn, student_id, task_date)
-    yday = (
-        datetime.strptime(task_date, "%Y-%m-%d").date() - timedelta(days=1)
-    ).strftime("%Y-%m-%d")
-    yesterday_done, yesterday_total, _yfail = _today_task_counts(conn, student_id, yday)
+    yday = _prev_ymd(task_date)
+    # 「昨日任务」与「积压」「红黄灯」共用同一套数字（day_task_progress），
+    # 这样老师看到 `0/3` 就一定对应 🔴，不会出现灯和数字互相打架。
+    # 注意：比 _today_task_counts 多认「条目已达标但 daily 行残留 todo」（跟读常见）。
+    yesterday_done, yesterday_total = day_task_progress(conn, student_id, yday)
     profile = ensure_time_profile(conn, student_id)
     budget = _budget_minutes(profile, task_date)
     secs = sum_today_study_seconds(conn, student_id, task_date)
@@ -4090,10 +4171,16 @@ def _student_overview_row(
     yesterday_minutes = int(round(y_secs / 60.0)) if y_secs else 0
     total_secs = sum_total_study_seconds(conn, student_id)
     total_minutes = int(round(total_secs / 60.0)) if total_secs else 0
-    backlog = len(backlog_plan_item_ids(conn, student_id, before_date=task_date))
+    # 看板「积压」= **昨天**那批任务里还没做完的（不含阶段测，测不算任务量），
+    # 见 day_unfinished_count。
+    # 昨天派的任务本身含「前天积压过来的 carry_over」，所以只要昨天都做完了就是 0；
+    # 今天还没做完不算积压。与打包器用的 backlog_plan_item_ids 口径不同，别互相替换。
+    backlog = day_unfinished_count(conn, student_id, yday)
     content_refresh = _content_refresh_count(conn, student_id)
-    test_fail = _test_fail_count(conn, student_id, task_date)
-    hard_test_fail = _has_hard_test_fail(conn, student_id, task_date)
+    # 待通过的阶段测（单独一列展示，见 stage_tests_pending）
+    stage_pending = _test_fail_count(conn, student_id, task_date)
+    # 其中「累计考了很多次还没过」的条数：只在那一列做标记，不进红黄灯。
+    stage_needs_attention = _stage_needs_attention_count(conn, student_id, task_date)
     draft_n = conn.execute(
         "SELECT COUNT(*) AS c FROM plan_items_draft WHERE student_id=? AND status!='removed'",
         (student_id,),
@@ -4105,25 +4192,13 @@ def _student_overview_row(
         if pending_change
         else None
     )
-    ghost = False
-    if plan_status == "active" and today_total >= 1 and today_done == 0:
-        ghost = _ghost_zero_streak(conn, student_id, task_date)
     pause = get_plan_pause(conn, student_id, on_date=task_date)
     schedule_paused = bool(pause and pause.get("active"))
     schedule_pause_upcoming = bool(pause and pause.get("upcoming"))
     row_status = _row_status_for_overview(
         plan_status=plan_status,
-        today_done=today_done,
-        today_total=today_total,
-        today_minutes=today_minutes,
-        budget_minutes=budget,
-        backlog=backlog,
-        content_refresh=content_refresh,
-        test_fail=test_fail,
-        hard_test_fail=hard_test_fail,
-        ghost=ghost,
-        pending_plan_change=pending_change,
-        hour=hour,
+        yesterday_done=yesterday_done,
+        yesterday_total=yesterday_total,
         schedule_paused=schedule_paused,
         schedule_pause_upcoming=schedule_pause_upcoming,
     )
@@ -4145,7 +4220,12 @@ def _student_overview_row(
         "budget_minutes": budget,
         "backlog": backlog,
         "content_refresh": content_refresh,
-        "test_fail": test_fail,
+        "test_fail": stage_pending,
+        # 阶段测按普通任务一样计（昨日完成/积压都含它），但「待通过阶段测」仍单独成列，
+        # 供老师看明细；needs_attention 只驱动该列上的小标记（不限重测次数之后，
+        # 「今天考不动了」这个概念已不存在，剩下的是「反复考不过」）。
+        "stage_test_pending": stage_pending,
+        "stage_test_needs_attention": stage_needs_attention,
         "plan_progress_brief": brief,
         "progress": progress,
         "pending_plan_change": pending_change,
@@ -4282,6 +4362,7 @@ def _enrich_daily(
         """
         SELECT d.*, p.item_type, p.unit_id, p.module_type, p.test_title,
                p.test_unit_ids, p.study_completed, p.test_passed, p.need_refresh,
+               p.refresh_reason,
                p.est_minutes AS plan_est,
                u.title AS unit_title, u.content_ref, u.content_version, u.study_url,
                u.est_minutes AS unit_est
@@ -4316,6 +4397,7 @@ def _enrich_daily(
             )
         title = item.get("unit_title") or item.get("test_title") or "任务"
         if item.get("need_refresh"):
+            # need_refresh 现在只有一种来源：助教换题 / 内容版本更新，要用新题重学。
             title = f"{title}（内容已更新）"
         gendu_count = int(item.get("gendu_practice_count") or 0)
         entry = {
@@ -4404,7 +4486,7 @@ def get_today(conn: sqlite3.Connection, student_id: str) -> dict[str, Any]:
         empty_msg = "计划已暂停，请联系助教"
     return {
         "task_date": task_date,
-        "pack_mode": _effective_pack_mode(profile),
+        "pack_mode": PACK_MODE_UNITS_PER_DAY,
         "budget_minutes": budget,
         "est_total_minutes": sum(i.get("est_minutes") or 0 for i in items),
         "actual_total_minutes": _minutes_from_seconds(actual_seconds),
@@ -4457,73 +4539,6 @@ def _remaining_plan_items(
     return out
 
 
-def _preview_time_budget_schedule(
-    conn: sqlite3.Connection,
-    plan_items: list[dict[str, Any]],
-    start_date: str,
-    *,
-    profile: dict[str, Any],
-    days: int = UNITS_PREVIEW_DAYS,
-    initial_released: Optional[set[int]] = None,
-) -> list[dict[str, Any]]:
-    """Forward pack preview for time_budget (read-only, assumes daily completion)."""
-    released = set(initial_released or [])
-    schedule: list[dict[str, Any]] = []
-    start = datetime.strptime(start_date, "%Y-%m-%d").date()
-    active = [
-        it
-        for it in plan_items
-        if (it.get("status") == "pending" or it.get("status") is None)
-        and not _item_done(it)
-    ]
-    for offset in range(days):
-        day = (start + timedelta(days=offset)).strftime("%Y-%m-%d")
-        budget = _budget_minutes(profile, day)
-        tolerance = budget * PACK_TOLERANCE
-        remaining = [it for it in active if int(it["id"]) not in released]
-        if not remaining:
-            break
-        picks: list[dict[str, Any]] = []
-        used = 0.0
-        in_result: set[int] = set()
-        for it in remaining:
-            if it.get("need_refresh"):
-                est = _est_minutes(conn, it)
-                if used > 0 and used + est > tolerance:
-                    continue
-                picks.append(it)
-                in_result.add(int(it["id"]))
-                used += est
-        pool = [it for it in remaining if int(it["id"]) not in in_result]
-        for it in _interleave_by_module(pool):
-            est = _est_minutes(conn, it)
-            if used > 0 and used + est > tolerance:
-                continue
-            picks.append(it)
-            in_result.add(int(it["id"]))
-            used += est
-        if not picks:
-            break
-        for it in picks:
-            released.add(int(it["id"]))
-        schedule.append(
-            {
-                "task_date": day,
-                "items": [
-                    {
-                        "title": _plan_item_preview_title(conn, it),
-                        "module_type": it.get("module_type"),
-                        "item_type": it.get("item_type"),
-                        "est_minutes": _est_minutes(conn, it),
-                    }
-                    for it in picks
-                ],
-                "units_total": len(picks),
-            }
-        )
-    return schedule
-
-
 def _student_upcoming_bundle(
     conn: sqlite3.Connection,
     student_id: str,
@@ -4552,31 +4567,18 @@ def _student_upcoming_bundle(
     for it in plan_items:
         it["test_unit_ids"] = _parse_json_list(it.get("test_unit_ids"))
     remaining = _remaining_plan_items(conn, plan_items)
-    profile = ensure_time_profile(conn, student_id)
-    mode = _effective_pack_mode(profile)
-    if mode == PACK_MODE_UNITS_PER_DAY:
-        # Align with teacher: simulate from today (locked daily if any), then drop today.
-        full = _aligned_units_schedule(
-            conn,
-            student_id,
-            plan_items,
-            start_date=task_date,
-            quota_resolver=lambda day: _resolve_units_quota_map(
-                conn, student_id, day, plan_items
-            ),
-            days=days + 1,
-        )
-        schedule = [d for d in full if (d.get("task_date") or "") >= tomorrow]
-    else:
-        released = _released_plan_item_ids(conn, student_id)
-        schedule = _preview_time_budget_schedule(
-            conn,
-            plan_items,
-            tomorrow,
-            profile=profile,
-            days=days,
-            initial_released=released,
-        )
+    # Align with teacher: simulate from today (locked daily if any), then drop today.
+    schedule = _aligned_units_schedule(
+        conn,
+        student_id,
+        plan_items,
+        start_date=task_date,
+        quota_resolver=lambda day: _resolve_units_quota_map(
+            conn, student_id, day, plan_items
+        ),
+        days=days + 1,
+    )
+    schedule = [d for d in schedule if (d.get("task_date") or "") >= tomorrow]
     while schedule and not schedule[-1].get("items"):
         schedule.pop()
     return {
@@ -4686,6 +4688,9 @@ def complete_study(
             raise ValueError(
                 f"听力跟读当日需完成 {GENDU_DAILY_PRACTICES} 次（当前 {count}/{GENDU_DAILY_PRACTICES}）"
             )
+        # 跟读是「每日打卡」型任务，完成只对当天有意义：不回写历史未打卡日
+        # （那些行是诚实的「那天没练」记录，回写会把它们误报成已完成）。
+        # 换课时 advance_gendu_if_needed 会连带删掉当天行，不留下「做完还挂着」。
         conn.execute(
             """
             UPDATE daily_tasks SET state='done_study'
@@ -4702,20 +4707,32 @@ def complete_study(
             study_completed=1,
             study_completed_version=?,
             need_refresh=0,
+            refresh_reason=NULL,
             last_completed_at=strftime('%Y-%m-%dT%H:%M:%fZ','now'),
             updated_at=strftime('%Y-%m-%dT%H:%M:%fZ','now')
         WHERE id=?
         """,
         (content_version, plan_item_id),
     )
-    # 回写该单元所有未完成日任务（含昨日积压 / 跨零点补做），避免只改「今天」一行
+    # 回写窗口只到「昨天」为止，不能是全部历史：
+    # - 今天  —— 正常打勾；
+    # - 昨天  —— 跨零点补做 / 昨天派下的积压今天补上。
+    # 更早的日期必须留在 todo：学生那天确实没打开 App，把那些行改成 done 等于
+    # 把断更洗白，教师看板的完成度与连续性会系统性虚高（线上 2025046 于 09-06
+    # 即此例：看板 3/3，真实 0/3；李哲模拟 30 天里 9 个断更日被洗白）。
     conn.execute(
         """
         UPDATE daily_tasks SET state='done_study'
         WHERE student_id=? AND plan_item_id=?
           AND state IN ('todo', 'in_progress')
+          AND task_date IN (?, ?)
         """,
-        (student_id, plan_item_id),
+        (
+            student_id,
+            plan_item_id,
+            china_ymd(),
+            _ymd_plus_days(china_ymd(), -1),
+        ),
     )
     if unit:
         scope_total, _ = _scope_for_unit(unit["content_ref"])
@@ -4734,6 +4751,9 @@ def submit_stage_test(
     *,
     threshold: float,
     details: Any = None,
+    correct_count: int = 0,
+    total_count: int = 0,
+    duration_seconds: int = 0,
 ) -> dict[str, Any]:
     item = conn.execute(
         "SELECT * FROM plan_items WHERE id=? AND student_id=?",
@@ -4748,10 +4768,20 @@ def submit_stage_test(
     attempts = int(item["test_attempt_count_today"] or 0)
     if item["test_attempt_ymd"] != today:
         attempts = 0
-    if attempts >= 2 and not item["test_passed"]:
-        raise ValueError("今日重测次数已用尽，请联系助教")
+    # 阶段测**不限重测次数**（2026-09-20 决议）：这里刻意不做任何拦截。
+    # 原来的「每天 2 次」上限会把考不过的学生锁死——既过不去、又不让再考，
+    # 当天任务永远完不成。「考太多次」只作为助教提示（STAGE_TEST_ATTENTION_FAILS），
+    # 由 stage_tests_pending 展示，不影响提交。
+    #
+    # attempts 仍然逐日累计（跨天归零），只用于展示「今日已考 N 次」。
 
-    passed = score >= threshold
+    # 「一旦通过不可降级」：过了之后再考砸，不能把 test_passed 打回 0。
+    # 否则该条目会从「已完成」变回未完成，任务复活、重新计入积压，教师看板的
+    # 完成度还会倒退。注意这个场景是可达的：换天后 test_attempt_count_today
+    # 归零，学生可以再提交一次。
+    already_passed = bool(item["test_passed"])
+    attempt_passed = score >= threshold      # 这一次的真实结果（写进 test_records）
+    passed = already_passed or attempt_passed  # 对计划生效的结果（只升不降）
     attempts += 1
     conn.execute(
         """
@@ -4766,29 +4796,61 @@ def submit_stage_test(
         (1 if passed else 0, attempts, today, plan_item_id),
     )
     state = "done_pass" if passed else "done_fail"
-    conn.execute(
-        """
-        UPDATE daily_tasks SET state=?
-        WHERE student_id=? AND task_date=? AND plan_item_id=?
-        """,
-        (state, student_id, today, plan_item_id),
-    )
-    # D21: write test_records with stage_test kind
+    if passed:
+        # 与 complete_study 同口径：通过后回写未完成日任务，但窗口只到「昨天」。
+        # 只改当天会让「昨天没做、今天补过」的行永远停在 todo，教师看板的
+        # 「昨日完成度」当天就误报未完成；而回写全部历史则会把断更日洗白
+        # （学生那天根本没开 App，却显示已完成）。
+        conn.execute(
+            """
+            UPDATE daily_tasks SET state='done_pass'
+            WHERE student_id=? AND plan_item_id=?
+              AND state IN ('todo', 'in_progress')
+              AND task_date IN (?, ?)
+            """,
+            (
+                student_id,
+                plan_item_id,
+                today,
+                _ymd_plus_days(today, -1),
+            ),
+        )
+    else:
+        # 没过：只标记当天这一次尝试，历史未完成日不动（那天学生确实没做）
+        conn.execute(
+            """
+            UPDATE daily_tasks SET state=?
+            WHERE student_id=? AND task_date=? AND plan_item_id=?
+            """,
+            (state, student_id, today, plan_item_id),
+        )
+        # 2026-09-20 决议：考挂**只留这条阶段测挂着**，不重排科目任务。
+        # 试过「考挂 → 把覆盖单元打回未完成强制重学」，模拟里学生反而被钉在
+        # 同一批单元上（dictation_u01~u03 各重学 3 轮到顶），一天还被十几条
+        # 考挂的测占满时间。学生想再学，从「学习进度」里点对应模块的学习按钮
+        # 就能进去，不需要系统替他重排。
+    # 阶段测的明细（对/总题数、用时）由测试页真实判分后回传，前端一并带上。
+    # 之前这两个字段写死 0，导致阶段测记录看不出做了多少题、用时多久。
     conn.execute(
         """
         INSERT INTO test_records (
             student_id, module_type, module_name, test_type,
             score, correct_count, total_count, is_passed, pass_threshold,
-            details
-        ) VALUES (?, ?, ?, 'stage_test', ?, 0, 0, ?, ?, ?)
+            duration_seconds, details
+        ) VALUES (?, ?, ?, 'stage_test', ?, ?, ?, ?, ?, ?, ?)
         """,
         (
             student_id,
             item["module_type"] or "reading_synonym",
             item["test_title"] or "阶段测",
             float(score),
-            1 if passed else 0,
+            max(0, int(correct_count or 0)),
+            max(0, int(total_count or 0)),
+            # test_records 记「这一次」的真实成败，供分析用；
+            # plan_items.test_passed 才是只升不降的计划状态。
+            1 if attempt_passed else 0,
             float(threshold),
+            max(0, int(duration_seconds or 0)),
             json.dumps(details if details is not None else {}, ensure_ascii=False),
         ),
     )
@@ -4798,6 +4860,9 @@ def submit_stage_test(
         "score": score,
         "threshold": threshold,
         "attempts_today": attempts,
+        "already_passed": already_passed,
+        # 考挂只留这条测算「待通过」，系统不重排科目任务（2026-09-20 决议）。
+        "restudy_units": [],
         "today": get_today(conn, student_id),
     }
 

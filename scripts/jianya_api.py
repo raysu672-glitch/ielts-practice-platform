@@ -69,6 +69,7 @@ def ensure_jianya_tables(conn: sqlite3.Connection) -> None:
             subject TEXT NOT NULL,
             s_id INTEGER NOT NULL,
             answers_json TEXT NOT NULL,
+            correction_json TEXT,
             correct INTEGER NOT NULL,
             total INTEGER NOT NULL,
             wrong INTEGER NOT NULL,
@@ -112,6 +113,16 @@ def ensure_jianya_tables(conn: sqlite3.Connection) -> None:
         """
     )
     conn.commit()
+    _ensure_column(conn, "jianya_submissions", "correction_json", "TEXT")
+
+
+def _ensure_column(
+    conn: sqlite3.Connection, table: str, column: str, decl: str
+) -> None:
+    cols = {row["name"] for row in conn.execute(f"PRAGMA table_info({table})")}
+    if column not in cols:
+        conn.execute(f"ALTER TABLE {table} ADD COLUMN {column} {decl}")
+        conn.commit()
 
 
 def _parse_json_list(raw: str) -> list[Any]:
@@ -583,7 +594,7 @@ def _enrich_assignments(
 
 
 def _submission_row(row: sqlite3.Row) -> dict[str, Any]:
-    return {
+    out: dict[str, Any] = {
         "assignmentId": row["assignment_id"],
         "studentId": row["student_id"],
         "bookId": row["book_id"],
@@ -598,6 +609,10 @@ def _submission_row(row: sqlite3.Row) -> dict[str, Any]:
         "pct": row["pct"],
         "submittedAt": row["submitted_at"],
     }
+    correction = _parse_json_obj(row["correction_json"]) if "correction_json" in row.keys() else {}
+    if correction:
+        out["correction"] = correction
+    return out
 
 
 def load_builtin_packs(path: Optional[Path] = None) -> list[dict[str, Any]]:
@@ -1064,6 +1079,7 @@ def save_submission(
     wrong: int,
     blank: int,
     pct: int,
+    correction: Any = None,
 ) -> dict[str, Any]:
     assignment = get_assignment(conn, assignment_id)
     if not assignment:
@@ -1086,13 +1102,14 @@ def save_submission(
     if not part_ok:
         raise ValueError("该 Part 不属于这份作业")
     answers_obj = answers if isinstance(answers, dict) else {}
+    correction_obj = correction if isinstance(correction, dict) else None
     submitted_at = utc_now()
     conn.execute(
         """
         INSERT INTO jianya_submissions (
             assignment_id, student_id, book_id, subject, s_id,
-            answers_json, correct, total, wrong, blank, pct, submitted_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            answers_json, correction_json, correct, total, wrong, blank, pct, submitted_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
             assignment_id,
@@ -1101,6 +1118,7 @@ def save_submission(
             subject,
             int(s_id),
             json.dumps(answers_obj, ensure_ascii=False),
+            json.dumps(correction_obj, ensure_ascii=False) if correction_obj else None,
             int(correct),
             int(total),
             int(wrong),
@@ -1128,7 +1146,7 @@ def save_submission(
         ),
     )
     conn.commit()
-    return {
+    out: dict[str, Any] = {
         "assignmentId": assignment_id,
         "studentId": student_id,
         "bookId": int(book_id),
@@ -1143,6 +1161,9 @@ def save_submission(
         "pct": int(pct),
         "submittedAt": submitted_at,
     }
+    if correction_obj:
+        out["correction"] = correction_obj
+    return out
 
 
 def list_student_submissions(conn: sqlite3.Connection, student_id: str) -> list[dict[str, Any]]:

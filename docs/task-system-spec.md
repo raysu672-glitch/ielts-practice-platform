@@ -1,5 +1,9 @@
 # 任务系统 · Agent 实施说明（定稿）
 
+> ⚠️ **2026-09-19 起部分作废**：按分钟装箱（`time_budget`）已下线，装箱**只按「按科每日单元配额」**（`units_per_day`）。
+> 本文中「按周中/周末时长预算装箱」的相关设计（第 0 节一句话、时间画像预算、装箱算法等）**仅作历史参考**；
+> 现行规格以 [`task-system-units-mode.md`](task-system-units-mode.md) 为准。周中/周末分钟数退化为「参考预算」展示，不参与装箱。
+
 > **读者**：实现本功能的 Agent / 开发者  
 > **产品流程与助教/学生/监控说明**：见 [`task-system-overview.md`](task-system-overview.md)  
 > **助教班级总览线框**：见 [`task-system-teacher-dashboard-wireframe.md`](task-system-teacher-dashboard-wireframe.md)  
@@ -63,8 +67,8 @@
 | D20 | **今日完成口径**：`done_fail`（测未过关）**不算**今日完成；测挂 +1；完成率分母仍含该条 |
 | D21 | **阶段测写库**：写入 `test_records` 且 `record_kind=stage_test`；**测试轨 %/分只统计非 stage 记录** |
 | D22 | **自由练（MVP）**：`in_plan` 科目仍可进自由入口，弹窗建议走今日任务；自由练 **不** 打勾任务 |
-| D23 | **积压** = 曾进入过某日 `daily_tasks` 且至今未完成的条数；未生成过 daily 的队首 **不算**积压 |
-| D24 | **队首测挂死**：重测次数用尽仍未过关 → **不自动跳过**；标红；助教可移队尾 / 插复习 / 重置重测次数 |
+| D23 | **看板「积压」**= **昨天**派下去、还没做完的条数（**阶段测也算**）；打包器的 carry_over 候选集仍是「曾进入过某日 `daily_tasks` 且至今未完成」，未生成过 daily 的队首不算 |
+| D24 | **队首测挂死**：阶段测**不限重测次数**（2026-09-20 起），始终可再考；累计考 ≥3 次仍未过 → 助教端标「多次未过」，**不自动跳过**；测**不算任务量**、不参与红黄灯；考挂**只留这条测挂着**，科目任务不重排（学生想再学从「学习进度」点学习按钮），第六次修订废除自动重学 |
 | D25 | **任务模式导航**：禁止模块内「下一课/下一单元」；仅当前 `content_ref`（含 P4） |
 | D26 | **清单去重**：同一学生 live/draft 清单内 **禁止** 重复 `unit_id`（study）；拖入提示「已在计划中」 |
 | D27 | **`scope_done` 服务端为准**：存服务端（plan_item 旁路表或 JSON）；模块上报增量；页头读服务端 |
@@ -506,19 +510,73 @@ function buildDailyTasks(student_id, task_date):
 
 ### 7.1 积压与队首测挂死（D23 / D24）
 
+> **口径修订（2026-09-20，D23 v4）**：看板「积压」不再是历史累计存量，也不是
+> 「当天没做完的」，而是 **昨天那批任务里还没做完的条数**。
+> 关键点：**今天没做完是正常的，不算积压**；昨天派的任务本身就含「前天积压过来的
+> carry_over」，所以只要昨天那批都做完了，积压必须为 0。
+> **阶段测不算任务量**（2026-09-20 第四次修订）：测既不进分子也不进分母——
+> 昨天派了没考、考了没过，都不算积压、也不影响红黄灯。测的欠账另有一列
+> 「待通过阶段测」，其中「累计考 ≥3 次仍未过」显示 `N 项 多次未过`。
+> 打包器仍用原来的「今天以前派过、仍未完成」集合挑 carry_over，两者口径刻意不同。
+
 ```text
-backlog_count = COUNT(distinct plan_item_id WHERE
-  exists daily_tasks row for this plan_item on some task_date <= today
-  AND plan_item not completed:
-    study → study_completed=0
-    test  → test_passed=0
-)
+# 看板展示口径（day_unfinished_count -> day_task_progress，调用方传「昨天」）
+board_backlog = (total - done) over daily_tasks rows WHERE task_date = yesterday
+  # 阶段测不进分子也不进分母（2026-09-20 第四次修订：测不算任务量）
+  #   test  -> 直接 skip
+  #   study -> state IN ('done_study','done_pass') OR plan_item.study_completed=1
+  # 第 2 条是必须的：跟读达标只写 plan_items.study_completed，不回改 daily 行
+  # 同口径也用在「今日任务 N/M」（_today_task_counts）
+
+# 打包器口径（backlog_plan_item_ids）：曾进过今天之前的 daily 且未完成
 ```
 
-- **不算积压**：从未进过任何日 `daily_tasks` 的清单队首（学生未登录导致未装箱）  
-- **队首测挂死**：`test` 当日 `test_attempt_count_today` 已达上限且 `test_passed=0`  
-  - **不**自动跳过、**不**自动插复习  
-  - 班级总览测挂/标红；助教计划页提供：**移到队尾** / **插入复习学单元** / **重置重测次数**（当日可再测）
+- **不算积压（看板）**：不是昨天派的条目；已完成条目的残留 todo 行
+  （回写窗口收紧到「今天 + 昨天」后自然产生）
+- **仍然保留旧口径的地方**：`backlog_plan_item_ids()` 只服务打包器，
+  用来决定今天优先补做谁
+- **待通过阶段测**：单独字段 `stage_test_pending`，教师端单独成列
+  （`GET /api/task/students/<id>/stage-tests` 返回明细：已考次数、最高分、
+   是否考过、`needs_attention`），**不参与积压与红黄灯**（见下条）
+- **队首测挂死**：阶段测**不限重测次数**（2026-09-20 第四次修订，原先「每天 2 次」的上限已删除）：
+  - 学生随时可以再考，`submit_stage_test` **不做任何次数拦截**
+  - **不算任务量**：不进「昨日任务 N/M」的分子分母，不算积压，不参与红黄灯
+  - 累计提交次数 ≥ `STAGE_TEST_ATTENTION_FAILS`（=3）且仍未过 → 班级总览「待通过阶段测」列
+    显示 **`N 项 多次未过`**（红字徽章）；明细弹窗该行状态为 **「已考 N 次仍未过」**
+  - 助教计划页可做：**移到队尾** / **插入复习学单元**
+  - **为什么取消上限**：上限把「考不过」的学生直接锁死——既过不去、又不让再考。
+    反复考不过应当靠「提示助教介入」解决，而不是禁止学生继续尝试。
+  - **为什么不算任务量**：测过不了会一直挂在任务列表里，若还算完成率，这部分学生的
+    「昨日任务」就永远是 N-1/N，天天黄灯、甚至 0/N 红灯，**怎么做都翻不了身**。
+
+### 7.2 「考挂只留测挂着，不重排科目任务」（2026-09-20 第六次修订）
+
+> **现象**（探针 `scripts/_probe_stuck_test.py` 复现）：清单里的学习全部做完、
+> 只剩一条考不过的阶段测时，每天派下来的任务**只有这一条测**，日复一日。
+> 学生反馈「任务都做完了，学不了了啊」。
+
+要点：**不是阶段测挡住了学习**。探针显示学习单元还在时，测和新单元会**同时派下去**
+（配额 2 时并排出现），队列不会因为测没通过而停住。真正的原因是
+**清单里 pending 的学习单元耗尽了**——系统没有更多内容可发。
+
+**一度实现又废除的解法**：考挂后把覆盖单元打回未完成强制重学
+（`_schedule_restudy_for_failed_test` + `RESTUDY_MAX_ROUNDS`）。
+30 天模拟显示它把学生**钉在原地**：`dictation_u01~u03` 各被重学 3 轮撞到封顶，
+10-09 之后「新发学习」= 0，学生每天在「重学同一批单元 + 十几条考挂的测」之间循环。
+
+**现行口径**：
+
+- 考挂**只把那条阶段测留在清单里**（`status='pending'`、`test_passed=0`、
+  当天 `daily_tasks` 记 `done_fail`），**不限次数重考**；
+- **科目任务不重排**：覆盖的学习单元保持 `study_completed=1`，不被打回未完成；
+- 学生想再学，从**「学习进度」**里点对应模块的**学习按钮**自己进去——
+  这是学生本来就有的入口，不需要系统替他重排（`loadProgressTable` 的每模块「学习」按钮）；
+- `_ensure_refresh_in_existing_daily` 只保留「换题（`need_refresh`）后当天插回今日」一件职责；
+- 「累计考 ≥3 次仍未过」继续由 `STAGE_TEST_ATTENTION_FAILS` + 教师端 `N 项 多次未过` 承载。
+
+**回归测试**：`test_failed_stage_test_only_keeps_test_pending`、
+`test_failed_stage_test_does_not_add_rows_to_today`、
+`test_failed_test_leaves_titles_and_progress_clean`。
 
 ---
 
@@ -587,7 +645,7 @@ function bumpUnitContent(unit_id, new_content_ref, new_version, operator):
 ### 9.3.1 班级总览（教师）
 
 - `GET /api/task/class-overview?filters=` → 学生行列表（见线框 §3）  
-  - 字段：`today_done`, `today_total`, `today_minutes`, `budget_minutes`, `backlog`, `content_refresh`, `test_fail`, `plan_progress_brief[]`, `row_status`（red/yellow/green/none）  
+  - 字段：`today_done`, `today_total`, `today_minutes`, `budget_minutes`, `backlog`（**昨天**没做完的条数，**不含阶段测**）, `stage_test_pending`（待通过阶段测）, `stage_test_needs_attention`（累计考 ≥3 次仍未过的条数）, `content_refresh`, `test_fail`, `plan_progress_brief[]`（每项 `text` 形如 `阅3/4·重1`，`restudy_n` 是待重学单元数）, `row_status`（red/yellow/green/none：只看昨天任务，一条没做=red，没做完=yellow，全做完/昨天无任务=green）  
   - `plan_progress_brief[]`：**仅计划轨**，最多 2 条缩写 + `+N`；**不含**测试 %
 
 ### 9.3.2 学习进度 Tab（测试轨 + 计划状态）
@@ -816,8 +874,8 @@ function rowPlanStatus(student_id):
 
 **班级总览**（日常第一屏）：
 
-- 列：状态灯、学号、姓名、今日任务、今日时长、积压、换题、测挂、**计划进度(简)**（仅计划轨）  
-- 筛选：今日未完成、有积压、换题重学、测未过关、需关注、无计划  
+- 列：状态灯、学号、姓名、今日任务、今日时长、积压、**待通过阶段测**、换题、测挂、**计划进度(简)**（仅计划轨）  
+- 筛选：今日未完成、有积压、**有阶段测待通过**、换题重学、测未过关、需关注、无计划  
 - 行 Hover：计划轨「学习 X/Y · 过关 A/B」；测试轨摘要 **可选第二段、分行**  
 - 点行 → 学生计划页  
 
@@ -923,7 +981,7 @@ function rowPlanStatus(student_id):
 | 今日完成（测） | `done_fail` **不算**完成（D20） |
 | 阶段测写库 | `record_kind=stage_test`；不进测试轨聚合（D21） |
 | 自由练 MVP | 可进 + 弹窗；不打勾（D22） |
-| 积压 | 曾进 daily 且未完成（D23） |
+| 积压 | **昨天**没做完的条数（D23 v3，阶段测也算） |
 | 队首测挂死 | 不自动跳过；助教工具（D24） |
 | 任务模式导航 | 禁下一课（D25） |
 | est_minutes | 见 §5 各科 |
@@ -964,7 +1022,7 @@ function rowPlanStatus(student_id):
 1. 新学生默认画像 40/90；助教改为 20/60，**当日**今日任务仍按旧预算；**次日**按新预算。  
 2. 清单拖入 5 个 study；今日只放出预算内若干；学生不可见未释放项。  
 3. 学完一单元 → 打勾 → X/Y 分子 +1；Y 不因全库变化。  
-4. 插入阶段测覆盖 3 单元；交卷达线 → A/B 过关 +1；未达线可重测至多 2 次。  
+4. 插入阶段测覆盖 3 单元；交卷达线 → A/B 过关 +1；未达线可**不限次数**重测（2026-09-20 起）。  
 5. 今日任务进行中，助教删除清单队尾未释放项 → 今日列表不变；次日生效。  
 6. bump 某已完成 unit → 该生该条未完成 + 今日列表顶部出现「内容已更新」；学完新题再勾。  
 7. 换题强制任务在预算已满时仍出现。  
