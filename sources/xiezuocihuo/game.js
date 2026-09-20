@@ -893,7 +893,10 @@ function checkAnswer() {
     }
   } else {
     if (selectedWords.length === 0) { isProcessing = false; return; }
-    var userSorted = selectedWords.map(function(e) { return normalize(e.word); }).sort().join(' ');
+    // 与标准答案侧（phraseAcceptedWordSets → phraseNormalize）保持同一套归一化：
+    // 连字符/斜杠按空格处理（`self-fulfillment` → `self fulfillment`）。
+    // 曾用本地 normalize（直接删连字符）导致带连字符的题永远判错。
+    var userSorted = selectedWords.map(function(e) { return phraseNormalize(e.word); }).sort().join(' ');
     var sets = phraseAcceptedWordSets(q.en);
     var hit = sets.some(function(ws) { return ws.join(' ') === userSorted; });
     if (hit) {

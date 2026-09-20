@@ -2632,7 +2632,9 @@ function phraseCheckAnswer() {
     const q = phraseState.vocab[phraseState.currentIndex];
     
     // 比较答案（忽略顺序；多写法题任一写法命中即算对）
-    const userSorted = phraseState.selectedWords.map(function(e) { return e.word.toLowerCase(); }).sort().join(' ');
+    // 与标准答案侧（phraseAcceptedWordSets → phraseNormalize）保持同一套归一化：
+    // 连字符/斜杠按空格处理、撇号等标点去除（`self-fulfillment`/`one's`）。
+    const userSorted = phraseState.selectedWords.map(function(e) { return phraseNormalize(e.word); }).sort().join(' ');
     const acceptSets = phraseAcceptedWordSets(q.en);
     const matched = acceptSets.some(function(ws) { return ws.join(' ') === userSorted; });
     
