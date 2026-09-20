@@ -46,6 +46,42 @@
     .chip.active { background: var(--brand); color: #fff; border-color: var(--brand); }
     .subject-block h2 { font-size: 1.05rem; margin: 0 0 8px; }
     .subject-block .empty { color: var(--muted); font-size: 0.9rem; padding: 8px 2px; }
+
+    /* 新布局：左播放器主窗口 + 右课程目录 */
+    .layout { display: grid; grid-template-columns: 1fr 320px; gap: 18px; margin-top: 4px; align-items: start; }
+    .catalog {
+      display: flex; flex-direction: column; gap: 12px;
+      max-height: 78vh; overflow-y: auto; padding-right: 4px;
+    }
+    .catalog .subject-block { background: #fff; border: 1px solid var(--border); border-radius: 12px; padding: 8px 12px 12px; }
+    .catalog .subject-head {
+      display: flex; align-items: center; gap: 8px; width: 100%; cursor: pointer;
+      background: transparent; border: 0; padding: 4px 0; margin: 0; font: inherit;
+      color: var(--text); text-align: left;
+    }
+    .catalog .subject-head .chevron {
+      flex: none; width: 10px; height: 10px; border-right: 2px solid var(--muted);
+      border-bottom: 2px solid var(--muted); transform: rotate(45deg); transition: transform .18s ease;
+      margin: 0 2px 3px 1px;
+    }
+    .catalog .subject-block.collapsed .subject-head .chevron { transform: rotate(-45deg); margin-bottom: 0; margin-top: 3px; }
+    .catalog .subject-head .name { font-size: 0.98rem; font-weight: 600; }
+    .catalog .subject-head .count { font-size: 0.8em; color: var(--muted); font-weight: 400; margin-left: auto; }
+    .catalog .subject-block.collapsed { padding-bottom: 8px; }
+    .catalog .subject-block.collapsed .course-list { display: none; }
+    .course-list { display: grid; gap: 8px; align-content: start; margin-top: 6px; }
+    .course-list .empty { color: var(--muted); font-size: 0.9rem; padding: 12px; text-align: center; }
+    .catalog-toolbar { display: flex; justify-content: flex-end; }
+    .catalog-toolbar .toggle-all {
+      border: 1px solid var(--border); background: #fff; border-radius: 999px;
+      padding: 5px 12px; font: inherit; font-size: 0.85rem; color: var(--muted); cursor: pointer;
+    }
+    .catalog-toolbar .toggle-all:hover { color: var(--text); border-color: var(--brand); }
+    @media (max-width: 820px) {
+      .layout { grid-template-columns: 1fr; }
+      .catalog { max-height: none; }
+    }
+    .player-wrap { position: sticky; top: 0; z-index: 5; padding: 8px 0; background: var(--bg); }
     .card {
       background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
       padding: 14px 16px; display: flex; justify-content: space-between; align-items: flex-start;
@@ -56,19 +92,24 @@
     .card strong { display: block; }
     .card .meta { color: var(--muted); font-size: 0.85rem; margin-top: 4px; }
     .card .summary { color: #4b5563; font-size: 0.88rem; margin-top: 6px; line-height: 1.45; }
-    .play { background: var(--brand); color: #fff; border: 0; border-radius: 8px; padding: 8px 14px; cursor: pointer; }
+    .play { background: var(--brand); color: #fff; border: 0; border-radius: 8px; padding: 8px 14px; cursor: pointer; flex: none; }
     .player-box {
-      margin-top: 18px; background: #111; border-radius: 12px; overflow: hidden; position: relative;
+      background: #111; border-radius: 12px; overflow: hidden; position: relative;
       display: none;
     }
     .player-box.on { display: block; }
-    video { width: 100%; max-height: 70vh; background: #000; vertical-align: middle; }
+    video { width: 100%; max-height: 62vh; background: #000; vertical-align: middle; }
+    .player-placeholder {
+      border: 1px dashed var(--border); border-radius: 12px; background: #fff;
+      color: var(--muted); text-align: center; padding: 40px 16px; font-size: 0.95rem;
+    }
     .watermark {
       position: absolute; right: 12px; top: 12px; color: rgba(255,255,255,.45);
       font-size: 13px; pointer-events: none; letter-spacing: 0.4px;
       text-shadow: 0 1px 2px rgba(0,0,0,.6);
     }
-    .now-playing { color: var(--muted); font-size: 0.9rem; margin: 10px 0 0; display: none; }
+    .now-playing { color: var(--muted); font-size: 0.9rem; margin: 8px 2px 0; display: none; }
+    .now-playing strong { color: var(--text); }
   </style>
 </head>
 <body>
@@ -81,14 +122,20 @@
       <a class="login-link" id="homeLink" href="/tinglidanciceshi/">返回学习首页</a>
     </div>
     <div id="status" class="msg">正在检查登录…</div>
-    <div id="chips" class="chips" hidden></div>
-    <div id="list" class="list" hidden></div>
-    <div id="playerBox" class="player-box">
-      <div class="watermark" id="watermark"></div>
-      <video id="player" controls playsinline controlslist="nodownload"></video>
+    <div id="app" hidden>
+      <div class="layout" id="layout">
+        <div class="player-wrap">
+          <div id="playerBox" class="player-box">
+            <div class="watermark" id="watermark"></div>
+            <video id="player" controls playsinline controlslist="nodownload"></video>
+          </div>
+          <div id="playerPlaceholder" class="player-placeholder">从右侧目录选择一节课开始播放</div>
+          <p class="now-playing" id="nowPlaying"></p>
+        </div>
+        <div class="catalog" id="catalog"></div>
+      </div>
     </div>
-    <p class="now-playing" id="nowPlaying"></p>
   </div>
-  <script src="/luboke/app.js?v=20260908subj"></script>
+  <script src="/luboke/app.js?v=20260920collapse3"></script>
 </body>
 </html>

@@ -27,6 +27,117 @@
       "id": "speaking",
       "name": "口语",
       "courses": []
+    },
+    {
+      "id": "grammar",
+      "name": "语法",
+      "courses": [
+        {
+          "id": "grammar-l5abe6133",
+          "title": "一般将来时",
+          "duration": "",
+          "summary": "",
+          "oss_key": "courses/初级中级语法/一般将来时.mp4"
+        },
+        {
+          "id": "grammar-l2c7fa5c0",
+          "title": "一般现在时",
+          "duration": "",
+          "summary": "",
+          "oss_key": "courses/初级中级语法/一般现在时.mp4"
+        },
+        {
+          "id": "grammar-ld0968910",
+          "title": "一般过去时",
+          "duration": "",
+          "summary": "",
+          "oss_key": "courses/初级中级语法/一般过去时.mp4"
+        },
+        {
+          "id": "grammar-l2fad9592",
+          "title": "主谓一致",
+          "duration": "",
+          "summary": "",
+          "oss_key": "courses/初级中级语法/主谓一致.mp4"
+        },
+        {
+          "id": "grammar-l30f188a8",
+          "title": "句子结构",
+          "duration": "",
+          "summary": "",
+          "oss_key": "courses/初级中级语法/句子结构.mp4"
+        },
+        {
+          "id": "grammar-ld7eadf90",
+          "title": "名词性从句",
+          "duration": "",
+          "summary": "",
+          "oss_key": "courses/初级中级语法/名词性从句.mp4"
+        },
+        {
+          "id": "grammar-lac160231",
+          "title": "定语从句",
+          "duration": "",
+          "summary": "",
+          "oss_key": "courses/初级中级语法/定语从句.mp4"
+        },
+        {
+          "id": "grammar-l4eff642a",
+          "title": "将来进行时",
+          "duration": "",
+          "summary": "",
+          "oss_key": "courses/初级中级语法/将来进行时.mp4"
+        },
+        {
+          "id": "grammar-lc90ed13b",
+          "title": "状语从句",
+          "duration": "",
+          "summary": "",
+          "oss_key": "courses/初级中级语法/状语从句.mp4"
+        },
+        {
+          "id": "grammar-l5861473c",
+          "title": "现在完成时",
+          "duration": "",
+          "summary": "",
+          "oss_key": "courses/初级中级语法/现在完成时.mp4"
+        },
+        {
+          "id": "grammar-lee676324",
+          "title": "现在进行时",
+          "duration": "",
+          "summary": "",
+          "oss_key": "courses/初级中级语法/现在进行时.mp4"
+        },
+        {
+          "id": "grammar-l5bb8f041",
+          "title": "被动语态",
+          "duration": "",
+          "summary": "",
+          "oss_key": "courses/初级中级语法/被动语态.mp4"
+        },
+        {
+          "id": "grammar-l50693fe1",
+          "title": "过去完成时",
+          "duration": "",
+          "summary": "",
+          "oss_key": "courses/初级中级语法/过去完成时.mp4"
+        },
+        {
+          "id": "grammar-l7469154f",
+          "title": "过去进行时",
+          "duration": "",
+          "summary": "",
+          "oss_key": "courses/初级中级语法/过去进行时.mp4"
+        },
+        {
+          "id": "grammar-lf894460c",
+          "title": "非谓语",
+          "duration": "",
+          "summary": "",
+          "oss_key": "courses/初级中级语法/非谓语.mp4"
+        }
+      ]
     }
   ]
 }

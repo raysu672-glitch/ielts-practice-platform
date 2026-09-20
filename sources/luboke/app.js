@@ -1,16 +1,20 @@
 (function () {
   var statusEl = document.getElementById("status");
-  var chipsEl = document.getElementById("chips");
-  var listEl = document.getElementById("list");
-  var subjects = [];
-  var currentSubject = "all";
+  var appEl = document.getElementById("app");
+  var catalogEl = document.getElementById("catalog");
   var playerBox = document.getElementById("playerBox");
+  var playerPlaceholder = document.getElementById("playerPlaceholder");
   var player = document.getElementById("player");
   var watermark = document.getElementById("watermark");
   var nowPlaying = document.getElementById("nowPlaying");
   var who = document.getElementById("who");
   var homeLink = document.getElementById("homeLink");
+
+  var subjects = [];
   var currentUserLabel = "";
+  var currentCourseId = null;
+  var collapsed = {};
+  var toggleAllBtn = null;
 
   var isEmbed = new URLSearchParams(location.search).get("embed") === "1";
   if (isEmbed) {
@@ -55,60 +59,92 @@
     subjects = nextSubjects || [];
     var hasAny = subjects.some(function (subject) { return (subject.courses || []).length; });
     if (!hasAny) {
-      chipsEl.hidden = true;
-      listEl.hidden = true;
+      appEl.hidden = true;
       showStatus("暂时还没有录播课", false);
       return;
     }
     statusEl.hidden = true;
-    chipsEl.hidden = false;
-    listEl.hidden = false;
-    renderChips();
-    renderList();
+    appEl.hidden = false;
+    renderCatalog();
   }
 
-  function renderChips() {
-    chipsEl.innerHTML = "";
-    function addChip(id, label) {
-      var btn = document.createElement("button");
-      btn.type = "button";
-      btn.className = "chip" + (currentSubject === id ? " active" : "");
-      btn.textContent = label;
-      btn.addEventListener("click", function () {
-        currentSubject = id;
-        renderChips();
-        renderList();
-      });
-      chipsEl.appendChild(btn);
+  function isCollapsed(subject) {
+    if (Object.prototype.hasOwnProperty.call(collapsed, subject.id)) {
+      return collapsed[subject.id];
     }
-    addChip("all", "全部");
-    subjects.forEach(function (subject) {
-      addChip(subject.id, subject.name || subject.id);
-    });
+    // 没有课的科目默认收起，减少目录长度
+    return !(subject.courses || []).length;
   }
 
-  function renderList() {
-    listEl.innerHTML = "";
-    var visible = currentSubject === "all"
-      ? subjects
-      : subjects.filter(function (subject) { return subject.id === currentSubject; });
-    visible.forEach(function (subject) {
-      var block = document.createElement("section");
-      block.className = "subject-block";
-      var heading = document.createElement("h2");
-      heading.textContent = subject.name || subject.id;
-      block.appendChild(heading);
+  function refreshToggleAllLabel() {
+    if (!toggleAllBtn) return;
+    var anyExpanded = subjects.some(function (s) { return !isCollapsed(s); });
+    toggleAllBtn.textContent = anyExpanded ? "全部收起" : "全部展开";
+  }
+
+  function renderCatalog() {
+    catalogEl.innerHTML = "";
+
+    var toolbar = document.createElement("div");
+    toolbar.className = "catalog-toolbar";
+    toggleAllBtn = document.createElement("button");
+    toggleAllBtn.type = "button";
+    toggleAllBtn.className = "toggle-all";
+    toggleAllBtn.addEventListener("click", function () {
+      var anyExpanded = subjects.some(function (s) { return !isCollapsed(s); });
+      // anyExpanded 为真 → 按钮是「全部收起」→ 把所有科目设为收起
+      subjects.forEach(function (s) { collapsed[s.id] = anyExpanded; });
+      renderCatalog();
+    });
+    refreshToggleAllLabel();
+    toolbar.appendChild(toggleAllBtn);
+    catalogEl.appendChild(toolbar);
+
+    subjects.forEach(function (subject) {
       var courses = subject.courses || [];
+      var block = document.createElement("section");
+      block.className = "subject-block" + (isCollapsed(subject) ? " collapsed" : "");
+
+      var head = document.createElement("button");
+      head.type = "button";
+      head.className = "subject-head";
+      var chevron = document.createElement("span");
+      chevron.className = "chevron";
+      var nameSpan = document.createElement("span");
+      nameSpan.className = "name";
+      nameSpan.textContent = subject.name || subject.id;
+      var countSpan = document.createElement("span");
+      countSpan.className = "count";
+      countSpan.textContent = courses.length + " 节";
+      head.appendChild(chevron);
+      head.appendChild(nameSpan);
+      head.appendChild(countSpan);
+      head.addEventListener("click", function () {
+        if (isCollapsed(subject)) {
+          collapsed[subject.id] = false;
+        } else {
+          collapsed[subject.id] = true;
+        }
+        block.classList.toggle("collapsed", isCollapsed(subject));
+        head.setAttribute("aria-expanded", String(!isCollapsed(subject)));
+        refreshToggleAllLabel();
+      });
+      head.setAttribute("aria-expanded", String(!isCollapsed(subject)));
+      block.appendChild(head);
+
+      var list = document.createElement("div");
+      list.className = "course-list";
       if (!courses.length) {
-        var empty = document.createElement("p");
+        var empty = document.createElement("div");
         empty.className = "empty";
-        empty.textContent = "这个科目还没有课";
-        block.appendChild(empty);
+        empty.textContent = "暂无课程";
+        list.appendChild(empty);
       }
       courses.forEach(function (course) {
         var btn = document.createElement("button");
         btn.type = "button";
         btn.className = "card";
+        btn.setAttribute("data-course-id", course.id || "");
         var body = document.createElement("div");
         var title = document.createElement("strong");
         title.textContent = course.title || course.id;
@@ -125,23 +161,25 @@
         }
         var play = document.createElement("span");
         play.className = "play";
-        play.textContent = "播放";
+        play.textContent = course.id === currentCourseId ? "播放中" : "播放";
         btn.appendChild(body);
         btn.appendChild(play);
         btn.addEventListener("click", function () {
-          Array.prototype.forEach.call(listEl.querySelectorAll(".card"), function (el) {
-            el.classList.toggle("active", el === btn);
-          });
           playCourse(course, subject);
         });
-        block.appendChild(btn);
+        list.appendChild(btn);
       });
-      listEl.appendChild(block);
+      block.appendChild(list);
+      catalogEl.appendChild(block);
     });
   }
 
   function playCourse(course, subject) {
     var label = (subject && subject.name ? subject.name + " · " : "") + (course.title || "");
+    currentCourseId = course.id;
+    renderCatalog();
+    playerPlaceholder.style.display = "none";
+    playerBox.classList.add("on");
     nowPlaying.style.display = "block";
     nowPlaying.textContent = "正在加载：" + label;
     api("/api/luboke/courses/" + encodeURIComponent(course.id) + "/play-url").then(function (result) {
@@ -151,10 +189,10 @@
         nowPlaying.textContent = err;
         return;
       }
-      playerBox.classList.add("on");
       watermark.textContent = currentUserLabel;
       player.src = playUrl;
-      nowPlaying.textContent = "正在播放：" + label;
+      nowPlaying.innerHTML = "正在播放：<strong></strong>";
+      nowPlaying.querySelector("strong").textContent = label;
       var playPromise = player.play();
       if (playPromise && playPromise.catch) playPromise.catch(function () {});
     }).catch(function () {

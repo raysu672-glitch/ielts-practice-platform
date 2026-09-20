@@ -5,7 +5,6 @@ from __future__ import annotations
 import hashlib
 import json
 import re
-import time
 from pathlib import Path
 from typing import Any
 
@@ -54,15 +53,26 @@ def _subject_id(name: str, existing: set[str], preferred: str = "") -> str:
         candidate = base
     if candidate not in existing:
         return candidate
-    return f"{candidate}-{int(time.time())}"
+    suffix = 2
+    while f"{candidate}-{suffix}" in existing:
+        suffix += 1
+    return f"{candidate}-{suffix}"
 
 
 def _course_id(subject_id: str, title: str, existing: set[str]) -> str:
-    base = _slug(title) or "lesson"
+    base = _slug(title)
+    if not base:
+        # 中文等非 ASCII 标题经 _slug 会为空，用 md5 生成稳定且唯一的 base
+        digest = hashlib.md5(title.encode("utf-8")).hexdigest()[:8]
+        base = f"l{digest}"
     candidate = f"{subject_id}-{base}"
     if candidate not in existing:
         return candidate
-    return f"{candidate}-{int(time.time())}"
+    # 同一科目下重复课名时，用递增序号保证 id 唯一（不能用时间戳，批量保存会撞）
+    suffix = 2
+    while f"{candidate}-{suffix}" in existing:
+        suffix += 1
+    return f"{candidate}-{suffix}"
 
 
 def _empty_subjects() -> list[dict[str, Any]]:
@@ -184,6 +194,30 @@ def public_catalog(catalog: dict[str, Any] | None = None) -> dict[str, Any]:
                 "id": subject["id"],
                 "name": subject.get("name") or subject["id"],
                 "courses": [public_course(course) for course in subject.get("courses") or []],
+            }
+        )
+    return {"subjects": subjects}
+
+
+def teacher_catalog(catalog: dict[str, Any] | None = None) -> dict[str, Any]:
+    """教师端用：保留 oss_key，供管理页回填表单。
+
+    学生端接口（public_catalog）故意不含 oss_key；管理页若用它回填，
+    保存时 oss_key 为空会被后端丢弃，导致已有课程全部丢失。
+    """
+    data = catalog if catalog is not None else load_catalog()
+    subjects = []
+    for subject in data.get("subjects") or []:
+        courses = []
+        for course in subject.get("courses") or []:
+            item = public_course(course)
+            item["oss_key"] = course.get("oss_key") or ""
+            courses.append(item)
+        subjects.append(
+            {
+                "id": subject["id"],
+                "name": subject.get("name") or subject["id"],
+                "courses": courses,
             }
         )
     return {"subjects": subjects}

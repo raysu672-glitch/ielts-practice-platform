@@ -40,6 +40,7 @@ try:
         load_courses,
         public_catalog,
         save_catalog,
+        teacher_catalog,
     )
     from oss_sign import list_object_keys, oss_configured, sign_get_url  # noqa: E402
 except ImportError:  # Recorded-course modules are optional; homework deploy must still boot.
@@ -59,6 +60,9 @@ except ImportError:  # Recorded-course modules are optional; homework deploy mus
         return item
 
     def public_catalog(*_a, **_k):
+        return {"subjects": []}
+
+    def teacher_catalog(*_a, **_k):
         return {"subjects": []}
 
     def save_catalog(*_a, **_k):
@@ -1008,6 +1012,12 @@ class LocalHandler(SimpleHTTPRequestHandler):
     def end_headers(self) -> None:
         for name, value in cors_headers_for_origin(self.headers.get("Origin")).items():
             self.send_header(name, value)
+        path = urllib.parse.urlparse(self.path).path.lower()
+        if path.endswith("/") or path.endswith((".html", ".js", ".css")):
+            # 页面与脚本禁缓存：否则浏览器可能拿旧 HTML 引用旧 app.js，
+            # 造成「改了代码但页面没变化」。API 路径不受影响。
+            self.send_header("Cache-Control", "no-cache, no-store, must-revalidate")
+            self.send_header("Pragma", "no-cache")
         super().end_headers()
 
     def do_OPTIONS(self) -> None:
@@ -1192,6 +1202,12 @@ class LocalHandler(SimpleHTTPRequestHandler):
             }
         )
 
+    def handle_luboke_catalog_get(self) -> None:
+        """教师端读取完整课表（含 oss_key），用于管理页回填表单。"""
+        if not self.require_teacher_session():
+            return
+        self.send_json({"data": teacher_catalog(load_catalog()), "error": None})
+
     def handle_luboke_files(self) -> None:
         if not self.require_teacher_session():
             return
@@ -1220,7 +1236,7 @@ class LocalHandler(SimpleHTTPRequestHandler):
         except ValueError as exc:
             self.send_json({"data": None, "error": {"message": str(exc)}}, status=400)
             return
-        self.send_json({"data": public_catalog(catalog), "error": None})
+        self.send_json({"data": teacher_catalog(catalog), "error": None})
 
     def handle_luboke_play_url(self, course_id: str) -> None:
         session = self.require_active_viewer()
@@ -3161,6 +3177,9 @@ class LocalHandler(SimpleHTTPRequestHandler):
             return
         if parsed.path.rstrip("/") == "/api/luboke/courses":
             self.handle_luboke_courses()
+            return
+        if parsed.path.rstrip("/") == "/api/luboke/catalog":
+            self.handle_luboke_catalog_get()
             return
         if parsed.path.rstrip("/") == "/api/luboke/files":
             self.handle_luboke_files()

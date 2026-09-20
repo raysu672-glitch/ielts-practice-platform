@@ -30,6 +30,21 @@
     .subject { background: #fff; border: 1px solid var(--border); border-radius: 14px; padding: 16px; margin-bottom: 14px; }
     .subject-head { display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end; margin-bottom: 8px; }
     .subject-head .grow { flex: 1; min-width: 180px; }
+    .collapse-toggle {
+      flex: none; width: 36px; height: 36px; padding: 0; background: #fff;
+      border: 1px solid var(--border); border-radius: 8px; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .collapse-toggle:hover { border-color: var(--brand); }
+    .collapse-toggle .chevron {
+      width: 9px; height: 9px; border-right: 2px solid var(--muted);
+      border-bottom: 2px solid var(--muted); transform: rotate(45deg);
+      transition: transform .18s ease; margin-bottom: 3px;
+    }
+    .subject.collapsed { padding-bottom: 12px; }
+    .subject.collapsed .collapse-toggle .chevron { transform: rotate(-45deg); margin-bottom: 0; margin-top: 3px; }
+    .subject.collapsed .subject-body { display: none; }
+    .subject-count { font-size: 0.85rem; color: var(--muted); margin-bottom: 10px; white-space: nowrap; }
     .lesson { border: 1px solid var(--border); border-radius: 10px; padding: 12px; margin-bottom: 10px; background: #fafbff; }
     label { display: block; font-size: 0.82rem; color: var(--muted); margin: 8px 0 4px; }
     input, select, textarea {
@@ -48,6 +63,45 @@
     .danger { background: #fff; color: #b91c1c; border: 1px solid #fecaca; }
     .save-bar { position: sticky; bottom: 0; background: rgba(244,245,249,.95); padding: 12px 0 0; }
     code { font-size: 0.9em; }
+    .modal-overlay {
+      position: fixed; inset: 0; background: rgba(15,23,42,.45); z-index: 50;
+      display: flex; align-items: center; justify-content: center; padding: 16px;
+    }
+    .modal-overlay[hidden] { display: none; }
+    .modal {
+      background: #fff; border-radius: 14px; padding: 18px; max-width: 720px; width: 100%;
+      box-shadow: 0 20px 60px rgba(0,0,0,.25);
+    }
+    .modal h3 { margin: 0 0 6px; }
+    .modal textarea { font-family: Consolas, Menlo, monospace; font-size: 0.9rem; }
+    .modal .actions { justify-content: flex-end; }
+    .match-line { font-size: 0.85rem; margin: 8px 0 0; }
+    .match-line.ok { color: #065f46; }
+    .match-line.warn { color: #92400e; }
+    .batch-files {
+      margin-top: 10px; border: 1px solid var(--border); border-radius: 10px;
+      max-height: 320px; overflow-y: auto; background: #fff;
+    }
+    .batch-files label {
+      display: flex; gap: 10px; align-items: center; padding: 9px 12px; margin: 0;
+      cursor: pointer; border-bottom: 1px solid #f0f1f6; font-size: 0.9rem; color: var(--text);
+    }
+    .batch-files label:last-child { border-bottom: 0; }
+    .batch-files label:hover { background: #f4f6ff; }
+    .batch-files input[type=checkbox] { width: auto; flex: none; }
+    .batch-actions { display: flex; gap: 8px; align-items: center; margin-top: 10px; }
+    .batch-actions .ghost { padding: 5px 12px; font-size: 0.85rem; }
+    .batch-actions .sub { margin: 0 0 0 auto; }
+    .batch-empty { padding: 24px; text-align: center; color: var(--muted); font-size: 0.9rem; }
+    .already-added { color: #92400e; font-size: 0.8em; margin-left: 6px; }
+    .batch-group-head {
+      position: sticky; top: 0; display: flex; gap: 10px; align-items: center;
+      padding: 9px 12px; background: #eef2ff; font-weight: 600; font-size: 0.9rem;
+      border-bottom: 1px solid #dfe3f5; cursor: pointer; user-select: none;
+    }
+    .batch-group-head input[type=checkbox] { width: auto; flex: none; }
+    .batch-group-head .group-count { font-weight: 400; color: var(--muted); font-size: 0.82rem; margin-left: auto; }
+    .batch-files label.batch-file { padding-left: 34px; }
   </style>
 </head>
 <body>
@@ -62,6 +116,7 @@
       <div class="toolbar">
         <input id="newSubjectName" type="text" placeholder="新科目名称，例如：长难句">
         <button class="ghost" id="addSubjectBtn" type="button">添加科目</button>
+        <button class="ghost" id="toggleAllSubjectsBtn" type="button">全部收起</button>
       </div>
       <div id="subjects"></div>
       <div class="save-bar">
@@ -70,6 +125,25 @@
       </div>
     </div>
   </div>
-  <script src="/luboke/manage.js?v=20260908subj2"></script>
+
+  <div id="batchModal" class="modal-overlay" hidden>
+    <div class="modal">
+      <h3>批量添加课程：<span id="batchTargetName"></span></h3>
+      <p class="sub">勾选要添加的视频，一门课对应一个视频。课名默认取文件名，可勾选后手动修改。</p>
+      <input id="batchSearch" type="text" placeholder="搜索文件名过滤…">
+      <div class="batch-actions">
+        <button class="ghost" id="batchCheckAll" type="button">全选</button>
+        <button class="ghost" id="batchCheckNone" type="button">清空</button>
+        <span class="sub" id="batchCount">已选 0 个</span>
+      </div>
+      <div id="batchFiles" class="batch-files"></div>
+      <p class="match-line" id="batchMatchLine"></p>
+      <div class="actions">
+        <button class="primary" id="batchConfirm" type="button">添加</button>
+        <button class="ghost" id="batchCancel" type="button">取消</button>
+      </div>
+    </div>
+  </div>
+  <script src="/luboke/manage.js?v=20260920fold"></script>
 </body>
 </html>

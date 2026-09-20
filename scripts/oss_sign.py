@@ -89,32 +89,51 @@ def list_object_keys(
     cfg = settings if settings is not None else oss_settings()
     if not oss_configured(cfg):
         raise RuntimeError("OSS 未配置")
-    date = time.strftime("%a, %d %b %Y %H:%M:%S GMT", time.gmtime())
-    resource = f"/{cfg['bucket']}/"
-    string_to_sign = f"GET\n\n\n{date}\n{resource}"
-    digest = hmac.new(
-        cfg["access_key_secret"].encode("utf-8"),
-        string_to_sign.encode("utf-8"),
-        hashlib.sha1,
-    ).digest()
-    signature = base64.b64encode(digest).decode("ascii")
     endpoint = str(cfg["endpoint"]).strip().lstrip("https://").lstrip("http://")
-    query = urllib.parse.urlencode({"prefix": prefix, "max-keys": "200"})
-    url = f"https://{cfg['bucket']}.{endpoint}/?{query}"
-    req = urllib.request.Request(url)
-    req.add_header("Date", date)
-    req.add_header("Authorization", f"OSS {cfg['access_key_id']}:{signature}")
-    try:
-        with urllib.request.urlopen(req, timeout=20) as resp:
-            xml = resp.read().decode("utf-8")
-    except urllib.error.HTTPError as exc:
-        raise RuntimeError(f"无法列出 OSS 文件（{exc.code}）") from exc
     keys: list[str] = []
-    for el in ET.fromstring(xml).iter():
-        if el.tag.endswith("Key") and el.text:
-            key = el.text.strip()
-            if key.endswith("/") or key == prefix.rstrip("/"):
-                continue
-            if is_safe_oss_key(key):
-                keys.append(key)
+    marker = ""
+    # OSS 单次最多返回 1000 个，这里用 marker 分页把 courses/ 下所有视频都拉回来。
+    for _ in range(20):
+        date = time.strftime("%a, %d %b %Y %H:%M:%S GMT", time.gmtime())
+        resource = f"/{cfg['bucket']}/"
+        string_to_sign = f"GET\n\n\n{date}\n{resource}"
+        digest = hmac.new(
+            cfg["access_key_secret"].encode("utf-8"),
+            string_to_sign.encode("utf-8"),
+            hashlib.sha1,
+        ).digest()
+        signature = base64.b64encode(digest).decode("ascii")
+        params = {"prefix": prefix, "max-keys": "1000"}
+        if marker:
+            params["marker"] = marker
+        query = urllib.parse.urlencode(params)
+        url = f"https://{cfg['bucket']}.{endpoint}/?{query}"
+        req = urllib.request.Request(url)
+        req.add_header("Date", date)
+        req.add_header("Authorization", f"OSS {cfg['access_key_id']}:{signature}")
+        try:
+            with urllib.request.urlopen(req, timeout=20) as resp:
+                xml = resp.read().decode("utf-8")
+        except urllib.error.HTTPError as exc:
+            raise RuntimeError(f"无法列出 OSS 文件（{exc.code}）") from exc
+        root = ET.fromstring(xml)
+        batch: list[str] = []
+        truncated = False
+        next_marker = ""
+        for el in root.iter():
+            tag = el.tag
+            if tag.endswith("IsTruncated") and el.text:
+                truncated = el.text.strip().lower() == "true"
+            elif tag.endswith("NextMarker") and el.text:
+                next_marker = el.text.strip()
+            elif tag.endswith("Key") and el.text:
+                key = el.text.strip()
+                if key.endswith("/") or key == prefix.rstrip("/"):
+                    continue
+                if is_safe_oss_key(key):
+                    batch.append(key)
+        keys.extend(batch)
+        if not truncated or not batch:
+            break
+        marker = next_marker or batch[-1]
     return keys
