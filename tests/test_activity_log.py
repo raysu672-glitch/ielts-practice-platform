@@ -127,6 +127,28 @@ class ActivityLogTests(unittest.TestCase):
         self.assertEqual(page1["total"], 1)
         self.assertEqual(page1["events"][0]["action"], "sentence.open")
 
+    def test_paginate_all_without_date(self) -> None:
+        for i in range(3):
+            log_activity(
+                self.conn,
+                actor_role="student",
+                actor_id="2025001",
+                action="task.open",
+                target_student_id="2025001",
+                summary=f"n{i}",
+                prune_occasionally=False,
+            )
+        page1 = list_student_activity(
+            self.conn, "2025001", page=1, page_size=2, paginate=True
+        )
+        self.assertEqual(page1["total"], 3)
+        self.assertEqual(len(page1["events"]), 2)
+        self.assertEqual(page1["on_date"], "")
+        page2 = list_student_activity(
+            self.conn, "2025001", page=2, page_size=2, paginate=True
+        )
+        self.assertEqual(len(page2["events"]), 1)
+
 
 if __name__ == "__main__":
     unittest.main()

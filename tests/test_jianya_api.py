@@ -433,9 +433,32 @@ class JianyaApiTests(unittest.TestCase):
             wrong=0,
             blank=0,
             pct=0,
+            correction={
+                "count": 1,
+                "checkedAt": "2026-09-11T02:00:00Z",
+                "originalEssay": "Health matters for both individuals and society.",
+                "errors": [
+                    {
+                        "id": "e1",
+                        "category": "主谓一致",
+                        "sentenceIndex": 0,
+                        "matchedText": "Health matters",
+                        "question": "主谓是否一致？",
+                        "hints": ["检查主语单复数"],
+                        "explanation": "主语为单数，动词应一致。",
+                        "corrected": "Health matters for both individuals and society.",
+                    }
+                ],
+            },
         )
         self.assertEqual(saved["answers"]["essay"][:6], "Health")
         self.assertIn("个人健康", saved["answers"]["outline"])
+        self.assertEqual(saved["correction"]["count"], 1)
+        self.assertEqual(saved["correction"]["errors"][0]["category"], "主谓一致")
+        reloaded = get_submission(
+            conn, asg["id"], "2025001", asg["parts"][0]["bookId"], "writing", 1
+        )
+        self.assertEqual(reloaded["correction"]["count"], 1)
 
 
 if __name__ == "__main__":
