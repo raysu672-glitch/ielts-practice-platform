@@ -221,6 +221,8 @@ def list_student_activity(
 
     Empty on_date = all retained events (newest first).
     Teacher timeline should pass paginate=True for stable OFFSET paging.
+
+    排查用的点击/报错记录在 ``student_debug_events``，不要并进这里。
     """
     ensure_activity_tables(conn)
     sid = str(student_id or "").strip()

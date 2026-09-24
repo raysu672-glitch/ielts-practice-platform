@@ -82,6 +82,7 @@ from activity_log import (  # noqa: E402
     log_activity,
     log_student_client_events,
 )
+from debug_trace import log_student_debug_events  # noqa: E402
 
 # Teacher activity timeline: human-readable subject names for task events.
 TASK_MODULE_LABELS = {
@@ -1170,6 +1171,100 @@ class LocalHandler(SimpleHTTPRequestHandler):
             self.send_header("Set-Cookie", item)
         self.end_headers()
         self.wfile.write(body)
+        try:
+            self._trace_student_api(status, data)
+        except Exception:
+            pass
+
+    def _trace_student_api(self, status: int, data: dict[str, Any]) -> None:
+        """Record student API results for later diagnosis. Not the teacher timeline."""
+        if getattr(self, "_debug_tracing", False):
+            return
+        try:
+            path = urllib.parse.urlparse(self.path).path.rstrip("/")
+        except Exception:
+            return
+        if not path.startswith("/api/") or path == "/api/debug/trace":
+            return
+        try:
+            session = self.current_session("student")
+        except Exception:
+            return
+        if not session or session.get("role") != "student":
+            return
+        err = ""
+        if isinstance(data, dict):
+            error = data.get("error")
+            if isinstance(error, dict):
+                err = str(error.get("message") or "")[:200]
+        self._debug_student(
+            str(session.get("id") or ""),
+            "api",
+            {"status": int(status), "error": err},
+            page=path,
+            target=str(getattr(self, "command", "") or ""),
+        )
+
+    def _debug_student(
+        self,
+        student_id: str,
+        action: str,
+        detail: Optional[dict[str, Any]] = None,
+        *,
+        page: str = "",
+        target: str = "",
+    ) -> None:
+        if not student_id or getattr(self, "_debug_tracing", False):
+            return
+        queue = getattr(self, "_debug_queue", None)
+        if queue is None:
+            queue = []
+            self._debug_queue = queue
+        queue.append(
+            {
+                "student_id": student_id,
+                "action": action,
+                "page": page,
+                "target": target,
+                "detail": detail or {},
+            }
+        )
+
+    def _flush_debug_queue(self) -> None:
+        """Write queued diagnosis rows after the request connection is closed."""
+        queue = getattr(self, "_debug_queue", None) or []
+        self._debug_queue = []
+        if not queue or getattr(self, "_debug_tracing", False):
+            return
+        grouped: dict[str, list[dict[str, Any]]] = {}
+        for item in queue:
+            grouped.setdefault(str(item.get("student_id") or ""), []).append(item)
+        self._debug_tracing = True
+        try:
+            conn = sqlite3.connect(self.db_path, timeout=0.2)
+            conn.row_factory = sqlite3.Row
+            try:
+                for student_id, events in grouped.items():
+                    if not student_id:
+                        continue
+                    log_student_debug_events(
+                        conn,
+                        student_id=student_id,
+                        source="server",
+                        events=events,
+                    )
+            finally:
+                conn.close()
+        except Exception:
+            pass
+        finally:
+            self._debug_tracing = False
+
+    def handle_one_request(self) -> None:
+        try:
+            super().handle_one_request()
+        finally:
+            self._flush_debug_queue()
 
     def require_logged_in_session(self) -> Optional[dict[str, Any]]:
         session = self.current_session()
@@ -1416,6 +1511,8 @@ class LocalHandler(SimpleHTTPRequestHandler):
         student_id = str(payload.get("student_id") or "").strip()
         password = str(payload.get("password") or "")
         if not student_id or not password:
+            if student_id:
+                self._debug_student(student_id, "auth.login_fail", {"error": "缺少密码"})
             self.send_json({"data": None, "error": {"message": "请输入学号和密码"}}, status=400)
             return
         with closing(connect(self.db_path)) as conn:
@@ -1427,10 +1524,12 @@ class LocalHandler(SimpleHTTPRequestHandler):
                 password=password,
             )
             if not row:
+                self._debug_student(student_id, "auth.login_fail", {"error": "学号或密码错误"})
                 self.send_json({"data": None, "error": {"message": "学号或密码错误"}}, status=401)
                 return
             item = row_to_dict(row)
             if item.get("status") != "active":
+                self._debug_student(student_id, "auth.login_fail", {"error": "账号已被禁用"})
                 self.send_json({"data": None, "error": {"message": "账号已被禁用"}}, status=403)
                 return
             token = issue_session_token(
@@ -1451,6 +1550,7 @@ class LocalHandler(SimpleHTTPRequestHandler):
                 )
             except Exception:
                 pass
+            self._debug_student(student_id, "auth.login", {})
             self.send_json(
                 {"data": {"role": "student", "student": public_student(item)}, "error": None},
                 set_cookies=self.login_set_cookies("student", token),
@@ -1670,6 +1770,27 @@ class LocalHandler(SimpleHTTPRequestHandler):
                 self.send_json({"data": None, "error": {"message": err}}, status=404)
                 return
             self.send_json({"data": data, "error": None})
+
+    def handle_debug_trace_post(self) -> None:
+        session = self.require_student_session()
+        if not session:
+            return
+        payload = self.read_json_body()
+        events = payload.get("events")
+        if not isinstance(events, list) or not events:
+            self.send_json({"data": None, "error": {"message": "events 不能为空"}}, status=400)
+            return
+        try:
+            with closing(connect(self.db_path)) as conn:
+                data = log_student_debug_events(
+                    conn,
+                    student_id=str(session.get("id") or ""),
+                    events=events,
+                    source="client",
+                )
+            self.send_json({"data": data, "error": None})
+        except ValueError as exc:
+            self.send_json({"data": None, "error": {"message": str(exc)}}, status=400)
 
     def handle_activity_me_post(self) -> None:
         session = self.require_student_session()
@@ -3337,6 +3458,9 @@ class LocalHandler(SimpleHTTPRequestHandler):
             return
         if path == "/api/activity/me":
             self.handle_activity_me_post()
+            return
+        if path == "/api/debug/trace":
+            self.handle_debug_trace_post()
             return
         if path == "/api/student/test-records":
             self.handle_student_test_records_post()
