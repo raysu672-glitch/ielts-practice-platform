@@ -328,6 +328,7 @@ def ensure_task_tables(conn: sqlite3.Connection) -> None:
             unit_id TEXT NOT NULL,
             scope_done INTEGER NOT NULL DEFAULT 0,
             scope_total INTEGER NOT NULL DEFAULT 0,
+            scope_keys TEXT NOT NULL DEFAULT '[]',
             updated_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
             PRIMARY KEY (student_id, plan_item_id)
         );
@@ -488,6 +489,16 @@ def _migrate_task_effective_columns(conn: sqlite3.Connection) -> None:
         # 两者共用 need_refresh 这一个开关，但学生端文案不同（「需重学」/「内容已更新」）。
         if "refresh_reason" not in pi_cols:
             conn.execute("ALTER TABLE plan_items ADD COLUMN refresh_reason TEXT")
+    if "task_unit_progress" in tables:
+        prog_cols = {
+            r[1] for r in conn.execute("PRAGMA table_info(task_unit_progress)").fetchall()
+        }
+        # 记下具体做完了哪些句/题。只存一个数字的话，学生退出再进会从 0 重报，
+        # 把已经做过的进度盖掉，单元永远凑不满、任务交不上去。
+        if "scope_keys" not in prog_cols:
+            conn.execute(
+                "ALTER TABLE task_unit_progress ADD COLUMN scope_keys TEXT NOT NULL DEFAULT '[]'"
+            )
 
 
 def _draft_meta_effective_from(meta: Optional[dict[str, Any]], today: str) -> Optional[str]:
@@ -4380,7 +4391,7 @@ def _enrich_daily(
         scope_total, scope_unit = _scope_for_unit(item.get("content_ref"))
         prog = conn.execute(
             """
-            SELECT scope_done, scope_total FROM task_unit_progress
+            SELECT scope_done, scope_total, scope_keys FROM task_unit_progress
             WHERE student_id=? AND plan_item_id=?
             """,
             (student_id, item["plan_item_id"]),
@@ -4388,6 +4399,11 @@ def _enrich_daily(
         scope_done = int(prog["scope_done"]) if prog else 0
         if prog and prog["scope_total"]:
             scope_total = int(prog["scope_total"])
+        scope_keys = _parse_scope_keys(prog["scope_keys"]) if prog else []
+        if not scope_keys and scope_done > 0:
+            ids = _unit_scope_ids(item.get("content_ref"))
+            if ids:
+                scope_keys = ids[: min(scope_done, len(ids))]
         study_url = item.get("study_url") or ""
         if study_url and item.get("id"):
             sep = "&" if "?" in study_url else "?"
@@ -4395,6 +4411,12 @@ def _enrich_daily(
                 f"{study_url}{sep}task_id={item['id']}"
                 f"&plan_item_id={item['plan_item_id']}"
             )
+        if (
+            study_url
+            and scope_keys
+            and str(item.get("module_type") or "") == "sentence"
+        ):
+            study_url += "&done=" + ",".join(scope_keys)
         title = item.get("unit_title") or item.get("test_title") or "任务"
         if item.get("need_refresh"):
             # need_refresh 现在只有一种来源：助教换题 / 内容版本更新，要用新题重学。
@@ -4420,6 +4442,7 @@ def _enrich_daily(
                 "scope_label": "本单元",
                 "scope_done": scope_done,
                 "scope_total": scope_total,
+                "scope_keys": scope_keys,
                 "scope_unit": scope_unit,
                 "study_url": study_url,
                 "est_minutes": item.get("plan_est") or item.get("unit_est") or 15,
@@ -4586,6 +4609,46 @@ def _student_upcoming_bundle(
         "remaining_plan": remaining,
     }
 
+def _parse_scope_keys(raw: Any) -> list[str]:
+    if isinstance(raw, list):
+        data = raw
+    elif isinstance(raw, str) and raw.strip():
+        try:
+            data = json.loads(raw)
+        except json.JSONDecodeError:
+            data = []
+    else:
+        data = []
+    if not isinstance(data, list):
+        return []
+    out: list[str] = []
+    seen: set[str] = set()
+    for item in data:
+        key = str(item).strip()
+        if not key or key in seen:
+            continue
+        seen.add(key)
+        out.append(key)
+    return out
+
+
+def _unit_scope_ids(content_ref: Any) -> list[str]:
+    """单元里可逐项打点的编号（长难句句号、同义替换题号等）。"""
+    ref = content_ref
+    if isinstance(ref, str):
+        try:
+            ref = json.loads(ref)
+        except json.JSONDecodeError:
+            ref = {}
+    if not isinstance(ref, dict):
+        return []
+    for name in ("sentenceNums", "questionIds", "questionKeys", "questionIndexes"):
+        vals = ref.get(name)
+        if isinstance(vals, list) and vals:
+            return [str(v).strip() for v in vals if str(v).strip()]
+    return []
+
+
 def update_scope_progress(
     conn: sqlite3.Connection,
     student_id: str,
@@ -4593,6 +4656,7 @@ def update_scope_progress(
     *,
     scope_done: Optional[int] = None,
     delta: Optional[int] = None,
+    scope_key: Optional[str] = None,
 ) -> dict[str, Any]:
     item = conn.execute(
         "SELECT * FROM plan_items WHERE id=? AND student_id=?",
@@ -4605,31 +4669,124 @@ def update_scope_progress(
         unit = conn.execute(
             "SELECT * FROM task_units WHERE unit_id=?", (item["unit_id"],)
         ).fetchone()
-    scope_total, _ = _scope_for_unit(unit["content_ref"] if unit else {})
+    content_ref = unit["content_ref"] if unit else {}
+    scope_total, _ = _scope_for_unit(content_ref)
     existing = conn.execute(
         "SELECT * FROM task_unit_progress WHERE student_id=? AND plan_item_id=?",
         (student_id, plan_item_id),
     ).fetchone()
     current = int(existing["scope_done"]) if existing else 0
-    if scope_done is not None:
-        current = max(0, int(scope_done))
+    keys = _parse_scope_keys(existing["scope_keys"]) if existing else []
+    allowed = _unit_scope_ids(content_ref)
+    key = str(scope_key).strip() if scope_key not in (None, "") else ""
+    if key and allowed and key not in allowed:
+        key = ""
+    if key:
+        # 只有一个数字、还没有句号清单时，先按单元顺序补上已计入的前 N 项，
+        # 避免这一次上报把旧进度清零。之后以具体编号为准。
+        if not keys and current > 0 and allowed:
+            keys = allowed[: min(current, len(allowed))]
+        if key not in keys:
+            keys.append(key)
+        current = max(current, len(keys))
+    elif scope_done is not None:
+        # 绝对进度只升不降。重进页面会从 0 重报「这次做了几项」，
+        # 直接覆盖会把已经做过的句数盖小，单元再也凑不满。
+        current = max(current, max(0, int(scope_done)))
     elif delta is not None:
         current = max(0, current + int(delta))
+    if keys:
+        current = max(current, len(keys))
+    if scope_total:
+        current = min(current, scope_total)
+        if allowed:
+            keys = [k for k in keys if k in allowed]
+        if len(keys) > scope_total:
+            keys = keys[:scope_total]
+    conn.execute(
+        """
+        INSERT INTO task_unit_progress (
+            student_id, plan_item_id, unit_id, scope_done, scope_total, scope_keys
+        )
+        VALUES (?, ?, ?, ?, ?, ?)
+        ON CONFLICT(student_id, plan_item_id) DO UPDATE SET
+            scope_done=excluded.scope_done,
+            scope_total=excluded.scope_total,
+            scope_keys=excluded.scope_keys,
+            updated_at=strftime('%Y-%m-%dT%H:%M:%fZ','now')
+        """,
+        (
+            student_id,
+            plan_item_id,
+            item["unit_id"] or "",
+            current,
+            scope_total,
+            json.dumps(keys, ensure_ascii=False),
+        ),
+    )
+    conn.commit()
+    return {"scope_done": current, "scope_total": scope_total, "scope_keys": keys}
+
+
+def replace_scope_keys(
+    conn: sqlite3.Connection,
+    student_id: str,
+    plan_item_id: int,
+    keys: list[str],
+) -> dict[str, Any]:
+    """用明确的项目编号覆盖进度（补历史记录时用，不按顺序猜测前 N 项）。"""
+    item = conn.execute(
+        "SELECT * FROM plan_items WHERE id=? AND student_id=?",
+        (plan_item_id, student_id),
+    ).fetchone()
+    if not item:
+        raise ValueError("计划条目不存在")
+    unit = None
+    if item["unit_id"]:
+        unit = conn.execute(
+            "SELECT * FROM task_units WHERE unit_id=?", (item["unit_id"],)
+        ).fetchone()
+    content_ref = unit["content_ref"] if unit else {}
+    scope_total, _ = _scope_for_unit(content_ref)
+    allowed = _unit_scope_ids(content_ref)
+    wanted = []
+    seen: set[str] = set()
+    for raw in keys:
+        key = str(raw).strip()
+        if not key or key in seen:
+            continue
+        if allowed and key not in allowed:
+            continue
+        seen.add(key)
+        wanted.append(key)
+    if allowed:
+        wanted = [k for k in allowed if k in seen]
+    current = len(wanted)
     if scope_total:
         current = min(current, scope_total)
     conn.execute(
         """
-        INSERT INTO task_unit_progress (student_id, plan_item_id, unit_id, scope_done, scope_total)
-        VALUES (?, ?, ?, ?, ?)
+        INSERT INTO task_unit_progress (
+            student_id, plan_item_id, unit_id, scope_done, scope_total, scope_keys
+        )
+        VALUES (?, ?, ?, ?, ?, ?)
         ON CONFLICT(student_id, plan_item_id) DO UPDATE SET
             scope_done=excluded.scope_done,
             scope_total=excluded.scope_total,
+            scope_keys=excluded.scope_keys,
             updated_at=strftime('%Y-%m-%dT%H:%M:%fZ','now')
         """,
-        (student_id, plan_item_id, item["unit_id"] or "", current, scope_total),
+        (
+            student_id,
+            plan_item_id,
+            item["unit_id"] or "",
+            current,
+            scope_total,
+            json.dumps(wanted, ensure_ascii=False),
+        ),
     )
     conn.commit()
-    return {"scope_done": current, "scope_total": scope_total}
+    return {"scope_done": current, "scope_total": scope_total, "scope_keys": wanted}
 
 
 def complete_study(

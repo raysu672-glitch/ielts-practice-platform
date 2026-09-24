@@ -2707,7 +2707,7 @@ async function openGenericIframe(moduleId, moduleName, url, mode) {
         module_type: normalizedModuleId,
         module_name: moduleName,
         mode: finalMode,
-        v: '20260904parts1'
+        v: '20260924sentence'
     };
     if (ctx.plan_item_id != null) paramObj.plan_item_id = ctx.plan_item_id;
     if (ctx.unit_id) paramObj.unit_id = ctx.unit_id;
@@ -2900,7 +2900,10 @@ window.addEventListener('message', async function(event) {
         const body = { plan_item_id: planItemId };
         if (data.scope_done != null) body.scope_done = data.scope_done;
         else if (data.delta != null) body.delta = data.delta;
-        else return;
+        if (data.scope_key != null && data.scope_key !== '') {
+            body.scope_key = String(data.scope_key);
+        }
+        if (body.scope_done == null && body.delta == null && !body.scope_key) return;
         _taskScopeProgressChain = _taskScopeProgressChain.then(function() {
             return apiFetch('/api/task/me/scope-progress', {
                 method: 'POST',

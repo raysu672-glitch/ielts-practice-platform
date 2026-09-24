@@ -513,6 +513,21 @@ if (_taskFrom > 0 && _taskTo >= _taskFrom) {
 }
 var _taskCompletedNums = {};
 var _taskUnitCompletePosted = false;
+(_taskParams.get('done') || '').split(',').forEach(function(raw) {
+  var n = parseInt(raw, 10);
+  if (n) _taskCompletedNums[n] = true;
+});
+
+function _taskDoneCount() {
+  return PRACTICE_LIST.filter(function(x) { return !!_taskCompletedNums[x.num]; }).length;
+}
+
+function _taskFirstUnfinishedIdx() {
+  for (var i = 0; i < PRACTICE_LIST.length; i++) {
+    if (!_taskCompletedNums[PRACTICE_LIST[i].num]) return i;
+  }
+  return -1;
+}
 
 function _taskPost(type, extra) {
   if (!_taskPlanItemId) return;
@@ -548,9 +563,9 @@ function _taskMarkCurrentDone() {
   if (!s) return;
   if (_taskCompletedNums[s.num]) return;
   _taskCompletedNums[s.num] = true;
-  var done = PRACTICE_LIST.filter(function(x) { return !!_taskCompletedNums[x.num]; }).length;
+  var done = _taskDoneCount();
   var total = PRACTICE_LIST.length;
-  _taskPost('taskScopeProgress', { scope_done: done });
+  _taskPost('taskScopeProgress', { scope_done: done, scope_key: String(s.num) });
   _activityLog('sentence.analysis_open', '完成第' + s.num + '句并查看解析', { done: done, total: total });
   if (total > 0 && done >= total && !_taskUnitCompletePosted) {
     _taskUnitCompletePosted = true;
@@ -672,8 +687,9 @@ function renderHome() {
   grid.innerHTML = PRACTICE_LIST.map((s, i) => {
     const num = String(s.num).padStart(3, '0');
     const preview = s.original ? s.original.substring(0, 80) + '...' : '内容加载中...';
+    var doneMark = _taskCompletedNums[s.num] ? ' · 已完成' : '';
     return '<div class="sentence-card" onclick="openPractice(' + i + ')">' +
-      '<div class="card-num">第 ' + num + ' 句</div>' +
+      '<div class="card-num">第 ' + num + ' 句' + doneMark + '</div>' +
       '<div class="card-pattern">' + escHtml(s.pattern) + '</div>' +
       '<div class="card-preview">' + escHtml(preview) + '</div>' +
     '</div>';
@@ -728,6 +744,16 @@ function openPractice(idx) {
 }
 
 function navSentence(dir) {
+  if (_taskPlanItemId && dir > 0) {
+    for (var i = currentIdx + 1; i < PRACTICE_LIST.length; i++) {
+      if (!_taskCompletedNums[PRACTICE_LIST[i].num]) {
+        openPractice(i);
+        return;
+      }
+    }
+    goHome();
+    return;
+  }
   const newIdx = currentIdx + dir;
   if (newIdx >= 0 && newIdx < PRACTICE_LIST.length) openPractice(newIdx);
 }
@@ -1475,6 +1501,14 @@ function renderAnalysis(s) {
 // ===== INIT =====
 renderHome();
 if (_taskPlanItemId && PRACTICE_LIST.length) {
-  openPractice(0);
+  var firstIdx = _taskFirstUnfinishedIdx();
+  if (firstIdx < 0) {
+    if (!_taskUnitCompletePosted) {
+      _taskUnitCompletePosted = true;
+      _taskPost('taskUnitComplete', { scope_done: PRACTICE_LIST.length });
+    }
+  } else {
+    openPractice(firstIdx);
+  }
 }
 </script></body></html>

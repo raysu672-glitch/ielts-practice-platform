@@ -2791,6 +2791,7 @@ class LocalHandler(SimpleHTTPRequestHandler):
                     int(plan_item_id),
                     scope_done=payload.get("scope_done"),
                     delta=payload.get("delta"),
+                    scope_key=payload.get("scope_key"),
                 )
                 try:
                     ctx = _activity_plan_context(conn, plan_item_id)

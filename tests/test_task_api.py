@@ -3475,6 +3475,36 @@ class TaskApiTests(unittest.TestCase):
             complete_study(conn, "2025001", pid, "1", scope_done=total - 1)
         self.assertIn(f"当前 {total - 1}/{total}", str(ctx.exception))
 
+    def test_scope_progress_never_decreases_and_keeps_sentence_keys(self) -> None:
+        """重进页面从 1 重报时，不能把已经做过的句数盖掉；句号要累加。"""
+        conn = _connect()
+        put_plan_draft(
+            conn,
+            "2025001",
+            [{"item_type": "study", "unit_id": "sentence_u02"}],
+        )
+        apply_draft_to_live(conn, "2025001")
+        item = conn.execute(
+            "SELECT id FROM plan_items WHERE unit_id='sentence_u02'"
+        ).fetchone()
+        pid = int(item["id"])
+        first = update_scope_progress(conn, "2025001", pid, scope_done=3)
+        self.assertEqual(first["scope_done"], 3)
+        again = update_scope_progress(conn, "2025001", pid, scope_done=1)
+        self.assertEqual(again["scope_done"], 3)
+        # 旧数据只有数字：补报第 9 句时，先按单元顺序认前 3 句，再累加第 9 句
+        added = update_scope_progress(conn, "2025001", pid, scope_key="9", scope_done=1)
+        self.assertEqual(added["scope_keys"], ["6", "7", "8", "9"])
+        self.assertEqual(added["scope_done"], 4)
+        done = update_scope_progress(conn, "2025001", pid, scope_key="10", scope_done=2)
+        self.assertEqual(done["scope_done"], 5)
+        self.assertEqual(done["scope_keys"], ["6", "7", "8", "9", "10"])
+        complete_study(conn, "2025001", pid, "1", scope_done=2)
+        plan = conn.execute(
+            "SELECT study_completed FROM plan_items WHERE id=?", (pid,)
+        ).fetchone()
+        self.assertEqual(int(plan["study_completed"]), 1)
+
 
 if __name__ == "__main__":
     unittest.main()
