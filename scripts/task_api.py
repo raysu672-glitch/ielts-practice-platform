@@ -1870,6 +1870,34 @@ def _gendu_day_practice_count(
     return int(row["c"] or 0) if row else 0
 
 
+def sync_gendu_day_done(
+    conn: sqlite3.Connection, student_id: str, task_date: str
+) -> bool:
+    """当天跟读满 3 次即完成任务，并把当天所有跟读行写成 ``done_study``。
+
+    唯一口径是 ``gendu_practice_events`` 的当天条数，跨课文累加。
+    识别率 ≥70% 只负责次日换篇（``advance_gendu_if_needed``），不在这里判断，
+    也不靠 ``plan_items.study_completed`` 代替。次数不够时不改状态，
+    已经写过完成的行也不撤销。有行被改写时立即提交。
+    """
+    if _gendu_day_practice_count(conn, student_id, task_date) < GENDU_DAILY_PRACTICES:
+        return False
+    cur = conn.execute(
+        """
+        UPDATE daily_tasks SET state='done_study'
+        WHERE student_id=? AND task_date=?
+          AND plan_item_id IN (
+            SELECT id FROM plan_items WHERE student_id=? AND module_type=?
+          )
+          AND state NOT IN ('done_study', 'done_pass')
+        """,
+        (student_id, task_date, student_id, GENDU_MODULE),
+    )
+    if cur.rowcount:
+        conn.commit()
+    return True
+
+
 def advance_gendu_if_needed(
     conn: sqlite3.Connection, student_id: str, task_date: str
 ) -> bool:
@@ -2048,35 +2076,18 @@ def report_gendu_practice(
     count = int(daily["gendu_practice_count"] or 0) + 1
     best = daily["gendu_best_score"]
     best_f = score_f if best is None else max(float(best), score_f)
-    day_total = _gendu_day_practice_count(conn, student_id, task_date)
-    new_state = daily["state"]
-    if (
-        count >= GENDU_DAILY_PRACTICES or day_total >= GENDU_DAILY_PRACTICES
-    ) and new_state not in ("done_study", "done_pass"):
-        new_state = "done_study"
     conn.execute(
         """
         UPDATE daily_tasks SET
             gendu_practice_count=?,
-            gendu_best_score=?,
-            state=?
+            gendu_best_score=?
         WHERE id=?
         """,
-        (count, best_f, new_state, int(daily["id"])),
+        (count, best_f, int(daily["id"])),
     )
-    if day_total >= GENDU_DAILY_PRACTICES:
-        # 当天换过篇时，旧课那一行也要一起置为完成（按天口径）。
-        conn.execute(
-            """
-            UPDATE daily_tasks SET state='done_study'
-            WHERE student_id=? AND task_date=?
-              AND plan_item_id IN (
-                SELECT id FROM plan_items WHERE student_id=? AND module_type=?
-              )
-              AND state NOT IN ('done_study', 'done_pass')
-            """,
-            (student_id, task_date, student_id, GENDU_MODULE),
-        )
+    # 完成只看当天次数（含换篇前后），不看这一次的分数，也不看本行计数。
+    day_total = _gendu_day_practice_count(conn, student_id, task_date)
+    sync_gendu_day_done(conn, student_id, task_date)
     if score_f >= GENDU_PASS_SCORE:
         conn.execute(
             """
@@ -2562,14 +2573,17 @@ def backlog_plan_item_ids(
         if mt == GENDU_MODULE and str(r["item_type"] or "") == "study":
             latest = conn.execute(
                 """
-                SELECT state FROM daily_tasks
+                SELECT state, task_date FROM daily_tasks
                 WHERE student_id=? AND plan_item_id=? AND task_date<?
                   AND task_date >= ?
                 ORDER BY task_date DESC LIMIT 1
                 """,
                 (student_id, pid, cutoff, plan_start or ""),
             ).fetchone()
-            if latest and latest["state"] == "done_study":
+            if latest and (
+                str(latest["state"] or "") in ("done_study", "done_pass")
+                or sync_gendu_day_done(conn, student_id, str(latest["task_date"]))
+            ):
                 continue
         out.append(pid)
     return out
@@ -3898,7 +3912,7 @@ def _today_task_counts(
         return 0, 0, 0
     rows = conn.execute(
         """
-        SELECT d.state FROM daily_tasks d
+        SELECT d.state, p.module_type FROM daily_tasks d
         JOIN plan_items p ON p.id = d.plan_item_id
         WHERE d.student_id=? AND d.task_date=? AND p.item_type != 'test'
         """,
@@ -3907,8 +3921,17 @@ def _today_task_counts(
     total = len(rows)
     done = 0
     fail = 0
+    gendu_done: Optional[bool] = None
     for r in rows:
         st = r["state"] or ""
+        if str(r["module_type"] or "") == GENDU_MODULE:
+            if gendu_done is None:
+                gendu_done = sync_gendu_day_done(conn, student_id, task_date)
+            if st in ("done_study", "done_pass") or gendu_done:
+                done += 1
+            elif st == "done_fail":
+                fail += 1
+            continue
         if st in ("done_study", "done_pass"):
             done += 1
         elif st == "done_fail":
@@ -3985,14 +4008,14 @@ def day_task_progress(
 ) -> tuple[int, int]:
     """某一天派下去的任务完成情况 ``(done, total)``，**阶段测按普通任务一样计**。
 
-    「完成」的判定有两条，满足其一即可：
+    「完成」的判定：
 
     1. daily 行 ``state`` 是 ``done_study`` / ``done_pass``；
-    2. 条目本身已达标（study 看 ``study_completed``，test 看 ``test_passed``）。
-
-    第 2 条是必须的：跟读（``listening_p4_speed``）的达标靠练习事件对账后写
-    ``study_completed``，**不会**回头改 daily 行，于是会出现「练到 76 分达标了，
-    但那天的 daily 行还是 todo」。只看 ``state`` 会把这天误判成没做、直接标红。
+    2. 非跟读的学习条目：``study_completed=1`` 也算做完（单元已达标，但那天的
+       daily 行可能还残留 ``todo``）。
+    3. 跟读（``listening_p4_speed``）**只认当天练习次数 ≥ 3**。识别率 ≥70% 和
+       ``study_completed`` 只表示这篇可以次日换掉，不能代替「练满 3 次」。
+       次数够了会把当天跟读行补写成 ``done_study``。
 
     阶段测（2026-09-20 第四次修订）：**不算任务量，直接跳过**——既不进分母也不进分子。
     决议原文：「任务阶段测试不算任务量」。理由和「免额」是同一套：测过不了就会一直
@@ -4006,7 +4029,7 @@ def day_task_progress(
         return 0, 0
     rows = conn.execute(
         """
-        SELECT d.state, p.item_type, p.study_completed, p.test_passed
+        SELECT d.state, p.item_type, p.module_type, p.study_completed, p.test_passed
         FROM daily_tasks d
         JOIN plan_items p ON p.id = d.plan_item_id
         WHERE d.student_id=? AND d.task_date=?
@@ -4015,12 +4038,19 @@ def day_task_progress(
     ).fetchall()
     done = 0
     total = 0
+    gendu_done: Optional[bool] = None
     for r in rows:
         item_type = str(r["item_type"] or "")
         if item_type == "test":
             continue  # 阶段测不算任务量（见 docstring）
         total += 1
         state = str(r["state"] or "")
+        if str(r["module_type"] or "") == GENDU_MODULE:
+            if gendu_done is None:
+                gendu_done = sync_gendu_day_done(conn, student_id, task_date)
+            if state in ("done_study", "done_pass") or gendu_done:
+                done += 1
+            continue
         if state in ("done_study", "done_pass"):
             done += 1
         elif int(r["study_completed"] or 0):
@@ -4171,8 +4201,9 @@ def _student_overview_row(
     today_done, today_total, _today_fail = _today_task_counts(conn, student_id, task_date)
     yday = _prev_ymd(task_date)
     # 「昨日任务」与「积压」「红黄灯」共用同一套数字（day_task_progress），
-    # 这样老师看到 `0/3` 就一定对应 🔴，不会出现灯和数字互相打架。
-    # 注意：比 _today_task_counts 多认「条目已达标但 daily 行残留 todo」（跟读常见）。
+    # 这样老师看到 `0/3` 就一定对应红灯，不会出现灯和数字互相打架。
+    # 跟读两边都只认「当天满 3 次」；非跟读的昨日口径还会把已达标但 daily
+    # 行残留 todo 的单元算进去。
     yesterday_done, yesterday_total = day_task_progress(conn, student_id, yday)
     profile = ensure_time_profile(conn, student_id)
     budget = _budget_minutes(profile, task_date)
@@ -4459,17 +4490,10 @@ def _enrich_daily(
             entry["scope_total"] = GENDU_DAILY_PRACTICES
             entry["scope_unit"] = "次"
             entry["scope_label"] = "今日跟读"
-            # 自愈：按天口径已满 3 次，但行还没置完成（历史重建留下的不一致）。
-            if (
-                day_total >= GENDU_DAILY_PRACTICES
-                and str(item["state"]) not in ("done_study", "done_pass")
-            ):
-                conn.execute(
-                    "UPDATE daily_tasks SET state='done_study' WHERE id=?",
-                    (int(item["id"]),),
-                )
-                conn.commit()
-                entry["state"] = "done_study"
+            # 自愈：当天已满 3 次，但行还没置完成（历史重建留下的不一致）。
+            if sync_gendu_day_done(conn, student_id, task_date):
+                if str(item["state"]) not in ("done_study", "done_pass"):
+                    entry["state"] = "done_study"
         out.append(entry)
     return out
 
@@ -4848,13 +4872,7 @@ def complete_study(
         # 跟读是「每日打卡」型任务，完成只对当天有意义：不回写历史未打卡日
         # （那些行是诚实的「那天没练」记录，回写会把它们误报成已完成）。
         # 换课时 advance_gendu_if_needed 会连带删掉当天行，不留下「做完还挂着」。
-        conn.execute(
-            """
-            UPDATE daily_tasks SET state='done_study'
-            WHERE student_id=? AND task_date=? AND plan_item_id=?
-            """,
-            (student_id, today, plan_item_id),
-        )
+        sync_gendu_day_done(conn, student_id, today)
         conn.commit()
         return get_today(conn, student_id)
 

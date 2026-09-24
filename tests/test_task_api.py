@@ -1759,9 +1759,10 @@ class TaskApiTests(unittest.TestCase):
         self.assertEqual(row["stage_test_pending"], 1)
 
     def test_day_progress_counts_plan_completed_even_if_daily_todo(self) -> None:
-        """跟读类条目：达标后 `plan.study_completed=1`，但那天 daily 行仍残留 todo。
+        """普通学习单元：条目已 ``study_completed=1``，但那天 daily 行仍残留 todo。
 
-        这一天其实做完了，不能被算成「没做」，否则学生练到 76 分达标、看板却给红灯。
+        这一天其实做完了，不能被算成「没做」。跟读不适用这条：跟读只认当天满 3 次，
+        ``study_completed`` 只表示这篇已过 70%、可以次日换掉。
         """
         conn = _connect()
         put_plan_draft(
@@ -3112,6 +3113,91 @@ class TaskApiTests(unittest.TestCase):
         self.assertEqual(
             backlog_plan_item_ids(conn, "2025001", before_date=tomorrow), []
         )
+
+    def test_gendu_three_practices_complete_even_if_state_left_todo(self) -> None:
+        """三次跟读 = 当天任务完成，不看出分，也不看 daily 行有没有写成完成。
+
+        识别率不到 70% 不换篇，但任务必须算完成。若记录写上了、行还停在 todo
+        （历史对账漏写），看板和积压也要按次数补上完成。
+        """
+        conn = _connect()
+        today = china_ymd()
+        tomorrow = (
+            datetime.strptime(today, "%Y-%m-%d").date() + timedelta(days=1)
+        ).strftime("%Y-%m-%d")
+        start_unit = conn.execute(
+            """
+            SELECT unit_id FROM task_units
+            WHERE module_type=? ORDER BY unit_no LIMIT 1
+            """,
+            (GENDU_MODULE,),
+        ).fetchone()["unit_id"]
+        put_gendu_assignment(
+            conn, "2025001", {"start_unit_id": start_unit, "starts_on": today}
+        )
+        daily = build_daily_tasks(conn, "2025001", today)
+        gendu = [x for x in daily if x["module_type"] == GENDU_MODULE][0]
+        pid = gendu["plan_item_id"]
+        for score in (36.0, 0.0, 40.0):
+            report_gendu_practice(
+                conn, "2025001", plan_item_id=pid, score=score, task_date=today
+            )
+        item = conn.execute(
+            "SELECT study_completed FROM plan_items WHERE id=?", (pid,)
+        ).fetchone()
+        self.assertEqual(item["study_completed"], 0)
+        self.assertEqual(day_task_progress(conn, "2025001", today), (1, 1))
+
+        conn.execute(
+            "UPDATE daily_tasks SET state='todo' WHERE student_id=? AND task_date=?",
+            ("2025001", today),
+        )
+        conn.commit()
+        self.assertEqual(day_task_progress(conn, "2025001", today), (1, 1))
+        healed = conn.execute(
+            "SELECT state FROM daily_tasks WHERE student_id=? AND task_date=? AND plan_item_id=?",
+            ("2025001", today, pid),
+        ).fetchone()
+        self.assertEqual(healed["state"], "done_study")
+        self.assertEqual(
+            backlog_plan_item_ids(conn, "2025001", before_date=tomorrow), []
+        )
+        overview = class_overview(conn, task_date=today)["students"][0]
+        self.assertEqual(overview["today_done"], 1)
+        self.assertEqual(overview["today_total"], 1)
+
+    def test_gendu_pass_score_does_not_complete_day_before_three(self) -> None:
+        """过 70% 只换篇，不能把没练满 3 次的那天算成任务完成。"""
+        conn = _connect()
+        today = china_ymd()
+        start_unit = conn.execute(
+            """
+            SELECT unit_id FROM task_units
+            WHERE module_type=? ORDER BY unit_no LIMIT 1
+            """,
+            (GENDU_MODULE,),
+        ).fetchone()["unit_id"]
+        put_gendu_assignment(
+            conn, "2025001", {"start_unit_id": start_unit, "starts_on": today}
+        )
+        daily = build_daily_tasks(conn, "2025001", today)
+        gendu = [x for x in daily if x["module_type"] == GENDU_MODULE][0]
+        pid = gendu["plan_item_id"]
+        result = report_gendu_practice(
+            conn, "2025001", plan_item_id=pid, score=80, task_date=today
+        )
+        self.assertTrue(result["passed_lesson"])
+        self.assertFalse(result["day_complete"])
+        self.assertEqual(day_task_progress(conn, "2025001", today), (0, 1))
+        # 即使后来这篇被标成已达标（次日换篇会写 study_completed），当天仍未完成。
+        conn.execute("UPDATE plan_items SET study_completed=1 WHERE id=?", (pid,))
+        conn.commit()
+        self.assertEqual(day_task_progress(conn, "2025001", today), (0, 1))
+        row = conn.execute(
+            "SELECT state FROM daily_tasks WHERE student_id=? AND task_date=? AND plan_item_id=?",
+            ("2025001", today, pid),
+        ).fetchone()
+        self.assertNotEqual(row["state"], "done_study")
 
     def test_gendu_no_advance_when_backfilling_yesterday(self) -> None:
         """回归（线上廉昕 2025114）：回填「昨日」不得触发跟读换课。
