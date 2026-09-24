@@ -1428,12 +1428,14 @@ async function showStudentDetailProgress(studentId, studentName, filterModuleId)
     if (overviewMode) {
         html += '<div id="studentActivityTimeline" style="margin:16px 0 20px;padding:14px;border:1px solid #c7d2fe;border-radius:10px;background:#eef2ff;">';
         html += '<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;">';
-        html += '<h4 style="margin:0;">操作时间线 <span style="font-weight:normal;color:#64748b;font-size:0.85rem;">按日查看 · 保留90天</span></h4>';
+        html += '<h4 style="margin:0;">操作时间线 <span id="studentActivityScopeHint" style="font-weight:normal;color:#64748b;font-size:0.85rem;">全部记录 · 保留90天</span></h4>';
         html += '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">';
         html += '<label style="font-size:0.9rem;color:#475569;">日期 <input type="date" id="studentActivityDate" ';
         html += 'value="' + escapeHtml(_chinaTodayYmd()) + '" ';
         html += 'style="padding:4px 8px;border:1px solid #cbd5e1;border-radius:6px;" ';
         html += 'onchange="onStudentActivityDateChange(\'' + escapeJsString(student.student_id || studentId) + '\')"></label>';
+        html += '<button type="button" class="btn btn-sm btn-primary" id="studentActivityAllBtn" onclick="showStudentActivityAll(\'' +
+            escapeJsString(student.student_id || studentId) + '\')">全部</button>';
         html += '<button type="button" class="btn btn-sm" onclick="loadStudentActivityTimeline(\'' +
             escapeJsString(student.student_id || studentId) + '\')">刷新</button>';
         html += '</div></div>';
@@ -1554,7 +1556,7 @@ async function showStudentDetailProgress(studentId, studentName, filterModuleId)
 
     container.innerHTML = html;
     if (overviewMode) {
-        loadStudentActivityTimeline(student.student_id || studentId);
+        loadStudentActivityTimeline(student.student_id || studentId, 1, '');
     }
 }
 
@@ -1582,7 +1584,7 @@ var _activityActionLabels = {
     'gendu.practice': '跟读练习'
 };
 
-var _activityTimelineState = { studentId: '', date: '', page: 1, pageSize: 25 };
+var _activityTimelineState = { studentId: '', date: '', page: 1, pageSize: 25, all: true };
 
 function _chinaTodayYmd() {
     try {
@@ -1599,26 +1601,49 @@ function _chinaTodayYmd() {
 
 function onStudentActivityDateChange(studentId) {
     var input = document.getElementById('studentActivityDate');
+    _activityTimelineState.all = false;
     _activityTimelineState.page = 1;
     loadStudentActivityTimeline(studentId, 1, input && input.value);
+}
+
+function showStudentActivityAll(studentId) {
+    _activityTimelineState.all = true;
+    _activityTimelineState.date = '';
+    _activityTimelineState.page = 1;
+    loadStudentActivityTimeline(studentId, 1, '');
 }
 
 async function loadStudentActivityTimeline(studentId, page, dateYmd) {
     var body = document.getElementById('studentActivityTimelineBody');
     if (!body) return;
     var dateInput = document.getElementById('studentActivityDate');
-    if (!dateYmd) {
-        dateYmd = (dateInput && dateInput.value) || _activityTimelineState.date || _chinaTodayYmd();
+    var all;
+    if (dateYmd === '') {
+        all = true;
+    } else if (dateYmd) {
+        all = false;
+    } else {
+        all = !!_activityTimelineState.all;
     }
-    if (dateInput && !dateInput.value) dateInput.value = dateYmd;
+    _activityTimelineState.all = all;
+    if (!all) {
+        if (!dateYmd) {
+            dateYmd = (dateInput && dateInput.value) || _activityTimelineState.date || _chinaTodayYmd();
+        }
+        if (dateInput && dateYmd) dateInput.value = dateYmd;
+        _activityTimelineState.date = dateYmd;
+    }
     page = Math.max(1, Number(page) || _activityTimelineState.page || 1);
     _activityTimelineState.studentId = studentId;
-    _activityTimelineState.date = dateYmd;
     _activityTimelineState.page = page;
+    var hint = document.getElementById('studentActivityScopeHint');
+    if (hint) hint.textContent = all ? '全部记录 · 保留90天' : '按日查看 · 保留90天';
+    var allBtn = document.getElementById('studentActivityAllBtn');
+    if (allBtn) allBtn.className = all ? 'btn btn-sm btn-primary' : 'btn btn-sm';
 
     body.innerHTML = '<div style="color:#64748b;">加载中…</div>';
     var url = '/api/teacher/student-activity?student_id=' + encodeURIComponent(studentId) +
-        '&date=' + encodeURIComponent(dateYmd) +
+        (all ? '' : ('&date=' + encodeURIComponent(dateYmd))) +
         '&page=' + encodeURIComponent(page) +
         '&page_size=' + encodeURIComponent(_activityTimelineState.pageSize);
     var result = await teacherApiGet(url);
@@ -1637,7 +1662,8 @@ async function loadStudentActivityTimeline(studentId, page, dateYmd) {
     }
 
     if (!events.length) {
-        body.innerHTML = '<div style="color:#94a3b8;">该日暂无操作记录</div>';
+        body.innerHTML = '<div style="color:#94a3b8;">' +
+            (_activityTimelineState.all ? '暂无操作记录' : '该日暂无操作记录') + '</div>';
         return;
     }
 

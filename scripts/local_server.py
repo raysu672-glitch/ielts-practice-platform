@@ -1849,6 +1849,7 @@ class LocalHandler(SimpleHTTPRequestHandler):
                     on_date=on_date,
                     page=page,
                     page_size=page_size,
+                    paginate=True,
                 )
                 # Enrich older task events that lack module_type / subject in summary.
                 for ev in payload.get("events") or []:
