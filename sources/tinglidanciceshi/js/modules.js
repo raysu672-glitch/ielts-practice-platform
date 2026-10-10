@@ -412,6 +412,7 @@ var foundationPhrases = [
 // 标准来源：雅思目标拆分.xlsx
 var MODULES = [
     // 一、需要掌握百分比
+    { id: 'vocab', name: '单词', target_type: 'dynamic', targets: { 6: 85, 6.5: 95, 7: 100 }, unit: '%', url: '../danci/index.html', icon: 'book', study_only: true },
     { id: 'writing_words', name: '小初单词', target_type: 'dynamic', targets: { 6: 100, 6.5: 100, 7: 100 }, unit: '%', url: '', icon: 'pencil' },
     { id: 'highschool_words', name: '高中单词', target_type: 'dynamic', targets: { 6: 85, 6.5: 95, 7: 100 }, unit: '%', url: '', icon: 'book' },
     { id: 'ielts_core', name: '雅思核心800词', target_type: 'dynamic', targets: { 6: 65, 6.5: 80, 7: 95 }, unit: '%', url: '', icon: 'star' },

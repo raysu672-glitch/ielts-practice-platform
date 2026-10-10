@@ -83,6 +83,10 @@ from activity_log import (  # noqa: E402
     log_student_client_events,
 )
 from debug_trace import log_student_debug_events  # noqa: E402
+try:
+    from vocab.bridge import handle_vocab_api  # noqa: E402
+except ImportError:  # optional until vocab package is deployed
+    handle_vocab_api = None  # type: ignore
 
 # Teacher activity timeline: human-readable subject names for task events.
 TASK_MODULE_LABELS = {
@@ -96,6 +100,7 @@ TASK_MODULE_LABELS = {
     "listening_p4_speed": "听力跟读",
     "writing_correction": "作文批改",
     "speaking": "口语练习",
+    "vocab": "单词",
 }
 
 
@@ -3372,6 +3377,9 @@ class LocalHandler(SimpleHTTPRequestHandler):
         if parsed.path.startswith("/api/config"):
             self.handle_public_config()
             return
+        if parsed.path.startswith("/api/vocab"):
+            self.handle_vocab_api_request("GET")
+            return
         if parsed.path.startswith("/api/writing"):
             if not self.require_logged_in_session():
                 return
@@ -3410,9 +3418,37 @@ class LocalHandler(SimpleHTTPRequestHandler):
 
         super().do_GET()
 
+    def handle_vocab_api_request(self, method: str) -> None:
+        """Mount vocab FSRS API at /api/vocab/* (per-student SQLite)."""
+        if handle_vocab_api is None:
+            self.send_json(
+                {"error": "vocab module not installed"},
+                status=HTTPStatus.SERVICE_UNAVAILABLE,
+            )
+            return
+        path = urllib.parse.urlparse(self.path).path
+        is_teacher_route = "/teacher" in path or path.rstrip("/").endswith("/shelter")
+        if is_teacher_route:
+            session = self.require_logged_in_session()
+            if not session:
+                return
+            student_id = str(session.get("id") or "teacher")
+        else:
+            session = self.require_student_session()
+            if not session:
+                return
+            student_id = str(session.get("id") or "")
+            if not student_id:
+                self.send_json({"error": "missing student id"}, status=401)
+                return
+        handle_vocab_api(self, method, student_id)
+
     def do_POST(self) -> None:
         parsed = urllib.parse.urlparse(self.path)
         path = parsed.path.rstrip("/")
+        if parsed.path.startswith("/api/vocab"):
+            self.handle_vocab_api_request("POST")
+            return
         if parsed.path.startswith("/api/writing"):
             if not self.require_logged_in_session():
                 return

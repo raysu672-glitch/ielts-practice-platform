@@ -1,0 +1,241 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0f172a">
+<title>教师面板 · 易错词</title>
+<style>
+:root{--bg:#0f172a; --card:#1e293b; --card2:#273548; --txt:#e2e8f0; --dim:#64748b; --accent:#38bdf8; --warn:#f87171;}
+*{box-sizing:border-box;}
+html,body{margin:0; height:100%;}
+body{
+  font-family:system-ui,-apple-system,"PingFang SC","Noto Sans SC",sans-serif;
+  background:var(--bg); color:var(--txt); padding:18px; max-width:860px; margin:0 auto;
+}
+h1{font-size:20px; font-weight:600; margin:0 0 4px;}
+.sub{font-size:12px; color:var(--dim); margin-bottom:16px;}
+.pane{background:var(--card); border:1px solid #33415580; border-radius:14px; padding:14px 16px; margin-bottom:16px;}
+.pane h2{font-size:14px; font-weight:600; margin:0 0 10px; color:var(--accent);}
+table{width:100%; border-collapse:collapse; font-size:14px;}
+th,td{text-align:left; padding:7px 8px; border-bottom:1px solid #33415555;}
+th{color:var(--dim); font-weight:500; font-size:12px;}
+td.word{font-weight:600;}
+td.gloss{color:#a5f3fc; font-size:13px;}
+.num{font-variant-numeric:tabular-nums;}
+.badge{display:inline-block; padding:2px 8px; border-radius:999px; font-size:12px; background:#7f1d1d; color:#fecaca;}
+.notebtn{background:transparent; color:var(--accent); border:1px solid #33415580; border-radius:999px; padding:2px 10px; font-size:11px; cursor:pointer; margin-left:6px;}
+.notebtn:active{transform:scale(.95);}
+.noteedit{display:flex; gap:6px; margin-top:6px;}
+.noteedit input{flex:1; background:var(--card2); border:1px solid #33415580; border-radius:8px; color:var(--txt); padding:5px 10px; font-size:13px; font-family:inherit;}
+.noteedit button{background:var(--accent); color:#0f172a; border:none; border-radius:8px; padding:5px 14px; cursor:pointer; font-size:12px; font-weight:600;}
+.notehint{font-size:11px; color:#fde68a; margin-top:3px;}
+.stats{display:flex; gap:18px; flex-wrap:wrap; font-size:13px; color:var(--dim);}
+.stats b{color:var(--txt); font-variant-numeric:tabular-nums;}
+.warn{color:var(--warn); font-weight:600;}
+a{color:var(--accent); text-decoration:none; font-size:13px;}
+.empty{color:var(--dim); font-size:13px; padding:8px 0;}
+button{background:var(--card2); color:var(--txt); border:1px solid #33415580; border-radius:999px; padding:6px 16px; cursor:pointer; font-family:inherit; font-size:13px;}
+button:active{transform:scale(.97);}
+button[disabled]{opacity:.5; cursor:default;}
+.toast{position:fixed; left:50%; bottom:26px; transform:translateX(-50%); background:var(--accent); color:#052e3f; font-size:13px; font-weight:600; padding:9px 18px; border-radius:999px; box-shadow:0 8px 24px #0009; opacity:0; transition:opacity .18s, transform .18s; pointer-events:none; z-index:99;}
+.toast.on{opacity:1; transform:translateX(-50%) translateY(-6px);}
+</style>
+</head>
+<body>
+<h1>教师面板 · 易错词</h1>
+<div class="sub"><a href="/danci/">&larr; 返回背单词</a> · 数据来自 reviews 全量评分历史 · <button id="btnref">刷新</button>
+  · <button id="btnonline" style="background:#166534; color:#fff;">我在线 30 分钟</button> <button id="btnoffline" style="background:#475569; color:#fff;">下线</button> <span id="onlinest" style="color:#86efac; font-size:12px;"></span></div>
+
+<div class="pane">
+  <h2>评分时延概览（翻面&rarr;评分）</h2>
+  <div class="stats" id="durs"><span class="empty">加载中…</span></div>
+</div>
+
+<div class="pane">
+  <h2>易错词 Top（Hard/Again 次数降序）</h2>
+  <div id="mistakes"><span class="empty">加载中…</span></div>
+</div>
+
+<div class="pane">
+  <h2>慢词 Top（平均翻面→评分时延降序）</h2>
+  <div id="slowest"><span class="empty">加载中…</span></div>
+</div>
+
+<div class="pane">
+  <h2>钉子户收容所（跨天累计忘 ≥ 6 次，已移出正常队列 · 可放回）</h2>
+  <div id="shelter"><span class="empty">加载中…</span></div>
+</div>
+
+<div class="pane">
+  <h2>快筛（首进自报「认识/模糊/不认识」）</h2>
+  <div id="screenst" class="stats"><span class="empty">加载中…</span></div>
+  <div style="margin-top:8px">
+    <button id="screset" style="background:#475569; color:#fff;">重置快筛状态</button>
+    <span style="color:#94a3b8; font-size:12px;">用于筛选中途中断、或学生选了「跳过」后又想筛。不动已筛结果。</span>
+  </div>
+</div>
+
+<script>
+const $ = s => document.querySelector(s);
+// 注意：双引号此前被映射成它自己（等于不转义），而批注正好回填进 value="…" 属性，
+// 于是一条含 " 的批注就能注入属性、挂上任意事件处理器。五个字符一个都不能漏。
+function esc(t){ return String(t==null?'':t).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+// 轻提示条。此前 saveNote 里直接调用了不存在的 toast()，一按「存」就抛
+// ReferenceError，批注其实已写入、但界面不刷新，老师以为没存上。
+let _toastTimer = null;
+function toast(msg){
+  let el = document.getElementById('toast');
+  if (!el){
+    el = document.createElement('div');
+    el.id = 'toast'; el.className = 'toast';
+    el.setAttribute('role', 'status');
+    document.body.appendChild(el);
+  }
+  el.textContent = msg;
+  el.classList.add('on');
+  clearTimeout(_toastTimer);
+  _toastTimer = setTimeout(() => el.classList.remove('on'), 1800);
+}
+
+// T09 教师批注：每行词旁的批注入口 + 就地编辑器
+const NOTE_MAX = 80;     // 与服务端 TEACHER_NOTE_MAX 一致，前端先拦住
+let editingNote = null;  // word_id
+function noteCell(w){
+  let h = '<span>' + esc(w.word) + '</span>' +
+          '<button class="notebtn" onclick="event.stopPropagation();toggleNote(' + w.word_id + ')">✏️批注</button>';
+  if (w.teacher_note && editingNote !== w.word_id)
+    h += '<div class="notehint">👩‍🏫 ' + esc(w.teacher_note) + '</div>';
+  if (editingNote === w.word_id)
+    h += '<div class="noteedit"><input id="ni' + w.word_id + '" value="' + esc(w.teacher_note || '') + '" placeholder="给学生的一句话…" maxlength="' + NOTE_MAX + '" onkeydown="if(event.key===\'Enter\')saveNote(' + w.word_id + ')">' +
+         '<button onclick="saveNote(' + w.word_id + ')">存</button></div>';
+  return h;
+}
+function toggleNote(id){ editingNote = (editingNote === id ? null : id); load(); }
+async function saveNote(id){
+  const el = document.getElementById('ni' + id);
+  if (!el){ toast('编辑器已关闭，请重新点「✏️批注」'); return; }
+  const text = el.value;
+  let res;
+  try{
+    const r = await fetch('/api/vocab/teacher/note', {method:'POST',
+      headers:{'Content-Type':'application/json'}, body: JSON.stringify({word_id: id, text})});
+    if (!r.ok) throw new Error((await r.text()).slice(0, 120));
+    res = await r.json();
+  }catch(e){
+    // 旧代码不看响应也不捕获异常，写失败也照样弹「批注已保存」，老师以为写上了。
+    toast('批注保存失败：' + e.message);
+    return;
+  }
+  editingNote = null;
+  // 超长不是错误，但要说清楚存进去的是哪一段，别让老师以为原文都在。
+  if (!res.teacher_note) toast('批注已清除');
+  else if (res.truncated) toast('超长，只存了前 ' + res.max + ' 字：' + res.teacher_note);
+  else toast('批注已保存，学生下次见到会看到');
+  load();
+}
+function fmtMs(ms){ if(ms==null) return '—'; const s = ms/1000; return s>=10 ? Math.round(s)+'s' : s.toFixed(1)+'s'; }
+
+async function load(){
+  let d;
+  try{
+    const r = await fetch('/api/vocab/teacher/stats');
+    d = await r.json();
+  }catch(e){ $('#durs').innerHTML = '<span class="empty">加载失败: '+esc(e.message)+'</span>'; return; }
+
+  const p = d.duration_pct || {};
+  if (p.count){
+    const warn = p.p75 != null && p.p75 > 8000;
+    $('#durs').innerHTML =
+      '<span>样本 <b>'+p.count+'</b> 次</span>' +
+      '<span>P50 <b>'+fmtMs(p.p50)+'</b></span>' +
+      '<span>P75 <b class="'+(warn?'warn':'')+'">'+fmtMs(p.p75)+'</b></span>' +
+      '<span>P95 <b>'+fmtMs(p.p95)+'</b></span>' +
+      (warn ? '<span class="warn">⚠ P75 &gt; 8s（模块5 慢卡预警线）</span>' : '');
+  } else {
+    $('#durs').innerHTML = '<span class="empty">暂无时延数据（评分后自动积累）</span>';
+  }
+
+  const m = d.mistakes_top || [];
+  $('#mistakes').innerHTML = m.length ? (
+    '<table><tr><th>#</th><th>词</th><th>释义</th><th>错误次数</th></tr>' +
+    m.map((x,i)=>'<tr><td class="num">'+(i+1)+'</td><td class="word">'+noteCell(x)+'</td>'+
+      '<td class="gloss">'+esc(x.gloss)+'</td><td class="num"><span class="badge">'+x.errors+'</span></td></tr>').join('') +
+    '</table>'
+  ) : '<span class="empty">暂无误评记录（Hard/Again 会出现在这里）</span>';
+
+  const s = d.slowest_top || [];
+  $('#slowest').innerHTML = s.length ? (
+    '<table><tr><th>#</th><th>词</th><th>释义</th><th>平均时延</th><th>样本</th></tr>' +
+    s.map((x,i)=>'<tr><td class="num">'+(i+1)+'</td><td class="word">'+noteCell(x)+'</td>'+
+      '<td class="gloss">'+esc(x.gloss)+'</td><td class="num">'+fmtMs(x.avg_ms)+'</td><td class="num">'+x.n+'</td></tr>').join('') +
+    '</table>'
+  ) : '<span class="empty">暂无时延数据</span>';
+
+  // 钉子户收容所（独立端点）
+  try{
+    const r2 = await fetch('/api/vocab/shelter');
+    const sh = await r2.json();
+    const w = sh.words || [];
+    $('#shelter').innerHTML = w.length ? (
+      '<div class="sub" style="margin-bottom:8px">这些词跨天累计忘 '+sh.threshold+' 次以上，已从每日队列隔离（学生每天会抽几张复健，答对自动回队列）。' +
+      '集中讲解后可点「放回队列」回归；建议同时写批注，学生下次见到会看到提示。</div>' +
+      '<table><tr><th>#</th><th>词</th><th>释义</th><th>忘过</th><th>已练</th><th>操作</th></tr>' +
+      w.map((x,i)=>'<tr><td class="num">'+(i+1)+'</td><td class="word">'+noteCell(x)+'</td>'+
+        '<td class="gloss">'+esc(x.gloss)+'</td><td class="num"><span class="badge">'+(x.lapses>=10?'⚠ ':'')+x.lapses+'</span></td><td class="num">'+x.reps+'</td>'+
+        '<td><button class="rel" data-rel="'+x.word_id+'" style="background:transparent;color:#86efac;border:1px solid #33415580;border-radius:999px;padding:2px 10px;font-size:11px;cursor:pointer">放回队列</button></td></tr>').join('') +
+      '</table>'
+    ) : '<span class="empty">暂无钉子户（跨天累计忘 6 次的词会出现在这里）</span>';
+    document.querySelectorAll('#shelter button[data-rel]').forEach(b => {
+      b.onclick = async () => {
+        const id = +b.dataset.rel;
+        if (!confirm('把这个词放回学生每日队列？\n\n放回后学生下一张卡就会遇到它。建议先用旁边的「批注」写一句话，免得学生又白见一面。')) return;
+        b.textContent = '放回中…'; b.disabled = true;
+        try{
+          const rr = await fetch('/api/vocab/teacher/release', {method:'POST',
+            headers:{'Content-Type':'application/json'}, body: JSON.stringify({word_id: id})});
+          if (!rr.ok) throw new Error(await rr.text());
+          toast('已放回队列，学生下一张就会遇到');
+          load();                      // 刷新列表：该词从收容所移出
+        }catch(e){
+          b.textContent = '放回队列'; b.disabled = false;
+          alert('放回失败：' + e.message);
+        }
+      };
+    });
+  }catch(e){ $('#shelter').innerHTML = '<span class="empty">加载失败</span>'; }
+
+  // 快筛进度 + 重置入口（L4）
+  try{
+    const r3 = await fetch('/api/vocab/screen/start');
+    const sc = await r3.json();
+    const p = sc.progress || {};
+    const st = p.terminated ? '已终止（连续无认识）' : (p.intro === 'skipped' ? '学生已选择跳过' : (sc.pending ? '进行中' : (p.left > 0 ? '未开始' : '已完成')));
+    $('#screenst').innerHTML =
+      '<span class="stat"><b>' + (p.screened||0) + '</b><span>已筛</span></span>' +
+      '<span class="stat"><b>' + (p.left||0) + '</b><span>待筛</span></span>' +
+      '<span class="stat"><b>' + st + '</b><span>状态</span></span>';
+  }catch(e){ $('#screenst').innerHTML = '<span class="empty">加载失败</span>'; }
+}
+$('#btnref').onclick = load;
+$('#screset').onclick = async () => {
+  if (!confirm('重置快筛状态？学生下次打开就能重新续做（已筛结果保留）。')) return;
+  try{
+    await fetch('/api/vocab/screen/reset', {method:'POST', headers:{'Content-Type':'application/json'}, body:'{}'});
+    load();
+  }catch(e){ alert('重置失败: ' + e.message); }
+};
+async function setOnline(min){
+  try{
+    const r = await fetch('/api/vocab/teacher/online', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({minutes: min})});
+    const j = await r.json();
+    $('#onlinest').textContent = min > 0 ? ('● 已标记在线 ' + j.minutes + ' 分钟（学生端可见）') : '已下线';
+  }catch(e){ $('#onlinest').textContent = '设置失败: ' + e.message; }
+}
+$('#btnonline').onclick = () => setOnline(30);
+$('#btnoffline').onclick = () => setOnline(0);
+load();
+</script>
+</body>
+</html>

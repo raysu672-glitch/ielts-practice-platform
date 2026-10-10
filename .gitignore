@@ -8,6 +8,7 @@
 data/*.db
 data/*.sqlite
 data/*.sqlite3
+data/vocab_students/
 data/luboke_courses.json
 data/session_secret.txt
 *.log

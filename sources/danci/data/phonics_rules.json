@@ -1,0 +1,69 @@
+{
+  "meta": {
+    "days": 15,
+    "rules_per_day_hint": "按 day 字段投课，每天 2~3 条",
+    "note": "最小拼读集：辅音/短元音/魔法e/常见字母组合。例词优先 3500 词内。",
+    "ipa_note": "每条规则的 ipa 条件用于构建期校验：读词音标必须命中 any 之一，且不得命中 none 之一；不通过则不给该词打此规则标签。这样误标（如 his 打 c_s、change 打 c_g、you 打 ou/ow）由数据自动剔除，不靠手写黑名单。"
+  },
+  "rules": [
+    {"id": "c_b", "day": 1, "title": "辅音 b", "tip": "双唇闭合再张开，发 /b/（be, big）", "grapheme": "b", "match": "b", "ipa": {"any": ["b"]}, "examples": ["be", "but", "big"], "fakes": ["bim", "bop"]},
+    {"id": "c_d", "day": 1, "title": "辅音 d", "tip": "舌尖顶上牙龈，发 /d/（do, day）", "grapheme": "d", "match": "d", "ipa": {"any": ["d"], "none": ["dʒ"]}, "examples": ["do", "day", "good"], "fakes": ["dap", "dit"]},
+    {"id": "c_t", "day": 1, "title": "辅音 t", "tip": "舌尖顶上牙龈，送气 /t/（to, time）", "grapheme": "t", "match": "t", "ipa": {"any": ["t"], "none": ["tʃ", "θ", "ð"]}, "examples": ["to", "time", "get"], "fakes": ["tep", "tig"]},
+
+    {"id": "c_p", "day": 2, "title": "辅音 p", "tip": "双唇闭合爆破 /p/（put, people）", "grapheme": "p", "match": "p", "ipa": {"any": ["p"]}, "examples": ["put", "people", "up"], "fakes": ["pem", "pof"]},
+    {"id": "c_k", "day": 2, "title": "辅音 k / c", "tip": "舌根顶软腭 /k/；c 在 a/o/u 前多发 /k/（can, come）", "grapheme": "k/c", "match": "(k|c(?=[aou]))", "ipa": {"any": ["k"]}, "examples": ["can", "come", "keep"], "fakes": ["kep", "cot"]},
+    {"id": "c_g", "day": 2, "title": "辅音 g", "tip": "舌根爆破 /g/（go, get）；ge/gi 有时发 /dʒ/，本课先练硬音", "grapheme": "g", "match": "g", "ipa": {"any": ["g"], "none": ["dʒ", "ʒ", "ŋ"]}, "examples": ["go", "get", "good"], "fakes": ["gam", "gip"]},
+
+    {"id": "c_f", "day": 3, "title": "辅音 f", "tip": "上齿咬下唇送气 /f/（for, from）", "grapheme": "f", "match": "f", "ipa": {"any": ["f"]}, "examples": ["for", "from", "find"], "fakes": ["fam", "fot"]},
+    {"id": "c_v", "day": 3, "title": "辅音 v", "tip": "上齿咬下唇振动 /v/（very, have）", "grapheme": "v", "match": "v", "ipa": {"any": ["v"]}, "examples": ["very", "have", "give"], "fakes": ["vem", "vot"]},
+    {"id": "c_s", "day": 3, "title": "辅音 s", "tip": "舌尖近齿龈送气 /s/（so, see）；词尾 -s 常发 /z/，不算这一课", "grapheme": "s", "match": "s", "ipa": {"any": ["s"], "none": ["ʃ", "ʒ", "z"]}, "examples": ["so", "see", "say"], "fakes": ["sud", "sep"]},
+
+    {"id": "c_z", "day": 4, "title": "辅音 z", "tip": "同 s 的口型，振动成 /z/（zoo, zero；词尾 -s 常发 /z/）", "grapheme": "z", "match": "z", "ipa": {"any": ["z"]}, "examples": ["size", "zero", "zoo"], "fakes": ["zim", "zot"]},
+    {"id": "c_m", "day": 4, "title": "辅音 m", "tip": "双唇闭合从鼻腔出 /m/（me, my）", "grapheme": "m", "match": "m", "ipa": {"any": ["m"]}, "examples": ["me", "my", "come"], "fakes": ["mip", "mog"]},
+    {"id": "c_n", "day": 4, "title": "辅音 n", "tip": "舌尖顶上牙龈，鼻音 /n/（no, not）；-ng 的 /ŋ/ 另算一课", "grapheme": "n", "match": "n", "ipa": {"any": ["n"], "none": ["ŋ"]}, "examples": ["no", "not", "and"], "fakes": ["nid", "nop"]},
+
+    {"id": "c_l", "day": 5, "title": "辅音 l", "tip": "舌尖抵上牙龈，气流两侧出 /l/（like, look）", "grapheme": "l", "match": "l", "ipa": {"any": ["l"]}, "examples": ["like", "look", "all"], "fakes": ["lut", "lem"]},
+    {"id": "c_r", "day": 5, "title": "辅音 r", "tip": "舌身后缩不碰上颚 /r/（right, run）", "grapheme": "r", "match": "r", "ipa": {"any": ["r"]}, "examples": ["right", "run", "around"], "fakes": ["raf", "rop"]},
+    {"id": "c_h", "day": 5, "title": "辅音 h", "tip": "气流从喉咙轻轻送出 /h/（he, have）；wh- 的 h 不发音，不属这一课", "grapheme": "h", "match": "h", "ipa": {"any": ["h"], "none": ["hw"]}, "examples": ["he", "have", "here"], "fakes": ["hep", "hod"]},
+
+    {"id": "c_w", "day": 6, "title": "辅音 w", "tip": "双唇收圆再放开 /w/（we, with）", "grapheme": "w", "match": "w", "ipa": {"any": ["w"]}, "examples": ["we", "with", "world"], "fakes": ["wip", "wog"]},
+    {"id": "c_y", "day": 6, "title": "辅音 y（词首）", "tip": "词首常发 /j/（yes, you）", "grapheme": "y-", "match": "^y", "ipa": {"any": ["j"]}, "examples": ["you", "year", "yellow"], "fakes": ["yad", "yim"]},
+    {"id": "c_j", "day": 6, "title": "辅音 j", "tip": "发 /dʒ/（just, job）", "grapheme": "j", "match": "j", "ipa": {"any": ["dʒ"]}, "examples": ["just", "job", "join"], "fakes": ["jid", "jop"]},
+
+    {"id": "v_a", "day": 7, "title": "短元音 a /æ/", "tip": "口张开，舌放低，类似汉语『啊』偏前（cat, and）", "grapheme": "a", "match": "(^|[^aeiou])a([^aeiou]|$)", "ipa": {"any": ["æ"]}, "examples": ["and", "can", "have"], "fakes": ["dap", "fam"]},
+    {"id": "v_e", "day": 7, "title": "短元音 e /e/", "tip": "口半开，类似『诶』短促（get, help）", "grapheme": "e", "match": "(^|[^aeiou])e([^aeiou]|$)", "ipa": {"any": ["e"], "none": ["ei", "i:", "eə"]}, "examples": ["get", "help", "well"], "fakes": ["tep", "vem"]},
+    {"id": "v_i", "day": 7, "title": "短元音 i /ɪ/", "tip": "口略扁，短促（it, big, this）；i_e 的 /aɪ/ 是后面魔法 e 的课", "grapheme": "i", "match": "(^|[^aeiou])i([^aeiou]|$)", "ipa": {"any": ["i"], "none": ["ai", "ei", "i:", "ɔi", "oi"]}, "examples": ["it", "this", "big"], "fakes": ["pid", "nim"]},
+
+    {"id": "v_o", "day": 8, "title": "短元音 o /ɒ|ɑ/", "tip": "口圆略开（not, hot, on）", "grapheme": "o", "match": "(^|[^aeiou])o([^aeiou]|$)", "ipa": {"any": ["ɒ", "ɑ"]}, "examples": ["not", "on", "stop"], "fakes": ["dop", "lom"]},
+    {"id": "v_u", "day": 8, "title": "短元音 u /ʌ/", "tip": "口半开放松（but, up, just）", "grapheme": "u", "match": "(^|[^aeiou])u([^aeiou]|$)", "ipa": {"any": ["ʌ"]}, "examples": ["but", "up", "just"], "fakes": ["dup", "nud"]},
+    {"id": "dig_ck", "day": 8, "title": "字母组合 ck", "tip": "词尾 /k/，前面常是短元音（back, pick）", "grapheme": "ck", "match": "ck", "ipa": {"any": ["k"]}, "examples": ["back", "pick", "black"], "fakes": ["teck", "mick"]},
+
+    {"id": "magic_a", "day": 9, "title": "魔法 e：a_e → /eɪ/", "tip": "词尾不发音的 e 让前面 a 发字母本音（name, late, same）", "grapheme": "a_e", "match": "a.e$", "ipa": {"any": ["ei"]}, "examples": ["name", "same", "face"], "fakes": ["bape", "nake"]},
+    {"id": "magic_i", "day": 9, "title": "魔法 e：i_e → /aɪ/", "tip": "同上，i 发字母本音（like, life, side）", "grapheme": "i_e", "match": "i.e$", "ipa": {"any": ["ai"]}, "examples": ["like", "life", "side"], "fakes": ["bime", "nide"]},
+    {"id": "magic_o", "day": 9, "title": "魔法 e：o_e → /əʊ/", "tip": "o 发字母本音（home, those, close）", "grapheme": "o_e", "match": "o.e$", "ipa": {"any": ["əu", "ou"]}, "examples": ["home", "those", "note"], "fakes": ["bome", "rote"]},
+
+    {"id": "magic_u", "day": 10, "title": "魔法 e：u_e → /juː|uː/", "tip": "u 常发 /juː/ 或 /uː/（huge, tube）", "grapheme": "u_e", "match": "u.e$", "ipa": {"any": ["ju:", "u:"]}, "examples": ["huge", "rule", "tube"], "fakes": ["fume", "nule"]},
+    {"id": "dig_sh", "day": 10, "title": "字母组合 sh → /ʃ/", "tip": "两字母一个音（she, should, finish）", "grapheme": "sh", "match": "sh", "ipa": {"any": ["ʃ"]}, "examples": ["she", "should", "finish"], "fakes": ["shap", "fosh"]},
+    {"id": "dig_ch", "day": 10, "title": "字母组合 ch → /tʃ/", "tip": "（which, much, change）；school / chemistry 的 ch 不发这个音", "grapheme": "ch", "match": "(?<![s])ch", "ipa": {"any": ["tʃ"]}, "examples": ["which", "much", "change"], "fakes": ["chom", "bich"]},
+
+    {"id": "dig_th", "day": 11, "title": "字母组合 th", "tip": "舌尖轻触上下齿之间：think /θ/，this /ð/", "grapheme": "th", "match": "th", "ipa": {"any": ["θ", "ð"]}, "examples": ["this", "that", "think"], "fakes": ["thap", "mith"]},
+    {"id": "dig_wh", "day": 11, "title": "字母组合 wh", "tip": "多数情况接近 /w/（what, when, where）", "grapheme": "wh", "match": "wh", "ipa": {"any": ["w"]}, "examples": ["what", "when", "where"], "fakes": ["whim", "whot"]},
+    {"id": "dig_ng", "day": 11, "title": "字母组合 ng → /ŋ/", "tip": "舌根鼻音，词尾常见（long, thing, something）", "grapheme": "ng", "match": "ng", "ipa": {"any": ["ŋ"]}, "examples": ["long", "thing", "something"], "fakes": ["teng", "ming"]},
+
+    {"id": "vt_ee", "day": 12, "title": "元音组合 ee → /iː/", "tip": "长音『衣』（see, need, feel）", "grapheme": "ee", "match": "ee", "ipa": {"any": ["i:"]}, "examples": ["see", "need", "feel"], "fakes": ["leep", "meef"]},
+    {"id": "vt_ea", "day": 12, "title": "元音组合 ea → /iː/（常见）", "tip": "常与 ee 同音（eat, mean, leave）；少数发 /e/ 如 bread，本课先练长音", "grapheme": "ea", "match": "ea", "ipa": {"any": ["i:"]}, "examples": ["eat", "mean", "leave"], "fakes": ["fean", "meap"]},
+    {"id": "vt_ai_ay", "day": 12, "title": "元音组合 ai / ay → /eɪ/", "tip": "ai 多在词中，ay 多在词尾（wait, day, say）", "grapheme": "ai/ay", "match": "(ai|ay)", "ipa": {"any": ["ei"]}, "examples": ["wait", "day", "say"], "fakes": ["daip", "vay"]},
+
+    {"id": "vt_oa_ow", "day": 13, "title": "元音组合 oa / ow → /əʊ/", "tip": "oa 词中常见；ow 可发 /əʊ/（show）或 /aʊ/（now），本课先练 /əʊ/", "grapheme": "oa/ow", "match": "(oa|ow)", "ipa": {"any": ["əu", "ou"]}, "examples": ["road", "show", "know"], "fakes": ["foan", "brow"]},
+    {"id": "vt_oo", "day": 13, "title": "元音组合 oo", "tip": "长音 /uː/（food, school）或短音 /ʊ/（look, good）——听词辨长短", "grapheme": "oo", "match": "oo", "ipa": {"any": ["u:", "u"]}, "examples": ["food", "look", "good"], "fakes": ["foop", "dook"]},
+    {"id": "vt_ou_ow", "day": 13, "title": "元音组合 ou / ow → /aʊ/", "tip": "『奥』滑动（now, about, around）；you / should 的 ou 不发这个音", "grapheme": "ou/ow", "match": "(ou|ow)", "ipa": {"any": ["au"]}, "examples": ["now", "about", "around"], "fakes": ["dout", "fow"]},
+
+    {"id": "vt_oi_oy", "day": 14, "title": "元音组合 oi / oy → /ɔɪ/", "tip": "oi 词中、oy 词尾（join, boy, point）", "grapheme": "oi/oy", "match": "(oi|oy)", "ipa": {"any": ["ɔi", "oi", "ɒi"]}, "examples": ["join", "boy", "point"], "fakes": ["foin", "moy"]},
+    {"id": "blend_st", "day": 14, "title": "辅音丛 st", "tip": "两辅音连读，中间不插元音（stop, just, first）", "grapheme": "st", "match": "st", "ipa": {"any": ["st"]}, "examples": ["stop", "just", "first"], "fakes": ["stap", "bist"]},
+    {"id": "blend_tr", "day": 14, "title": "辅音丛 tr", "tip": "（tree, train, travel）", "grapheme": "tr", "match": "tr", "ipa": {"any": ["tr"]}, "examples": ["tree", "train", "travel"], "fakes": ["trab", "trep"]},
+
+    {"id": "blend_pl", "day": 15, "title": "辅音丛 pl / bl", "tip": "（place, please, black, blue）", "grapheme": "pl/bl", "match": "(pl|bl)", "ipa": {"any": ["pl", "bl"]}, "examples": ["place", "plan", "black"], "fakes": ["plim", "blot"]},
+    {"id": "blend_sp", "day": 15, "title": "辅音丛 sp", "tip": "（speak, spend, space）", "grapheme": "sp", "match": "sp", "ipa": {"any": ["sp"]}, "examples": ["speak", "spend", "space"], "fakes": ["spim", "spod"]},
+    {"id": "review_mix", "day": 15, "title": "综合复习：短元音 + 魔法 e", "tip": "对比：hop（短）/ hope（魔法 e）；bit / bite。看词尾有无沉默 e。", "grapheme": "mix", "match": ".+", "examples": ["hope", "like", "stop"], "fakes": ["brote", "fim"]}
+  ]
+}

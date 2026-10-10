@@ -1,0 +1,1517 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0f172a">
+<title>背单词 · vocab</title>
+<style>
+:root{
+  --bg:#0f172a; --card:#1e293b; --card2:#273548; --txt:#e2e8f0;
+  --dim:#64748b; --accent:#38bdf8;
+}
+*{box-sizing:border-box; -webkit-tap-highlight-color:transparent; user-select:none;}
+html,body{margin:0; height:100%;}
+body{
+  font-family:system-ui,-apple-system,"PingFang SC","Noto Sans SC",sans-serif;
+  background:var(--bg); color:var(--txt);
+  display:flex; flex-direction:column; height:100dvh; overflow:hidden;
+}
+header{
+  display:flex; justify-content:space-between; align-items:center; gap:8px;
+  padding:10px 16px 8px; font-size:12px; color:var(--dim); flex-wrap:wrap;
+}
+header b{color:var(--txt); font-weight:600;}
+#bar{height:3px; background:#16233a;}
+#barfill{height:100%; width:0%; background:var(--accent); transition:width .4s;}
+main{flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center;
+  text-align:center; padding:16px; overflow:auto;}
+.tag{font-size:12px; color:var(--dim); letter-spacing:3px;}
+.word{font-size:clamp(44px,14vw,88px); font-weight:700; line-height:1.15; margin:8px 0 2px;
+  word-break:break-word;}
+#btnspk{
+  display:inline-flex; align-items:center; justify-content:center;
+  margin-left:12px; padding:6px 12px; font-size:22px; line-height:1;
+  background:var(--card2); border:1px solid #33415580; border-radius:999px;
+  cursor:pointer; vertical-align:middle;
+}
+#btnspk:active{transform:scale(.92);}
+#helps{display:flex; gap:8px; justify-content:center; margin:6px 0 2px; padding:0 14px;}
+.help{
+  padding:8px 14px; font-size:13px; color:var(--txt);
+  background:var(--card2); border:1px solid #33415580; border-radius:999px; cursor:pointer;
+}
+.help:active{transform:scale(.96);}
+.variants{font-size:14px; color:var(--dim); margin-top:2px; word-break:break-all;}
+.phonetic{font-size:16px; color:var(--dim); margin-top:4px;}
+.icon{font-size:42px; margin:8px 0 0;}
+.ex{font-size:15px; color:#94a3b8; margin-top:10px; font-style:italic; line-height:1.5;}
+.note{
+  margin-top:12px; padding:8px 14px; font-size:14px; color:#fde68a;
+  background:#78350f33; border:1px solid #b4530988; border-radius:10px; line-height:1.5;
+  /* 后端已限长，这里是最后一道防线：批注再长也不许把卡片顶出屏幕 */
+  max-height:5.5em; overflow-y:auto; word-break:break-word;
+}
+.note::before{content:'👩‍🏫 老师说：'; font-size:12px; color:#fbbf24;}
+.fam{margin-top:14px; text-align:left; background:var(--card2); border:1px solid #33415580;
+  border-radius:12px; padding:10px 14px; max-width:420px; margin-left:auto; margin-right:auto;}
+.famcap{font-size:11px; color:var(--accent); letter-spacing:1px; margin-bottom:6px; font-weight:600;}
+.famrow{display:flex; align-items:baseline; gap:8px; padding:4px 0; border-top:1px solid #33415540;}
+.famrow:first-of-type{border-top:none;}
+.famw{font-size:16px; font-weight:600; color:#e2e8f0; cursor:pointer;}
+.famw:active{color:var(--accent);}
+.famp{font-size:12px; color:var(--dim); font-style:italic;}
+.famg{font-size:13px; color:#94a3b8; margin-left:auto; text-align:right;}
+.gloss{font-size:clamp(22px,6.5vw,36px); color:#a5f3fc; margin:14px 0 4px; line-height:1.4;
+  word-break:break-word;}
+.meta{font-size:12px; color:var(--dim); margin-top:8px; line-height:1.7;}
+#btnreveal{
+  margin-top:26px; padding:12px 36px; font-size:16px; color:var(--txt);
+  background:var(--card2); border:1px solid #33415580; border-radius:999px; cursor:pointer;
+}
+#btnreveal:active{transform:scale(.97);}
+#keys{display:grid; grid-template-columns:repeat(4,1fr); gap:10px;
+  padding:12px 14px calc(14px + env(safe-area-inset-bottom));}
+.key{
+  display:flex; flex-direction:column; align-items:center; gap:2px;
+  padding:14px 6px; border:none; border-radius:14px; color:#fff;
+  font-size:16px; font-weight:600; cursor:pointer; font-family:inherit;
+}
+.key small{font-weight:400; font-size:11px; opacity:.75;}
+.k1{background:#dc2626;} .k2{background:#ea580c;} .k3{background:#059669;} .k4{background:#2563eb;}
+.key:active{transform:scale(.95);}
+.hidden{display:none !important;}
+.bigbtn{
+  margin-top:24px; padding:12px 30px; font-size:15px; color:var(--txt);
+  background:var(--card2); border:1px solid #33415580; border-radius:999px; cursor:pointer;
+  font-family:inherit;
+}
+.bigbtn:active{transform:scale(.97);}
+#waitnum{font-size:clamp(40px,12vw,72px); font-weight:700; color:var(--accent);}
+#doneface{font-size:64px;}
+#toast{
+  position:fixed; left:50%; top:14px; transform:translateX(-50%);
+  background:#0ea5e9; color:#fff; padding:8px 18px; border-radius:999px; font-size:13px;
+  opacity:0; transition:opacity .3s; pointer-events:none; z-index:9; white-space:nowrap;
+}
+#toast.show{opacity:1;}
+#streak{color:#fbbf24;}
+/* ---- 鼓励弹窗 L3 软基建（10.3）---- */
+#popup{
+  position:fixed; left:50%; top:18%; transform:translateX(-50%) scale(.9); z-index:30;
+  background:linear-gradient(135deg, #1e293b, #0f2740); color:#e2e8f0;
+  border:1px solid #38bdf866; border-radius:18px; padding:22px 26px; max-width:84vw;
+  box-shadow:0 12px 40px #00000088; text-align:center;
+  opacity:0; pointer-events:none; transition:opacity .3s, transform .3s;
+}
+#popup.show{opacity:1; pointer-events:auto; transform:translateX(-50%) scale(1);}
+#popupemoji{font-size:40px; margin-bottom:8px;}
+#popuptext{font-size:16px; line-height:1.6; margin-bottom:14px;}
+#popupok{background:var(--accent); color:#0f172a; border:none; border-radius:999px;
+  padding:8px 26px; font-size:14px; font-weight:600; cursor:pointer;}
+/* ---- 呼吸点（模块6）：波间强制15s深色渐变+倒计时，前10s不可跳过 ---- */
+#breath{position:fixed; inset:0; z-index:88; display:flex; flex-direction:column; align-items:center; justify-content:center;
+  background:linear-gradient(160deg, #0b1120 0%, #1a1440 55%, #0b1120 100%); text-align:center; padding:24px;}
+#breath.hidden{display:none;}
+#breathemoji{font-size:64px; animation:breathPulse 3s ease-in-out infinite;}
+@keyframes breathPulse{0%,100%{transform:scale(1); opacity:.7;} 50%{transform:scale(1.25); opacity:1;}}
+#breathtxt{margin-top:18px; font-size:22px; font-weight:800; color:#c7d2fe;}
+#breathtime{margin-top:10px; font-size:56px; font-weight:900; color:#a5b4fc; font-variant-numeric:tabular-nums;}
+#breathskip{margin-top:26px; min-width:180px; min-height:54px; padding:0 32px; font-size:16px; font-weight:700; border:none; border-radius:14px;
+  background:rgba(255,255,255,.1); color:#94a3b8; cursor:not-allowed;}
+#breathskip.can{background:linear-gradient(135deg, #334155, #475569); color:#e2e8f0; cursor:pointer;}
+/* ---- 慢卡 5s 倒计时环（模块5 第1层，复习阶段纯视觉提示）---- */
+#slowring{
+  grid-column:1/-1;   /* 必须跨满 4 列：否则它会占掉第 1 格，把「秒懂」挤到第二行（实测 x=14,y=1002）*/
+  display:flex; align-items:center; justify-content:center; gap:8px;
+  margin:6px auto 0; opacity:0; transition:opacity .3s; height:34px;
+}
+#slowring.show{opacity:1;}
+#slowring.late svg .fg{stroke:#f59e0b;}   /* 到时变亮提示"该评了" */
+#slowring svg{transform:rotate(-90deg);}
+#slowring circle{fill:none; stroke-width:4;}
+#slowring .bg{stroke:#33415566;}
+#slowring .fg{stroke:var(--accent); stroke-linecap:round; transition:stroke-dashoffset .2s linear;}
+#slowtxt{font-size:12px; color:var(--dim);}
+/* ---- 5 秒没翻面 → 本次封顶「模糊」（只作用于复习卡）---- */
+#caphint{
+  grid-column:1/-1; text-align:center; font-size:12px; line-height:1.45;
+  color:#fcd34d; background:#78350f40; border:1px solid #92400e80;
+  border-radius:10px; padding:6px 10px; margin-bottom:2px;
+}
+/* 被封顶的键（记得/秒懂）压暗，让"点了也只会记模糊"一眼可见 */
+#keys .key.capped{opacity:.4;}
+#keys .key.capped small{text-decoration:line-through;}
+/* ---- 站立秒认模式（模块6 R2）---- */
+/* ---- 快筛（模块 1）：新词自报三态，认识休眠/模糊/不认识 ---- */
+#screen{
+  position:fixed; inset:0; z-index:22; background:var(--bg);
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  padding:20px; user-select:none; -webkit-user-select:none;
+}
+#screen.hidden{display:none;}
+#sctag{font-size:12px; color:var(--dim); margin-bottom:6px;}
+#scword{font-size:clamp(44px,13vw,84px); font-weight:700; letter-spacing:1px; cursor:pointer; text-align:center; line-height:1.15;}
+#scphon{font-size:15px; color:var(--dim); margin-top:8px; min-height:20px;}
+#scprog{font-size:12px; color:var(--dim); margin-top:16px;}
+#sckeys{display:flex; gap:10px; margin-top:30px; flex-wrap:wrap; justify-content:center;}
+.scbtn{min-width:104px; min-height:58px; padding:0 20px; font-size:17px; font-weight:800; border:none; border-radius:16px; cursor:pointer;}
+#sc-know{background:linear-gradient(135deg,#065f46,#10b981); color:#fff;}
+#sc-fuzzy{background:linear-gradient(135deg,#92400e,#f59e0b); color:#fff;}
+#sc-no{background:linear-gradient(135deg,#7f1d1d,#ef4444); color:#fff;}
+.scbtn:active{transform:scale(.94);}
+#scexit{margin-top:22px; background:transparent; border:none; color:var(--dim); font-size:13px; cursor:pointer; text-decoration:underline;}
+/* ---- 快筛的「后悔药」：撤销上一词 / 重新筛词 / 结束与早停面板 ----
+   用户反馈「误点了回不去」：标成「认识」的词会休眠 30~60 天、期间只有 5% 冒头复核，
+   所以必须给学生两个出口：立刻撤销（单张）、重新筛词（批量）。 */
+#scops{display:flex; gap:10px; margin-top:20px; flex-wrap:wrap; justify-content:center;}
+#scops button{background:transparent; border:1px solid #33415580; color:#94a3b8;
+  border-radius:999px; padding:7px 16px; font-size:13px; font-family:inherit; cursor:pointer;}
+#scops button:disabled{opacity:.35; cursor:default;}
+#scops button:not(:disabled):active{transform:scale(.96);}
+#scnotice{margin-top:20px; width:100%; max-width:420px; background:var(--card2);
+  border:1px solid #33415580; border-radius:16px; padding:18px 16px;}
+#scnotice.hidden{display:none;}
+#scnotice h4{margin:0 0 8px; font-size:16px; color:#e2e8f0;}
+#scnotice p{margin:0 0 14px; font-size:13px; color:var(--dim); line-height:1.65;}
+#scnotice button{display:block; width:100%; min-height:48px; margin-top:8px; border:none;
+  border-radius:12px; font-size:15px; font-weight:700; font-family:inherit; cursor:pointer;}
+#scnotice button.pri{background:linear-gradient(135deg,#4c1d95,#7c3aed); color:#fff;}
+#scnotice button.sec{background:transparent; color:#94a3b8; border:1px solid #33415580; font-weight:400;}
+#scnotice button:disabled{opacity:.35; cursor:default;}
+#scnotice button:active:not(:disabled){transform:scale(.97);}
+#sc-intro{
+  position:fixed; inset:0; z-index:24; background:#0f172add; backdrop-filter:blur(4px);
+  display:flex; align-items:center; justify-content:center; padding:24px;
+}
+#sc-intro.hidden{display:none;}
+#sc-intro .card{background:var(--card); border:1px solid #33415580; border-radius:20px; padding:26px 22px; max-width:420px; width:100%; text-align:center;}
+#sc-intro h3{margin:0 0 8px; font-size:18px;}
+#sc-intro p{margin:0 0 18px; font-size:13px; color:var(--dim); line-height:1.6;}
+#sc-intro select{width:100%; padding:12px; border-radius:12px; border:1px solid #334155; background:var(--card2); color:var(--txt); font-size:15px; margin-bottom:14px;}
+#sc-intro button{width:100%; min-height:52px; border:none; border-radius:14px; font-size:16px; font-weight:700;
+  background:linear-gradient(135deg,#4c1d95,#7c3aed); color:#fff; cursor:pointer;}
+#speed{
+  position:fixed; inset:0; z-index:20; background:var(--bg);
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  padding:20px; user-select:none; -webkit-user-select:none;
+}
+#speed.hidden{display:none;}
+#spword{font-size:clamp(48px,15vw,96px); font-weight:700; letter-spacing:1px; cursor:pointer;
+  text-align:center; line-height:1.1;}
+#spring{width:64px; height:64px; margin-top:28px;}
+#spring circle{fill:none; stroke-width:5;}
+#spring .bg{stroke:#33415566;}
+#spring .fg{stroke:var(--accent); stroke-linecap:round; transform:rotate(-90deg); transform-origin:center;
+  transition:stroke-dashoffset .1s linear;}
+#sptime{margin-top:6px; font-size:13px; color:var(--dim); height:18px;}
+#spcn{margin-top:30px; min-height:90px; display:flex; align-items:center; justify-content:center;}
+#spcntext{font-size:clamp(26px,8vw,44px); font-weight:600; transition:opacity .15s;}
+#spkeys{display:flex; gap:16px; margin-top:26px;}
+.spk{flex:1; max-width:170px; padding:18px 10px; border:none; border-radius:16px; color:#fff;
+  font-size:19px; font-weight:700; cursor:pointer; font-family:inherit;}
+.spk:active{transform:scale(.96);}
+.spk-no{background:#dc2626;} .spk-yes{background:#059669;}
+#spexit{position:absolute; top:calc(12px + env(safe-area-inset-top)); right:16px;
+  background:transparent; color:var(--dim); border:1px solid #33415580; border-radius:999px;
+  padding:6px 16px; font-size:13px; cursor:pointer;}
+#spprog{position:absolute; top:calc(16px + env(safe-area-inset-top)); left:16px;
+  font-size:13px; color:var(--dim);}
+/* ---- 拼读小课 ---- */
+#phonics{position:fixed; inset:0; z-index:25; background:var(--bg); overflow:auto;
+  padding:20px 18px calc(24px + env(safe-area-inset-bottom));}
+#phonics.hidden{display:none;}
+#phhead{display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;}
+#phtitle{font-size:15px; font-weight:700; color:var(--accent);}
+#phexit{background:transparent; color:var(--dim); border:1px solid #33415580; border-radius:999px; padding:6px 14px; font-size:12px; cursor:pointer;}
+.phcard{background:var(--card); border:1px solid #33415580; border-radius:18px; padding:18px 16px; margin-bottom:14px;}
+.phcard.done{opacity:.55;}
+.phgrapheme{font-size:28px; font-weight:800; letter-spacing:1px; margin:4px 0 8px;}
+.phtip{font-size:14px; color:var(--dim); line-height:1.55; margin-bottom:12px;}
+.phrow{display:flex; flex-wrap:wrap; gap:8px; margin:8px 0;}
+.phchip{padding:10px 14px; border-radius:12px; background:var(--card2); border:1px solid #33415580; cursor:pointer; font-size:15px;}
+.phchip small{display:block; color:var(--dim); font-size:11px; margin-top:2px;}
+.phfake{background:#422006; border-color:#92400e80; color:#fde68a;}
+.phbtn{width:100%; margin-top:12px; min-height:48px; border:none; border-radius:14px; font-size:15px; font-weight:700;
+  background:linear-gradient(135deg,#065f46,#10b981); color:#fff; cursor:pointer;}
+.phbtn:disabled{opacity:.4; cursor:default;}
+.sylltap{font-size:13px; color:var(--accent); cursor:pointer; margin-top:4px;}
+</style>
+</head>
+<body>
+<header>
+  <span id="hl">…</span>
+  <span id="hr"><span id="onlinebadge" title="老师现在在线，可答疑" style="display:none; color:#86efac; font-size:11px; margin-right:6px;">● 老师在线</span><span id="trackbadge" title="零基础：第一册高频词 + 剂量爬坡" style="display:none; color:#fcd34d; font-size:11px; margin-right:6px;">零基础</span><span id="shelterbadge" title="顽固词收容所：这几个词反复忘，已交给老师单独处理，不占你的每日队列；你每天也会抽几张回来复健，答对就自动回队列" style="display:none; color:#fbbf24; font-size:11px; margin-right:6px; cursor:pointer;">收容 <b>0</b></span><span id="streak"></span> <select id="gear" title="每日新词档位（40=推荐质量档，60+=赶进度）" style="background:transparent; color:var(--txt); border:1px solid #33415580; border-radius:999px; padding:3px 6px; font-size:11px; margin-left:8px;"></select> <select id="reten" title="目标保持率：牢记=更勤见面；轻负=间隔略长、复习更少" style="background:transparent; color:var(--txt); border:1px solid #33415580; border-radius:999px; padding:3px 6px; font-size:11px; margin-left:6px;"><option value="0.9">牢记90%</option><option value="0.85">轻负85%</option></select> <button id="gearauto" title="回到零基础自动爬坡（每 7 天达标 +10）" style="display:none; background:transparent; color:#fcd34d; border:1px solid #33415580; border-radius:999px; padding:3px 10px; font-size:11px; cursor:pointer; margin-left:6px;">恢复自动爬坡</button> <button id="btnphonics" title="今日拼读小课" style="display:none; background:transparent; color:#fbbf24; border:1px solid #33415580; border-radius:999px; padding:3px 12px; font-size:11px; cursor:pointer; margin-left:8px;">拼读</button> <button id="btnscreen" title="继续快筛" style="display:none; background:transparent; color:#10b981; border:1px solid #33415580; border-radius:999px; padding:3px 12px; font-size:11px; cursor:pointer; margin-left:8px;">⚡快筛</button> <button id="btnspeed" title="站立秒认模式" style="background:transparent; color:var(--accent); border:1px solid #33415580; border-radius:999px; padding:3px 12px; font-size:11px; cursor:pointer; margin-left:8px;">⚡秒认</button> <a href="/danci/teacher.html" style="color:var(--dim); text-decoration:none; margin-left:8px; font-size:11px;" title="教师面板">教师</a></span>
+</header>
+<div id="bar"><div id="barfill"></div></div>
+<main id="main"></main>
+<div id="helps" class="hidden">
+  <button class="help" data-h="forgot">想不起来</button>
+  <button class="help" data-h="seen">见过但想不起</button>
+</div>
+<footer id="keys" class="hidden">
+  <div id="caphint" class="hidden"></div>
+  <div id="slowring">
+    <svg width="30" height="30" viewBox="0 0 30 30">
+      <circle class="bg" cx="15" cy="15" r="12"></circle>
+      <circle class="fg" id="slowfg" cx="15" cy="15" r="12"></circle>
+    </svg>
+    <span id="slowtxt">该评了</span>
+  </div>
+  <button class="key k1" data-r="1">忘了<small>1</small></button>
+  <button class="key k2" data-r="2">模糊<small>2</small></button>
+  <button class="key k3" data-r="3">记得<small>3</small></button>
+  <button class="key k4" data-r="4">秒懂<small>4</small></button>
+</footer>
+<div id="popup">
+  <div id="popupemoji">🌱</div>
+  <div id="popuptext"></div>
+  <button id="popupok">继续</button>
+</div>
+<div id="breath" class="hidden">
+  <div id="breathemoji">🌬️</div>
+  <div id="breathtxt">深呼吸，让大脑沉淀一下</div>
+  <div id="breathtime">15</div>
+  <button id="breathskip">休息中…</button>
+</div>
+<div id="sc-intro" class="hidden">
+  <div class="card">
+    <h3>📝 你背过多少单词？</h3>
+    <p>第一次见你！先快速筛一遍——认识的词不用学，<br>直接跳过省时间。大概 5~10 分钟搞定。</p>
+    <select id="sc-level">
+      <option value="none">没背过，从零开始（零基础：每天 10 词往上爬，先刷高频 800）</option>
+      <option value="little">背过一点（几百词）</option>
+      <option value="some">背过不少（1000+）</option>
+      <option value="lots">背了很多（2000+）</option>
+    </select>
+    <button id="sc-go">开始快筛</button>
+    <button id="sc-skip" style="background:transparent; color:var(--dim); border:none; margin-top:10px; font-size:13px; cursor:pointer;">跳过，直接学</button>
+  </div>
+</div>
+<div id="screen" class="hidden">
+  <div id="sctag">⚡ 快筛 · 认识的不用学</div>
+  <div id="scword"></div>
+  <div id="scphon"></div>
+  <div id="scprog"></div>
+  <div id="sckeys">
+    <button id="sc-know" class="scbtn">认识 ✓</button>
+    <button id="sc-fuzzy" class="scbtn">模糊 ？</button>
+    <button id="sc-no" class="scbtn">不认识 ✗</button>
+  </div>
+  <div id="scops">
+    <button id="scundo" disabled>↩ 撤销上一词</button>
+    <button id="scredo">重新筛词…</button>
+  </div>
+  <div id="scnotice" class="hidden"></div>
+  <button id="scexit">暂停快筛，去学习</button>
+</div>
+<div id="phonics" class="hidden">
+  <div id="phhead">
+    <div id="phtitle">拼读小课</div>
+    <button id="phexit">先去背词</button>
+  </div>
+  <div id="phbody"></div>
+</div>
+<div id="speed" class="hidden">
+  <div id="spprog"></div>
+  <button id="spexit">退出</button>
+  <div id="spword"></div>
+  <svg id="spring" viewBox="0 0 64 64">
+    <circle class="bg" cx="32" cy="32" r="27"></circle>
+    <circle class="fg" cx="32" cy="32" r="27" id="springfg"></circle>
+  </svg>
+  <div id="sptime"></div>
+  <div id="spcn"><span id="spcntext"></span></div>
+  <div id="spkeys" class="hidden">
+    <button class="spk spk-no" data-v="0">不会</button>
+    <button class="spk spk-yes" data-v="1">会</button>
+  </div>
+</div>
+<div id="toast"></div>
+<script>
+const $ = s => document.querySelector(s);
+let cur = null, revealed = false, streak = 0, timer = null, busy = false, hiddenAt = 0, revealedAt = 0;
+// frontTimeout：正面停留满 5 秒被系统自动翻面（学生自己没翻）= 没认出来。
+// 只对复习卡判定，新词第一次见 5 秒翻不出是正常的（学生第一次认识它）。
+let frontTimeout = false;
+/* 哨兵卡（模块6）：每 50~80 张随机插入"你还在吗"检查卡，任意键=在场证明，不进 FSRS/不写库 */
+const SENTINEL_MIN = 50, SENTINEL_MAX = 80;
+let ratedSinceSentinel = 0, nextSentinelAt = randSentinelGap(), sentinelActive = false;
+function randSentinelGap(){ return SENTINEL_MIN + Math.floor(Math.random() * (SENTINEL_MAX - SENTINEL_MIN + 1)); }
+/* 快卡报警（模块6 双向）：连续10张<1.2s且高好评=僵尸刷模式，弹警告 */
+const FAST_MS = 1200, FAST_WARN_N = 10;
+let fastStreak = 0, fastWarned = false;
+/* 波次+呼吸点（模块6）：8~10min一波，波间强制15s呼吸（前10s不可跳）；每20min强制休30s */
+const WAVE_MIN = 8*60*1000, WAVE_MAX = 10*60*1000;   // 波次时长随机区间
+const BREATH_SEC = 15, BREATH_LOCK_SEC = 10;          // 呼吸点 15s，前 10s 锁定
+const HARD_BREAK_MS = 20*60*1000, HARD_BREAK_SEC = 30; // 每 20min 强制休 30s
+/* 等待多久就不该再"倒计时"（缺陷 B11）：学习步最长 600 秒，所以超过 30 分钟的等待
+   只可能是"下一张卡在明天/后天" —— 那是"今天学完了"，不是等待场景。 */
+const WAIT_LONG_SEC = 1800;
+let sessionT0 = Date.now();                 // 会话开始
+let waveT0 = Date.now();                    // 本波开始
+let waveLen = WAVE_MIN + Math.random()*(WAVE_MAX - WAVE_MIN); // 本波目标时长
+let lastHardBreak = Date.now();             // 上次强休
+let breathActive = false, breathTimer = null;
+
+const STATE_STR = {new:'新词', learning:'学习中', review:'复习中', relearning:'重学中'};
+
+// 六元素阶段渲染开关（模块 3 定案）：
+// front=首刷正面  back=首刷背面  rev=复习阶段（背面）
+// 原则：编码时刻多通道、检索时刻极简 —— 复习阶段 emoji/icon 永不出现，例句默认折叠
+const ELEMENTS = {
+  word:    {front:true,  back:true,  rev:true},
+  speak:   {front:true,  back:true,  rev:true},
+  phonetic:{front:false, back:true,  rev:true},
+  gloss:   {front:false, back:true,  rev:true},
+  variants:{front:false, back:true,  rev:true},
+  icon:    {front:false, back:true,  rev:false},
+  example: {front:false, back:true,  rev:true},
+  note:    {front:false, back:true,  rev:true},   // 教师批注：编码+检索时刻都可见
+  family:  {front:false, back:true,  rev:true},   // 词族族员：族长卡背面展示（模块2）
+};
+
+async function api(path, opts){
+  try{
+    // GET 请求带时间戳防浏览器缓存（状态接口如 /api/screen/start 必须实时）
+    if (!opts || !opts.method)
+      path += (path.includes('?') ? '&' : '?') + '_t=' + Date.now();
+    opts = Object.assign({ credentials: 'same-origin' }, opts || {});
+    const r = await fetch(path, opts);
+    return await r.json();
+  }catch(e){ return {error:'网络错误: ' + e.message}; }
+}
+function toast(t){
+  const el = $('#toast');
+  el.textContent = t; el.classList.add('show');
+  clearTimeout(el._t); el._t = setTimeout(() => el.classList.remove('show'), 2200);
+}
+
+// 鼓励弹窗（L3 软基建）：服务端 /api/next、/api/review 响应里 popup 非空即弹
+const POPUP_EMOJI = {milestone:'🏆', day6:'🌊', day12:'🌤️', day13:'💪',
+  lowday:'🤗', sweetspot:'🎯', hardword:'💥', weekly:'📈', fallback:'🌱'};
+let popupTimer = null;
+function showPopup(pp){
+  if (!pp || !pp.text) return;
+  $('#popupemoji').textContent = POPUP_EMOJI[pp.type] || '🌱';
+  $('#popuptext').textContent = pp.text;
+  $('#popup').classList.add('show');
+  if (popupTimer) clearTimeout(popupTimer);
+  popupTimer = setTimeout(hidePopup, 6000);   // 6 秒自动消失，不骚扰
+}
+function hidePopup(){ $('#popup').classList.remove('show'); }
+function fmtSec(s){
+  if (s < 90) return s + ' 秒';
+  if (s < 5400) return Math.round(s/60) + ' 分钟';
+  if (s < 172800) return Math.round(s/3600) + ' 小时';
+  return Math.round(s/86400) + ' 天';
+}
+// 注意：双引号此前被映射成它自己（等于不转义），而词族/例句等数据会进 data-w="…"
+// 这类属性上下文，漏掉 " 就是属性注入。五个字符一个都不能漏。
+function esc(t){
+  return String(t == null ? '' : t).replace(/[&<>"']/g,
+  c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+function speak(text){
+  if (!('speechSynthesis' in window)){ toast('当前浏览器不支持发音'); return; }
+  const u = new SpeechSynthesisUtterance(text);
+  u.lang = 'en-US'; u.rate = 0.95;
+  speechSynthesis.cancel(); speechSynthesis.speak(u);
+}
+async function loadNext(force){
+  clearSlowTimer();
+  clearFrontTimer();
+  cur = await api('/api/vocab/next' + (force ? '?force=1' : ''));
+  if (cur.popup) showPopup(cur.popup);
+  // 上次见你（模块6）：重进系统提示距今天数（仅每会话首次）
+  const gap = cur.counts && cur.counts.last_seen_days;
+  if (gap >= 1 && !window._seenGreeted){
+    window._seenGreeted = true;
+    setTimeout(() => toast('上次见你是 ' + gap + ' 天前，欢迎回来'), 600);
+  }
+  revealed = false;
+  revealedAt = 0;
+  render();
+}
+async function rate(r, kind){
+  if (busy || !cur || !cur.card || !revealed) return;
+  busy = true;
+  clearSlowTimer();
+  clearFrontTimer();
+  const dur_ms = revealedAt ? Date.now() - revealedAt : null;
+  const card = cur.card;
+  // 方案 A 评分封顶（服务端也会再拦一遍）：
+  // A1 新词首次见面 → 最高模糊；A-timeout 复习卡 5 秒没翻面 → 最高模糊；
+  // A2 前几次见面 → 秒懂降为记得。求助键保留原 kind。
+  let capped = false, capWhy = '';
+  if (card.first_cap && r > 2){
+    r = 2; capped = true; capWhy = 'first';
+    if (!kind) kind = 'first_cap';
+  } else if (capActive() && r > 2){
+    r = 2; capped = true; capWhy = 'timeout';
+    if (!kind) kind = 'timeout';
+  } else if (card.easy_cap && r === 4){
+    r = 3; capped = true; capWhy = 'easy';
+    if (!kind) kind = 'easy_cap';
+  }
+  const body = {word_id: card.word_id, rating: r, dur_ms: dur_ms, kind: kind || null};
+  if (card.probe) body.probe = 1;
+  const res = await api('/api/vocab/review', {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify(body)
+  });
+  busy = false;
+  if (res.error){ toast('出错: ' + res.error); return; }
+  if (r >= 3) streak++; else streak = 0;
+  // 封顶时把两条 toast 合成一条，否则"X后见"会把原因顶掉
+  if (capWhy === 'first'){
+    toast('新词第一次见面 → 记「模糊」' +
+      (res.due_in != null ? '，' + fmtSec(Math.max(0, res.due_in)) + '后再见' : ''));
+  } else if (capWhy === 'timeout'){
+    toast('⏱ 5 秒没翻面 → 先记「模糊」，稍后重出' +
+      (res.due_in != null ? '（' + fmtSec(Math.max(0, res.due_in)) + '）' : ''));
+  } else if (capWhy === 'easy'){
+    toast('前几次见面还不能点「秒懂」→ 记「记得」' +
+      (res.due_in != null ? '，' + fmtSec(Math.max(0, res.due_in)) + '后见' : ''));
+  } else if (res.probe_kept_due){
+    toast('抽查通过，原计划不变');
+  } else if (res.due_in != null){
+    toast(fmtSec(Math.max(0, res.due_in)) + '后见');
+  }
+  if (res.popup) showPopup(res.popup);
+  // 快卡报警：连续10张<1.2s且仍评高分 → 警告一次（僵尸模式），之后每再满10张再提醒
+  if (dur_ms != null && dur_ms < FAST_MS && r >= 3){
+    fastStreak++;
+    if (fastStreak >= FAST_WARN_N){
+      fastStreak = 0;
+      setTimeout(() => {
+        if (window.toast) toast('⚠️ 刷太快了（连续' + FAST_WARN_N + '张<1.2s），这是僵尸模式，慢下来看清词义');
+      }, 700);
+    }
+  } else {
+    fastStreak = 0;
+  }
+  cur = res.next || {mode:'done', counts:(res.next||{}).counts};
+  revealed = false;
+  revealedAt = 0;
+  // 哨兵卡触发判定：真实评分累计到随机阈值则下一张换哨兵卡（仅复习/新词流程中）
+  ratedSinceSentinel++;
+  if (ratedSinceSentinel >= nextSentinelAt && cur.mode !== 'done' && cur.mode !== 'wait'){
+    ratedSinceSentinel = 0;
+    nextSentinelAt = randSentinelGap();
+    showSentinel();
+    return;
+  }
+  checkBreath();
+  render();
+}
+
+/* 哨兵卡（模块6）：渲染成检查卡，点任意处=确认在场，不进 FSRS、不写 reviews */
+function showSentinel(){
+  sentinelActive = true;
+  clearSlowTimer();
+  const m = $('#main');
+  document.title = '背单词 · 检查';
+  m.innerHTML = '<div class="tag" style="background:#7c3aed22; color:#c4b5fd;">在场检查</div>' +
+    '<div style="font-size:clamp(34px,10vw,56px); margin:30px 0 10px;">👀</div>' +
+    '<div class="word" style="font-size:clamp(22px,6vw,30px);">你还在吗？</div>' +
+    '<div class="meta" style="margin-top:8px">这是随机检查，证明你在认真刷</div>' +
+    '<button id="btnhere" class="bigbtn" style="margin-top:26px">我在 · 继续</button>';
+  showKeys(false);
+  $('#btnhere').onclick = dismissSentinel;
+  document.addEventListener('keydown', sentinelKey);
+}
+function sentinelKey(e){ if (sentinelActive && !e.repeat){ e.preventDefault(); dismissSentinel(); } }
+function dismissSentinel(){
+  if (!sentinelActive) return;
+  sentinelActive = false;
+  document.removeEventListener('keydown', sentinelKey);
+  toast('很好，继续保持专注');
+  render();
+}
+
+/* 波次+呼吸点（模块6） */
+function checkBreath(){
+  if (breathActive || speed.active || sentinelActive) return;
+  const now = Date.now();
+  if (now - lastHardBreak >= HARD_BREAK_MS){
+    lastHardBreak = now; waveT0 = now; waveLen = WAVE_MIN + Math.random()*(WAVE_MAX - WAVE_MIN);
+    startBreath(HARD_BREAK_SEC, 0, '已连续学习 20 分钟，强制休息 30 秒');
+  } else if (now - waveT0 >= waveLen){
+    waveT0 = now; waveLen = WAVE_MIN + Math.random()*(WAVE_MAX - WAVE_MIN);
+    startBreath(BREATH_SEC, BREATH_LOCK_SEC, '这一波刷完了，深呼吸');
+  }
+}
+function startBreath(totalSec, lockSec, msg){
+  breathActive = true;
+  clearSlowTimer();
+  const el = $('#breath'), skip = $('#breathskip');
+  $('#breathtxt').textContent = msg;
+  el.classList.remove('hidden');
+  let left = totalSec;
+  $('#breathtime').textContent = left;
+  skip.classList.remove('can');
+  skip.textContent = '休息中…（' + lockSec + 's 后可跳过）';
+  if (lockSec <= 0){ skip.classList.add('can'); skip.textContent = '继续学习'; }
+  breathTimer = setInterval(() => {
+    left--;
+    $('#breathtime').textContent = Math.max(0, left);
+    const elapsed = totalSec - left;
+    if (lockSec > 0 && elapsed >= lockSec){ skip.classList.add('can'); skip.textContent = '继续学习'; }
+    if (left <= 0) endBreath();
+  }, 1000);
+  skip.onclick = () => { if (skip.classList.contains('can')) endBreath(); };
+}
+function endBreath(){
+  if (!breathActive) return;
+  breathActive = false;
+  clearInterval(breathTimer);
+  breathTimer = null;
+  $('#breath').classList.add('hidden');
+  render();
+}
+function showKeys(on){
+  $('#keys').classList.toggle('hidden', !on);
+  $('#helps').classList.toggle('hidden', !on);
+}
+async function help(h){
+  if (busy || !cur || !cur.card || !revealed) return;
+  if (h === 'forgot'){
+    toast('想不起来很正常，我们来复习它');  // 归因重构：指向方法而非自我
+    await rate(2, null);                    // 直接按 Hard 走，免除负罪感
+    return;
+  }
+  if (h === 'seen'){
+    await rate(2, 'seen');                  // 见过但想不起 → Hard + 标记"屡见屡忘"
+    return;
+  }
+}
+function fillGear(cap){
+  const sel = $('#gear');
+  if (!sel) return;
+  // 零基础天花板更低（与后端 BEGINNER_CAP 一致）：防止误把档位拉满，与防过载定位冲突（L8）
+  const max = cap || 80;
+  if (sel.dataset.max !== String(max)){
+    sel.innerHTML = '';
+    for (let n = 10; n <= max; n += 10){
+      const o = document.createElement('option');
+      o.value = n;
+      // 方案 C1：40=推荐质量档，60+=赶进度（默认已从 60 下调到 40）
+      let label = n + '词/天';
+      if (n === 40) label += ' ·推荐';
+      else if (n >= 60) label += ' ·赶进度';
+      o.textContent = label;
+      sel.appendChild(o);
+    }
+    sel.dataset.max = String(max);
+  }
+  sel.onchange = async () => {
+    const n = parseInt(sel.value, 10);
+    await api('/api/vocab/config', {method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({new_per_day: n})});
+    const beg = ($('#trackbadge').style.display !== 'none');
+    const tip = n >= 60 ? '（赶进度档：复习会明显变多）' : (n === 40 ? '（推荐质量档）' : '');
+    toast('档位已改为 ' + n + ' 词/天' + tip + (beg ? '；手选后不再自动爬坡' : ''));
+    loadNext();
+  };
+}
+function syncGear(cap, track){
+  fillGear(track === 'beginner' ? 40 : 80);
+  const sel = $('#gear');
+  if (sel && cap) sel.value = String(cap);
+}
+function syncReten(ret, track){
+  const sel = $('#reten');
+  if (!sel) return;
+  // 零基础固定 85%，下拉禁用（后端也会忽略）
+  const beg = track === 'beginner';
+  sel.disabled = beg;
+  sel.title = beg
+    ? '零基础固定轻负 85%（学习步更短）'
+    : '牢记=更勤见面；轻负=间隔略长、每日复习更少';
+  const v = (ret != null && Number(ret) < 0.875) ? '0.85' : '0.9';
+  sel.value = v;
+  if (!sel.dataset.bound){
+    sel.dataset.bound = '1';
+    sel.onchange = async () => {
+      const r = await api('/api/vocab/config', {method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({desired_retention: parseFloat(sel.value)})});
+      if (r.error){ toast(r.error); return; }
+      toast(sel.value === '0.85'
+        ? '已切到轻负 85%：见面少一点、负担更低'
+        : '已切到牢记 90%：更勤见面、忘得更少');
+      loadNext();
+    };
+  }
+}
+async function gearAuto(){
+  const r = await api('/api/vocab/config', {method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({gear_auto: true})});
+  if (r.error){ toast(r.error); return; }
+  toast('已恢复自动爬坡，当前 ' + r.new_per_day + ' 词/天');
+  loadNext();
+}
+function render(){
+  clearInterval(timer); timer = null;
+  const m = $('#main'), c = (cur && cur.counts) || {};
+  document.title = '背单词 · ' + (c.new_today||0) + '/' + (c.new_limit||0);
+  $('#barfill').style.width = c.new_limit ? Math.min(100, (c.new_today||0)/c.new_limit*100) + '%' : '0%';
+  $('#hl').innerHTML = '今日新词 <b>' + (c.new_today||0) + '/' + (c.new_limit||0) + '</b>' +
+    (c.gated ? ' <span style="color:#f87171">停投·先清到期</span>' : '') +
+    // 临时限流（④⑧ B5）：档位没变，只是"今天"少学一点，隔日自动恢复。
+    // 原因分两种，文案必须区分 —— 否则学生会以为是自己"学得差"被罚。
+    (!c.gated && c.fatigue_cap != null && c.new_limit < (c.new_cap||0)
+      ? (c.throttle_reason === 'fatigue'
+          ? ' <span style="color:#fbbf24" title="昨天有较多卡片超时未评，今天先少学一点，明天自动恢复">疲劳限流</span>'
+          : (c.throttle_reason === 'probe_low'
+              ? ' <span style="color:#fbbf24" title="本周抽查保留率偏低，今天先少学一点，把已学的记牢">抽查偏低·减量</span>'
+              : ' <span style="color:#fbbf24" title="昨天学得比较吃力（错误多/超时多/欠账在涨），今天先少学一点，明天自动恢复">减量·先缓一缓</span>'))
+      : '') +
+    (c.due_now ? ' · 到期 <b style="color:#fbbf24">' + c.due_now + '</b>' : '') +
+    ' · 已学 <b>' + (c.learned||0) + '</b>/' + (c.total||0) +
+    // 赶进度：额度里含额外组，标出来学生才知道 60/120 是怎么来的
+    (c.extra_sets ? ' <span style="color:#86efac" title="学完当天额度后自己加学的">+' +
+      c.extra_sets + ' 组</span>' : '');
+  $('#streak').textContent = streak >= 3 ? '🔥连对 ' + streak : '';
+  // 教师在线徽标（模块6）
+  $('#onlinebadge').style.display = c.teacher_online ? 'inline' : 'none';
+  $('#trackbadge').style.display = c.track === 'beginner' ? 'inline' : 'none';
+  $('#btnphonics').style.display = c.track === 'beginner' ? 'inline' : 'none';
+  if (c.phonics_pending) $('#btnphonics').textContent = '拼读·待做';
+  else if (c.track === 'beginner') $('#btnphonics').textContent = '拼读';
+  // L8：零基础且已手选档位时，给出「恢复自动爬坡」后悔药
+  $('#gearauto').style.display = (c.track === 'beginner' && c.gear_manual) ? 'inline' : 'none';
+  // 缺陷⑤：收容所对学生不能静默。完成页的说明只有走到 done 才看得到，
+  // 而学生常常中途关页面，等于永远不知道自己有词被"收走"了。
+  // 顶栏常驻徽标 + 点击解释，把这件事放在学生每天都会看到的地方。
+  const _sb = $('#shelterbadge');
+  if (_sb){
+    _sb.style.display = (c.shelter_now > 0) ? 'inline' : 'none';
+    if (c.shelter_now > 0) _sb.innerHTML = '收容 <b>' + c.shelter_now + '</b>';
+  }
+  syncGear(c.new_cap || c.new_limit, c.track);
+  syncReten(c.desired_retention, c.track);
+  // 卡死提示（缺陷 B6）：连续几天"有额度却学不上新词"时，系统自动降了一档（或给出建议）。
+  // 只说一次 —— 用 localStorage 按文案去重，学生确认后回执 ack_advice 让服务端清掉。
+  if (c.gear_advice){
+    const gk = 'ga_' + c.gear_advice;
+    if (!localStorage.getItem(gk)){
+      localStorage.setItem(gk, '1');
+      toast(c.gear_advice + '（想改档位点顶栏数字）');
+      api('/api/vocab/config', {method:'POST', headers:{'Content-Type':'application/json'},
+                          body: JSON.stringify({ack_advice: 1})}).catch(()=>{});
+    }
+  }
+
+  if (!cur || cur.error){
+    showKeys(false);
+    m.innerHTML = '<div class="tag">出错</div><div class="meta">' + esc((cur&&cur.error)||'未知错误') +
+      '</div><button class="bigbtn" onclick="loadNext()">重试</button>';
+    if (cur && cur.error) toast('刷新页面重试');
+    return;
+  }
+  if (cur.mode === 'wait'){
+    showKeys(false);
+    const w = cur.wait_seconds || 0;
+    // 长等待 ≠ 等待卡，而是"今天学完了"（缺陷 B11）。
+    // 学习步最长 600 秒，所以等待超过 30 分钟只可能是"下一张卡在明天甚至后天"：
+    // 实测学生把 60/60 新词与到期复习全部清完时，系统把 47.9 小时原样倒计时成
+    // "2877:38"，还附带一个「不想等，现在就刷」按钮 —— 点下去会把 2 天后到期的卡
+    // 强行提前抽出，打乱 FSRS 间隔。这属于该说"今天完成"的场景，不是等待场景。
+    if (w > WAIT_LONG_SEC){ doneScreen(nextDueNote(w, cur.next_due)); return; }
+    m.innerHTML = '<div class="tag">歇口气</div><div id="waitnum">--:--</div>' +
+      '<div class="meta">下一张卡还有 <span id="wtxt">' + w + '</span> 秒到期</div>' +
+      '<button class="bigbtn" id="btnforce">不想等，现在就刷 ▸</button>';
+    $('#btnforce').onclick = () => loadNext(true);
+    tickWait(w);
+    return;
+  }
+  if (cur.mode === 'done'){
+    doneScreen('');
+    return;
+  }
+/* ---- 完成页（今日已全部完成）----
+   从 render() 里抽出来：长等待（>30 分钟）也要走这里，因为它本质是"今天学完了"。
+   extraNote 用来补"下一张卡什么时候到期"，否则学生会看到"明日预计 0 张到期"而困惑。 */
+function doneScreen(extraNote){
+  const m = $('#main');
+  showKeys(false);
+  const c = (cur && cur.counts) || {};
+  const succ = c.today_success != null ? c.today_success + '%' : '—';
+  const sweet = c.today_success != null
+    ? (c.today_success >= 80 && c.today_success <= 90 ? '，在最佳学习区间' : '')
+    : '';
+  // 自动降级与收容所要如实说明，否则学生看到"成功率"和"还有词没清"会困惑
+  const slowNote = c.today_auto_slow
+    ? '<br>其中 ' + c.today_auto_slow + ' 次是超时未评、系统自动记的（不计入成功率）' : '';
+  const shelterNote = c.shelter_now
+    ? '<br>另有 <b style="color:#fbbf24">' + c.shelter_now + '</b> 个顽固词在收容所（老师会单独处理，' +
+      '你每天也会抽几张回来复健，答对就自动回到队列）' : '';
+  // 缺陷 B7：学生可能"无词可学"——所有词都在休眠复核池里，或今天真的空了。
+  // 不说清楚的话，界面只会显示"今日已全部完成"，学生会以为系统坏了。
+  const nothingNote = (!c.learned && c.total)
+    ? '<br><span style="color:#a5f3fc">你已经把认识度自报完了：' + c.total + ' 个词都在休眠复核池里' +
+      '（约 7~14 天后会冒头抽查，确认是真认识；通过后再进 30~60 天长休眠）。' +
+      '想提前开始学，可以点顶栏的「⚡继续快筛」把不确定的词标出来。</span>'
+    : '';
+  const probeNote = c.probe_due
+    ? '<br>复核池里有 <b>' + c.probe_due + '</b> 个词到了冒头期，今天会尽量抽查完。' : '';
+  // 延时探针周报（方案 A4）：有样本才显示，避免 0/0 吓到学生
+  const probeRateNote = (c.probe_n > 0)
+    ? '<br>本周抽查保留率 <b style="color:#a5f3fc">' + (c.probe_rate != null ? c.probe_rate + '%' : '—') +
+      '</b>（' + (c.probe_ok||0) + '/' + c.probe_n + '）' : '';
+  // 方案 C1：稳态复习负担粗估（按当前档位 × 保持率倍率）
+  const burdenNote = (c.review_burden_est > 0)
+    ? '<br>按当前档位，稳态每日复习大约 <b>' + c.review_burden_est + '</b> 张' +
+      (c.gear_tier === 'catchup' ? '（赶进度档，负担会偏高）' :
+        (c.desired_retention != null && Number(c.desired_retention) < 0.875
+          ? '（轻负 85%）' : '（牢记 90%）'))
+    : '';
+  // 赶进度：学完当天额度后给一个出口（再多学一组）。上限只有一组，
+  // 且被门控/限流时不给 —— 服务端 extra_can 已经把这几件事都算好了，这里只负责画。
+  const extraDone = c.extra_sets
+    ? '<br><span style="color:#86efac">今天已经多学过 ' + c.extra_sets +
+      ' 组（上限 ' + (c.extra_max||1) + ' 组）—— 够了，明天再来。</span>' : '';
+  const extraBtn = c.extra_can
+    ? '<button class="bigbtn" id="btnextra" style="background:#065f46; color:#d1fae5;">' +
+      '再学一组（+' + (c.new_cap||c.new_limit||0) + ' 个新词）▸</button>' : '';
+  m.innerHTML = '<div id="doneface">🎉</div><div class="tag">今日已全部完成</div>' +
+    '<div class="meta">今日成功率 <b style="color:#a5f3fc">' + succ + '</b>' + sweet + slowNote +
+    '<br>到期清零 ✅ · 明日预计 ' + (c.tomorrow_due||0) + ' 张到期' + burdenNote +
+    '<br>新词 ' + (c.new_today||0) + ' 张 · 复习 ' + (c.reviews_today||0) + ' 次 · 总进度 ' +
+    (c.learned||0) + '/' + (c.total||0) + shelterNote + probeNote + probeRateNote +
+    nothingNote + extraDone +
+    (extraNote || '') +
+    '<br>休息也是学习的一部分。</div>' +
+    extraBtn +
+    '<button class="bigbtn" id="btnagain">再看看进度 ▸</button>';
+  $('#btnagain').onclick = () => loadNext();
+  const eb = $('#btnextra');
+  if (eb) eb.onclick = async () => {
+    eb.disabled = true;
+    const r = await api('/api/vocab/extra_dose', {method:'POST',
+      headers:{'Content-Type':'application/json'}, body:'{}'});
+    if (r.error){ toast(r.error); eb.disabled = false; return; }
+    toast('已加一组，今天上限 ' + r.new_limit + ' 个新词');
+    loadNext();
+  };
+}
+
+/* 下一张卡的到期时间说人话：不显示"约 1.9 天后"，而是按天说 ——
+   任务本来就是按天算的（每天多少词），学生要的答案是"哪天"，不是小时数。
+   同一天内还有卡时给具体时间，否则只说"今天晚些时候"会让人以为系统卡住了。 */
+function dueDayLabel(iso){
+  if (!iso) return null;
+  const d = new Date(iso);
+  if (isNaN(d)) return null;
+  const pad = n => String(n).padStart(2, '0');
+  const md = (d.getMonth() + 1) + '月' + d.getDate() + '日';
+  const hm = pad(d.getHours()) + ':' + pad(d.getMinutes());
+  const day = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  const today = new Date();
+  const base = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  const n = Math.round((day - base) / 86400000);
+  if (n <= 0) return {label:'今天晚些时候', at: hm};
+  if (n === 1) return {label:'明天', at: md};
+  if (n === 2) return {label:'后天', at: md};
+  return {label: n + ' 天后', at: md};
+}
+function nextDueNote(sec, iso){
+  const f = dueDayLabel(iso);
+  if (!f) return '';
+  return '<br><span style="color:#a5f3fc">下一张卡排到 ' + f.label + '（' + f.at +
+    '）。今天的量已经够了，不用刷新等。</span>';
+}
+const card = cur.card || {};
+  const isNew = cur.mode === 'new';
+  const phase = isNew ? (revealed ? 'back' : 'front') : 'rev';
+  const show = k => ELEMENTS[k] && ELEMENTS[k][phase];
+  let tag = isNew ? '新词' : '复习';
+  if (card.probe) tag = '抽查';
+  else if (card.rehab) tag = '复健';
+  let h = '<div class="tag">' + tag + '</div>';
+  if (show('word'))
+    h += '<div class="word">' + esc(card.word) +
+      (show('speak') ? '<button id="btnspk" type="button" title="朗读">🔊</button>' : '') + '</div>';
+  // 音节脚手架（模块8）：always 正面常显 / tap 点按才显 / hide 不显
+  const sm = (cur.counts && cur.counts.syll_mode) || 'hide';
+  if (card.syll && !revealed && sm === 'always')
+    h += '<div class="phonetic">' + esc(card.syll) + '</div>';
+  else if (card.syll && !revealed && sm === 'tap')
+    h += '<div class="sylltap" id="sylltap">显示音节</div>';
+  if (isNew && !revealed) h += '<div class="meta">词频 #' + (card.word_id||'?') + '</div>';
+  if (show('phonetic') && card.phonetic)
+    h += '<div class="phonetic">' + esc(card.phonetic) + '</div>';
+  if (show('icon') && card.icon)
+    h += '<div class="icon">' + esc(card.icon) + '</div>';
+  if (show('gloss') && revealed)
+    h += '<div class="gloss">' + esc(card.gloss) + '</div>';
+  if (show('variants') && revealed){
+    const v = (card.variants||[]).join(' / ');
+    if (v) h += '<div class="variants">也作: ' + esc(v) + '</div>';
+  }
+  if (show('example') && revealed && card.example)
+    h += '<div class="ex">' + esc(card.example) + '</div>';
+  if (show('note') && revealed && card.teacher_note)
+    h += '<div class="note">' + esc(card.teacher_note) + '</div>';
+  if (show('family') && revealed && card.family && card.family.length){
+    h += '<div class="fam"><div class="famcap">词族 · 同根词</div>' +
+      card.family.map(f =>
+        '<div class="famrow"><span class="famw" data-w="' + esc(f.word) + '">' + esc(f.word) + '</span>' +
+        (f.p ? '<span class="famp">' + esc(f.p) + '</span>' : '') +
+        '<span class="famg">' + esc(f.gloss) + '</span></div>').join('') + '</div>';
+  }
+  if (revealed){
+    h += '<div class="meta">' + (STATE_STR[card.state]||card.state) +
+      ' · 已练 ' + (card.reps||0) + ' 次' + (card.lapses ? ' · 忘过 ' + card.lapses + ' 次' : '') + '</div>';
+  } else {
+    h += '<div class="meta" style="margin-top:16px">想到意思了吗？</div>' +
+      '<button id="btnreveal">翻面 · 空格</button>';
+  }
+  m.innerHTML = h;
+  const br = $('#btnreveal');
+  if (br) br.onclick = reveal;
+  const spk = $('#btnspk');
+  if (spk) spk.onclick = () => speak(card.word);
+  const st = $('#sylltap');
+  if (st) st.onclick = () => { st.outerHTML = '<div class="phonetic">' + esc(card.syll) + '</div>'; };
+  m.querySelectorAll('.famw').forEach(el => {
+    el.onclick = () => speak(el.getAttribute('data-w'));
+  });
+  showKeys(revealed);
+  applyCapHint();
+  if (!revealed) startFrontTimer();
+}
+/* ---- 遮罩让路（关键修复）----
+   卡片计时器必须在任何全屏遮罩打开时停摆。
+   实测（全新库 0/3807）：首进引导弹窗「你背过多少单词？」开着、学生 25 秒没碰页面，
+   后台就 5s 自动翻面 + 10s 自动记 Hard，烧掉一张卡并留下一次 lapse ——
+   学生还没开始学，就已经背了一个"忘记"记录；而且会以约 16 秒一张的速度持续消耗。
+   把判断集中在这里，以后再加遮罩也自动受保护。 */
+function isShown(sel){
+  const el = $(sel);
+  if (!el || el.classList.contains('hidden')) return false;
+  return getComputedStyle(el).display !== 'none';
+}
+function overlayOpen(){
+  return isShown('#sc-intro') || isShown('#screen') || isShown('#phonics') || isShown('#speed');
+}
+/* 遮罩关闭后恢复卡片计时（否则 5s 自动翻面等效率功能会静默失效） */
+function resumeCardTimer(){
+  if (overlayOpen() || !cur) return;
+  if (cur.mode !== 'review' && cur.mode !== 'new') return;
+  if (revealed) startSlowTimer(); else startFrontTimer();
+}
+
+/* ---- 正面 5 秒强制翻面（效率：想不出就看答案）---- */
+const FRONT_SEC = 5;
+let frontT0 = 0, frontRaf = null, frontDone = false;
+function startFrontTimer(){
+  clearFrontTimer();
+  frontTimeout = false;   // 每张卡（或遮罩关掉重新计时）从零开始，清掉上一张的"没翻面"判定
+  if (overlayOpen()) return;
+  if (!cur || revealed) return;
+  if (cur.mode !== 'review' && cur.mode !== 'new') return;
+  frontT0 = Date.now(); frontDone = false;
+  frontTick();
+}
+function frontTick(){
+  if (!frontT0 || revealed) return;
+  const el = (Date.now() - frontT0) / 1000;
+  const br = $('#btnreveal');
+  if (br) br.textContent = '翻面 · 空格（' + Math.max(0, Math.ceil(FRONT_SEC - el)) + 's）';
+  if (el >= FRONT_SEC && !frontDone){
+    frontDone = true;
+    // 5 秒没点翻面 = 没认出来，本次评分封顶「模糊」（只判复习卡）
+    if (cur && cur.mode === 'review') frontTimeout = true;
+    reveal();
+    return;
+  }
+  frontRaf = requestAnimationFrame(frontTick);
+}
+function clearFrontTimer(){
+  frontT0 = 0; frontDone = false;
+  if (frontRaf) cancelAnimationFrame(frontRaf);
+  frontRaf = null;
+}
+/* ---- 慢卡三层·前两层（模块5）：5s倒计时环 + 10s自动降级 ---- */
+const SLOW_RING_SEC = 5;    // 翻面 5 秒提示"该评了"（环变亮）
+const SLOW_AUTO_SEC = 10;   // 翻面 10 秒未评分 → 自动记 Hard + slow 标记
+const SLOW_RING_LEN = 2 * Math.PI * 12;  // r=12
+let slowT0 = 0, slowRaf = null, slowAutoDone = false;
+
+function startSlowTimer(){
+  clearSlowTimer();
+  if (overlayOpen()) return;
+  if (!cur || (cur.mode !== 'review' && cur.mode !== 'new')) return;
+  slowT0 = Date.now(); slowAutoDone = false;
+  const ring = $('#slowring');
+  ring.classList.add('show'); ring.classList.remove('late');
+  $('#slowtxt').textContent = '';
+  slowTick();
+}
+function slowTick(){
+  if (!slowT0) return;
+  const el = (Date.now() - slowT0) / 1000;
+  const frac = Math.min(1, el / SLOW_RING_SEC);
+  const fg = $('#slowfg');
+  fg.style.strokeDasharray = SLOW_RING_LEN;
+  fg.style.strokeDashoffset = SLOW_RING_LEN * (1 - frac);
+  const ring = $('#slowring');
+  if (el >= SLOW_RING_SEC && el < SLOW_AUTO_SEC){
+    ring.classList.add('late');
+    $('#slowtxt').textContent = '该评了';
+  }
+  if (el >= SLOW_AUTO_SEC && !slowAutoDone){
+    slowAutoDone = true;
+    autoSlowRate();
+    return;
+  }
+  slowRaf = requestAnimationFrame(slowTick);
+}
+function clearSlowTimer(){
+  slowT0 = 0;
+  if (slowRaf) cancelAnimationFrame(slowRaf);
+  slowRaf = null;
+  const ring = $('#slowring');
+  if (ring){ ring.classList.remove('show', 'late'); }
+}
+async function autoSlowRate(){
+  // 翻面 10 秒未评分 → 系统按 Hard(2) 记录 + slow 标记，不打断流程（模块5第2层）
+  // overlayOpen 兜底：遮罩打开时绝不代替学生评分（见 overlayOpen 注释）
+  if (busy || !cur || !cur.card || !revealed || overlayOpen()) return;
+  busy = true;
+  const dur_ms = Date.now() - revealedAt;
+  const res = await api('/api/vocab/review', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({word_id: cur.card.word_id, rating: 2, dur_ms: dur_ms, slow: 1})
+  });
+  busy = false;
+  clearSlowTimer();
+  if (res.error){ toast('出错: ' + res.error); return; }
+  streak = 0;
+  toast('超时未评 → 先记「模糊」，' +
+    (res.due_in != null ? fmtSec(Math.max(0, res.due_in)) + '后重出' : '稍后重出'));
+  if (res.popup) showPopup(res.popup);
+  cur = res.next || {mode:'done', counts:(res.next||{}).counts};
+  revealed = false; revealedAt = 0;
+  render();
+}
+function reveal(){ if (!revealed) { clearFrontTimer(); revealed = true; revealedAt = Date.now(); render(); startSlowTimer(); } }
+/* ---- 评分封顶提示（方案 A）----
+   timeout：复习卡正面 5 秒没翻 → 记得/秒懂压暗
+   first_cap：新词第一次见面 → 记得/秒懂压暗（翻面后短期记忆不能当「会了」）
+   easy_cap：前几次见面 → 只压暗秒懂 */
+function capActive(){ return frontTimeout && !!cur && cur.mode === 'review'; }
+function applyCapHint(){
+  const card = (cur && cur.card) || {};
+  const hint = $('#caphint');
+  const first = !!card.first_cap;
+  const timeout = capActive();
+  const easy = !first && !timeout && !!card.easy_cap;
+  let msg = '', maxR = 4;
+  if (first){ msg = '新词第一次见面 → 本次最高只记「模糊」'; maxR = 2; }
+  else if (timeout){ msg = '⏱ 5 秒没翻面 → 本次最高只记「模糊」'; maxR = 2; }
+  else if (easy){ msg = '前几次见面还不能点「秒懂」'; maxR = 3; }
+  if (hint){
+    hint.textContent = msg;
+    hint.classList.toggle('hidden', !msg);
+  }
+  document.querySelectorAll('#keys .key').forEach(b => {
+    const r = parseInt(b.dataset.r, 10);
+    b.classList.toggle('capped', !!msg && r > maxR);
+  });
+}
+function tickWait(sec){
+  let left = sec;
+  const upd = () => {
+    const e = $('#waitnum'), tx = $('#wtxt');
+    if (!e) return clearInterval(timer);
+    // 超过 1 小时就不再显示 mm:ss（原先把 47.9 小时写成 "2877:38"，见缺陷 B11）。
+    // 走到这里只可能是学习步内的短等待，但格式本身不该有"两位分钟"这个隐含假设。
+    const mm = String(Math.floor(left/60)).padStart(2,'0');
+    const ss = String(left%60).padStart(2,'0');
+    e.textContent = (left >= 3600)
+      ? (Math.floor(left/3600) + ':' + String(Math.floor((left%3600)/60)).padStart(2,'0') + ':' + ss)
+      : (mm + ':' + ss);
+    if (tx) tx.textContent = left;
+    if (left <= 0){ clearInterval(timer); loadNext(); return; }
+    left--;
+  };
+  upd();
+  timer = setInterval(upd, 1000);
+}
+document.querySelectorAll('#keys .key').forEach(b =>
+  b.addEventListener('click', () => rate(parseInt(b.dataset.r, 10))));
+document.querySelectorAll('#helps .help').forEach(b =>
+  b.addEventListener('click', () => help(b.dataset.h)));
+document.body.addEventListener('click', e => {
+  if (e.target.closest('#keys') || e.target.closest('button')) return;
+  if (cur && (cur.mode === 'review' || cur.mode === 'new')) reveal();
+});
+document.addEventListener('keydown', e => {
+  if (e.repeat || sentinelActive) return;
+  if (e.code === 'Space'){ e.preventDefault(); if (cur && (cur.mode==='review'||cur.mode==='new')) reveal(); }
+  else if (e.key >= '1' && e.key <= '4') rate(parseInt(e.key, 10));
+});
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) hiddenAt = Date.now();
+  else if (hiddenAt && Date.now() - hiddenAt > 5*60*1000){
+    toast('走神了 ' + Math.round((Date.now()-hiddenAt)/60000) + ' 分钟，回来继续！');
+    hiddenAt = 0;
+  }
+});
+// 退出许可（模块6）：会话中途退出且有未清到期时，把代价摆出来再放人走（信息透明，非强挽留）
+window.addEventListener('beforeunload', e => {
+  const remain = cur && cur.counts && cur.counts.remaining_today;
+  if (remain > 0 && cur.mode !== 'done'){
+    e.preventDefault();
+    e.returnValue = '今日还剩 ' + remain + ' 张到期未清，确定要走吗？';
+  }
+});
+
+/* ================= 站立秒认模式（模块6 R2） =================
+ * 流程：英文大字 → 3秒节拍(环形倒计时+震动) → 显示中文(轻扰动) → 会/不会二分
+ * 红线：只投旧词、不投新词；颜色低饱和(3~4色随机)；位置仅小范围扰动；
+ *       禁全屏乱跑/闪烁/爆炸/强音效；不支持震动降级为视觉倒计时。
+ */
+const SP_SEC = 3;                 // 3 秒节拍（9.4 表）
+const SP_COLORS = ['#7dd3fc', '#6ee7b7', '#fca5a5', '#c4b5fd']; // 低饱和4色
+const RING_LEN = 2 * Math.PI * 27; // 圆环周长 (r=27)
+
+const speed = {
+  active: false, card: null, count: 0, t0: 0,
+  phase: 'idle',   // idle | counting | shown
+  raf: null, shownAt: 0,
+};
+
+function vibrate(ms){
+  if (navigator.vibrate) { try { navigator.vibrate(ms); } catch(e){} }
+}
+
+function spEnter(){
+  clearSlowTimer();
+  clearFrontTimer();
+  speed.active = true; speed.count = 0;
+  $('#speed').classList.remove('hidden');
+  document.body.style.overflow = 'hidden';
+  spNext();
+}
+function spExit(){
+  speed.active = false; speed.phase = 'idle';
+  if (speed.raf) cancelAnimationFrame(speed.raf);
+  $('#speed').classList.add('hidden');
+  document.body.style.overflow = '';
+  toast('秒认结束 · 本次 ' + speed.count + ' 词');
+  loadNext();   // 回到正常队列
+}
+
+async function spNext(exclude){
+  if (!speed.active) return;
+  const url = '/api/vocab/speed/next' + (exclude ? '?exclude=' + exclude : '');
+  const res = await api(url);
+  if (res.error){ toast('出错: ' + res.error); return spExit(); }
+  if (res.mode === 'done'){
+    toast('没有可秒认的旧词了，先去正常学习吧');
+    return spExit();
+  }
+  speed.card = res.card; speed.phase = 'counting'; speed.t0 = Date.now();
+  $('#spword').textContent = res.card.word;
+  $('#spcntext').textContent = '';
+  $('#spcn').style.visibility = 'hidden';
+  $('#spkeys').classList.add('hidden');
+  $('#sptime').textContent = SP_SEC + ' 秒内想出中文';
+  $('#spprog').textContent = '秒认 · ' + (++speed.count);
+  spTick();
+}
+
+function spTick(){
+  if (!speed.active || speed.phase !== 'counting') return;
+  const el = (Date.now() - speed.t0) / 1000;
+  const frac = Math.min(1, el / SP_SEC);
+  $('#springfg').style.strokeDasharray = RING_LEN;
+  $('#springfg').style.strokeDashoffset = RING_LEN * (1 - frac);
+  if (el >= SP_SEC){ spShow(false); return; }  // 超时=没想到
+  speed.raf = requestAnimationFrame(spTick);
+}
+
+function spShow(early){
+  if (!speed.active || speed.phase !== 'counting') return;
+  speed.phase = 'shown'; speed.shownAt = Date.now();
+  if (speed.raf) cancelAnimationFrame(speed.raf);
+  $('#springfg').style.strokeDashoffset = 0;
+  vibrate(early ? 30 : 60);          // 时间边界震动；不支持则静默降级
+  // 中文轻扰动：低饱和色随机 + 小范围位置扰动（禁全屏乱跑）
+  const cn = $('#spcntext');
+  cn.textContent = speed.card.gloss;
+  cn.style.color = SP_COLORS[Math.floor(Math.random() * SP_COLORS.length)];
+  cn.style.transform = 'translate(' + (Math.random()*24-12) + 'px,' + (Math.random()*16-8) + 'px)';
+  $('#spcn').style.visibility = 'visible';
+  $('#spkeys').classList.remove('hidden');
+  $('#sptime').textContent = early ? '想出来了！' : '没想到也算正常';
+}
+
+async function spRate(known){
+  if (!speed.active || speed.phase !== 'shown' || !speed.card) return;
+  const word_id = speed.card.word_id;
+  const rating = known ? 3 : 1;      // 会→Good(3) 不会→Again(1)
+  const dur_ms = Date.now() - speed.t0;
+  const res = await api('/api/vocab/review', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({word_id, rating, dur_ms})
+  });
+  if (res.error){ toast('出错: ' + res.error); return; }
+  speed.phase = 'idle';
+  spNext(word_id);   // 下一张，跳过刚评的
+}
+
+// 事件绑定
+$('#btnspeed').onclick = spEnter;
+$('#popupok').onclick = hidePopup;
+$('#spexit').onclick = spExit;
+$('#spword').onclick = () => { if (speed.phase === 'counting') spShow(true); };
+$('#spcn').onclick = () => {};
+document.querySelectorAll('#spkeys .spk').forEach(b =>
+  b.addEventListener('click', () => spRate(b.dataset.v === '1')));
+document.addEventListener('keydown', e => {
+  if (!speed.active || e.repeat) return;
+  if (e.code === 'Space'){ e.preventDefault(); if (speed.phase === 'counting') spShow(true); }
+  else if (e.key === '1' && speed.phase === 'shown') spRate(false);
+  else if (e.key === '3' && speed.phase === 'shown') spRate(true);
+  else if (e.key === 'Escape') spExit();
+});
+
+/* ---- 快筛（模块 1）：新词自报三态。认识先 7~14 天抽查，通过后再 30~60 天长休眠 ---- */
+const sc = { active: false, card: null, busy: false, knowCount: 0, lastWord: '', knowPending: null };
+function scResetKnowBtn(){
+  const b = $('#sc-know');
+  if (b) b.textContent = '认识 ✓';
+  sc.knowPending = null;
+}
+function scKnowClick(){
+  if (sc.busy || !sc.card) return;
+  // 方案 C4：认识需二次确认，降低误点进长休眠的概率
+  if (sc.knowPending !== sc.card.word_id){
+    sc.knowPending = sc.card.word_id;
+    const b = $('#sc-know');
+    if (b) b.textContent = '再点确认 ✓';
+    toast('再点一次确认「认识」（约 7~14 天后会抽查）');
+    return;
+  }
+  scResetKnowBtn();
+  scAnswer('know');
+}
+async function scInit(){
+  // 首进判定：新用户（无学习历史）弹"背过多少"；存量快筛显示续筛按钮
+  try {
+    const r = await api('/api/vocab/screen/start');
+    if (r.should_start){
+      // 弹引导前必须先停卡片计时器：否则学生读这十几秒弹窗的功夫，
+      // 后台会 5s 自动翻面 + 10s 自动记 Hard，把词烧成 lapse（见 overlayOpen 注释）
+      clearFrontTimer(); clearSlowTimer();
+      $('#sc-intro').classList.remove('hidden');
+    }
+    else if (r.pending) await scRefreshBtn();
+  } catch(e) { /* 接口失败不阻塞学习 */ }
+}
+async function scRefreshBtn(){
+  try {
+    const r = await api('/api/vocab/screen/start');
+    const b = $('#btnscreen');
+    b.style.display = r.pending ? 'inline' : 'none';
+    // 缺陷⑥：早停阈值放宽后，"还能继续筛"必须一眼可见，
+    // 只留一个 ⚡快筛 学生不会知道那是什么、还剩多少。
+    if (r.pending){
+      const p = r.progress || {};
+      const left = p.left || 0;
+      // 从没自报过的学生别写「继续」（他还没开始过）；screened>0 才算"续"。
+      const label = (p.screened > 0 || (p.redo_all || 0) > 0) ? '继续快筛' : '快筛';
+      b.textContent = '⚡' + label + (left ? ' ' + left : '');
+      b.title = left ? ('还有 ' + left + ' 个词没自报，随时可接着筛')
+                     : '可以重新筛已经标过的词';
+    }
+  } catch(e) {}
+}
+async function scGo(){
+  await api('/api/vocab/config', {method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({screened_intro: $('#sc-level').value})});
+  $('#sc-intro').classList.add('hidden');
+  scEnter();
+}
+async function scSkipIntro(){
+  await api('/api/vocab/config', {method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({screened_intro: 'skipped'})});
+  $('#sc-intro').classList.add('hidden');
+  // 关键：必须立刻刷新顶栏入口。少了这一句，学生点了「跳过」之后按钮仍是隐藏的，
+  // 看起来就像"再也进不去快筛了"（后端此刻已经允许，只是前端没问）。
+  await scRefreshBtn();
+  resumeCardTimer();   // 引导关掉，把卡片计时还给学习流程
+}
+async function scEnter(){
+  sc.active = true;
+  clearSlowTimer();
+  clearFrontTimer();   // 快筛期间也不该有卡片计时在跑
+  scNoticeHide();
+  $('#screen').classList.remove('hidden');
+  $('#main').style.display = 'none';
+  $('#helps').classList.add('hidden');
+  $('#bar').style.display = 'none';
+  // 学生主动点进来 = 明确"我要接着筛"。若之前是早停状态，必须先清掉连续计数，
+  // 否则他答第一个「不认识」就又立刻被终止 —— 按钮能点、点了没用。
+  // （历史栈是另一条路：撤销会把计数一并回退，见 screen_undo。）
+  try {
+    const r = await api('/api/vocab/screen/start');
+    if (r.progress && r.progress.terminated) await api('/api/vocab/screen/resume', {method:'POST',
+      headers:{'Content-Type':'application/json'}, body: '{}'});
+  } catch(e) { /* 失败也不该挡住快筛 */ }
+  await scNext();
+}
+/* 快筛的收尾面板：没有任何待筛词可投时才出现。
+   这里的「重新筛词」就是用户说的"误点了回不去"的出口 —— 顶栏入口会在
+   screen_pending 为假时隐藏，所以这面板是学生唯一能自救的地方，不能省。 */
+async function scNotice(){
+  const r = await api('/api/vocab/screen/start');
+  const p = r.progress || {};
+  scRefreshOps(p);
+  const knowN = p.know || 0;
+  const allN = p.redo_all || 0;
+  // 两种重筛口径不能混说：knowN 是"标了认识的"（最常误点、也最伤，休眠 30~60 天），
+  // allN 还包含模糊/不认识。原先只按 allN 出按钮却按 knowN 写文案，
+  // 出现过"0 个在休眠"配"重新筛这 2 个词"的自相矛盾。
+  const scope = knowN > 0 ? 'know' : 'all';
+  const redoN = knowN > 0 ? knowN : allN;
+  $('#scword').textContent = '✓';
+  $('#scphon').textContent = '';
+  $('#scprog').textContent = '已筛 ' + (p.screened || 0) + ' / ' + (p.total || 0);
+  const n = $('#scnotice');
+  n.innerHTML =
+    '<h4>这一轮筛完了</h4>' +
+    '<p>该自报的都报过了。' +
+    (knowN > 0
+      ? '<b>' + knowN + '</b> 个标成「认识」的词在休眠（30~60 天后按 5% 冒头抽查）。'
+      : '没有词被标成「认识」。') +
+    (redoN > 0
+      ? '<br><br>如果刚才<b>手滑点错了</b>，可以重新筛一遍 —— 已经真正开始学的词不会被动。'
+      : '') +
+    '</p>' +
+    (redoN > 0
+      ? '<button class="pri" id="scredoes">重新筛这 ' + redoN + ' 个词</button>'
+      : '') +
+    '<button class="sec" id="scnotback">回去学习</button>';
+  n.classList.remove('hidden');
+  document.querySelectorAll('#sckeys .scbtn').forEach(b => { b.disabled = true; });
+  const ok = $('#scredoes');
+  if (ok) ok.onclick = async () => {
+    ok.disabled = true;
+    const r2 = await api('/api/vocab/screen/redo', {method:'POST',
+      headers:{'Content-Type':'application/json'}, body: JSON.stringify({scope: scope})});
+    toast(r2.reset ? ('已放回 ' + r2.reset + ' 个词，重新过一遍') : '没有需要重筛的词');
+    sc.knowCount = 0;
+    scNoticeHide();
+    await scNext();
+  };
+  $('#scnotback').onclick = () => scExit(true);
+}
+function scNoticeHide(){
+  $('#scnotice').classList.add('hidden');
+  document.querySelectorAll('#sckeys .scbtn').forEach(b => { b.disabled = false; });
+}
+function scRefreshOps(p){
+  const u = $('#scundo');
+  if (!u) return;
+  const n = (p && p.undoable) || 0;
+  // 撤销只对「刚筛过、还没开始学」的词有意义，所以结论以服务端进度为准，
+  // 不靠前端 JS 变量（一刷新就丢的撤销等于没有）。
+  // 注意：这里绝不能再看 sc.busy —— 这个函数正是在 scAnswer 内部（busy=true）被调用的，
+  // 加上 busy 判断会让按钮被永久锁死，撤销功能直接失效。
+  // 防连点交给 scUndo 自己的 sc.busy 守卫。
+  u.disabled = !n;
+  u.title = n ? ('把最近自报的「' + (sc.lastWord || '上一词') + '」放回待筛（可撤 ' + n + ' 词）')
+              : '还没有可撤销的自报';
+}
+async function scNext(){
+  if (!sc.active) return;
+  const r = await api('/api/vocab/screen/next');
+  scRefreshOps(r.progress);
+  if (r.mode === 'done'){ await scNotice(); return; }
+  sc.card = r.card;
+  $('#scword').textContent = r.card.word;
+  $('#scphon').textContent = r.card.p || '';
+  $('#scprog').textContent = '已筛 ' + r.progress.screened + ' / ' + r.progress.total +
+    (sc.knowCount ? ' · 跳过 ' + sc.knowCount + ' 个认识的' : '');
+}
+async function scAnswer(ans){
+  if (sc.busy || !sc.card) return;
+  if (ans !== 'know') scResetKnowBtn();
+  sc.busy = true;
+  const prevWord = sc.card.word;
+  try {
+    const r = await api('/api/vocab/screen', {method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({word_id: sc.card.word_id, answer: ans})});
+    if (r.error){ toast('出错: ' + r.error); sc.busy = false; return; }
+    if (ans === 'know') sc.knowCount++;
+    sc.lastWord = prevWord;
+    if (r.progress) scRefreshOps(r.progress);
+    if (r.terminated){
+      // 早停不再把学生赶出快筛：panel 里有「重新筛词」和「回去学习」两条路。
+      // 原先是 scExit()，而顶栏入口恰好被 screen_pending 藏掉 —— 提示语让他
+      // "点顶栏继续快筛"，按钮却不存在（用户反馈的"回不去"就是这个）。
+      toast('连续 ' + r.know_streak + ' 个都不认识，先歇一下');
+      await scNotice();
+      return;
+    }
+    if (r.next && r.next.mode === 'done'){ await scNotice(); return; }
+    sc.card = r.next && r.next.card ? r.next.card : null;
+    scResetKnowBtn();
+    if (sc.card){
+      $('#scword').textContent = sc.card.word;
+      $('#scphon').textContent = sc.card.p || '';
+      $('#scprog').textContent = '已筛 ' + (r.next.progress.screened) + ' / ' + r.next.progress.total +
+        (sc.knowCount ? ' · 跳过 ' + sc.knowCount + ' 个认识的' : '');
+    }
+  } finally { sc.busy = false; }
+}
+/* 「误点了」的即时救回：把刚评的一个词放回待筛池（服务端记着历史，刷新也能撤）。 */
+async function scUndo(){
+  if (sc.busy) return;
+  sc.busy = true;
+  try {
+    const r = await api('/api/vocab/screen/undo', {method:'POST',
+      headers:{'Content-Type':'application/json'}, body: '{}'});
+    if (r.error){ toast(r.error === 'nothing to undo' ? '没有可撤销的了' : ('出错: ' + r.error)); return; }
+    toast('已把「' + (r.word || sc.lastWord) + '」放回待筛');
+    scNoticeHide();
+    // 服务端已把该词状态清零，直接用返回的卡片接上，不额外再取一次
+    const g = await api('/api/vocab/screen/next');
+    scRefreshOps(r.progress || g.progress);
+    if (g.mode === 'done'){ await scNotice(); return; }
+    sc.card = g.card;
+    $('#scword').textContent = g.card.word;
+    $('#scphon').textContent = g.card.p || '';
+    $('#scprog').textContent = '已筛 ' + g.progress.screened + ' / ' + g.progress.total +
+      (sc.knowCount ? ' · 跳过 ' + sc.knowCount + ' 个认识的' : '');
+  } finally { sc.busy = false; }
+}
+function scExit(silent){
+  if (!sc.active) return;
+  sc.active = false;
+  scNoticeHide();
+  $('#screen').classList.add('hidden');
+  $('#main').style.display = '';
+  $('#bar').style.display = '';
+  clearSlowTimer();
+  scRefreshBtn();
+  if (!silent) toast('快筛暂停，进度已保存，点顶部"⚡快筛"继续');
+  loadNext();
+}
+$('#sc-go').onclick = scGo;
+$('#sc-skip').onclick = scSkipIntro;
+$('#btnscreen').onclick = scEnter;
+$('#sc-know').onclick = () => scKnowClick();
+$('#sc-fuzzy').onclick = () => scAnswer('fuzzy');
+$('#sc-no').onclick = () => scAnswer('no');
+$('#scundo').onclick = scUndo;
+$('#scredo').onclick = () => scNotice();
+$('#scexit').onclick = () => scExit(false);
+$('#scword').onclick = () => { if (sc.card) speak(sc.card.word); };
+document.addEventListener('keydown', e => {
+  if (!sc.active || e.repeat) return;
+  if (e.key === '1') scKnowClick();
+  else if (e.key === '2') scAnswer('fuzzy');
+  else if (e.key === '3') scAnswer('no');
+  else if (e.key === 'Escape') scExit(false);
+});
+
+scInit();
+fillGear();
+$('#gearauto').onclick = () => gearAuto();
+$('#shelterbadge').onclick = () => {
+  const c = (cur && cur.counts) || {};
+  const n = c.shelter_now || 0;
+  toast(n ? ('收容 ' + n + ' 个：反复忘到 6 次的词。老师会单独处理；'
+            + '你每天还会抽 ' + (c.rehab_left != null ? c.rehab_left : 0) + ' 张回来复健，答对就自动回队列')
+          : '目前没有顽固词');
+};
+$('#btnphonics').onclick = () => phEnter();
+$('#phexit').onclick = () => phExit();
+loadNext().then(() => {
+  // 零基础首进自动弹拼读课；每天只弹一次（L7：刷新/重开不再反复盖住卡片）
+  if (cur && cur.counts && cur.counts.track === 'beginner' && cur.counts.phonics_pending
+      && !phSeenToday() && !window._phAsked){
+    window._phAsked = true;
+    setTimeout(() => phEnter(), 400);
+  }
+});
+
+/* ---- 拼读小课（模块8）---- */
+// 今日是否已自动弹过拼读课（L7）：记住到本地，避免每次刷新都盖住卡片。
+// 用 localStorage 而非内存变量，刷新/重开标签页都不再打扰；
+// 待做状态仍由顶栏「拼读·待做」按钮承载，学生想学时随时可点。
+function phSeenKey(){
+  const d = new Date();
+  const s = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+  return 'ph_seen_' + s;
+}
+function phSeenToday(){
+  try { return localStorage.getItem(phSeenKey()) === '1'; } catch(e){ return false; }
+}
+function phMarkSeen(){
+  try { localStorage.setItem(phSeenKey(), '1'); } catch(e){}
+}
+async function phEnter(){
+  clearFrontTimer(); clearSlowTimer();
+  // 打开即算「今天看过了」，即使中途关掉也不再自动弹（顶栏按钮仍在）
+  phMarkSeen();
+  const data = await api('/api/vocab/phonics/today');
+  if (data.error){ toast(data.error); return; }
+  $('#phonics').classList.remove('hidden');
+  $('#phtitle').textContent = '拼读小课 · 第 ' + data.day + '/' + data.total_days + ' 天';
+  const body = $('#phbody');
+  if (!data.rules || !data.rules.length){
+    body.innerHTML = '<div class="meta">今日没有拼读课</div>';
+    return;
+  }
+  body.innerHTML = data.rules.map(r => {
+    const ex = (r.examples||[]).map(e =>
+      '<span class="phchip" data-speak="' + esc(e.word) + '">' + esc(e.word) +
+      (e.gloss ? '<small>' + esc(e.gloss) + '</small>' : '') + '</span>').join('');
+    const fk = (r.fakes||[]).map(f =>
+      '<span class="phchip phfake" data-speak="' + esc(f) + '">' + esc(f) + '<small>假词·试着读</small></span>').join('');
+    return '<div class="phcard' + (r.done ? ' done' : '') + '">' +
+      '<div style="font-size:13px;color:var(--dim)">' + esc(r.title) + (r.done ? ' · 已完成' : '') + '</div>' +
+      '<div class="phgrapheme">' + esc(r.grapheme) + '</div>' +
+      '<div class="phtip">' + esc(r.tip) + '</div>' +
+      '<div style="font-size:12px;color:var(--dim)">真词例</div><div class="phrow">' + ex + '</div>' +
+      '<div style="font-size:12px;color:var(--dim);margin-top:6px">假词练习（会读假词=真会规则）</div><div class="phrow">' + fk + '</div>' +
+      '<button class="phbtn" ' + (r.done ? 'disabled' : '') + ' data-complete="' + esc(r.id) + '">' +
+      (r.done ? '已完成' : '学会了 · 下一课') + '</button></div>';
+  }).join('');
+  body.querySelectorAll('[data-speak]').forEach(el => {
+    el.onclick = () => speak(el.getAttribute('data-speak'));
+  });
+  body.querySelectorAll('[data-complete]').forEach(btn => {
+    btn.onclick = async () => {
+      btn.disabled = true;
+      const res = await api('/api/vocab/phonics/complete', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({rule_id: btn.getAttribute('data-complete')})
+      });
+      if (res.error){ toast(res.error); btn.disabled = false; return; }
+      toast('规则已加入今日新词优先');
+      if (res.today && res.today.all_done){
+        toast('今日拼读完成！可以去背词了');
+        setTimeout(() => phExit(), 600);
+      } else {
+        phEnter();
+      }
+    };
+  });
+}
+function phExit(){
+  $('#phonics').classList.add('hidden');
+  loadNext();
+}
+</script>
+</body>
+</html>
