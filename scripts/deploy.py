@@ -220,6 +220,7 @@ def upload_files(ssh: paramiko.SSHClient, include_data: bool) -> None:
                 [
                     (SOURCES_DIR, "sources"),
                     (SCRIPTS_DIR, "scripts"),
+                    (ROOT / "vendor", "vendor"),
                     (CONFIG_DIR, "config"),
                     (LOGO_SRC, "logo.png"),
                     (DATA_DIR, "data"),

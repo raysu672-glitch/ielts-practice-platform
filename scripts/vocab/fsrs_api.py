@@ -8,10 +8,18 @@ import sys
 import os
 from datetime import datetime, timedelta, timezone
 
-# 让 fsrs 从仓库内 vendor 目录加载（无需 pip 安装）
-_VENDOR = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..', 'vendor')
-if _VENDOR not in sys.path:
-    sys.path.insert(0, os.path.abspath(_VENDOR))
+# 让 fsrs 从包内 vendor 加载（随 scripts/ 部署；无需 pip）
+# 兼容本地仓根 vendor/ 作为回退。
+_HERE = os.path.dirname(os.path.abspath(__file__))
+_VENDOR_CANDIDATES = (
+    os.path.join(_HERE, 'vendor'),
+    os.path.join(_HERE, '..', '..', 'vendor'),
+)
+for _cand in _VENDOR_CANDIDATES:
+    _abs = os.path.abspath(_cand)
+    if os.path.isdir(_abs) and _abs not in sys.path:
+        sys.path.insert(0, _abs)
+        break
 
 from fsrs import Card, Scheduler, Rating, State
 
