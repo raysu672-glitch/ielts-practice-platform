@@ -305,6 +305,7 @@ class TaskApiTests(unittest.TestCase):
             "listening_synonym_u01",
             "writing_phrase_u01",
             "speaking_p1_u01",
+            "speaking_complex_pattern_p1",
         )
         put_plan_draft(
             conn,

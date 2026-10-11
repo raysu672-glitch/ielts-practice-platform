@@ -219,7 +219,14 @@ class P2Practice {
             }
             const frame = document.getElementById('p1ComplexFrame');
             if (frame && !this._complexFrameLoaded) {
-                frame.src = 'complex-sentences.html?v=20260827mobile2';
+                const parentQs = new URLSearchParams(window.location.search || '');
+                const frameQs = new URLSearchParams();
+                frameQs.set('v', '20260827mobile2');
+                ['kind', 'id', 'plan_item_id', 'unit_id', 'content_version', 'task_id'].forEach((key) => {
+                    const value = parentQs.get(key);
+                    if (value) frameQs.set(key, value);
+                });
+                frame.src = 'complex-sentences.html?' + frameQs.toString();
                 this._complexFrameLoaded = true;
             }
         }
