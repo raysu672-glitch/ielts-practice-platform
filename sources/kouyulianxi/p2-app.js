@@ -5,6 +5,8 @@ class P2Practice {
         this.mode = 'memorize'; // memorize | apply
         this.p1Mode = 'questions'; // questions | complex
         this._complexFrameLoaded = false;
+        this._complexFrameSrc = '';
+        this._bindComplexTaskBridge();
         this.materialId = null;
         this.variantId = 'a';
         this.questionIndex = 0;
@@ -217,12 +219,54 @@ class P2Practice {
             if (window.p1Practice && typeof window.p1Practice.stopSpeakQuestion === 'function') {
                 try { window.p1Practice.stopSpeakQuestion(); } catch (_) {}
             }
-            const frame = document.getElementById('p1ComplexFrame');
-            if (frame && !this._complexFrameLoaded) {
-                frame.src = 'complex-sentences.html?v=20260827mobile2';
-                this._complexFrameLoaded = true;
-            }
+            this.loadComplexFrame();
         }
+    }
+
+    /** 把外层任务参数带进复合句 iframe；参数变化时重新加载 */
+    loadComplexFrame() {
+        const frame = document.getElementById('p1ComplexFrame');
+        if (!frame) return;
+        const params = new URLSearchParams(window.location.search || '');
+        const qs = new URLSearchParams();
+        qs.set('v', '20261011complex');
+        ['kind', 'id', 'plan_item_id', 'unit_id', 'content_version', 'scope_total'].forEach((k) => {
+            const val = params.get(k);
+            if (val != null && val !== '') qs.set(k, val);
+        });
+        const next = 'complex-sentences.html?' + qs.toString();
+        if (!this._complexFrameLoaded || this._complexFrameSrc !== next || frame.src === 'about:blank') {
+            frame.src = next;
+            this._complexFrameLoaded = true;
+            this._complexFrameSrc = next;
+        }
+    }
+
+    /** 复合句在嵌套 iframe 里，完成信号需转发到主站 student.js */
+    _bindComplexTaskBridge() {
+        if (this._complexTaskBridgeBound) return;
+        this._complexTaskBridgeBound = true;
+        window.addEventListener('message', (event) => {
+            try {
+                if (event.origin && event.origin !== window.location.origin) return;
+                const frame = document.getElementById('p1ComplexFrame');
+                if (!frame || !frame.contentWindow || event.source !== frame.contentWindow) return;
+                const data = event.data;
+                if (!data || !data.type) return;
+                if (
+                    data.type !== 'taskScopeProgress' &&
+                    data.type !== 'taskUnitComplete' &&
+                    data.type !== 'activityEvent'
+                ) {
+                    return;
+                }
+                if (window.parent && window.parent !== window) {
+                    window.parent.postMessage(data, '*');
+                }
+            } catch (e) {
+                console.warn('complex task bridge failed', e);
+            }
+        });
     }
 
     setMode(mode) {

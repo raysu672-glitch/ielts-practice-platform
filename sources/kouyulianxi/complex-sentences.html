@@ -525,6 +525,62 @@ items:[
 let G = { screen:'home', kind:'pattern', listKind:'pattern', mode:'combo', step:'assemble', pid:null, idx:0, selected:[], done:false, results:[], xp:0, combo:0, best:0, speakPhase:'prompt', speakLeft:8, speakRated:null, queue:null, seq:false, checked:{} };
 const SPEAK_SEC=8;
 let speakTimer=null;
+/* 每日任务上下文（由主站 → kouyulianxi → 本页 URL 透传） */
+const TASK=(function(){
+const sp=new URLSearchParams(location.search||'');
+const st=Number(sp.get('scope_total'));
+return {
+planItemId:sp.get('plan_item_id')||'',
+unitId:sp.get('unit_id')||'',
+contentVersion:sp.get('content_version')||'1',
+kind:(sp.get('kind')||'').trim(),
+id:(sp.get('id')||'').trim(),
+scopeTotal:(st>0?st:10),
+completePosted:false
+};
+})();
+function postToParent(data){
+try{
+if(window.parent && window.parent!==window){
+window.parent.postMessage(data,'*');
+}
+}catch(e){}
+}
+function countTaskSentenceDone(){
+const pid=TASK.id||G.pid;
+if(pid==null||pid==='') return {done:0,total:0,pid:null};
+const kind=TASK.kind==='adv'?'adv':(G.kind==='adv'?'adv':'pattern');
+const src=kind==='adv'?ADV:PATTERNS;
+const p=src.find(x=>String(x.id)===String(pid));
+if(!p||!p.items) return {done:0,total:0,pid:pid};
+const total=Math.min(p.items.length, TASK.scopeTotal||p.items.length);
+let done=0;
+for(let i=0;i<total;i++){
+if(comboProgress(p.id+'_'+i).done) done++;
+}
+return {done,total,pid:p.id};
+}
+/** 三步都做完的句子数上报；满约定句数后打勾 */
+function maybeReportTaskScope(scopeKey){
+if(!TASK.planItemId) return;
+if(TASK.id && G.pid!=null && String(G.pid)!==String(TASK.id)) return;
+const {done,total}=countTaskSentenceDone();
+if(total<=0) return;
+const base={
+plan_item_id:Number(TASK.planItemId),
+unit_id:TASK.unitId||'',
+content_version:TASK.contentVersion||'1',
+scope_done:done
+};
+const prog=Object.assign({type:'taskScopeProgress'}, base);
+if(scopeKey!=null && scopeKey!=='') prog.scope_key=String(scopeKey);
+postToParent(prog);
+if(done>=total && !TASK.completePosted){
+TASK.completePosted=true;
+postToParent(Object.assign({type:'taskUnitComplete'}, base));
+toast('本课任务已完成，正在同步打勾…');
+}
+}
 function save(){
 try{ localStorage.setItem('kouyu_v2', JSON.stringify({xp:G.xp, combo:G.best})); }catch(e){}
 }
@@ -589,6 +645,11 @@ if(step==='shadow') cur.sh=!!ok;
 if(step==='speak') cur.sp=!!ok;
 m[key]=cur;
 localStorage.setItem('kouyu_combo',JSON.stringify(m));
+if(cur.a&&cur.sh&&cur.sp){
+const parts=String(key).split('_');
+const idx=parts.length?parts[parts.length-1]:'';
+maybeReportTaskScope(idx);
+}
 }catch(e){}
 }
 function comboProgress(key){
@@ -1405,7 +1466,14 @@ next();
 }
 /* ============ 启动 ============ */
 load();
+if(TASK.kind && TASK.id){
+const kind=TASK.kind==='adv'?'adv':'pattern';
+startCombo(TASK.id, kind);
+// 把本机已练完的句子同步到任务进度（跨设备仍以服务端为准）
+setTimeout(function(){ maybeReportTaskScope(null); }, 0);
+}else{
 render();
+}
 </script>
 </body>
 </html>
