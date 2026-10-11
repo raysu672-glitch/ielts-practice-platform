@@ -1424,11 +1424,9 @@ class P1Practice {
                 });
                 done = practiced.size;
             } else if (params.get('kind') && params.get('id')) {
-                total = 10;
-                if (!this._taskComplexPracticed) this._taskComplexPracticed = new Set();
-                const ck = `${params.get('kind')}:${params.get('id')}:${cat && cat.id}:${q && q.id}`;
-                this._taskComplexPracticed.add(ck);
-                done = Math.min(total, this._taskComplexPracticed.size);
+                // 复合句在内层 iframe（complex-sentences.html）里练，不在 P1 录音这里计数。
+                // 以前把任意 P1 录音当成「10 句复合句」，既完不成真实闯关，也会误打勾。
+                return;
             } else if (params.get('material')) {
                 total = 1;
                 done = 1;
