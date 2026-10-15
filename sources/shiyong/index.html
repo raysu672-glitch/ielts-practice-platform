@@ -1,0 +1,1122 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>试用学习台 · 藕叶英语</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --ink: #14201c;
+      --ink-soft: #3a4a44;
+      --muted: #6b7a74;
+      --leaf: #1f7a4d;
+      --leaf-deep: #145c38;
+      --leaf-glow: #2ea86a;
+      --mist: #e8f2ec;
+      --paper: #f6faf7;
+      --line: rgba(20, 32, 28, 0.10);
+      --warn: #9a6b12;
+      --warn-bg: #fff6e0;
+      --locked: #8a9590;
+      --radius: 14px;
+      --max: 720px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: "Noto Sans SC", "Manrope", sans-serif;
+      color: var(--ink);
+      background:
+        radial-gradient(1200px 600px at 80% -10%, rgba(46, 168, 106, 0.18), transparent 55%),
+        radial-gradient(900px 500px at -10% 20%, rgba(20, 92, 56, 0.10), transparent 50%),
+        linear-gradient(180deg, #eef6f1 0%, var(--paper) 38%, #f3f7f4 100%);
+      min-height: 100vh;
+      line-height: 1.55;
+    }
+
+    .wrap {
+      width: min(100% - 32px, var(--max));
+      margin: 0 auto;
+      padding: 28px 0 64px;
+    }
+
+    /* —— Hero: one composition —— */
+    .hero {
+      position: relative;
+      min-height: min(88vh, 640px);
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      padding: 28px 0 8px;
+      overflow: hidden;
+    }
+
+    .hero-visual {
+      position: absolute;
+      inset: 0;
+      z-index: 0;
+      border-radius: 28px;
+      background:
+        linear-gradient(160deg, rgba(20, 32, 28, 0.55) 0%, rgba(20, 92, 56, 0.35) 45%, rgba(232, 242, 236, 0.15) 100%),
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='800' height='600' viewBox='0 0 800 600'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop stop-color='%23145c38'/%3E%3Cstop offset='1' stop-color='%232ea86a'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='800' height='600' fill='%0a1a14'/%3E%3Ccircle cx='620' cy='140' r='180' fill='url(%23g)' opacity='.35'/%3E%3Cpath d='M120 480c80-120 160-160 260-140 90 18 150 90 220 70 70-20 110-100 180-90' stroke='%232ea86a' stroke-width='2' fill='none' opacity='.45'/%3E%3Cpath d='M40 520c100-80 200-40 280-90s140-130 260-110' stroke='%23e8f2ec' stroke-width='1.5' fill='none' opacity='.25'/%3E%3C/svg%3E") center/cover no-repeat;
+      transform: scale(1.02);
+      animation: heroBreathe 10s ease-in-out infinite alternate;
+    }
+
+    @keyframes heroBreathe {
+      from { transform: scale(1.02); filter: saturate(1); }
+      to { transform: scale(1.06); filter: saturate(1.08); }
+    }
+
+    .hero-inner {
+      position: relative;
+      z-index: 1;
+      color: #f4faf6;
+      padding: 36px 28px 40px;
+      max-width: 520px;
+      animation: riseIn 0.7s ease-out both;
+    }
+
+    @keyframes riseIn {
+      from { opacity: 0; transform: translateY(18px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .brand {
+      font-family: "Manrope", "Noto Sans SC", sans-serif;
+      font-weight: 800;
+      font-size: clamp(28px, 5vw, 40px);
+      letter-spacing: 0.02em;
+      line-height: 1.1;
+      margin-bottom: 18px;
+    }
+
+    .brand span {
+      display: block;
+      font-size: 0.42em;
+      font-weight: 600;
+      letter-spacing: 0.18em;
+      opacity: 0.78;
+      margin-top: 8px;
+      text-transform: uppercase;
+    }
+
+    .hero h1 {
+      font-family: "Manrope", "Noto Sans SC", sans-serif;
+      font-size: clamp(22px, 3.6vw, 28px);
+      font-weight: 700;
+      line-height: 1.25;
+      margin-bottom: 10px;
+    }
+
+    .hero p {
+      font-size: 15px;
+      color: rgba(244, 250, 246, 0.86);
+      max-width: 36em;
+      margin-bottom: 22px;
+    }
+
+    .cta-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .btn {
+      appearance: none;
+      border: none;
+      cursor: pointer;
+      font-family: inherit;
+      font-size: 14px;
+      font-weight: 600;
+      padding: 12px 18px;
+      border-radius: 10px;
+      transition: transform 0.15s ease, background 0.15s ease, color 0.15s ease;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .btn:active { transform: translateY(1px); }
+    .btn-primary {
+      background: #f4faf6;
+      color: var(--leaf-deep);
+    }
+    .btn-primary:hover { background: #fff; }
+    .btn-ghost {
+      background: transparent;
+      color: #f4faf6;
+      border: 1px solid rgba(244, 250, 246, 0.45);
+    }
+    .btn-ghost:hover { border-color: #f4faf6; background: rgba(244, 250, 246, 0.08); }
+    .btn-solid {
+      background: var(--leaf);
+      color: #fff;
+    }
+    .btn-solid:hover { background: var(--leaf-deep); }
+
+    /* —— Meta strip —— */
+    .meta {
+      margin-top: 22px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px 18px;
+      align-items: center;
+      font-size: 13px;
+      color: var(--ink-soft);
+      animation: riseIn 0.7s ease-out 0.12s both;
+    }
+    .meta strong { color: var(--ink); font-weight: 700; }
+    .pill-time {
+      background: var(--warn-bg);
+      color: var(--warn);
+      padding: 6px 10px;
+      border-radius: 8px;
+      font-weight: 600;
+    }
+
+    /* —— Sections —— */
+    section {
+      margin-top: 40px;
+      animation: riseIn 0.65s ease-out both;
+    }
+    section:nth-of-type(1) { animation-delay: 0.18s; }
+    section:nth-of-type(2) { animation-delay: 0.28s; }
+    section:nth-of-type(3) { animation-delay: 0.36s; }
+
+    .sec-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+    .sec-head h2 {
+      font-family: "Manrope", "Noto Sans SC", sans-serif;
+      font-size: 18px;
+      font-weight: 700;
+    }
+    .sec-head p {
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    /* Module rows = interaction containers */
+    .module-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .mod {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 8px 16px;
+      align-items: center;
+      padding: 16px 18px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: rgba(255, 255, 255, 0.72);
+      backdrop-filter: blur(6px);
+      text-align: left;
+      width: 100%;
+      font: inherit;
+      color: inherit;
+      cursor: pointer;
+      transition: border-color 0.15s ease, background 0.15s ease, transform 0.15s ease;
+    }
+    .mod:hover {
+      border-color: rgba(31, 122, 77, 0.35);
+      background: #fff;
+      transform: translateY(-1px);
+    }
+    .mod:focus-visible {
+      outline: 2px solid var(--leaf);
+      outline-offset: 2px;
+    }
+    .mod.locked {
+      cursor: default;
+      opacity: 0.72;
+      background: rgba(255, 255, 255, 0.45);
+    }
+    .mod.locked:hover { transform: none; border-color: var(--line); }
+
+    .mod-title {
+      font-weight: 700;
+      font-size: 15px;
+      margin-bottom: 4px;
+    }
+    .mod-desc {
+      font-size: 13px;
+      color: var(--muted);
+    }
+    .mod-quota {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--leaf-deep);
+      background: var(--mist);
+      padding: 6px 10px;
+      border-radius: 8px;
+      white-space: nowrap;
+    }
+    .mod.locked .mod-quota {
+      color: var(--locked);
+      background: #eef1ef;
+    }
+    .mod-status {
+      grid-column: 1 / -1;
+      height: 4px;
+      background: #e2ebe6;
+      border-radius: 999px;
+      overflow: hidden;
+      margin-top: 2px;
+    }
+    .mod-status > i {
+      display: block;
+      height: 100%;
+      width: var(--p, 0%);
+      background: linear-gradient(90deg, var(--leaf-deep), var(--leaf-glow));
+      border-radius: inherit;
+      transition: width 0.6s ease;
+    }
+
+    .mod.featured {
+      border-color: rgba(31, 122, 77, 0.35);
+      background:
+        linear-gradient(135deg, rgba(31, 122, 77, 0.10), transparent 55%),
+        rgba(255, 255, 255, 0.88);
+      grid-template-columns: 1fr auto;
+      padding: 20px 20px;
+    }
+    .mod.featured .mod-title { font-size: 17px; }
+    .tag-camp {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      color: var(--leaf-deep);
+      background: var(--mist);
+      padding: 3px 8px;
+      border-radius: 6px;
+      margin-bottom: 8px;
+    }
+    .mod-quota.camp {
+      background: var(--leaf);
+      color: #fff;
+    }
+
+    .note {
+      margin-top: 12px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .reactivate-tip {
+      margin-top: 14px;
+      padding: 12px 14px;
+      border-radius: 10px;
+      background: var(--warn-bg);
+      color: var(--warn);
+      font-size: 13px;
+      font-weight: 500;
+      line-height: 1.55;
+    }
+
+    .map-group + .map-group { margin-top: 22px; }
+    .map-label {
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      color: var(--muted);
+      margin-bottom: 8px;
+      text-transform: uppercase;
+    }
+    .map-grid {
+      list-style: none;
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+    }
+    .map-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      padding: 12px 14px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.72);
+      font: inherit;
+      color: inherit;
+      text-align: left;
+      width: 100%;
+      cursor: pointer;
+      transition: border-color 0.15s ease, background 0.15s ease;
+    }
+    .map-item:hover:not(.locked) {
+      border-color: rgba(31, 122, 77, 0.35);
+      background: #fff;
+    }
+    .map-item.locked {
+      cursor: not-allowed;
+      opacity: 0.78;
+      background: rgba(255, 255, 255, 0.4);
+      color: var(--ink-soft);
+    }
+    .map-item .name { font-size: 13px; font-weight: 600; }
+    .map-item .state {
+      font-size: 11px;
+      font-weight: 700;
+      white-space: nowrap;
+      padding: 3px 7px;
+      border-radius: 6px;
+    }
+    .map-item .state.open {
+      color: #fff;
+      background: var(--leaf);
+    }
+    .map-item .state.limited {
+      color: var(--leaf-deep);
+      background: var(--mist);
+    }
+    .map-item .state.lock {
+      color: var(--locked);
+      background: #eef1ef;
+    }
+    .toast {
+      position: fixed;
+      left: 50%;
+      bottom: 28px;
+      transform: translateX(-50%) translateY(12px);
+      background: var(--ink);
+      color: #f4faf6;
+      padding: 12px 16px;
+      border-radius: 10px;
+      font-size: 13px;
+      max-width: min(90vw, 360px);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s ease, transform 0.2s ease;
+      z-index: 20;
+    }
+    .toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    .share-box {
+      margin-top: 18px;
+      padding: 14px 16px;
+      border: 1px dashed rgba(31, 122, 77, 0.35);
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.65);
+      animation: riseIn 0.65s ease-out 0.15s both;
+    }
+    .share-box summary {
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--leaf-deep);
+      list-style: none;
+    }
+    .share-box summary::-webkit-details-marker { display: none; }
+    .share-help {
+      margin: 10px 0 12px;
+      font-size: 12px;
+      color: var(--muted);
+      line-height: 1.55;
+    }
+    .share-label {
+      display: block;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--ink-soft);
+      margin-bottom: 10px;
+    }
+    .share-input {
+      width: 100%;
+      margin-top: 6px;
+      padding: 10px 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      font: inherit;
+      font-size: 13px;
+      background: #fff;
+      color: var(--ink);
+    }
+    .share-row {
+      display: flex;
+      gap: 8px;
+      align-items: stretch;
+    }
+    .share-row .share-input { margin-top: 0; flex: 1; }
+    .share-row .btn { flex-shrink: 0; white-space: nowrap; }
+
+    @media (max-width: 520px) {
+      .map-grid { grid-template-columns: 1fr; }
+      .share-row { flex-direction: column; }
+    }
+
+    .convert {
+      margin-top: 48px;
+      padding: 28px 24px;
+      border-radius: 20px;
+      border: 1px solid var(--line);
+      background:
+        linear-gradient(135deg, rgba(31, 122, 77, 0.08), transparent 55%),
+        #fff;
+      text-align: left;
+    }
+    .convert h2 {
+      font-family: "Manrope", "Noto Sans SC", sans-serif;
+      font-size: 18px;
+      margin-bottom: 8px;
+    }
+    .convert p {
+      font-size: 14px;
+      color: var(--ink-soft);
+      margin-bottom: 16px;
+      max-width: 38em;
+    }
+    .convert ul {
+      margin: 0 0 18px 1.1em;
+      color: var(--ink-soft);
+      font-size: 13px;
+    }
+    .convert li + li { margin-top: 4px; }
+
+    footer {
+      margin-top: 36px;
+      font-size: 12px;
+      color: var(--muted);
+      text-align: center;
+    }
+
+    /* —— 客户进门：姓名 + 激活码 —— */
+    #gate {
+      min-height: 88vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      padding: 24px 0 40px;
+      animation: riseIn 0.55s ease-out both;
+    }
+    #gate[hidden], #desk[hidden] { display: none !important; }
+    .gate-card {
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      background:
+        linear-gradient(160deg, rgba(31, 122, 77, 0.08), transparent 42%),
+        rgba(255, 255, 255, 0.88);
+      padding: 28px 24px 24px;
+    }
+    .gate-brand {
+      font-family: "Manrope", "Noto Sans SC", sans-serif;
+      font-weight: 800;
+      font-size: 26px;
+      color: var(--leaf-deep);
+      margin-bottom: 6px;
+    }
+    .gate-brand span {
+      display: block;
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.16em;
+      color: var(--muted);
+      margin-top: 6px;
+      text-transform: uppercase;
+    }
+    .gate-card h1 {
+      font-family: "Manrope", "Noto Sans SC", sans-serif;
+      font-size: 22px;
+      margin: 18px 0 8px;
+    }
+    .gate-card > .lead {
+      font-size: 14px;
+      color: var(--ink-soft);
+      margin-bottom: 20px;
+      line-height: 1.55;
+    }
+    .field {
+      display: block;
+      margin-bottom: 14px;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--ink-soft);
+    }
+    .field .req { color: #b45309; font-weight: 700; }
+    .field input, .field select {
+      display: block;
+      width: 100%;
+      margin-top: 6px;
+      padding: 12px 14px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      font: inherit;
+      font-size: 15px;
+      font-weight: 500;
+      color: var(--ink);
+      background: #fff;
+    }
+    .field input:focus, .field select:focus {
+      outline: 2px solid rgba(31, 122, 77, 0.35);
+      border-color: var(--leaf);
+    }
+    .gate-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-top: 8px;
+    }
+    .gate-actions .btn { justify-content: center; width: 100%; }
+    .gate-err {
+      display: none;
+      margin-top: 10px;
+      font-size: 13px;
+      color: #b42318;
+      font-weight: 600;
+    }
+    .gate-err.show { display: block; }
+    .gate-foot {
+      margin-top: 16px;
+      font-size: 12px;
+      color: var(--muted);
+      text-align: center;
+      line-height: 1.5;
+    }
+
+    @media (max-width: 520px) {
+      .wrap { width: min(100% - 24px, var(--max)); }
+      .hero { min-height: 72vh; }
+      .hero-inner { padding: 28px 20px 32px; }
+      .mod { grid-template-columns: 1fr; }
+      .mod-quota { justify-self: start; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <!-- 未报名客户在这里输入姓名、激活码 -->
+    <section id="gate" aria-label="试用激活">
+      <div class="gate-card">
+        <div class="gate-brand">藕叶英语<span>Trial Access</span></div>
+        <h1>开启试用学习台</h1>
+        <p class="lead">老师发你的链接和激活码填在这里。无需学号，激活后即可看到全站模块与本轮开放内容。</p>
+
+        <label class="field">姓名 <span class="req">*</span>
+          <input id="gateName" type="text" maxlength="40" placeholder="怎么称呼你" autocomplete="name" />
+        </label>
+        <label class="field">手机号 <span style="font-weight:500;color:var(--muted)">选填</span>
+          <input id="gateContact" type="text" maxlength="80" placeholder="选填" autocomplete="tel" />
+        </label>
+        <p class="note" id="guestWxPrefillNote" style="margin:0 0 12px;display:none"></p>
+        <label class="field">激活码 <span class="req">*</span>
+          <input id="gateCode" type="text" maxlength="32" placeholder="老师发给你的激活码" autocomplete="one-time-code" autocapitalize="characters" />
+        </label>
+        <label class="field">目标分数
+          <select id="gateTarget">
+            <option value="5">5.0</option>
+            <option value="5.5">5.5</option>
+            <option value="6">6.0</option>
+            <option value="6.5" selected>6.5</option>
+            <option value="7">7.0</option>
+            <option value="7.5">7.5</option>
+          </select>
+        </label>
+
+        <div class="gate-actions">
+          <button type="button" class="btn btn-solid" id="btnActivate">激活并进入</button>
+        </div>
+        <p class="gate-err" id="gateErr"></p>
+        <p class="gate-foot">没有激活码？微信联系给你发链接的老师。<br />设计稿可用激活码：<strong>OYTRIAL</strong></p>
+      </div>
+    </section>
+
+    <div id="desk" hidden>
+    <header class="hero" aria-label="试用首页">
+      <div class="hero-visual" aria-hidden="true"></div>
+      <div class="hero-inner">
+        <div class="brand">藕叶英语<span>Trial Desk</span></div>
+        <h1>本周活动：听力基础词汇</h1>
+        <p>完整开放这一板块练听感；另有几项限量体验。到期或额度用尽后，需老师重新激活。</p>
+        <div class="cta-row">
+          <a class="btn btn-primary" href="#campaign">进入活动板块</a>
+          <a class="btn btn-ghost" href="#site-map">查看全站模块</a>
+        </div>
+      </div>
+    </header>
+
+    <div class="meta">
+      <span>访客 <strong id="guestNameLabel">—</strong></span>
+      <span id="guestWxMeta"></span>
+      <span class="pill-time" id="guestDaysLabel">试用剩余 5 天</span>
+      <span>本轮由老师开通 · 无需学号</span>
+      <button type="button" class="btn btn-ghost" id="btnResetGate" style="color:var(--leaf-deep);border-color:rgba(31,122,77,.3);padding:6px 10px;font-size:12px">重新填写激活</button>
+    </div>
+
+    <details class="share-box" id="shareBox">
+      <summary>顾问：生成分享链接（对应客户微信）</summary>
+      <p class="share-help">填「你的微信」（学生联系你用）、「客户微信」（用来对上练习记录）和激活码，再复制链接发给该客户。</p>
+      <label class="share-label">顾问微信（你的号）
+        <input id="shareWxInput" class="share-input" type="text" maxlength="40" placeholder="例如 s13512480257" autocomplete="off" />
+      </label>
+      <label class="share-label">客户微信（用来对应记录）
+        <input id="shareGuestWxInput" class="share-input" type="text" maxlength="80" placeholder="该客户的微信号" autocomplete="off" />
+      </label>
+      <label class="share-label">本次激活码
+        <input id="shareCodeInput" class="share-input" type="text" maxlength="32" placeholder="例如 OYTRIAL" autocomplete="off" />
+      </label>
+      <div class="share-row">
+        <input id="shareLinkOut" class="share-input" type="text" readonly />
+        <button type="button" class="btn btn-solid" id="btnCopyShare">复制链接</button>
+      </div>
+    </details>
+
+    <section id="campaign">
+      <div class="sec-head">
+        <h2>活动主板块</h2>
+        <p>整板块开放 · 可学可测</p>
+      </div>
+      <ul class="module-list">
+        <li>
+          <button type="button" class="mod featured" data-href="/tinglidanciceshi/listening_basic.html">
+            <div>
+              <div class="tag-camp">本周激活活动</div>
+              <div class="mod-title">听力基础词汇</div>
+              <div class="mod-desc">完整词库可练 · 线上学生练得最多的板块</div>
+            </div>
+            <span class="mod-quota camp">整板块开放</span>
+            <div class="mod-status" aria-hidden="true"><i style="--p:22%"></i></div>
+          </button>
+        </li>
+      </ul>
+    </section>
+
+    <section id="limited">
+      <div class="sec-head">
+        <h2>限量体验</h2>
+        <p>各留一小段，用完即止</p>
+      </div>
+      <ul class="module-list">
+        <li>
+          <button type="button" class="mod" data-href="/xinshengmodi/?guest=1">
+            <div>
+              <div class="mod-title">入学摸底</div>
+              <div class="mod-desc">约 40 分钟 · 听读写说预估分</div>
+            </div>
+            <span class="mod-quota">限 1 次</span>
+            <div class="mod-status" aria-hidden="true"><i style="--p:0%"></i></div>
+          </button>
+        </li>
+        <li>
+          <button type="button" class="mod" data-href="/tongyitihuan/index.html">
+            <div>
+              <div class="mod-title">阅读同义替换</div>
+              <div class="mod-desc">体验关 · 即时对错反馈</div>
+            </div>
+            <span class="mod-quota">限 1 关</span>
+            <div class="mod-status" aria-hidden="true"><i style="--p:0%"></i></div>
+          </button>
+        </li>
+        <li>
+          <button type="button" class="mod" data-href="/xiezuocihuo/index.html">
+            <div>
+              <div class="mod-title">写作词伙</div>
+              <div class="mod-desc">健康饮食类 · 学练一体</div>
+            </div>
+            <span class="mod-quota">限 1 组</span>
+            <div class="mod-status" aria-hidden="true"><i style="--p:0%"></i></div>
+          </button>
+        </li>
+      </ul>
+      <p class="reactivate-tip">
+        本轮由老师开通。活动到期、限量用尽或试用结束后入口会暂停；
+        你的练习记录会保留，老师重新激活后可继续，并接上每日计划。
+      </p>
+      <p class="note">设计稿示意额度：摸底 1 次 · 同义替换 1 关 · 词伙 1 组。正式版由老师按访客配置。</p>
+    </section>
+
+    <section id="site-map">
+      <div class="sec-head">
+        <h2>全站模块一览</h2>
+        <p>都能看见 · 未开通的点不进去</p>
+      </div>
+
+      <div class="map-group">
+        <div class="map-label">测评与督学</div>
+        <ul class="map-grid">
+          <li><button type="button" class="map-item" data-access="limited" data-href="/xinshengmodi/?guest=1"><span class="name">入学摸底</span><span class="state limited">限量</span></button></li>
+          <li><button type="button" class="map-item locked" data-access="lock"><span class="name">每日学习计划</span><span class="state lock">未开放</span></button></li>
+          <li><button type="button" class="map-item locked" data-access="lock"><span class="name">教师督学 / 阶段测</span><span class="state lock">未开放</span></button></li>
+        </ul>
+      </div>
+
+      <div class="map-group">
+        <div class="map-label">词汇与听力基础</div>
+        <ul class="map-grid">
+          <li><button type="button" class="map-item" data-access="open" data-href="/tinglidanciceshi/listening_basic.html"><span class="name">听力基础词汇</span><span class="state open">已开放</span></button></li>
+          <li><button type="button" class="map-item locked" data-access="lock"><span class="name">听力1000词</span><span class="state lock">未开放</span></button></li>
+          <li><button type="button" class="map-item locked" data-access="lock"><span class="name">单词（FSRS）</span><span class="state lock">未开放</span></button></li>
+          <li><button type="button" class="map-item locked" data-access="lock"><span class="name">小初 / 高中 / 核心词</span><span class="state lock">未开放</span></button></li>
+          <li><button type="button" class="map-item locked" data-access="lock"><span class="name">基础语法</span><span class="state lock">未开放</span></button></li>
+        </ul>
+      </div>
+
+      <div class="map-group">
+        <div class="map-label">方法训练</div>
+        <ul class="map-grid">
+          <li><button type="button" class="map-item" data-access="limited" data-href="/tongyitihuan/index.html"><span class="name">阅读同义替换</span><span class="state limited">限 1 关</span></button></li>
+          <li><button type="button" class="map-item" data-access="limited" data-href="/xiezuocihuo/index.html"><span class="name">写作词伙</span><span class="state limited">限 1 组</span></button></li>
+          <li><button type="button" class="map-item locked" data-access="lock"><span class="name">长难句分析</span><span class="state lock">未开放</span></button></li>
+          <li><button type="button" class="map-item locked" data-access="lock"><span class="name">听力同义替换</span><span class="state lock">未开放</span></button></li>
+          <li><button type="button" class="map-item locked" data-access="lock"><span class="name">写作句子翻译</span><span class="state lock">未开放</span></button></li>
+          <li><button type="button" class="map-item locked" data-access="lock"><span class="name">听力跟读</span><span class="state lock">未开放</span></button></li>
+        </ul>
+      </div>
+
+      <div class="map-group">
+        <div class="map-label">真题与输出</div>
+        <ul class="map-grid">
+          <li><button type="button" class="map-item locked" data-access="lock"><span class="name">阅读 Part1–3</span><span class="state lock">未开放</span></button></li>
+          <li><button type="button" class="map-item locked" data-access="lock"><span class="name">听力 Part1–4</span><span class="state lock">未开放</span></button></li>
+          <li><button type="button" class="map-item locked" data-access="lock"><span class="name">口语练习</span><span class="state lock">未开放</span></button></li>
+          <li><button type="button" class="map-item locked" data-access="lock"><span class="name">作文批改</span><span class="state lock">未开放</span></button></li>
+          <li><button type="button" class="map-item locked" data-access="lock"><span class="name">写作大 / 小作文</span><span class="state lock">未开放</span></button></li>
+        </ul>
+      </div>
+
+      <p class="note">点「未开放」会提示联系老师重新激活，不会进入练习页。</p>
+    </section>
+
+    <section class="convert">
+      <h2>练完基础词汇，想按计划继续？</h2>
+      <p>活动帮你把听感练起来；正式学号会按摸底短板排每日任务，并由老师跟进达标。</p>
+      <ul>
+        <li>听力基础词汇进度可接进正式计划</li>
+        <li>同义替换、词伙等从限量升级为完整库</li>
+        <li>教师重新激活学号后即可接着练</li>
+      </ul>
+      <div class="cta-row">
+        <button type="button" class="btn btn-solid" id="btnWechat">微信联系老师重新激活</button>
+        <a class="btn btn-ghost" style="color:var(--leaf-deep);border-color:rgba(31,122,77,.35)" href="#campaign">先继续练活动板块</a>
+      </div>
+      <p class="note" id="wechatHint" style="margin-top:12px"></p>
+    </section>
+
+    <footer>设计稿 · /shiyong/ · 藕叶英语试用台</footer>
+    </div><!-- /#desk -->
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script>
+    function qs(name) {
+      try {
+        return new URLSearchParams(location.search).get(name) || '';
+      } catch (e) {
+        return '';
+      }
+    }
+
+    /** 链接参数：wx=顾问微信 · guest_wx=客户微信 · code=激活码 */
+    var TEACHER_WX = (qs('wx') || qs('wechat') || 's13512480257').trim();
+    var PREFILL_CODE = (qs('code') || qs('激活码') || '').trim();
+    var PREFILL_GUEST_WX = (qs('guest_wx') || qs('cw') || qs('client_wx') || '').trim();
+    var DEMO_CODES = { OYTRIAL: true, oytrial: true };
+    var STORE_KEY = 'shiyong_trial_claim_v1';
+
+    function showToast(msg) {
+      var el = document.getElementById('toast');
+      el.textContent = msg;
+      el.classList.add('show');
+      clearTimeout(showToast._t);
+      showToast._t = setTimeout(function () {
+        el.classList.remove('show');
+      }, 2400);
+    }
+
+    function copyText(text) {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        return navigator.clipboard.writeText(text);
+      }
+      return new Promise(function (resolve, reject) {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.setAttribute('readonly', '');
+        ta.style.position = 'fixed';
+        ta.style.left = '-9999px';
+        document.body.appendChild(ta);
+        ta.select();
+        try {
+          document.execCommand('copy');
+          resolve();
+        } catch (e) {
+          reject(e);
+        } finally {
+          document.body.removeChild(ta);
+        }
+      });
+    }
+
+    /** 复制微信号并尝试唤起微信 App（手机端） */
+    function contactTeacherWechat() {
+      copyText(TEACHER_WX).then(function () {
+        showToast('已复制微信号 ' + TEACHER_WX + '，正在打开微信…');
+        setTimeout(function () {
+          // 系统级唤起微信；无法直达聊天时，学生粘贴搜索即可
+          window.location.href = 'weixin://';
+        }, 350);
+      }).catch(function () {
+        showToast('请手动添加微信：' + TEACHER_WX);
+      });
+    }
+
+    var hint = document.getElementById('wechatHint');
+    if (hint) {
+      hint.textContent = '老师微信：' + TEACHER_WX + '（点上方按钮会复制并唤起微信）';
+    }
+
+    var btnWx = document.getElementById('btnWechat');
+    if (btnWx) btnWx.addEventListener('click', contactTeacherWechat);
+
+    function bindOpen(sel) {
+      document.querySelectorAll(sel).forEach(function (el) {
+        el.addEventListener('click', function () {
+          var access = el.getAttribute('data-access');
+          if (access === 'lock' || el.classList.contains('locked')) {
+            showToast('此模块未开放。可点「微信联系老师重新激活」。');
+            return;
+          }
+          var href = el.getAttribute('data-href');
+          if (!href || href === '#') {
+            showToast('设计稿：此处将进入对应试用模块。');
+            return;
+          }
+          window.location.href = href;
+        });
+      });
+    }
+
+    bindOpen('.mod[data-href]');
+    bindOpen('.map-item');
+
+    // —— 客户进门：姓名 + 激活码 ——
+    var gateEl = document.getElementById('gate');
+    var deskEl = document.getElementById('desk');
+    var gateName = document.getElementById('gateName');
+    var gateContact = document.getElementById('gateContact');
+    var gateCode = document.getElementById('gateCode');
+    var gateTarget = document.getElementById('gateTarget');
+    var gateErr = document.getElementById('gateErr');
+    var guestWxNote = document.getElementById('guestWxPrefillNote');
+
+    if (PREFILL_CODE && gateCode) gateCode.value = PREFILL_CODE;
+    // 客户微信只由顾问在分享链接里带入，客户不填
+    if (PREFILL_GUEST_WX && guestWxNote) {
+      guestWxNote.style.display = 'block';
+      guestWxNote.textContent = '顾问已登记你的微信，激活后练习记录会自动对应。';
+    }
+
+    function showGate() {
+      if (gateEl) gateEl.hidden = false;
+      if (deskEl) deskEl.hidden = true;
+    }
+
+    function showDesk(claim) {
+      if (gateEl) gateEl.hidden = true;
+      if (deskEl) deskEl.hidden = false;
+      var nameLabel = document.getElementById('guestNameLabel');
+      if (nameLabel) nameLabel.textContent = (claim && claim.name) || '访客';
+      var wxMeta = document.getElementById('guestWxMeta');
+      if (wxMeta) {
+        wxMeta.textContent = (claim && claim.guestWx)
+          ? ('微信 ' + claim.guestWx)
+          : '';
+      }
+      var daysLabel = document.getElementById('guestDaysLabel');
+      if (daysLabel && claim && claim.daysLeft != null) {
+        daysLabel.textContent = '试用剩余 ' + claim.daysLeft + ' 天';
+      }
+    }
+
+    function loadClaim() {
+      try {
+        return JSON.parse(localStorage.getItem(STORE_KEY) || 'null');
+      } catch (e) {
+        return null;
+      }
+    }
+
+    function saveClaim(claim) {
+      try {
+        localStorage.setItem(STORE_KEY, JSON.stringify(claim));
+      } catch (e) {}
+    }
+
+    function activateFromGate() {
+      var name = (gateName && gateName.value || '').trim();
+      var guestWx = PREFILL_GUEST_WX;
+      var contact = (gateContact && gateContact.value || '').trim();
+      var code = (gateCode && gateCode.value || '').trim();
+      var target = gateTarget ? gateTarget.value : '6.5';
+      if (gateErr) {
+        gateErr.classList.remove('show');
+        gateErr.textContent = '';
+      }
+      if (!name) {
+        if (gateErr) {
+          gateErr.textContent = '请填写姓名';
+          gateErr.classList.add('show');
+        }
+        return;
+      }
+      if (!guestWx) {
+        if (gateErr) {
+          gateErr.textContent = '链接无效：缺少顾问登记的客户微信，请让顾问重新发链接';
+          gateErr.classList.add('show');
+        }
+        return;
+      }
+      if (!code) {
+        if (gateErr) {
+          gateErr.textContent = '请填写老师发给你的激活码';
+          gateErr.classList.add('show');
+        }
+        return;
+      }
+      // 设计稿：OYTRIAL 可用；正式版走服务端校验
+      if (!DEMO_CODES[code] && !DEMO_CODES[code.toUpperCase()]) {
+        if (gateErr) {
+          gateErr.textContent = '激活码无效或已用完，请联系老师';
+          gateErr.classList.add('show');
+        }
+        return;
+      }
+      var claim = {
+        name: name,
+        guestWx: guestWx,
+        contact: contact,
+        code: code.toUpperCase(),
+        targetScore: target,
+        advisorWx: TEACHER_WX,
+        daysLeft: 5,
+        at: Date.now()
+      };
+      saveClaim(claim);
+      showDesk(claim);
+      showToast('激活成功，欢迎 ' + name);
+      window.scrollTo(0, 0);
+    }
+
+    var btnActivate = document.getElementById('btnActivate');
+    if (btnActivate) btnActivate.addEventListener('click', activateFromGate);
+    ['gateName', 'gateCode'].forEach(function (id) {
+      var el = document.getElementById(id);
+      if (!el) return;
+      el.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') activateFromGate();
+      });
+    });
+
+    var btnReset = document.getElementById('btnResetGate');
+    if (btnReset) {
+      btnReset.addEventListener('click', function () {
+        try { localStorage.removeItem(STORE_KEY); } catch (e) {}
+        showGate();
+        window.scrollTo(0, 0);
+      });
+    }
+
+    var existing = loadClaim();
+    // 老师预览模式：直接看台面
+    if (qs('teacher') === '1') {
+      showDesk(existing || { name: '老师预览', daysLeft: 5 });
+    } else if (existing && existing.name && existing.code) {
+      showDesk(existing);
+    } else {
+      showGate();
+    }
+
+    // —— 顾问生成：/shiyong/?wx=顾问微信&guest_wx=客户微信&code=激活码 ——
+    var shareInput = document.getElementById('shareWxInput');
+    var shareGuestWxInput = document.getElementById('shareGuestWxInput');
+    var shareCodeInput = document.getElementById('shareCodeInput');
+    var shareOut = document.getElementById('shareLinkOut');
+    var btnCopyShare = document.getElementById('btnCopyShare');
+
+    function buildShareLink(advisorWx, guestWx, code) {
+      var u = new URL(location.origin + location.pathname);
+      advisorWx = (advisorWx || '').trim();
+      guestWx = (guestWx || '').trim();
+      code = (code || '').trim();
+      if (advisorWx) u.searchParams.set('wx', advisorWx);
+      if (guestWx) u.searchParams.set('guest_wx', guestWx);
+      if (code) u.searchParams.set('code', code);
+      return u.toString();
+    }
+
+    function refreshShareLink() {
+      if (!shareOut) return;
+      shareOut.value = buildShareLink(
+        shareInput ? shareInput.value : TEACHER_WX,
+        shareGuestWxInput ? shareGuestWxInput.value : '',
+        shareCodeInput ? shareCodeInput.value : ''
+      );
+    }
+
+    if (shareInput) {
+      shareInput.value = TEACHER_WX;
+      shareInput.addEventListener('input', refreshShareLink);
+    }
+    if (shareGuestWxInput) {
+      shareGuestWxInput.value = PREFILL_GUEST_WX;
+      shareGuestWxInput.addEventListener('input', refreshShareLink);
+    }
+    if (shareCodeInput) {
+      shareCodeInput.value = PREFILL_CODE || 'OYTRIAL';
+      shareCodeInput.addEventListener('input', refreshShareLink);
+    }
+    refreshShareLink();
+
+    if (btnCopyShare) {
+      btnCopyShare.addEventListener('click', function () {
+        var advisorWx = shareInput ? shareInput.value.trim() : '';
+        var guestWx = shareGuestWxInput ? shareGuestWxInput.value.trim() : '';
+        var code = shareCodeInput ? shareCodeInput.value.trim() : '';
+        var link = buildShareLink(advisorWx, guestWx, code);
+        if (shareOut) shareOut.value = link;
+        if (!advisorWx) {
+          showToast('请先填写顾问微信号');
+          return;
+        }
+        if (!guestWx) {
+          showToast('请先填写客户微信号，才能对应练习记录');
+          return;
+        }
+        if (!code) {
+          showToast('请先填写本次激活码');
+          return;
+        }
+        copyText(link).then(function () {
+          showToast('链接已复制（含顾问微信、客户微信、激活码）');
+        }).catch(function () {
+          showToast('请手动复制链接框里的地址');
+          if (shareOut) {
+            shareOut.focus();
+            shareOut.select();
+          }
+        });
+      });
+    }
+
+    if (qs('teacher') === '1') {
+      var box = document.getElementById('shareBox');
+      if (box) box.open = true;
+    }
+  </script>
+</body>
+</html>

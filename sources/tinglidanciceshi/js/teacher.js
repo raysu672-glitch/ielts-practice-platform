@@ -537,6 +537,56 @@ async function loadRecords() {
     renderRecordsTable(_cachedRecordRows);
 }
 
+async function loadPlacementGuests() {
+    var container = document.getElementById('placementGuestsList');
+    if (!container) return;
+    container.innerHTML = '<p style="color:#666;padding:16px;">加载中…</p>';
+    var result = await teacherApiGet('/api/teacher/placement-guests?limit=300');
+    if (result.error) {
+        container.innerHTML = '<p style="color:#dc3545;padding:16px;">加载失败：' +
+            escapeHtml((result.error && result.error.message) || '未知错误') + '</p>';
+        return;
+    }
+    var rows = result.data || [];
+    if (!rows.length) {
+        container.innerHTML = '<p style="color:#666;padding:16px;background:#f8f9fa;border-radius:8px;">暂无访客摸底记录。分享链接 <code>/xinshengmodi/?guest=1</code></p>';
+        return;
+    }
+    var html = '<div class="records-table-wrap"><table class="records-table" style="width:100%;"><thead><tr style="background:#f8f9fa;">';
+    html += '<th style="padding:10px;">时间</th><th style="padding:10px;">姓名</th><th style="padding:10px;">联系方式</th>';
+    html += '<th style="padding:10px;text-align:center;">目标分</th><th style="padding:10px;text-align:center;">综合预估</th>';
+    html += '<th style="padding:10px;text-align:center;">用时</th><th style="padding:10px;">分科摘要</th></tr></thead><tbody>';
+    for (var i = 0; i < rows.length; i++) {
+        var r = rows[i];
+        var report = r.report || {};
+        var bands = report.bands || {};
+        var summaryBits = [];
+        [['listening', '听'], ['reading', '读'], ['writing', '写'], ['speaking', '口']].forEach(function (pair) {
+            var b = bands[pair[0]];
+            if (b && b.label) summaryBits.push(pair[1] + ' ' + b.label);
+        });
+        html += '<tr style="border-bottom:1px solid #dee2e6;vertical-align:top;">';
+        html += '<td style="padding:10px;white-space:nowrap;">' + escapeHtml(formatChinaDateTime(r.created_at)) + '</td>';
+        html += '<td style="padding:10px;"><strong>' + escapeHtml(r.guest_name || '') + '</strong>';
+        if (r.summary) {
+            html += '<div style="color:#666;font-size:0.8rem;margin-top:4px;max-width:220px;">' + escapeHtml(r.summary) + '</div>';
+        }
+        html += '</td>';
+        html += '<td style="padding:10px;">' + escapeHtml(r.contact || '—') + '</td>';
+        html += '<td style="padding:10px;text-align:center;">' + escapeHtml(String(r.target_score != null ? r.target_score : '—')) + '</td>';
+        html += '<td style="padding:10px;text-align:center;font-weight:700;color:#11998e;">' +
+            escapeHtml(r.overall_label || '—') + '</td>';
+        html += '<td style="padding:10px;text-align:center;">' + escapeHtml(formatDuration(r.duration_seconds || 0)) + '</td>';
+        html += '<td style="padding:10px;font-size:0.85rem;color:#444;">' + escapeHtml(summaryBits.join(' · ') || '—');
+        if (report.planHint) {
+            html += '<div style="color:#666;margin-top:4px;">' + escapeHtml(report.planHint) + '</div>';
+        }
+        html += '</td></tr>';
+    }
+    html += '</tbody></table></div>';
+    container.innerHTML = html;
+}
+
 var _teacherStudents = [];
 var _progressColumnFilters = {
     studentId: '',
@@ -1797,12 +1847,17 @@ function switchTeacherTab(tab, evt, options) {
     document.getElementById('tabStandards').style.display = tab === 'standards' ? 'block' : 'none';
     var tabTeachers = document.getElementById('tabTeachers');
     if (tabTeachers) tabTeachers.style.display = (tab === 'teachers' && isAdminTeacher()) ? 'block' : 'none';
+    var tabPlacementGuests = document.getElementById('tabPlacementGuests');
+    if (tabPlacementGuests) tabPlacementGuests.style.display = tab === 'placementGuests' ? 'block' : 'none';
     document.body.classList.toggle('teacher-writing-wide', tab === 'writing' || tab === 'jianya');
     if (tab === 'tasks') {
         initTeacherTaskPlanTab();
     }
     if (tab === 'records') {
         loadRecords();
+    }
+    if (tab === 'placementGuests') {
+        loadPlacementGuests();
     }
     if (tab === 'progress' && !(options && options.skipLoad)) {
         loadTeacherProgressData();

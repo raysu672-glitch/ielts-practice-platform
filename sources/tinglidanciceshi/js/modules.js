@@ -441,7 +441,10 @@ var MODULES = [
     // 四、雅思单项目标分数
     { id: 'speaking', name: '口语练习', target_type: 'dynamic', targets: { 6: 5.5, 6.5: 6, 7: 6.5 }, unit: '分', url: '/kouyulianxi/index.html?build=20260827d', test_url: '/kouyulianxi/index.html?build=20260827d', icon: 'message' },
     { id: 'writing_essay', name: '写作大作文', target_type: 'dynamic', targets: { 6: 5.5, 6.5: 6, 7: 6.5 }, unit: '分', url: '', icon: 'edit' },
-    { id: 'writing_small', name: '写作小作文', target_type: 'dynamic', targets: { 6: 5.5, 6.5: 6, 7: 6.5 }, unit: '分', url: '', icon: 'edit' }
+    { id: 'writing_small', name: '写作小作文', target_type: 'dynamic', targets: { 6: 5.5, 6.5: 6, 7: 6.5 }, unit: '分', url: '', icon: 'edit' },
+
+    // 五、入学摸底（不参与普通达标汇总 / 错题本）
+    { id: 'placement', name: '入学摸底', target_type: 'fixed', target: 0, unit: '分', url: '', test_url: '../xinshengmodi/index.html', icon: 'star', placement: true }
 ];
 
 // 根据学生目标分数获取模块目标
@@ -481,14 +484,19 @@ var WRONG_BOOK_TEST_SIZE = {
     writing_translate: 5
 };
 
+function isPlacementModule(m) {
+    return !!(m && (m.placement || m.id === 'placement'));
+}
+
 function hasWrongBook(m) {
-    if (!m || isStudyOnlyModule(m)) return false;
+    if (!m || isStudyOnlyModule(m) || isPlacementModule(m)) return false;
     if (m.id === 'writing_correction' || m.id === 'speaking' || m.id === 'listening_p4_speed') return false;
     if (/^(reading_p[123]|listening_p[1234])$/.test(m.id)) return false;
     return isBuiltinDictationModule(m.id) || !!m.test_url;
 }
 
 function isModuleAvailable(m) {
+    if (isPlacementModule(m)) return false; // 进度表不列；走学生首页专入口
     return isBuiltinDictationModule(m.id) || !!m.url || !!m.test_url;
 }
 

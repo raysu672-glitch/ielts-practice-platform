@@ -21,6 +21,7 @@
 | 听力 P4 跟读练习 | `P4gendu/` | `listening_p4_speed` | `/P4gendu/` | 主站记录 iframe 学习时长；进度表仅练习入口 |
 | 口语练习 | `kouyulianxi/` | `speaking` | `/kouyulianxi/` | 学习时长；P1 AI Band → `genericTestComplete` |
 | 作文批改 | `xiezuopigai/` | `writing_correction` | `/xiezuopigai/ielts-student-practice.html` | 练习完成后写入写作后端；教师批改见 `ielts-writing-backend/teacher.html`；主站 `/api/writing/*` 代理 |
+| 入学摸底 | `xinshengmodi/` | `placement` | `/xinshengmodi/` | 学生首页「入学摸底」；`genericTestComplete` 写入分科预估详情 |
 | 单词（FSRS） | `danci/` | `vocab` | `/danci/` | 主站 iframe；API `/api/vocab/*`；词表 `danci/data/`；进度库 `data/vocab_students/` |
 ## 维护规则
 

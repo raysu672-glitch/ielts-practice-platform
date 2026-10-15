@@ -163,6 +163,11 @@ from student_api import (  # noqa: E402
     upsert_speaking_best_score,
     upsert_word_mastery,
 )
+from placement_api import (  # noqa: E402
+    ensure_placement_guest_table,
+    insert_placement_guest,
+    list_placement_guests,
+)
 DEFAULT_STATIC_DIR = ROOT / "sources"
 
 from teacher_api import (  # noqa: E402
@@ -789,6 +794,7 @@ def init_db(db_path: Path, *, bind_host: str = "127.0.0.1") -> None:
         ensure_activity_tables(conn)
         ensure_jianya_tables(conn)
         ensure_mock_speaking_tables(conn)
+        ensure_placement_guest_table(conn)
         seed_mvp_units(conn)
 
         conn.execute(
@@ -1741,6 +1747,106 @@ class LocalHandler(SimpleHTTPRequestHandler):
                 self.send_json({"data": None, "error": {"message": err}}, status=400)
                 return
             self.send_json({"data": row, "error": None})
+
+    def handle_placement_guest_submit(self) -> None:
+        """访客摸底交卷：无需登录。"""
+        payload = self.read_json_body()
+        try:
+            with closing(connect(self.db_path)) as conn:
+                row = insert_placement_guest(conn, payload if isinstance(payload, dict) else {})
+            self.send_json({"data": row, "error": None})
+        except ValueError as exc:
+            self.send_json({"data": None, "error": {"message": str(exc)}}, status=400)
+        except Exception as exc:
+            self.send_json(
+                {"data": None, "error": {"message": f"保存失败：{exc}"}},
+                status=500,
+            )
+
+    def handle_placement_guest_transcribe(self) -> None:
+        """访客口语识别：复用 P4 代理，不要求登录。"""
+        self.path = "/api/p4/transcribe"
+        self.proxy_p4_api("POST")
+
+    def handle_placement_guest_ai(self) -> None:
+        """访客口语估分：与 /api/ai/messages 相同上游，不要求登录（仅摸底用）。"""
+        settings = ai_settings()
+        if not settings["api_key"]:
+            self.send_json(
+                {"error": {"message": "AI 未配置，请在 config/ai.env 设置 AI_API_KEY"}},
+                status=503,
+            )
+            return
+        payload = self.read_json_body()
+        messages = payload.get("messages")
+        if not isinstance(messages, list) or not messages:
+            self.send_json(
+                {"error": {"message": "messages 必须是非空数组"}},
+                status=400,
+            )
+            return
+        # 限制体量，降低滥用
+        max_tokens = min(int(payload.get("max_tokens") or 800), 1200)
+        upstream_body: dict[str, Any] = {
+            "model": settings["model"],
+            "max_tokens": max_tokens,
+            "messages": messages,
+            "temperature": float(payload.get("temperature", 0.3)),
+        }
+        if payload.get("system"):
+            upstream_body["system"] = str(payload.get("system"))[:2000]
+        body_bytes = json.dumps(upstream_body, ensure_ascii=False).encode("utf-8")
+        target = settings["base_url"].rstrip("/") + "/anthropic/v1/messages"
+        headers = {
+            "Content-Type": "application/json",
+            "Accept": "application/json",
+            "x-api-key": settings["api_key"],
+            "anthropic-version": "2023-06-01",
+        }
+        try:
+            req = urllib.request.Request(
+                target, data=body_bytes, headers=headers, method="POST"
+            )
+            with urllib.request.urlopen(req, timeout=180) as resp:
+                raw = resp.read()
+                status = getattr(resp, "status", 200)
+                content_type = resp.headers.get(
+                    "Content-Type", "application/json; charset=utf-8"
+                )
+            self.send_response(status)
+            self.send_header("Content-Type", content_type)
+            self.send_header("Content-Length", str(len(raw)))
+            self.end_headers()
+            self.wfile.write(raw)
+        except urllib.error.HTTPError as exc:
+            raw = exc.read()
+            self.send_response(exc.code)
+            self.send_header(
+                "Content-Type",
+                exc.headers.get("Content-Type", "application/json; charset=utf-8"),
+            )
+            self.send_header("Content-Length", str(len(raw)))
+            self.end_headers()
+            self.wfile.write(raw)
+        except Exception as exc:
+            self.send_json(
+                {"error": {"message": f"AI 服务不可用：{exc}"}},
+                status=502,
+            )
+
+    def handle_teacher_placement_guests_get(self) -> None:
+        session = self.require_teacher_session()
+        if not session:
+            return
+        parsed = urllib.parse.urlparse(self.path)
+        qs = urllib.parse.parse_qs(parsed.query or "")
+        try:
+            limit = int((qs.get("limit") or ["200"])[0])
+        except (TypeError, ValueError):
+            limit = 200
+        with closing(connect(self.db_path)) as conn:
+            rows = list_placement_guests(conn, limit=limit)
+        self.send_json({"data": rows, "error": None})
 
     def handle_teacher_test_records_get(self) -> None:
         session = self.require_teacher_session()
@@ -3340,6 +3446,9 @@ class LocalHandler(SimpleHTTPRequestHandler):
         if parsed.path.rstrip("/") == "/api/teacher/test-records":
             self.handle_teacher_test_records_get()
             return
+        if parsed.path.rstrip("/") == "/api/teacher/placement-guests":
+            self.handle_teacher_placement_guests_get()
+            return
         if parsed.path.rstrip("/") == "/api/teacher/overview":
             self.handle_teacher_overview()
             return
@@ -3475,6 +3584,15 @@ class LocalHandler(SimpleHTTPRequestHandler):
                 if len(parts) == 5 and parts[4] == "submit":
                     self.handle_mock_speaking_submit(exam_id)
                     return
+        if path == "/api/placement/guest-submit":
+            self.handle_placement_guest_submit()
+            return
+        if path == "/api/placement/guest-transcribe":
+            self.handle_placement_guest_transcribe()
+            return
+        if path == "/api/placement/guest-ai":
+            self.handle_placement_guest_ai()
+            return
         if path == "/api/auth/student/login":
             self.handle_student_login()
             return

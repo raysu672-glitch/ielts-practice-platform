@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>入学摸底 · 雅思能力预估</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      background: #0a0e17;
+      color: #e0e0e0;
+      min-height: 100vh;
+      padding: 20px 14px 40px;
+    }
+    #app {
+      width: 100%;
+      max-width: 820px;
+      margin: 0 auto;
+    }
+    .intro, .report, .body {
+      background: #111827;
+      border: 1px solid #1e293b;
+      border-radius: 16px;
+      padding: 28px 24px;
+    }
+    .intro h1, .report h1 {
+      font-size: 22px;
+      font-weight: 700;
+      background: linear-gradient(135deg, #58a6ff, #3fb950);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 8px;
+    }
+    .sub { color: #8b949e; font-size: 13px; line-height: 1.6; margin-bottom: 18px; }
+    .rules {
+      background: #161b22;
+      border: 1px solid #21262d;
+      border-radius: 12px;
+      padding: 16px 18px;
+      font-size: 14px;
+      line-height: 1.75;
+      color: #c9d1d9;
+      margin-bottom: 20px;
+    }
+    .rules p + p { margin-top: 8px; }
+    .topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 12px;
+      flex-wrap: wrap;
+    }
+    .brand { font-size: 14px; color: #8b949e; }
+    .top-meta { display: flex; align-items: center; gap: 12px; }
+    .sec-name { color: #58a6ff; font-weight: 600; font-size: 14px; }
+    .timer {
+      font-variant-numeric: tabular-nums;
+      background: #1f2937;
+      border: 1px solid #334155;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 14px;
+      font-weight: 700;
+    }
+    .timer.urgent { color: #f85149; border-color: #f85149; }
+    .progress-wrap { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; }
+    .progress-bar { flex: 1; height: 6px; background: #1e293b; border-radius: 3px; overflow: hidden; }
+    .progress-fill { height: 100%; background: linear-gradient(90deg, #58a6ff, #3fb950); transition: width .25s; }
+    .progress-text { font-size: 12px; color: #8b949e; white-space: nowrap; }
+    .hint { font-size: 13px; color: #8b949e; margin-bottom: 14px; line-height: 1.5; }
+    .q-card {
+      background: #161b22;
+      border: 1px solid #21262d;
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 12px;
+    }
+    .q-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      font-size: 13px;
+      color: #8b949e;
+      margin-bottom: 10px;
+    }
+    .prompt-zh, .prompt-en, .speak-q {
+      font-size: 17px;
+      line-height: 1.65;
+      color: #f0f6fc;
+      margin-bottom: 12px;
+    }
+    .speak-hint { font-size: 13px; color: #8b949e; margin-bottom: 12px; }
+    .speak-status { font-size: 13px; color: #58a6ff; margin: 10px 0; }
+    .speak-transcript {
+      min-height: 40px;
+      padding: 10px;
+      background: #0d1117;
+      border-radius: 8px;
+      font-size: 13px;
+      color: #c9d1d9;
+      white-space: pre-wrap;
+      margin-bottom: 12px;
+    }
+    .speak-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 8px; }
+    .text-input, .text-area {
+      width: 100%;
+      background: #0d1117;
+      border: 1px solid #30363d;
+      border-radius: 8px;
+      color: #e6edf3;
+      padding: 10px 12px;
+      font-size: 15px;
+      font-family: inherit;
+    }
+    .text-area { resize: vertical; min-height: 88px; }
+    .text-input:focus, .text-area:focus {
+      outline: none;
+      border-color: #58a6ff;
+    }
+    .opts { display: grid; gap: 8px; }
+    .opt {
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+      padding: 10px 12px;
+      border: 1px solid #30363d;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 14px;
+      line-height: 1.45;
+    }
+    .opt:hover { border-color: #58a6ff; }
+    .btn {
+      display: inline-block;
+      padding: 10px 18px;
+      border: none;
+      border-radius: 8px;
+      background: #21262d;
+      color: #fff;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .btn:hover { opacity: 0.92; }
+    .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    .btn.primary { background: linear-gradient(135deg, #238636, #2ea043); }
+    .btn.danger { background: linear-gradient(135deg, #da3633, #f85149); }
+    .btn.sm { padding: 6px 12px; font-size: 12px; }
+    .btn.block { width: 100%; margin-top: 8px; }
+    .overall-card {
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 12px;
+      padding: 18px;
+      margin-bottom: 18px;
+    }
+    .overall-label { font-size: 12px; color: #8b949e; }
+    .overall-band {
+      font-size: 32px;
+      font-weight: 800;
+      color: #3fb950;
+      margin: 6px 0 10px;
+    }
+    .report-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+      margin-bottom: 16px;
+    }
+    .report-table th, .report-table td {
+      border-bottom: 1px solid #21262d;
+      padding: 10px 8px;
+      text-align: center;
+      vertical-align: top;
+    }
+    .report-table th { color: #8b949e; font-weight: 600; }
+    .report-table td.left { text-align: left; }
+    .plan-box {
+      background: #161b22;
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 14px;
+      font-size: 14px;
+      line-height: 1.7;
+    }
+    .plan-box h3 { font-size: 15px; margin-bottom: 8px; color: #58a6ff; }
+    .plan-box ul { padding-left: 18px; color: #c9d1d9; }
+    .disclaimer { font-size: 12px; color: #6b7280; line-height: 1.6; margin-bottom: 16px; }
+    .error { color: #f85149; text-align: center; padding: 40px 0; }
+    .guest-form {
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 16px;
+      text-align: left;
+    }
+    .guest-tag {
+      font-size: 12px;
+      color: #3fb950;
+      font-weight: 700;
+      margin-bottom: 12px;
+    }
+    .field { display: block; margin-bottom: 12px; font-size: 13px; color: #8b949e; }
+    .field span { display: block; margin-bottom: 6px; }
+    .field em { color: #f85149; font-style: normal; }
+    .field .text-input, .field select.text-input { margin-top: 0; }
+    .save-ok { color: #3fb950; font-size: 13px; margin-bottom: 10px; }
+    .save-err { color: #f85149; font-size: 13px; margin-bottom: 10px; }
+    @media (max-width: 640px) {
+      .report-table { font-size: 12px; }
+      .report-table th:nth-child(4),
+      .report-table td:nth-child(4) { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <div id="app"><p class="sub" style="text-align:center;padding:40px;">加载中…</p></div>
+  <script src="/shared/debug_trace.js?v=20260924trace"></script>
+  <script src="../shared/phrase_answer.js"></script>
+  <script src="../juzifanyixinceshi/match.js"></script>
+  <script src="./questions_a.js?v=20261015guest"></script>
+  <script src="./scoring.js?v=20261015empty"></script>
+  <script src="./app.js?v=20261015empty"></script>
+</body>
+</html>
