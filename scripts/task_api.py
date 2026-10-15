@@ -61,9 +61,17 @@ READING_SETS = [
     (23, "综合提升篇"),
 ]
 
-# Hearing 1000-word bank: 1000 words / 20 per group → 50 units (MVP seed).
-DICTATION_GROUP_COUNT = 50
-LISTENING_BASIC_GROUP_COUNT = 41
+# 听力两个词库的「每组多少词」（页面按这个口径切组）。
+DICTATION_WORDS_PER_GROUP = 20
+LISTENING_BASIC_WORDS_PER_GROUP = 50
+# 词库读不出来时的兜底组数（正常不会走到）。
+#
+# 组数必须在 _REPO_ROOT 定义之后按页面里 ALL_WORDS 的**实际条数**算，
+# 不能再硬编码：2026-09-02 的内容治理把听力1000词从 1000 条去重成 949 条
+# （48 组），而单元数还按 50 建，dictation_u49/u50 成了空组——学生被排到后
+# 页面只有「第 1 / 0 个单词」，任务永远做不完，天天累积。
+_DICTATION_GROUP_FALLBACK = 48
+_LISTENING_BASIC_GROUP_FALLBACK = 41
 LISTENING_SYNONYM_QUESTION_COUNT = 120
 LISTENING_SYNONYM_PER_UNIT = 5
 SENTENCE_COUNT = 60
@@ -132,10 +140,62 @@ LISTENING_GENDU_LESSONS = [
 ]
 _REPO_ROOT = Path(__file__).resolve().parents[1]
 
+
+def _count_listening_words(html_name: str) -> int:
+    """读听力页面内嵌的 ALL_WORDS 条数（与线上页面同一份数据）。"""
+    path = _REPO_ROOT / "sources" / "tinglidanciceshi" / html_name
+    try:
+        text = path.read_text(encoding="utf-8")
+    except OSError:
+        return 0
+    m = re.search(r"const\s+ALL_WORDS\s*=\s*", text)
+    if not m:
+        return 0
+    start = text.index("[", m.end())
+    depth, in_str, esc = 0, False, False
+    for i in range(start, len(text)):
+        ch = text[i]
+        if in_str:
+            if esc:
+                esc = False
+            elif ch == "\\":
+                esc = True
+            elif ch == '"':
+                in_str = False
+            continue
+        if ch == '"':
+            in_str = True
+        elif ch == "[":
+            depth += 1
+        elif ch == "]":
+            depth -= 1
+            if depth == 0:
+                try:
+                    return len(json.loads(text[start : i + 1]))
+                except json.JSONDecodeError:
+                    return 0
+    return 0
+
+
+def _listening_group_count(html_name: str, per_group: int, fallback: int) -> int:
+    """词库条数 → 组数（向上取整）。词库读不出来时用兜底值，不让模块整体没单元。"""
+    n = _count_listening_words(html_name)
+    if n <= 0 or per_group <= 0:
+        return fallback
+    return -(-n // per_group)
+
+
+DICTATION_GROUP_COUNT = _listening_group_count(
+    "listening.html", DICTATION_WORDS_PER_GROUP, _DICTATION_GROUP_FALLBACK
+)
+LISTENING_BASIC_GROUP_COUNT = _listening_group_count(
+    "listening_basic.html", LISTENING_BASIC_WORDS_PER_GROUP, _LISTENING_BASIC_GROUP_FALLBACK
+)
+
 EXPECTED_TASK_UNIT_COUNTS = {
     "reading_synonym": 23,
-    "dictation": 50,
-    "listening_basic": 41,
+    "dictation": DICTATION_GROUP_COUNT,
+    "listening_basic": LISTENING_BASIC_GROUP_COUNT,
     "listening_synonym": 24,
     "sentence": 12,
     "writing_phrase": 28,
@@ -161,6 +221,61 @@ def _task_units_seed_complete(conn: sqlite3.Connection) -> bool:
         if got.get(mt, 0) < n:
             return False
     return True
+
+
+def _has_excess_units(conn: sqlite3.Connection) -> bool:
+    """是否有 unit_no 超出数据源实际组数的启用单元（如历史遗留的 dictation_u49/u50）。"""
+    rows = conn.execute(
+        """
+        SELECT module_type, MAX(unit_no) AS top FROM task_units
+        WHERE is_active=1 GROUP BY module_type
+        """
+    ).fetchall()
+    for r in rows:
+        n = EXPECTED_TASK_UNIT_COUNTS.get(r["module_type"])
+        if n is not None and int(r["top"] or 0) > n:
+            return True
+    return False
+
+
+def _retire_excess_units(conn: sqlite3.Connection) -> dict[str, int]:
+    """停用「超出词库/题库实际范围」的单元，并清掉学生排课里指向它们的僵尸任务。
+
+    成因见文件顶部注释：词库被治理后组数变少，单元数没跟着改，多出来的单元
+    在页面上是空组，学生点进去做不完，每天仍被重新排进任务列表。
+    """
+    stats = {"units": 0, "plan_items": 0, "draft": 0, "daily_tasks": 0}
+    dead: list[str] = []
+    for mt, n in EXPECTED_TASK_UNIT_COUNTS.items():
+        rows = conn.execute(
+            "SELECT unit_id FROM task_units WHERE module_type=? AND unit_no>? AND is_active=1",
+            (mt, n),
+        ).fetchall()
+        dead.extend(r["unit_id"] for r in rows)
+    if not dead:
+        return stats
+
+    marks = ",".join("?" * len(dead))
+    cur = conn.execute(f"UPDATE task_units SET is_active=0 WHERE unit_id IN ({marks})", dead)
+    stats["units"] = cur.rowcount or 0
+    cur = conn.execute(f"DELETE FROM plan_items_draft WHERE unit_id IN ({marks})", dead)
+    stats["draft"] = cur.rowcount or 0
+    cur = conn.execute(
+        f"UPDATE plan_items SET status='removed' WHERE unit_id IN ({marks}) AND status='pending'",
+        dead,
+    )
+    stats["plan_items"] = cur.rowcount or 0
+    cur = conn.execute(
+        f"""
+        DELETE FROM daily_tasks
+        WHERE state IN ('todo', 'in_progress')
+          AND plan_item_id IN (SELECT id FROM plan_items WHERE unit_id IN ({marks}))
+        """,
+        dead,
+    )
+    stats["daily_tasks"] = cur.rowcount or 0
+    conn.commit()
+    return stats
 
 
 def china_ymd(now: Optional[datetime] = None) -> str:
@@ -738,9 +853,10 @@ def seed_mvp_units(conn: sqlite3.Connection) -> None:
     """Idempotent seed for all task-plan subjects (excludes writing_correction).
 
     Skips work when all expected module counts are already present — important
-    because /api/task/units calls this on every request.
+    because /api/task/units calls this on every request. 仍会在发现「越界单元」
+    时跑一次，把多出来的空单元停用并清掉学生排课里的僵尸任务（自愈）。
     """
-    if _task_units_seed_complete(conn):
+    if _task_units_seed_complete(conn) and not _has_excess_units(conn):
         return
     for set_id, name in READING_SETS:
         scope_total = 5 if set_id == 23 else 10
@@ -1011,6 +1127,8 @@ def seed_mvp_units(conn: sqlite3.Connection) -> None:
         )
 
     conn.commit()
+    # 数据源缩短后会留下「越界单元」（页面上是空组），一并停用并清掉学生排课。
+    _retire_excess_units(conn)
 
 
 def list_units(conn: sqlite3.Connection, module_type: Optional[str] = None) -> list[dict[str, Any]]:

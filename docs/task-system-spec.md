@@ -307,7 +307,8 @@ function planStatus(student_id, parent_module):
 ### 5.2 听力1000词 `dictation`
 
 - 切法：现有每组 20 词 = 1 单元  
-- 数量：`ceil(词数/20)`（约 50）  
+- 数量：`ceil(词数/20)`，按页面 `ALL_WORDS` 实际条数算。当前 949 词 → **48**；
+  单元数不再硬编码——词库治理后会自动跟，避免出现指向空组的单元（见 VERSIONS 2026-10-15）  
 - `content_ref`：`{ "groupIndex": 0-based }`  
 - 学习页：听力学习页 `?group=<n>&task_id=`  
 - 打勾：四阶段流程走完（与现 `groupStatus=completed` 一致）  

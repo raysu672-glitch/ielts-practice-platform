@@ -17,15 +17,22 @@ if str(SCRIPTS_DIR) not in sys.path:
 from task_api import (  # noqa: E402
     PACK_MODE_TIME_BUDGET,
     PACK_MODE_UNITS_PER_DAY,
+    DICTATION_GROUP_COUNT,
+    LISTENING_BASIC_GROUP_COUNT,
+    DICTATION_WORDS_PER_GROUP,
+    LISTENING_BASIC_WORDS_PER_GROUP,
     STAGE_TEST_ATTENTION_FAILS,
     SHANGHAI,
     GENDU_DAILY_PRACTICES,
     GENDU_MODULE,
     GENDU_PASS_SCORE,
+    _count_listening_words,
+    _has_excess_units,
     _interleave_by_module,
     _plan_progress_brief,
     _profile_has_real_pending,
     _profile_pending_due,
+    _retire_excess_units,
     _student_overview_row,
     _gendu_day_practice_count,
     apply_draft_to_live,
@@ -143,12 +150,77 @@ def _connect() -> sqlite3.Connection:
 
 
 class TaskApiTests(unittest.TestCase):
+    def test_listening_units_match_word_bank(self) -> None:
+        """听力单元数必须等于词库实际组数；多出来的组在页面上是空的（dictation_u49/u50 事故）。"""
+        conn = _connect()
+        for html_name, per_group, module in (
+            ("listening.html", DICTATION_WORDS_PER_GROUP, "dictation"),
+            ("listening_basic.html", LISTENING_BASIC_WORDS_PER_GROUP, "listening_basic"),
+        ):
+            words = _count_listening_words(html_name)
+            self.assertGreater(words, 0, html_name)
+            expect = -(-words // per_group)
+            got = [
+                int(r["unit_no"])
+                for r in conn.execute(
+                    "SELECT unit_no FROM task_units WHERE module_type=? AND is_active=1 ORDER BY unit_no",
+                    (module,),
+                ).fetchall()
+            ]
+            self.assertEqual(got, list(range(1, expect + 1)), f"{module} 单元数应等于词库组数 {expect}")
+            self.assertFalse(_has_excess_units(conn), module)
+
+    def test_excess_units_retired_and_schedule_cleaned(self) -> None:
+        """历史遗留的空组单元要停用，学生排课里的僵尸任务要清掉（停用 + 作废 + 删当天未完成行）。"""
+        conn = _connect()
+        conn.execute(
+            """
+            INSERT INTO task_units (unit_id, module_type, parent_module, unit_no, title, is_active)
+            VALUES ('dictation_u49', 'dictation', 'dictation', 49, '第49组', 1)
+            """
+        )
+        pid = conn.execute(
+            """
+            INSERT INTO plan_items (student_id, sort_order, item_type, unit_id, module_type, status)
+            VALUES ('2025001', 99, 'study', 'dictation_u49', 'dictation', 'pending')
+            """
+        ).lastrowid
+        conn.execute(
+            """
+            INSERT INTO daily_tasks (student_id, task_date, plan_item_id, state)
+            VALUES ('2025001', ?, ?, 'todo')
+            """,
+            (china_ymd(), pid),
+        )
+        conn.commit()
+        self.assertTrue(_has_excess_units(conn))
+
+        seed_mvp_units(conn)
+
+        self.assertEqual(
+            conn.execute(
+                "SELECT is_active FROM task_units WHERE unit_id='dictation_u49'"
+            ).fetchone()["is_active"],
+            0,
+        )
+        self.assertEqual(
+            conn.execute("SELECT status FROM plan_items WHERE id=?", (pid,)).fetchone()["status"],
+            "removed",
+        )
+        self.assertEqual(
+            conn.execute(
+                "SELECT COUNT(*) AS c FROM daily_tasks WHERE plan_item_id=?", (pid,)
+            ).fetchone()["c"],
+            0,
+        )
+        self.assertFalse(_has_excess_units(conn))
+
     def test_seed_counts(self) -> None:
         conn = _connect()
         expected = {
             "reading_synonym": 23,
-            "dictation": 50,
-            "listening_basic": 41,
+            "dictation": DICTATION_GROUP_COUNT,
+            "listening_basic": LISTENING_BASIC_GROUP_COUNT,
             "listening_synonym": 24,
             "sentence": 12,
             "writing_phrase": 28,

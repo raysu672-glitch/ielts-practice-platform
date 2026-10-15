@@ -1,5 +1,57 @@
 # 版本记录
 
+## 听力1000词「空单元」修复：单元数跟词库实际组数走（2026-10-15）
+
+导出听力词表时对账发现：**任务系统给「听力1000词」建了 50 个单元，词库却只有 48 组**，
+第 49、50 组（`dictation_u49/u50`）在页面上是空组。
+
+### 根因
+
+- 2026-09-01 `df7d466` 建任务系统时 `DICTATION_GROUP_COUNT = 50`（按「1000 词 ÷ 20」设计），
+  那时词表确实是 1000 条。
+- 2026-09-02 `4cee0bb`「Fix content errors across listening, speaking, reading, and writing
+  modules」把词表去重（1000 条里含 51 条重复词）成 **949 条唯一词**，页面
+  `TOTAL_GROUPS = ceil(949/20) = 48`，但单元数常量没跟着改。
+- `listening.html` 的 `currentGroupWords = ALL_WORDS.slice(idx*20, (idx+1)*20)` 对第 49/50 组
+  返回空数组；任务横幅仍显示「仅第 49 组（961-949，共 20 词）」，阶段 4 显示
+  「第 1 / 0 个单词」，**学习流程永远走不完**。
+
+### 线上影响（2026-10-15 实测）
+
+```
+plan_items 引用 u49/u50：16 条（学生 2025093、2025124、2025120）
+daily_tasks 里的 u49/u50：30 行，10-08 ~ 10-15 天天 state='todo'
+```
+
+这三个学生每天的任务列表里都挂着两条做不完的空单元，逐日累积。
+
+### 改法
+
+| 位置 | 改动 |
+| --- | --- |
+| `scripts/task_api.py` | `DICTATION_GROUP_COUNT` / `LISTENING_BASIC_GROUP_COUNT` 不再硬编码，改为按页面 `ALL_WORDS` 实际条数算（`_listening_group_count`，读不到时兜底 48/41） |
+| 同上 | 新增 `_has_excess_units` / `_retire_excess_units`：发现 `unit_no` 超出数据源范围的单元时，停用它们 + 删草稿引用 + 把学生 pending 排课置 `removed` + 清掉当天未完成的 `daily_tasks` 行（幂等，部署后自愈） |
+| `sources/tinglidanciceshi/listening.html`、`listening_basic.html` | `startLearning()` 增加空组兜底（提示「本组暂无单词」并留在列表页）；任务横幅越界时不再显示倒挂的「961-949」 |
+
+### 全模块体检（2026-10-15）
+
+逐个核对了 12 个模块的「任务单元数 vs 数据源实际规模」，**只有 dictation 这一处不符**：
+
+| 模块 | 单元数 | 数据源实际 |
+| --- | --- | --- |
+| reading_synonym | 23 | GROUP_SETS 23 大组（ALL_GROUPS 225 小组） |
+| **dictation** | **50 → 48** | ALL_WORDS 949 词 ÷ 20 |
+| listening_basic | 41 | ALL_WORDS 2037 词 ÷ 50 |
+| listening_synonym | 24 | daanjutingxie 120 题（1..120 连续）÷ 5 |
+| sentence | 12 | SENTENCES 60 ÷ 5 |
+| writing_phrase | 28 | `categories.js` 动态生成 |
+| writing_translate | 23 | `translation_data.json` 动态生成 |
+| listening_p4_speed | 24 | GENDU_LESSONS 24（p1 12 + p4 12） |
+| speaking_complex | 17 | PATTERNS 7 + ADV 10 |
+| speaking_p1 | 24 | P1_DATA 231 题 ÷ 10 |
+| speaking_p2_material | 8 | p2-data materials 8 个 |
+| speaking_p2_apply | 12 | p2-data questions 56 ÷ 5 |
+
 ## 判分放宽：写作翻译改「规则四径」+ 词伙答案支持「多写法」（2026-09-20 第五次修订）
 
 学生反馈：「阶段测试过不去」这条查下去，除了重测次数和阶段测排法，

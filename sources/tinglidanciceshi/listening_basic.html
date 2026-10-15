@@ -1245,8 +1245,14 @@
                 }
                 const label = document.createElement('span');
                 label.className = 'group-btn-label';
-                label.textContent = `${i + 1}
+                const emptyGroup = startNum > ALL_WORDS.length;
+                label.textContent = emptyGroup ? `${i + 1}
+暂无单词` : `${i + 1}
 ${startNum}-${endNum}`;
+                if (emptyGroup) {
+                    btn.disabled = true;
+                    btn.title = '本组暂无单词（词库已更新）';
+                }
                 btn.appendChild(fill);
                 btn.appendChild(label);
                 btn.onclick = () => startGroup(i);
@@ -1272,6 +1278,10 @@ ${startNum}-${endNum}`;
                 const g = _taskMode.groupIndex + 1;
                 const startNum = _taskMode.groupIndex * WORDS_PER_GROUP + 1;
                 const endNum = Math.min((_taskMode.groupIndex + 1) * WORDS_PER_GROUP, ALL_WORDS.length);
+                if (startNum > ALL_WORDS.length) {
+                    info.textContent = `今日任务 · 第 ${g} 组暂无单词（词库已更新），请联系助教`;
+                    return;
+                }
                 info.textContent = `今日任务 · 第 ${g} 组（词 ${startNum}-${endNum}）· 请完成四阶段`;
                 return;
             }
@@ -1321,6 +1331,11 @@ ${startNum}-${endNum}`;
         function startLearning() {
             // Get current group words
             currentGroupWords = ALL_WORDS.slice(currentGroupIndex * WORDS_PER_GROUP, (currentGroupIndex + 1) * WORDS_PER_GROUP);
+            if (!currentGroupWords.length) {
+                // 兜底：该组超出词库范围，空组进学习会卡在「第 1 / 0 个单词」。
+                alert('本组暂时没有单词（词库已更新），请返回列表选择其它组。');
+                return;
+            }
 
             masteredWords = [];
             failedWords = [];
