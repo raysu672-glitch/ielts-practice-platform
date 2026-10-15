@@ -632,7 +632,7 @@
           <button type="button" class="btn btn-solid" id="btnActivate">激活并进入</button>
         </div>
         <p class="gate-err" id="gateErr"></p>
-        <p class="gate-foot">没有激活码？微信联系给你发链接的老师。<br />设计稿可用激活码：<strong>OYTRIAL</strong></p>
+        <p class="gate-foot">激活码由顾问生成，<strong>一码只能用一次</strong>。没有码或已失效，请微信联系顾问重发链接。</p>
       </div>
     </section>
 
@@ -659,20 +659,20 @@
     </div>
 
     <details class="share-box" id="shareBox">
-      <summary>顾问：生成分享链接（对应客户微信）</summary>
-      <p class="share-help">填「你的微信」（学生联系你用）、「客户微信」（用来对上练习记录）和激活码，再复制链接发给该客户。</p>
+      <summary>顾问：生成一次性激活链接</summary>
+      <p class="share-help">填顾问微信与客户微信，点生成。系统会发<strong>一次性激活码</strong>（用过即失效），复制链接发给该客户即可。</p>
       <label class="share-label">顾问微信（你的号）
         <input id="shareWxInput" class="share-input" type="text" maxlength="40" placeholder="例如 s13512480257" autocomplete="off" />
       </label>
       <label class="share-label">客户微信（用来对应记录）
         <input id="shareGuestWxInput" class="share-input" type="text" maxlength="80" placeholder="该客户的微信号" autocomplete="off" />
       </label>
-      <label class="share-label">本次激活码
-        <input id="shareCodeInput" class="share-input" type="text" maxlength="32" placeholder="例如 OYTRIAL" autocomplete="off" />
+      <label class="share-label">激活码（系统生成 · 一码一次）
+        <input id="shareCodeInput" class="share-input" type="text" maxlength="32" placeholder="点击下方按钮生成" readonly autocomplete="off" />
       </label>
       <div class="share-row">
         <input id="shareLinkOut" class="share-input" type="text" readonly />
-        <button type="button" class="btn btn-solid" id="btnCopyShare">复制链接</button>
+        <button type="button" class="btn btn-solid" id="btnCopyShare">生成并复制链接</button>
       </div>
     </details>
 
@@ -822,12 +822,24 @@
       }
     }
 
-    /** 链接参数：wx=顾问微信 · guest_wx=客户微信 · code=激活码 */
+    /** 链接参数：wx=顾问微信 · guest_wx=客户微信 · code=一次性激活码 */
     var TEACHER_WX = (qs('wx') || qs('wechat') || 's13512480257').trim();
     var PREFILL_CODE = (qs('code') || qs('激活码') || '').trim();
     var PREFILL_GUEST_WX = (qs('guest_wx') || qs('cw') || qs('client_wx') || '').trim();
-    var DEMO_CODES = { OYTRIAL: true, oytrial: true };
     var STORE_KEY = 'shiyong_trial_claim_v1';
+
+    function apiPost(url, body) {
+      return fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body || {}),
+        credentials: 'same-origin'
+      }).then(function (res) {
+        return res.json().then(function (json) {
+          return { ok: res.ok, status: res.status, json: json };
+        });
+      });
+    }
 
     function showToast(msg) {
       var el = document.getElementById('toast');
@@ -983,33 +995,52 @@
       }
       if (!code) {
         if (gateErr) {
-          gateErr.textContent = '请填写老师发给你的激活码';
+          gateErr.textContent = '请填写顾问发给你的激活码';
           gateErr.classList.add('show');
         }
         return;
       }
-      // 设计稿：OYTRIAL 可用；正式版走服务端校验
-      if (!DEMO_CODES[code] && !DEMO_CODES[code.toUpperCase()]) {
-        if (gateErr) {
-          gateErr.textContent = '激活码无效或已用完，请联系老师';
-          gateErr.classList.add('show');
-        }
-        return;
-      }
-      var claim = {
-        name: name,
-        guestWx: guestWx,
+      var btn = document.getElementById('btnActivate');
+      if (btn) btn.disabled = true;
+      apiPost('/api/trial/claim', {
+        code: code,
+        guest_name: name,
+        guest_wx: guestWx,
         contact: contact,
-        code: code.toUpperCase(),
-        targetScore: target,
-        advisorWx: TEACHER_WX,
-        daysLeft: 5,
-        at: Date.now()
-      };
-      saveClaim(claim);
-      showDesk(claim);
-      showToast('激活成功，欢迎 ' + name);
-      window.scrollTo(0, 0);
+        target_score: Number(target) || 6.5
+      }).then(function (res) {
+        var err = res.json && res.json.error;
+        var data = res.json && res.json.data;
+        if (!res.ok || err || !data) {
+          if (gateErr) {
+            gateErr.textContent = (err && err.message) || '激活失败，请联系顾问';
+            gateErr.classList.add('show');
+          }
+          return;
+        }
+        var claim = {
+          name: data.guest_name || name,
+          guestWx: data.guest_wx || guestWx,
+          contact: data.contact || contact,
+          code: data.code || code.toUpperCase(),
+          targetScore: data.target_score || target,
+          advisorWx: data.advisor_wx || TEACHER_WX,
+          daysLeft: data.days_left != null ? data.days_left : 5,
+          expiresAt: data.expires_at || '',
+          at: Date.now()
+        };
+        saveClaim(claim);
+        showDesk(claim);
+        showToast('激活成功，欢迎 ' + claim.name + '（此码已失效）');
+        window.scrollTo(0, 0);
+      }).catch(function () {
+        if (gateErr) {
+          gateErr.textContent = '网络异常，请稍后重试';
+          gateErr.classList.add('show');
+        }
+      }).finally(function () {
+        if (btn) btn.disabled = false;
+      });
     }
 
     var btnActivate = document.getElementById('btnActivate');
@@ -1041,7 +1072,7 @@
       showGate();
     }
 
-    // —— 顾问生成：/shiyong/?wx=顾问微信&guest_wx=客户微信&code=激活码 ——
+    // —— 顾问生成一次性码：POST /api/trial/create-code ——
     var shareInput = document.getElementById('shareWxInput');
     var shareGuestWxInput = document.getElementById('shareGuestWxInput');
     var shareCodeInput = document.getElementById('shareCodeInput');
@@ -1076,9 +1107,8 @@
       shareGuestWxInput.value = PREFILL_GUEST_WX;
       shareGuestWxInput.addEventListener('input', refreshShareLink);
     }
-    if (shareCodeInput) {
-      shareCodeInput.value = PREFILL_CODE || 'OYTRIAL';
-      shareCodeInput.addEventListener('input', refreshShareLink);
+    if (shareCodeInput && PREFILL_CODE) {
+      shareCodeInput.value = PREFILL_CODE;
     }
     refreshShareLink();
 
@@ -1086,9 +1116,6 @@
       btnCopyShare.addEventListener('click', function () {
         var advisorWx = shareInput ? shareInput.value.trim() : '';
         var guestWx = shareGuestWxInput ? shareGuestWxInput.value.trim() : '';
-        var code = shareCodeInput ? shareCodeInput.value.trim() : '';
-        var link = buildShareLink(advisorWx, guestWx, code);
-        if (shareOut) shareOut.value = link;
         if (!advisorWx) {
           showToast('请先填写顾问微信号');
           return;
@@ -1097,18 +1124,34 @@
           showToast('请先填写客户微信号，才能对应练习记录');
           return;
         }
-        if (!code) {
-          showToast('请先填写本次激活码');
-          return;
-        }
-        copyText(link).then(function () {
-          showToast('链接已复制（含顾问微信、客户微信、激活码）');
-        }).catch(function () {
-          showToast('请手动复制链接框里的地址');
-          if (shareOut) {
-            shareOut.focus();
-            shareOut.select();
+        btnCopyShare.disabled = true;
+        apiPost('/api/trial/create-code', {
+          advisor_wx: advisorWx,
+          guest_wx: guestWx,
+          days_valid: 5
+        }).then(function (res) {
+          var err = res.json && res.json.error;
+          var data = res.json && res.json.data;
+          if (!res.ok || err || !data || !data.code) {
+            showToast((err && err.message) || '生成失败，请重试');
+            return;
           }
+          if (shareCodeInput) shareCodeInput.value = data.code;
+          var link = buildShareLink(advisorWx, guestWx, data.code);
+          if (shareOut) shareOut.value = link;
+          return copyText(link).then(function () {
+            showToast('已生成一次性激活码 ' + data.code + '，链接已复制');
+          }).catch(function () {
+            showToast('已生成激活码 ' + data.code + '，请手动复制下方链接');
+            if (shareOut) {
+              shareOut.focus();
+              shareOut.select();
+            }
+          });
+        }).catch(function () {
+          showToast('网络异常，请稍后重试');
+        }).finally(function () {
+          btnCopyShare.disabled = false;
         });
       });
     }

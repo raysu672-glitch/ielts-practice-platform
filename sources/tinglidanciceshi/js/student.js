@@ -80,15 +80,6 @@ function showStudentHome() {
     });
 }
 
-/** 入学摸底：独立 iframe 流程，结果写入 placement 测试记录 */
-function openPlacementTest() {
-    var m = typeof getModuleById === 'function' ? getModuleById('placement') : null;
-    var url = (m && m.test_url) || '../xinshengmodi/index.html';
-    var target = (currentStudent && currentStudent.target_score) || 6.5;
-    var joiner = url.indexOf('?') >= 0 ? '&' : '?';
-    openGenericIframe('placement', '入学摸底', url + joiner + 'target_score=' + encodeURIComponent(target), 'test');
-}
-
 function jianyaHomeworkPending(item) {
     if (!item) return false;
     if (item.myStatus) return item.myStatus !== 'submitted';

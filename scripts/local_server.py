@@ -168,6 +168,11 @@ from placement_api import (  # noqa: E402
     insert_placement_guest,
     list_placement_guests,
 )
+from trial_api import (  # noqa: E402
+    claim_trial_code,
+    create_trial_code,
+    ensure_trial_tables,
+)
 DEFAULT_STATIC_DIR = ROOT / "sources"
 
 from teacher_api import (  # noqa: E402
@@ -795,6 +800,7 @@ def init_db(db_path: Path, *, bind_host: str = "127.0.0.1") -> None:
         ensure_jianya_tables(conn)
         ensure_mock_speaking_tables(conn)
         ensure_placement_guest_table(conn)
+        ensure_trial_tables(conn)
         seed_mvp_units(conn)
 
         conn.execute(
@@ -1760,6 +1766,36 @@ class LocalHandler(SimpleHTTPRequestHandler):
         except Exception as exc:
             self.send_json(
                 {"data": None, "error": {"message": f"保存失败：{exc}"}},
+                status=500,
+            )
+
+    def handle_trial_create_code(self) -> None:
+        """顾问生成一次性试用激活码。"""
+        payload = self.read_json_body()
+        try:
+            with closing(connect(self.db_path)) as conn:
+                row = create_trial_code(conn, payload if isinstance(payload, dict) else {})
+            self.send_json({"data": row, "error": None})
+        except ValueError as exc:
+            self.send_json({"data": None, "error": {"message": str(exc)}}, status=400)
+        except Exception as exc:
+            self.send_json(
+                {"data": None, "error": {"message": f"生成失败：{exc}"}},
+                status=500,
+            )
+
+    def handle_trial_claim(self) -> None:
+        """客户领取试用：一码一次。"""
+        payload = self.read_json_body()
+        try:
+            with closing(connect(self.db_path)) as conn:
+                row = claim_trial_code(conn, payload if isinstance(payload, dict) else {})
+            self.send_json({"data": row, "error": None})
+        except ValueError as exc:
+            self.send_json({"data": None, "error": {"message": str(exc)}}, status=400)
+        except Exception as exc:
+            self.send_json(
+                {"data": None, "error": {"message": f"激活失败：{exc}"}},
                 status=500,
             )
 
@@ -3592,6 +3628,12 @@ class LocalHandler(SimpleHTTPRequestHandler):
             return
         if path == "/api/placement/guest-ai":
             self.handle_placement_guest_ai()
+            return
+        if path == "/api/trial/create-code":
+            self.handle_trial_create_code()
+            return
+        if path == "/api/trial/claim":
+            self.handle_trial_claim()
             return
         if path == "/api/auth/student/login":
             self.handle_student_login()
