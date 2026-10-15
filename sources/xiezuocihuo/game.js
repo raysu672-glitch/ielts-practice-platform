@@ -262,6 +262,10 @@ function _taskPostPhraseUnitComplete() {
 }
 
 function backToCategory() {
+  if (window._trialMode) {
+    alert('试用仅开放「' + (window._trialMode.categoryName || '本组') + '」，开通后可练习全部词伙。');
+    return;
+  }
   // 发送学习时长给父页面（中途退出也记录）
   reportPhraseStudy(5);
   
@@ -1462,13 +1466,36 @@ buildCategoryPage();
 (function applyTaskQueryParams() {
   try {
     var params = new URLSearchParams(window.location.search || '');
+    var isTrial = params.get('trial') === '1' || params.get('mode') === 'trial';
     var catId = params.get('categoryId') || params.get('category') || '';
+    if (isTrial && !catId) catId = '健康饮食类';
     if (!catId) return;
     var fromRaw = params.get('from');
     var toRaw = params.get('to');
     var opts = {};
     if (fromRaw != null && fromRaw !== '') opts.from = Number(fromRaw);
     if (toRaw != null && toRaw !== '') opts.to = Number(toRaw);
+    if (isTrial) {
+      var cat = (typeof allCategories !== 'undefined')
+        ? allCategories.find(function (c) { return c.id === catId; })
+        : null;
+      window._trialMode = {
+        categoryId: catId,
+        categoryName: cat ? cat.name : catId
+      };
+      setTimeout(function () {
+        var banner = document.createElement('div');
+        banner.id = 'trialModeBanner';
+        banner.style.cssText = 'background:#ecfdf5;border:1px solid #a7f3d0;color:#065f46;padding:10px 14px;margin:8px;border-radius:8px;font-size:14px;position:relative;z-index:20;';
+        banner.innerHTML = '<strong>试用体验 · 仅本组</strong> 当前开放「' +
+          (window._trialMode.categoryName || catId) +
+          '」；其他分类需正式开通后可用。';
+        document.body.insertBefore(banner, document.body.firstChild);
+        document.querySelectorAll('.btn-back-cat').forEach(function (btn) {
+          btn.style.display = 'none';
+        });
+      }, 80);
+    }
     selectCategory(catId, opts);
   } catch (e) {}
 })();

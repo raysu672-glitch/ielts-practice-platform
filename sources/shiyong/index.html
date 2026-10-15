@@ -713,20 +713,20 @@
           </button>
         </li>
         <li>
-          <button type="button" class="mod" data-href="/tongyitihuan/index.html">
+          <button type="button" class="mod" data-href="/tongyitihuan/index.html?trial=1&setId=1">
             <div>
               <div class="mod-title">阅读同义替换</div>
-              <div class="mod-desc">体验关 · 即时对错反馈</div>
+              <div class="mod-desc">仅开放单元 1 · 即时对错反馈</div>
             </div>
             <span class="mod-quota">限 1 关</span>
             <div class="mod-status" aria-hidden="true"><i style="--p:0%"></i></div>
           </button>
         </li>
         <li>
-          <button type="button" class="mod" data-href="/xiezuocihuo/index.html">
+          <button type="button" class="mod" data-href="/xiezuocihuo/index.html?trial=1&categoryId=%E5%81%A5%E5%BA%B7%E9%A5%AE%E9%A3%9F%E7%B1%BB">
             <div>
               <div class="mod-title">写作词伙</div>
-              <div class="mod-desc">健康饮食类 · 学练一体</div>
+              <div class="mod-desc">仅开放健康饮食类 · 学练一体</div>
             </div>
             <span class="mod-quota">限 1 组</span>
             <div class="mod-status" aria-hidden="true"><i style="--p:0%"></i></div>
@@ -769,8 +769,8 @@
       <div class="map-group">
         <div class="map-label">方法训练</div>
         <ul class="map-grid">
-          <li><button type="button" class="map-item" data-access="limited" data-href="/tongyitihuan/index.html"><span class="name">阅读同义替换</span><span class="state limited">限 1 关</span></button></li>
-          <li><button type="button" class="map-item" data-access="limited" data-href="/xiezuocihuo/index.html"><span class="name">写作词伙</span><span class="state limited">限 1 组</span></button></li>
+          <li><button type="button" class="map-item" data-access="limited" data-href="/tongyitihuan/index.html?trial=1&setId=1"><span class="name">阅读同义替换</span><span class="state limited">限 1 关</span></button></li>
+          <li><button type="button" class="map-item" data-access="limited" data-href="/xiezuocihuo/index.html?trial=1&categoryId=%E5%81%A5%E5%BA%B7%E9%A5%AE%E9%A3%9F%E7%B1%BB"><span class="name">写作词伙</span><span class="state limited">限 1 组</span></button></li>
           <li><button type="button" class="map-item locked" data-access="lock"><span class="name">长难句分析</span><span class="state lock">未开放</span></button></li>
           <li><button type="button" class="map-item locked" data-access="lock"><span class="name">听力同义替换</span><span class="state lock">未开放</span></button></li>
           <li><button type="button" class="map-item locked" data-access="lock"><span class="name">写作句子翻译</span><span class="state lock">未开放</span></button></li>
@@ -895,6 +895,30 @@
     var btnWx = document.getElementById('btnWechat');
     if (btnWx) btnWx.addEventListener('click', contactTeacherWechat);
 
+    /** 从试用台进摸底：带上已激活姓名，避免再填 */
+    function withTrialProfile(href) {
+      if (!href || href.indexOf('/xinshengmodi') < 0) return href;
+      var claim = null;
+      try {
+        claim = JSON.parse(localStorage.getItem('shiyong_trial_claim_v1') || 'null');
+      } catch (e) {
+        claim = null;
+      }
+      if (!claim || !claim.name) return href;
+      var u;
+      try {
+        u = new URL(href, location.origin);
+      } catch (e2) {
+        return href;
+      }
+      u.searchParams.set('guest', '1');
+      u.searchParams.set('guest_name', claim.name);
+      if (claim.guestWx) u.searchParams.set('guest_wx', claim.guestWx);
+      if (claim.contact) u.searchParams.set('contact', claim.contact);
+      if (claim.targetScore != null) u.searchParams.set('target_score', String(claim.targetScore));
+      return u.pathname + u.search + u.hash;
+    }
+
     function bindOpen(sel) {
       document.querySelectorAll(sel).forEach(function (el) {
         el.addEventListener('click', function () {
@@ -908,7 +932,7 @@
             showToast('设计稿：此处将进入对应试用模块。');
             return;
           }
-          window.location.href = href;
+          window.location.href = withTrialProfile(href);
         });
       });
     }

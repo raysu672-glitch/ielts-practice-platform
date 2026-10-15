@@ -2836,6 +2836,11 @@ function showScreen(screenId) {
 }
 
 function goHome() {
+  if (window._trialMode) {
+    alert('试用仅开放本单元，开通后可练习全部同义替换。');
+    goToStudy();
+    return;
+  }
   showScreen('homeScreen');
   renderHome();
 }
@@ -3884,6 +3889,7 @@ function recordAnswer(isCorrect, questionInfo) {
 
         const taskUnit = urlParams.get('unit') || urlParams.get('setId');
         const taskId = urlParams.get('task_id') || urlParams.get('plan_item_id');
+        const isTrial = urlParams.get('trial') === '1' || urlParams.get('mode') === 'trial';
         const isTaskMode = !!(taskUnit || taskId);
 
         // 启动计时
@@ -3891,7 +3897,26 @@ function recordAnswer(isCorrect, questionInfo) {
         _track_rightCount = 0;
         _track_wrongCount = 0;
 
-        if (isTaskMode && taskUnit) {
+        if (isTrial) {
+            const setId = parseInt(taskUnit || '1', 10) || 1;
+            window._trialMode = { setId: setId };
+            selectSet(setId);
+            setTimeout(function() {
+                document.querySelectorAll('.btn-back').forEach(function(btn) {
+                    if ((btn.textContent || '').indexOf('首页') >= 0 || (btn.getAttribute('onclick') || '').indexOf('goHome') >= 0) {
+                        btn.style.display = 'none';
+                    }
+                });
+                const bar = document.querySelector('.top-bar') || document.body;
+                const banner = document.createElement('div');
+                banner.id = 'trialModeBanner';
+                banner.style.cssText = 'background:#ecfdf5;border:1px solid #a7f3d0;color:#065f46;padding:10px 14px;margin:8px;border-radius:8px;font-size:14px;';
+                banner.innerHTML = '<strong>试用体验 · 仅本单元</strong> 当前开放单元 ' + setId +
+                    '；其他单元需正式开通后可用。';
+                if (bar && bar.parentNode) bar.parentNode.insertBefore(banner, bar.nextSibling);
+                else document.body.insertBefore(banner, document.body.firstChild);
+            }, 100);
+        } else if (isTaskMode && taskUnit) {
             const setId = parseInt(taskUnit, 10);
             const scopeTotal = _taskScopeTotalForSet(setId);
             window._taskMode = {

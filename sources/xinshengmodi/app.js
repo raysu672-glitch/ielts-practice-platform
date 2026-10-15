@@ -68,6 +68,23 @@
     return false;
   }
 
+  /** 试用台已激活时会带 name / guest_name 等，进摸底不再重填 */
+  function loadGuestProfileFromQuery() {
+    var name = String(qs('guest_name') || qs('name') || '').trim();
+    var contact = String(qs('guest_wx') || qs('contact') || qs('wx') || '').trim();
+    var targetRaw = qs('target_score') || qs('target');
+    var target = Number(targetRaw);
+    if (![5, 5.5, 6, 6.5, 7, 7.5].includes(target)) target = 6.5;
+    if (name) {
+      state.guestProfile = {
+        name: name.slice(0, 40),
+        contact: contact.slice(0, 80),
+        targetScore: target,
+        prefilled: true
+      };
+    }
+  }
+
   function escapeHtml(s) {
     return String(s == null ? '' : s)
       .replace(/&/g, '&amp;')
@@ -182,24 +199,38 @@
     state.sectionIndex = -1;
     var app = document.getElementById('app');
     var guestBlock = '';
+    var prefilled = !!(state.guest && state.guestProfile && state.guestProfile.prefilled && state.guestProfile.name);
     if (state.guest) {
-      guestBlock =
-        '<div class="guest-form">' +
-          '<p class="guest-tag">临时访客入口 · 无需学号</p>' +
-          '<label class="field"><span>姓名 <em>*</em></span>' +
-            '<input id="guestName" class="text-input" maxlength="40" placeholder="怎么称呼你" autocomplete="name" /></label>' +
-          '<label class="field"><span>手机 / 微信</span>' +
-            '<input id="guestContact" class="text-input" maxlength="80" placeholder="选填，方便老师联系" autocomplete="tel" /></label>' +
-          '<label class="field"><span>目标分</span>' +
-            '<select id="guestTarget" class="text-input">' +
-              '<option value="5">5.0</option>' +
-              '<option value="5.5">5.5</option>' +
-              '<option value="6">6.0</option>' +
-              '<option value="6.5" selected>6.5</option>' +
-              '<option value="7">7.0</option>' +
-              '<option value="7.5">7.5</option>' +
-            '</select></label>' +
-        '</div>';
+      if (prefilled) {
+        guestBlock =
+          '<div class="guest-form">' +
+            '<p class="guest-tag">试用台已激活 · 无需再填资料</p>' +
+            '<p class="sub" style="margin:0">你好，<strong>' + escapeHtml(state.guestProfile.name) + '</strong>' +
+              (state.guestProfile.contact
+                ? ' · 微信 ' + escapeHtml(state.guestProfile.contact)
+                : '') +
+              ' · 目标分 ' + escapeHtml(String(state.guestProfile.targetScore)) +
+            '</p>' +
+          '</div>';
+      } else {
+        guestBlock =
+          '<div class="guest-form">' +
+            '<p class="guest-tag">临时访客入口 · 无需学号</p>' +
+            '<label class="field"><span>姓名 <em>*</em></span>' +
+              '<input id="guestName" class="text-input" maxlength="40" placeholder="怎么称呼你" autocomplete="name" /></label>' +
+            '<label class="field"><span>手机 / 微信</span>' +
+              '<input id="guestContact" class="text-input" maxlength="80" placeholder="选填，方便老师联系" autocomplete="tel" /></label>' +
+            '<label class="field"><span>目标分</span>' +
+              '<select id="guestTarget" class="text-input">' +
+                '<option value="5">5.0</option>' +
+                '<option value="5.5">5.5</option>' +
+                '<option value="6">6.0</option>' +
+                '<option value="6.5" selected>6.5</option>' +
+                '<option value="7">7.0</option>' +
+                '<option value="7.5">7.5</option>' +
+              '</select></label>' +
+          '</div>';
+      }
     }
     app.innerHTML =
       '<div class="intro">' +
@@ -217,20 +248,22 @@
       '</div>';
     document.getElementById('startBtn').onclick = function () {
       if (state.guest) {
-        var nameEl = document.getElementById('guestName');
-        var contactEl = document.getElementById('guestContact');
-        var targetEl = document.getElementById('guestTarget');
-        var name = nameEl ? String(nameEl.value || '').trim() : '';
-        if (!name) {
-          alert('请先填写姓名');
-          if (nameEl) nameEl.focus();
-          return;
+        if (!(state.guestProfile && state.guestProfile.prefilled && state.guestProfile.name)) {
+          var nameEl = document.getElementById('guestName');
+          var contactEl = document.getElementById('guestContact');
+          var targetEl = document.getElementById('guestTarget');
+          var name = nameEl ? String(nameEl.value || '').trim() : '';
+          if (!name) {
+            alert('请先填写姓名');
+            if (nameEl) nameEl.focus();
+            return;
+          }
+          state.guestProfile = {
+            name: name,
+            contact: contactEl ? String(contactEl.value || '').trim() : '',
+            targetScore: targetEl ? Number(targetEl.value) || 6.5 : 6.5
+          };
         }
-        state.guestProfile = {
-          name: name,
-          contact: contactEl ? String(contactEl.value || '').trim() : '',
-          targetScore: targetEl ? Number(targetEl.value) || 6.5 : 6.5
-        };
       }
       state.startedAt = Date.now();
       state.reportSent = false;
@@ -1070,6 +1103,7 @@
     }
     state.debug = qs('debug') === '1';
     state.guest = isGuestMode();
+    if (state.guest) loadGuestProfileFromQuery();
     state.form = sliceForm(window.PLACEMENT_FORM_A);
     renderIntro();
   }
