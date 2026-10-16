@@ -172,6 +172,10 @@ from trial_api import (  # noqa: E402
     claim_trial_code,
     create_trial_code,
     ensure_trial_tables,
+    get_trial_progress,
+    list_trial_guests,
+    login_trial,
+    save_trial_progress,
 )
 DEFAULT_STATIC_DIR = ROOT / "sources"
 
@@ -1770,7 +1774,9 @@ class LocalHandler(SimpleHTTPRequestHandler):
             )
 
     def handle_trial_create_code(self) -> None:
-        """顾问生成一次性试用激活码。"""
+        """仅教师可生成试用激活码。"""
+        if not self.require_teacher_session():
+            return
         payload = self.read_json_body()
         try:
             with closing(connect(self.db_path)) as conn:
@@ -1785,7 +1791,7 @@ class LocalHandler(SimpleHTTPRequestHandler):
             )
 
     def handle_trial_claim(self) -> None:
-        """客户领取试用：一码一次。"""
+        """客户首次激活或再次进入（微信为唯一身份）。"""
         payload = self.read_json_body()
         try:
             with closing(connect(self.db_path)) as conn:
@@ -1798,6 +1804,72 @@ class LocalHandler(SimpleHTTPRequestHandler):
                 {"data": None, "error": {"message": f"激活失败：{exc}"}},
                 status=500,
             )
+
+    def handle_trial_login(self) -> None:
+        """已激活客户用微信再次进入。"""
+        payload = self.read_json_body()
+        try:
+            with closing(connect(self.db_path)) as conn:
+                row = login_trial(conn, payload if isinstance(payload, dict) else {})
+            self.send_json({"data": row, "error": None})
+        except ValueError as exc:
+            self.send_json({"data": None, "error": {"message": str(exc)}}, status=400)
+        except Exception as exc:
+            self.send_json(
+                {"data": None, "error": {"message": f"登录失败：{exc}"}},
+                status=500,
+            )
+
+    def handle_trial_progress_post(self) -> None:
+        """试用生保存模块进度。"""
+        payload = self.read_json_body()
+        try:
+            with closing(connect(self.db_path)) as conn:
+                row = save_trial_progress(conn, payload if isinstance(payload, dict) else {})
+            self.send_json({"data": row, "error": None})
+        except ValueError as exc:
+            self.send_json({"data": None, "error": {"message": str(exc)}}, status=400)
+        except Exception as exc:
+            self.send_json(
+                {"data": None, "error": {"message": f"保存进度失败：{exc}"}},
+                status=500,
+            )
+
+    def handle_trial_progress_get(self) -> None:
+        """试用生读取模块进度。"""
+        parsed = urllib.parse.urlparse(self.path)
+        qs = urllib.parse.parse_qs(parsed.query or "")
+        payload = {
+            "code": (qs.get("code") or [""])[0],
+            "guest_wx": (qs.get("guest_wx") or [""])[0],
+            "module_type": (qs.get("module_type") or ["listening_basic"])[0],
+        }
+        try:
+            with closing(connect(self.db_path)) as conn:
+                row = get_trial_progress(conn, payload)
+            self.send_json({"data": row, "error": None})
+        except ValueError as exc:
+            self.send_json({"data": None, "error": {"message": str(exc)}}, status=400)
+        except Exception as exc:
+            self.send_json(
+                {"data": None, "error": {"message": f"读取进度失败：{exc}"}},
+                status=500,
+            )
+
+    def handle_teacher_trial_guests_get(self) -> None:
+        """教师查看试用生与听力基础进度摘要。"""
+        session = self.require_teacher_session()
+        if not session:
+            return
+        parsed = urllib.parse.urlparse(self.path)
+        qs = urllib.parse.parse_qs(parsed.query or "")
+        try:
+            limit = int((qs.get("limit") or ["200"])[0])
+        except (TypeError, ValueError):
+            limit = 200
+        with closing(connect(self.db_path)) as conn:
+            rows = list_trial_guests(conn, limit=limit)
+        self.send_json({"data": rows, "error": None})
 
     def handle_placement_guest_transcribe(self) -> None:
         """访客口语识别：复用 P4 代理，不要求登录。"""
@@ -3485,6 +3557,12 @@ class LocalHandler(SimpleHTTPRequestHandler):
         if parsed.path.rstrip("/") == "/api/teacher/placement-guests":
             self.handle_teacher_placement_guests_get()
             return
+        if parsed.path.rstrip("/") == "/api/teacher/trial-guests":
+            self.handle_teacher_trial_guests_get()
+            return
+        if parsed.path.rstrip("/") == "/api/trial/progress":
+            self.handle_trial_progress_get()
+            return
         if parsed.path.rstrip("/") == "/api/teacher/overview":
             self.handle_teacher_overview()
             return
@@ -3634,6 +3712,12 @@ class LocalHandler(SimpleHTTPRequestHandler):
             return
         if path == "/api/trial/claim":
             self.handle_trial_claim()
+            return
+        if path == "/api/trial/login":
+            self.handle_trial_login()
+            return
+        if path == "/api/trial/progress":
+            self.handle_trial_progress_post()
             return
         if path == "/api/auth/student/login":
             self.handle_student_login()

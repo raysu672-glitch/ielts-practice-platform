@@ -245,6 +245,72 @@
     return '输出偏短或难懂，建议口语基础重补';
   }
 
+  /** 规则分映射说明（给学生看「为什么是这个区间」） */
+  var LISTEN_READ_RULE =
+    '正确率/覆盖率对照：不足 50%→4.5–5.0；50–69%→5.0–5.5；70–84%→5.5–6.0；85% 及以上→6.0–6.5。';
+  var WRITE_RULE =
+    '写作综合分=词伙正确率×40%+翻译正确率×60%。对照：不足 45%→4.5–5.0；45–64%→5.0–5.5；65–79%→5.5–6.0；80% 及以上→6.0–6.5；若词伙不足 40%，区间下沿再压 0.5。';
+
+  function reasonListening(pct, correct, total, wrong, answered) {
+    pct = clampPct(pct);
+    return (
+      '听力共 ' + total + ' 题，作答 ' + answered + ' 题；达标 ' + correct +
+      ' 题、未达标 ' + wrong + ' 题（听写按关键词覆盖≥85% 算达标）。' +
+      '平均关键词覆盖率 ' + pct + '%。' + LISTEN_READ_RULE +
+      '故估为当前区间。'
+    );
+  }
+
+  function reasonReading(pct, correct, total, wrong, answered) {
+    pct = clampPct(pct);
+    return (
+      '阅读同义共 ' + total + ' 题，作答 ' + answered + ' 题；对 ' + correct +
+      ' 题、错 ' + wrong + ' 题，正确率 ' + pct + '%。' + LISTEN_READ_RULE +
+      '故估为当前区间。'
+    );
+  }
+
+  function reasonWriting(pPct, tPct, pc, pt, tc, tt, band) {
+    pPct = clampPct(pPct);
+    tPct = clampPct(tPct);
+    var pWrong = Math.max(0, pt - pc);
+    var tWrong = Math.max(0, tt - tc);
+    var mixed = Math.round(pPct * 0.4 + tPct * 0.6);
+    var tip = band && band.low != null
+      ? ('综合分约 ' + mixed + '%，落在「' + band.label + '」。')
+      : ('综合分约 ' + mixed + '%。');
+    var penalty = pPct < 40 ? '因词伙正确率不足 40%，区间下沿已再压 0.5。' : '';
+    return (
+      '词伙：对 ' + pc + '/' + pt + '（错 ' + pWrong + '），正确率 ' + pPct + '%；' +
+      '翻译：对 ' + tc + '/' + tt + '（错 ' + tWrong + '），正确率 ' + tPct + '%。' +
+      WRITE_RULE + tip + penalty
+    );
+  }
+
+  function reasonSpeaking(overall, subscores, scored, total, failed) {
+    if (overall == null || !isFinite(Number(overall))) {
+      return '口语 ' + total + ' 题中有效估分 ' + (scored || 0) +
+        ' 题' + (failed ? ('，失败/跳过 ' + failed + ' 题') : '') +
+        '，录音不足或未出分，无法映射雅思区间。';
+    }
+    var o = Math.round(Number(overall) * 2) / 2;
+    var sub = '';
+    if (subscores) {
+      var bits = [];
+      if (subscores.fluency != null) bits.push('流利 ' + subscores.fluency);
+      if (subscores.vocabulary != null) bits.push('词汇 ' + subscores.vocabulary);
+      if (subscores.grammar != null) bits.push('语法 ' + subscores.grammar);
+      if (subscores.pronunciation != null) bits.push('发音 ' + subscores.pronunciation);
+      if (bits.length) sub = '分项约：' + bits.join('、') + '。';
+    }
+    return (
+      '口语 ' + total + ' 题，有效估分 ' + (scored || 0) + ' 题' +
+      (failed ? ('，失败/跳过 ' + failed + ' 题') : '') +
+      '；AI/启发式均分 ' + fmtBand(o) + '。' + sub +
+      '口语按均分落半档宽区间（如 5.5→5.5–6.0），故估为当前区间。'
+    );
+  }
+
   function confidenceForRules(answered, total, timedOut) {
     if (total <= 0) return '低';
     if (answered < total * 0.5) return '低';
@@ -304,6 +370,21 @@
     var speakingConf = speakingOk
       ? (S.confidence || '中')
       : '低';
+    var lCorrect = Number(L.correct) || 0;
+    var lTotal = Number(L.total) || 0;
+    var lWrong = Math.max(0, lTotal - lCorrect);
+    var rCorrect = Number(R.correct) || 0;
+    var rTotal = Number(R.total) || 0;
+    var rWrong = Math.max(0, rTotal - rCorrect);
+    var pCorrect = Number(W.phraseCorrect) || 0;
+    var pTotal = Number(W.phraseTotal) || 0;
+    var tCorrect = Number(W.translateCorrect) || 0;
+    var tTotal = Number(W.translateTotal) || 0;
+    var wWrong = Math.max(0, pTotal - pCorrect) + Math.max(0, tTotal - tCorrect);
+    var speakTotal = Number(S.total) || 0;
+    var speakScored = Number(S.scored) || 0;
+    var speakFailed = Number(S.failed) || 0;
+
     var bands = {
       listening: Object.assign({}, listeningBand, {
         confidence: listeningBand.insufficient
@@ -312,9 +393,18 @@
         comment: listeningBand.insufficient
           ? '几乎未作答，无法估听力分数，请重测'
           : commentListening(lPct, L.correct, L.total),
+        scoreReason: listeningBand.insufficient
+          ? ('听力共 ' + lTotal + ' 题，有效作答过少（作答 ' + (lAnswered || 0) +
+            '），未达估分门槛，故不给区间。')
+          : reasonListening(lPct, lCorrect, lTotal, lWrong, lAnswered || 0),
         pct: lPct,
-        correct: L.correct || 0,
-        total: L.total || 0
+        correct: lCorrect,
+        wrong: lWrong,
+        total: lTotal,
+        answered: lAnswered || 0,
+        resultText: lTotal
+          ? ('对 ' + lCorrect + ' / 错 ' + lWrong + ' / 共 ' + lTotal + ' · 覆盖率 ' + lPct + '%')
+          : '—'
       }),
       reading: Object.assign({}, readingBand, {
         confidence: readingBand.insufficient
@@ -323,29 +413,63 @@
         comment: readingBand.insufficient
           ? '几乎未作答，无法估阅读分数，请重测'
           : commentReading(rPct),
+        scoreReason: readingBand.insufficient
+          ? ('阅读共 ' + rTotal + ' 题，有效作答过少（作答 ' + (rAnswered || 0) +
+            '），未达估分门槛，故不给区间。')
+          : reasonReading(rPct, rCorrect, rTotal, rWrong, rAnswered || 0),
         pct: rPct,
-        correct: R.correct || 0,
-        total: R.total || 0
+        correct: rCorrect,
+        wrong: rWrong,
+        total: rTotal,
+        answered: rAnswered || 0,
+        resultText: rTotal
+          ? ('对 ' + rCorrect + ' / 错 ' + rWrong + ' / 共 ' + rTotal + ' · 正确率 ' + rPct + '%')
+          : '—'
       }),
       writing: Object.assign({}, writingBand, {
         confidence: writingBand.insufficient ? '低' : '中',
         comment: writingBand.insufficient
           ? '几乎未作答，无法估写作分数，请重测'
           : commentWriting(pPct, tPct),
+        scoreReason: writingBand.insufficient
+          ? ('词伙+翻译共 ' + wTotal + ' 题，有效作答过少，未达估分门槛，故不给区间。')
+          : reasonWriting(pPct, tPct, pCorrect, pTotal, tCorrect, tTotal, writingBand),
         phrasePct: pPct,
         translatePct: tPct,
-        phraseCorrect: W.phraseCorrect || 0,
-        phraseTotal: W.phraseTotal || 0,
-        translateCorrect: W.translateCorrect || 0,
-        translateTotal: W.translateTotal || 0
+        phraseCorrect: pCorrect,
+        phraseTotal: pTotal,
+        phraseWrong: Math.max(0, pTotal - pCorrect),
+        translateCorrect: tCorrect,
+        translateTotal: tTotal,
+        translateWrong: Math.max(0, tTotal - tCorrect),
+        correct: pCorrect + tCorrect,
+        wrong: wWrong,
+        total: wTotal,
+        answered: wAnswered || 0,
+        resultText: wTotal
+          ? ('词伙错 ' + Math.max(0, pTotal - pCorrect) + '/' + pTotal +
+            '，翻译错 ' + Math.max(0, tTotal - tCorrect) + '/' + tTotal +
+            '（合计错 ' + wWrong + '）')
+          : '—'
       }),
       speaking: Object.assign({}, speakingBand, {
         confidence: speakingConf,
         comment: speakingBand.insufficient
           ? '未有效录音，无法估口语分数，请重测'
           : commentSpeaking(S.overall, speakingConf, S.transcriptLen || 0),
+        scoreReason: speakingBand.insufficient
+          ? reasonSpeaking(null, null, speakScored, speakTotal, speakFailed)
+          : reasonSpeaking(S.overall, S.subscores, speakScored, speakTotal, speakFailed),
         overall: S.overall,
-        subscores: S.subscores || null
+        subscores: S.subscores || null,
+        correct: speakScored,
+        wrong: speakFailed,
+        total: speakTotal,
+        resultText: speakTotal
+          ? ('有效估分 ' + speakScored + ' / 共 ' + speakTotal +
+            (speakFailed ? (' · 失败跳过 ' + speakFailed) : '') +
+            (S.overall != null ? (' · 均分 ' + fmtBand(S.overall)) : ''))
+          : '—'
       })
     };
 

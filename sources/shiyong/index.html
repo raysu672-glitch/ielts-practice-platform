@@ -408,6 +408,23 @@
       transform: translateX(-50%) translateY(0);
     }
 
+    .hero-proof {
+      margin: 0 0 20px;
+      font-size: 13px;
+      line-height: 1.65;
+      color: rgba(244, 250, 246, 0.88);
+      max-width: 40em;
+    }
+    .hero-proof strong {
+      color: #ffe566;
+      font-weight: 700;
+    }
+    .hero-proof span:not(:last-child)::after {
+      content: " · ";
+      color: rgba(244, 250, 246, 0.45);
+      font-weight: 500;
+    }
+
     .share-box {
       margin-top: 18px;
       padding: 14px 16px;
@@ -505,7 +522,7 @@
       padding: 24px 0 40px;
       animation: riseIn 0.55s ease-out both;
     }
-    #gate[hidden], #desk[hidden] { display: none !important; }
+    #gate[hidden], #desk[hidden], #shareBox[hidden] { display: none !important; }
     .gate-card {
       border: 1px solid var(--line);
       border-radius: 20px;
@@ -573,6 +590,52 @@
       margin-top: 8px;
     }
     .gate-actions .btn { justify-content: center; width: 100%; }
+    .btn-wechat {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      width: 100%;
+      border: none;
+      border-radius: 12px;
+      padding: 14px 18px;
+      font: inherit;
+      font-size: 16px;
+      font-weight: 700;
+      color: #fff;
+      background: #07c160;
+      cursor: pointer;
+      box-shadow: 0 8px 20px rgba(7, 193, 96, 0.28);
+      transition: transform 0.15s ease, background 0.15s ease;
+    }
+    .btn-wechat:hover { background: #06ad56; transform: translateY(-1px); }
+    .btn-wechat:disabled { opacity: 0.65; cursor: wait; transform: none; }
+    .btn-wechat .wx-ico {
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.22);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: 800;
+    }
+    .gate-login-panel {
+      margin-top: 18px;
+      padding-top: 16px;
+      border-top: 1px dashed var(--line);
+      animation: riseIn 0.35s ease-out both;
+    }
+    .gate-login-panel[hidden],
+    #gateFirstFields[hidden],
+    #gateStartActions[hidden] { display: none !important; }
+    .gate-step-hint {
+      font-size: 13px;
+      color: var(--ink-soft);
+      margin: 0 0 12px;
+      line-height: 1.5;
+    }
     .gate-err {
       display: none;
       margin-top: 10px;
@@ -600,39 +663,40 @@
 </head>
 <body>
   <div class="wrap">
-    <!-- 未报名客户在这里输入姓名、激活码 -->
-    <section id="gate" aria-label="试用激活">
+    <!-- 学生：系统激活码进门（同一码 = 同一条学习记录） -->
+    <section id="gate" aria-label="激活码登录">
       <div class="gate-card">
-        <div class="gate-brand">藕叶英语<span>Trial Access</span></div>
-        <h1>开启试用学习台</h1>
-        <p class="lead">老师发你的链接和激活码填在这里。无需学号，激活后即可看到全站模块与本轮开放内容。</p>
+        <div class="gate-brand">藕叶英语<span>小机构 · 大实力</span></div>
+        <h1>激活码进入试用台</h1>
+        <p class="lead">输入顾问发给你的系统激活码。同一激活码换浏览器也能续上进度，试用 15 天。</p>
 
-        <label class="field">姓名 <span class="req">*</span>
-          <input id="gateName" type="text" maxlength="40" placeholder="怎么称呼你" autocomplete="name" />
-        </label>
-        <label class="field">手机号 <span style="font-weight:500;color:var(--muted)">选填</span>
-          <input id="gateContact" type="text" maxlength="80" placeholder="选填" autocomplete="tel" />
-        </label>
-        <p class="note" id="guestWxPrefillNote" style="margin:0 0 12px;display:none"></p>
         <label class="field">激活码 <span class="req">*</span>
-          <input id="gateCode" type="text" maxlength="32" placeholder="老师发给你的激活码" autocomplete="one-time-code" autocapitalize="characters" />
+          <input id="gateCode" type="text" maxlength="32" placeholder="8 位系统激活码" autocomplete="one-time-code" autocapitalize="characters" />
         </label>
-        <label class="field">目标分数
-          <select id="gateTarget">
-            <option value="5">5.0</option>
-            <option value="5.5">5.5</option>
-            <option value="6">6.0</option>
-            <option value="6.5" selected>6.5</option>
-            <option value="7">7.0</option>
-            <option value="7.5">7.5</option>
-          </select>
-        </label>
+        <div id="gateFirstFields" hidden>
+          <label class="field">姓名 <span class="req">*</span>
+            <input id="gateName" type="text" maxlength="40" placeholder="首次使用填写称呼" autocomplete="name" />
+          </label>
+          <label class="field">目标分数
+            <select id="gateTarget">
+              <option value="5">5.0</option>
+              <option value="5.5">5.5</option>
+              <option value="6">6.0</option>
+              <option value="6.5" selected>6.5</option>
+              <option value="7">7.0</option>
+              <option value="7.5">7.5</option>
+            </select>
+          </label>
+          <label class="field">手机号 <span style="font-weight:500;color:var(--muted)">选填</span>
+            <input id="gateContact" type="text" maxlength="80" placeholder="选填" autocomplete="tel" />
+          </label>
+        </div>
 
         <div class="gate-actions">
-          <button type="button" class="btn btn-solid" id="btnActivate">激活并进入</button>
+          <button type="button" class="btn btn-solid" id="btnActivate">进入试用台</button>
         </div>
         <p class="gate-err" id="gateErr"></p>
-        <p class="gate-foot">激活码由顾问生成，<strong>一码只能用一次</strong>。没有码或已失效，请微信联系顾问重发链接。</p>
+        <p class="gate-foot">激活码由系统生成，<strong>同一码对应同一条学习记录</strong>。没有码请联系顾问。</p>
       </div>
     </section>
 
@@ -640,9 +704,14 @@
     <header class="hero" aria-label="试用首页">
       <div class="hero-visual" aria-hidden="true"></div>
       <div class="hero-inner">
-        <div class="brand">藕叶英语<span>Trial Desk</span></div>
+        <div class="brand">藕叶英语<span>小机构 · 大实力</span></div>
         <h1>本周活动：听力基础词汇</h1>
-        <p>完整开放这一板块练听感；另有几项限量体验。到期或额度用尽后，需老师重新激活。</p>
+        <p>完整开放这一板块练听感；另有限量体验。练完想冲 8+，顾问帮你接上细化到小时的备考计划。</p>
+        <p class="hero-proof" aria-label="品牌背书">
+          <span><strong>雅思 8+</strong> 牛津剑桥年年都有</span>
+          <span><strong>85%</strong> 学员来自口碑推荐</span>
+          <span>备考计划<strong>细化到小时</strong></span>
+        </p>
         <div class="cta-row">
           <a class="btn btn-primary" href="#campaign">进入活动板块</a>
           <a class="btn btn-ghost" href="#site-map">查看全站模块</a>
@@ -652,23 +721,24 @@
 
     <div class="meta">
       <span>访客 <strong id="guestNameLabel">—</strong></span>
-      <span id="guestWxMeta"></span>
-      <span class="pill-time" id="guestDaysLabel">试用剩余 5 天</span>
-      <span>本轮由老师开通 · 无需学号</span>
-      <button type="button" class="btn btn-ghost" id="btnResetGate" style="color:var(--leaf-deep);border-color:rgba(31,122,77,.3);padding:6px 10px;font-size:12px">重新填写激活</button>
+      <span id="guestCodeMeta"></span>
+      <span class="pill-time" id="guestDaysLabel">试用剩余 15 天</span>
+      <span>激活码身份 · 无需学号</span>
+      <button type="button" class="btn btn-ghost" id="btnResetGate" style="color:var(--leaf-deep);border-color:rgba(31,122,77,.3);padding:6px 10px;font-size:12px">切换账号</button>
     </div>
 
-    <details class="share-box" id="shareBox">
-      <summary>顾问：生成一次性激活链接</summary>
-      <p class="share-help">填顾问微信与客户微信，点生成。系统会发<strong>一次性激活码</strong>（用过即失效），复制链接发给该客户即可。</p>
+    <details class="share-box" id="shareBox" hidden>
+      <summary>顾问：生成系统激活码（仅教师）</summary>
+      <p class="share-help" id="shareHelp">点生成：系统发<strong>唯一激活码</strong>。学生输入同一码即可进同一条记录（15 天，进度跟着码走）。备注可选。</p>
+      <p class="share-help" id="shareLoginHint" hidden style="color:#b45309;">请先<a href="/tinglidanciceshi/?role=teacher" style="color:var(--leaf-deep);font-weight:700;">登录教师端</a>，再回来生成激活码。</p>
       <label class="share-label">顾问微信（你的号）
         <input id="shareWxInput" class="share-input" type="text" maxlength="40" placeholder="例如 s13512480257" autocomplete="off" />
       </label>
-      <label class="share-label">客户微信（用来对应记录）
-        <input id="shareGuestWxInput" class="share-input" type="text" maxlength="80" placeholder="该客户的微信号" autocomplete="off" />
+      <label class="share-label">客户备注（选填，如微信/姓名，不参与登录）
+        <input id="shareGuestWxInput" class="share-input" type="text" maxlength="80" placeholder="方便你自己辨认" autocomplete="off" />
       </label>
-      <label class="share-label">激活码（系统生成 · 一码一次）
-        <input id="shareCodeInput" class="share-input" type="text" maxlength="32" placeholder="点击下方按钮生成" readonly autocomplete="off" />
+      <label class="share-label">系统激活码
+        <input id="shareCodeInput" class="share-input" type="text" maxlength="32" placeholder="点击下方生成" readonly autocomplete="off" />
       </label>
       <div class="share-row">
         <input id="shareLinkOut" class="share-input" type="text" readonly />
@@ -793,21 +863,21 @@
     </section>
 
     <section class="convert">
-      <h2>练完基础词汇，想按计划继续？</h2>
-      <p>活动帮你把听感练起来；正式学号会按摸底短板排每日任务，并由老师跟进达标。</p>
+      <h2>想冲更高分？让顾问接上正式计划</h2>
+      <p>试用帮你感受方法；正式开通后按短板排每日任务，备考节奏细化到小时，老师盯达标——这也是不少学员冲到 8+、冲刺牛津剑桥的路径。</p>
       <ul>
-        <li>听力基础词汇进度可接进正式计划</li>
-        <li>同义替换、词伙等从限量升级为完整库</li>
-        <li>教师重新激活学号后即可接着练</li>
+        <li>85% 学员来自口碑推荐 · 小机构，大实力</li>
+        <li>听力、同义替换、词伙等从限量升级为完整库</li>
+        <li>微信联系顾问可预约试听，并领取雅思高频 800 词（出版）</li>
       </ul>
       <div class="cta-row">
-        <button type="button" class="btn btn-solid" id="btnWechat">微信联系老师重新激活</button>
+        <button type="button" class="btn btn-solid" id="btnWechat">微信联系顾问</button>
         <a class="btn btn-ghost" style="color:var(--leaf-deep);border-color:rgba(31,122,77,.35)" href="#campaign">先继续练活动板块</a>
       </div>
       <p class="note" id="wechatHint" style="margin-top:12px"></p>
     </section>
 
-    <footer>设计稿 · /shiyong/ · 藕叶英语试用台</footer>
+    <footer>藕叶英语 · 青荷留学 · 试用台</footer>
     </div><!-- /#desk -->
   </div>
 
@@ -822,11 +892,12 @@
       }
     }
 
-    /** 链接参数：wx=顾问微信 · guest_wx=客户微信 · code=一次性激活码 */
+    /** 链接参数：wx=顾问微信 · guest_wx=客户微信（唯一身份） · code=识别码 */
     var TEACHER_WX = (qs('wx') || qs('wechat') || 's13512480257').trim();
-    var PREFILL_CODE = (qs('code') || qs('激活码') || '').trim();
+    var PREFILL_CODE = (qs('code') || qs('激活码') || qs('识别码') || '').trim();
     var PREFILL_GUEST_WX = (qs('guest_wx') || qs('cw') || qs('client_wx') || '').trim();
     var STORE_KEY = 'shiyong_trial_claim_v1';
+    var DEFAULT_TRIAL_DAYS = 15;
 
     function apiPost(url, body) {
       return fetch(url, {
@@ -895,27 +966,33 @@
     var btnWx = document.getElementById('btnWechat');
     if (btnWx) btnWx.addEventListener('click', contactTeacherWechat);
 
-    /** 从试用台进摸底：带上已激活姓名，避免再填 */
+    /** 从试用台进模块：带上激活码，进度挂在码上 */
     function withTrialProfile(href) {
-      if (!href || href.indexOf('/xinshengmodi') < 0) return href;
+      if (!href) return href;
       var claim = null;
       try {
-        claim = JSON.parse(localStorage.getItem('shiyong_trial_claim_v1') || 'null');
+        claim = JSON.parse(localStorage.getItem(STORE_KEY) || 'null');
       } catch (e) {
         claim = null;
       }
-      if (!claim || !claim.name) return href;
+      if (!claim || !claim.code) return href;
       var u;
       try {
         u = new URL(href, location.origin);
       } catch (e2) {
         return href;
       }
-      u.searchParams.set('guest', '1');
-      u.searchParams.set('guest_name', claim.name);
-      if (claim.guestWx) u.searchParams.set('guest_wx', claim.guestWx);
-      if (claim.contact) u.searchParams.set('contact', claim.contact);
-      if (claim.targetScore != null) u.searchParams.set('target_score', String(claim.targetScore));
+      if (href.indexOf('/xinshengmodi') >= 0) {
+        u.searchParams.set('guest', '1');
+        if (claim.name) u.searchParams.set('guest_name', claim.name);
+        if (claim.contact) u.searchParams.set('contact', claim.contact);
+        if (claim.targetScore != null) u.searchParams.set('target_score', String(claim.targetScore));
+      }
+      if (href.indexOf('listening_basic') >= 0 || href.indexOf('/tongyitihuan') >= 0 || href.indexOf('/xiezuocihuo') >= 0) {
+        u.searchParams.set('trial', '1');
+      }
+      u.searchParams.set('code', claim.code);
+      if (claim.name) u.searchParams.set('guest_name', claim.name);
       return u.pathname + u.search + u.hash;
     }
 
@@ -924,7 +1001,7 @@
         el.addEventListener('click', function () {
           var access = el.getAttribute('data-access');
           if (access === 'lock' || el.classList.contains('locked')) {
-            showToast('此模块未开放。可点「微信联系老师重新激活」。');
+            showToast('此模块未开放。可点「微信联系顾问」。');
             return;
           }
           var href = el.getAttribute('data-href');
@@ -940,26 +1017,26 @@
     bindOpen('.mod[data-href]');
     bindOpen('.map-item');
 
-    // —— 客户进门：姓名 + 激活码 ——
+    // —— 客户进门：系统激活码（唯一身份）——
     var gateEl = document.getElementById('gate');
     var deskEl = document.getElementById('desk');
     var gateName = document.getElementById('gateName');
-    var gateContact = document.getElementById('gateContact');
     var gateCode = document.getElementById('gateCode');
+    var gateContact = document.getElementById('gateContact');
     var gateTarget = document.getElementById('gateTarget');
     var gateErr = document.getElementById('gateErr');
-    var guestWxNote = document.getElementById('guestWxPrefillNote');
+    var gateFirstFields = document.getElementById('gateFirstFields');
 
-    if (PREFILL_CODE && gateCode) gateCode.value = PREFILL_CODE;
-    // 客户微信只由顾问在分享链接里带入，客户不填
-    if (PREFILL_GUEST_WX && guestWxNote) {
-      guestWxNote.style.display = 'block';
-      guestWxNote.textContent = '顾问已登记你的微信，激活后练习记录会自动对应。';
-    }
+    if (gateCode && PREFILL_CODE) gateCode.value = PREFILL_CODE;
 
     function showGate() {
       if (gateEl) gateEl.hidden = false;
       if (deskEl) deskEl.hidden = true;
+      if (gateFirstFields) gateFirstFields.hidden = true;
+      if (gateErr) {
+        gateErr.classList.remove('show');
+        gateErr.textContent = '';
+      }
     }
 
     function showDesk(claim) {
@@ -967,11 +1044,9 @@
       if (deskEl) deskEl.hidden = false;
       var nameLabel = document.getElementById('guestNameLabel');
       if (nameLabel) nameLabel.textContent = (claim && claim.name) || '访客';
-      var wxMeta = document.getElementById('guestWxMeta');
-      if (wxMeta) {
-        wxMeta.textContent = (claim && claim.guestWx)
-          ? ('微信 ' + claim.guestWx)
-          : '';
+      var codeMeta = document.getElementById('guestCodeMeta');
+      if (codeMeta) {
+        codeMeta.textContent = (claim && claim.code) ? ('激活码 ' + claim.code) : '';
       }
       var daysLabel = document.getElementById('guestDaysLabel');
       if (daysLabel && claim && claim.daysLeft != null) {
@@ -993,75 +1068,100 @@
       } catch (e) {}
     }
 
+    function claimToLocal(data, fallback) {
+      fallback = fallback || {};
+      return {
+        name: data.guest_name || fallback.name || '',
+        guestWx: data.guest_wx || fallback.guestWx || '',
+        contact: data.contact || fallback.contact || '',
+        code: data.code || fallback.code || '',
+        targetScore: data.target_score != null ? data.target_score : (fallback.targetScore || 6.5),
+        advisorWx: data.advisor_wx || fallback.advisorWx || TEACHER_WX,
+        daysLeft: data.days_left != null ? data.days_left : DEFAULT_TRIAL_DAYS,
+        expiresAt: data.expires_at || '',
+        at: Date.now()
+      };
+    }
+
     function activateFromGate() {
       var name = (gateName && gateName.value || '').trim();
-      var guestWx = PREFILL_GUEST_WX;
+      var code = (gateCode && gateCode.value || PREFILL_CODE || '').trim();
       var contact = (gateContact && gateContact.value || '').trim();
-      var code = (gateCode && gateCode.value || '').trim();
       var target = gateTarget ? gateTarget.value : '6.5';
       if (gateErr) {
         gateErr.classList.remove('show');
         gateErr.textContent = '';
       }
-      if (!name) {
-        if (gateErr) {
-          gateErr.textContent = '请填写姓名';
-          gateErr.classList.add('show');
-        }
-        return;
-      }
-      if (!guestWx) {
-        if (gateErr) {
-          gateErr.textContent = '链接无效：缺少顾问登记的客户微信，请让顾问重新发链接';
-          gateErr.classList.add('show');
-        }
-        return;
-      }
       if (!code) {
         if (gateErr) {
-          gateErr.textContent = '请填写顾问发给你的激活码';
+          gateErr.textContent = '请填写激活码';
           gateErr.classList.add('show');
         }
         return;
       }
       var btn = document.getElementById('btnActivate');
       if (btn) btn.disabled = true;
-      apiPost('/api/trial/claim', {
-        code: code,
-        guest_name: name,
-        guest_wx: guestWx,
-        contact: contact,
-        target_score: Number(target) || 6.5
-      }).then(function (res) {
-        var err = res.json && res.json.error;
-        var data = res.json && res.json.data;
-        if (!res.ok || err || !data) {
-          if (gateErr) {
-            gateErr.textContent = (err && err.message) || '激活失败，请联系顾问';
-            gateErr.classList.add('show');
-          }
-          return;
-        }
-        var claim = {
-          name: data.guest_name || name,
-          guestWx: data.guest_wx || guestWx,
-          contact: data.contact || contact,
-          code: data.code || code.toUpperCase(),
-          targetScore: data.target_score || target,
-          advisorWx: data.advisor_wx || TEACHER_WX,
-          daysLeft: data.days_left != null ? data.days_left : 5,
-          expiresAt: data.expires_at || '',
-          at: Date.now()
-        };
+
+      function finishOk(data) {
+        var claim = claimToLocal(data, {
+          name: name,
+          code: code.toUpperCase(),
+          contact: contact,
+          targetScore: target
+        });
         saveClaim(claim);
         showDesk(claim);
-        showToast('激活成功，欢迎 ' + claim.name + '（此码已失效）');
+        showToast(data.returning
+          ? ('欢迎回来，' + (claim.name || claim.code) + ' · 进度已续上')
+          : ('激活成功，欢迎 ' + claim.name + ' · 试用 ' + claim.daysLeft + ' 天'));
         window.scrollTo(0, 0);
-      }).catch(function () {
+      }
+
+      function finishErr(msg) {
         if (gateErr) {
-          gateErr.textContent = '网络异常，请稍后重试';
+          gateErr.textContent = msg || '进入失败，请联系顾问';
           gateErr.classList.add('show');
         }
+      }
+
+      // 老用户：只填激活码；新用户：需姓名
+      apiPost('/api/trial/login', { code: code }).then(function (res) {
+        var err = res.json && res.json.error;
+        var data = res.json && res.json.data;
+        if (res.ok && data) {
+          finishOk(data);
+          return null;
+        }
+        if (err && /无效|已到期/.test(err.message || '')) {
+          finishErr(err.message);
+          return null;
+        }
+        var needFirst = !err || /首次|姓名/.test(err.message || '');
+        if (!needFirst && err && err.message) {
+          finishErr(err.message);
+          return null;
+        }
+        if (!name) {
+          if (gateFirstFields) gateFirstFields.hidden = false;
+          finishErr('首次使用请填写姓名');
+          return null;
+        }
+        return apiPost('/api/trial/claim', {
+          code: code,
+          guest_name: name,
+          contact: contact,
+          target_score: Number(target) || 6.5
+        }).then(function (res2) {
+          var err2 = res2.json && res2.json.error;
+          var data2 = res2.json && res2.json.data;
+          if (!res2.ok || err2 || !data2) {
+            finishErr((err2 && err2.message) || '进入失败，请联系顾问');
+            return;
+          }
+          finishOk(data2);
+        });
+      }).catch(function () {
+        finishErr('网络异常，请稍后重试');
       }).finally(function () {
         if (btn) btn.disabled = false;
       });
@@ -1087,29 +1187,75 @@
     }
 
     var existing = loadClaim();
-    // 老师预览模式：直接看台面
+    var urlCode = (PREFILL_CODE || '').replace(/[^A-Za-z0-9]/g, '').toUpperCase();
+    var storedCode = existing && existing.code
+      ? String(existing.code).replace(/[^A-Za-z0-9]/g, '').toUpperCase()
+      : '';
+
+    function resumeByCode(code, fallbackClaim) {
+      apiPost('/api/trial/login', { code: code }).then(function (res) {
+        var err = res.json && res.json.error;
+        var data = res.json && res.json.data;
+        if (res.ok && data) {
+          var refreshed = claimToLocal(data, fallbackClaim || { code: code });
+          saveClaim(refreshed);
+          showDesk(refreshed);
+          return;
+        }
+        // 未首次激活：清掉旧会话，门禁预填链接里的码
+        try { localStorage.removeItem(STORE_KEY); } catch (e) {}
+        if (gateCode) gateCode.value = code;
+        showGate();
+        if (err && /首次|姓名/.test(err.message || '')) {
+          if (gateFirstFields) gateFirstFields.hidden = false;
+          if (gateErr) {
+            gateErr.textContent = '首次使用请填写姓名后进入';
+            gateErr.classList.add('show');
+          }
+        }
+      }).catch(function () {
+        if (gateCode) gateCode.value = code;
+        showGate();
+      });
+    }
+
     if (qs('teacher') === '1') {
-      showDesk(existing || { name: '老师预览', daysLeft: 5 });
-    } else if (existing && existing.name && existing.code) {
+      showDesk(existing || { name: '老师预览', daysLeft: DEFAULT_TRIAL_DAYS, code: '' });
+      var nameLabelPreview = document.getElementById('guestNameLabel');
+      if (nameLabelPreview) nameLabelPreview.textContent = '老师预览（请生成激活码给学生）';
+    } else if (urlCode) {
+      // 链接带激活码：以链接为准（避免本地残留别的码/姓名）
+      if (storedCode && storedCode !== urlCode) {
+        try { localStorage.removeItem(STORE_KEY); } catch (e2) {}
+        existing = null;
+      }
+      if (gateCode) gateCode.value = urlCode;
+      if (existing && storedCode === urlCode && existing.name) {
+        showDesk(existing);
+        resumeByCode(urlCode, existing);
+      } else {
+        showGate();
+        resumeByCode(urlCode, { code: urlCode });
+      }
+    } else if (existing && existing.code) {
       showDesk(existing);
+      resumeByCode(existing.code, existing);
     } else {
       showGate();
     }
 
-    // —— 顾问生成一次性码：POST /api/trial/create-code ——
+    // —— 顾问生成系统激活码：POST /api/trial/create-code ——
     var shareInput = document.getElementById('shareWxInput');
     var shareGuestWxInput = document.getElementById('shareGuestWxInput');
     var shareCodeInput = document.getElementById('shareCodeInput');
     var shareOut = document.getElementById('shareLinkOut');
     var btnCopyShare = document.getElementById('btnCopyShare');
 
-    function buildShareLink(advisorWx, guestWx, code) {
+    function buildShareLink(advisorWx, code) {
       var u = new URL(location.origin + location.pathname);
       advisorWx = (advisorWx || '').trim();
-      guestWx = (guestWx || '').trim();
       code = (code || '').trim();
       if (advisorWx) u.searchParams.set('wx', advisorWx);
-      if (guestWx) u.searchParams.set('guest_wx', guestWx);
       if (code) u.searchParams.set('code', code);
       return u.toString();
     }
@@ -1118,7 +1264,6 @@
       if (!shareOut) return;
       shareOut.value = buildShareLink(
         shareInput ? shareInput.value : TEACHER_WX,
-        shareGuestWxInput ? shareGuestWxInput.value : '',
         shareCodeInput ? shareCodeInput.value : ''
       );
     }
@@ -1128,45 +1273,46 @@
       shareInput.addEventListener('input', refreshShareLink);
     }
     if (shareGuestWxInput) {
-      shareGuestWxInput.value = PREFILL_GUEST_WX;
       shareGuestWxInput.addEventListener('input', refreshShareLink);
-    }
-    if (shareCodeInput && PREFILL_CODE) {
-      shareCodeInput.value = PREFILL_CODE;
     }
     refreshShareLink();
 
     if (btnCopyShare) {
       btnCopyShare.addEventListener('click', function () {
         var advisorWx = shareInput ? shareInput.value.trim() : '';
-        var guestWx = shareGuestWxInput ? shareGuestWxInput.value.trim() : '';
+        var note = shareGuestWxInput ? shareGuestWxInput.value.trim() : '';
         if (!advisorWx) {
           showToast('请先填写顾问微信号');
-          return;
-        }
-        if (!guestWx) {
-          showToast('请先填写客户微信号，才能对应练习记录');
           return;
         }
         btnCopyShare.disabled = true;
         apiPost('/api/trial/create-code', {
           advisor_wx: advisorWx,
-          guest_wx: guestWx,
-          days_valid: 5
+          guest_wx: note,
+          days_valid: DEFAULT_TRIAL_DAYS
         }).then(function (res) {
           var err = res.json && res.json.error;
           var data = res.json && res.json.data;
+          if (res.status === 401 || (err && /教师|登录/.test(err.message || ''))) {
+            showToast('请先登录教师端后再生成');
+            var hint = document.getElementById('shareLoginHint');
+            if (hint) hint.hidden = false;
+            if (btnCopyShare) btnCopyShare.disabled = true;
+            return;
+          }
           if (!res.ok || err || !data || !data.code) {
             showToast((err && err.message) || '生成失败，请重试');
             return;
           }
           if (shareCodeInput) shareCodeInput.value = data.code;
-          var link = buildShareLink(advisorWx, guestWx, data.code);
+          var link = buildShareLink(advisorWx, data.code);
           if (shareOut) shareOut.value = link;
+          var tip = '已生成激活码 ' + data.code +
+            '（' + (data.days_valid || DEFAULT_TRIAL_DAYS) + ' 天 · 同一码共用进度）';
           return copyText(link).then(function () {
-            showToast('已生成一次性激活码 ' + data.code + '，链接已复制');
+            showToast(tip + '，链接已复制');
           }).catch(function () {
-            showToast('已生成激活码 ' + data.code + '，请手动复制下方链接');
+            showToast(tip + '，请手动复制下方链接');
             if (shareOut) {
               shareOut.focus();
               shareOut.select();
@@ -1180,9 +1326,29 @@
       });
     }
 
+    // 仅教师预览页显示生成器；且须已登录教师端
     if (qs('teacher') === '1') {
       var box = document.getElementById('shareBox');
-      if (box) box.open = true;
+      var shareLoginHint = document.getElementById('shareLoginHint');
+      if (box) {
+        box.hidden = false;
+        box.open = true;
+      }
+      fetch('/api/auth/me', { credentials: 'same-origin' })
+        .then(function (r) { return r.json(); })
+        .then(function (json) {
+          var role = json && json.data && json.data.role;
+          var ok = role === 'teacher';
+          if (!ok) {
+            if (shareLoginHint) shareLoginHint.hidden = false;
+            if (btnCopyShare) btnCopyShare.disabled = true;
+            showToast('生成激活码需先登录教师端');
+          }
+        })
+        .catch(function () {
+          if (shareLoginHint) shareLoginHint.hidden = false;
+          if (btnCopyShare) btnCopyShare.disabled = true;
+        });
     }
   </script>
 </body>

@@ -476,29 +476,37 @@
         function initGroupStatus() {
             groupStatus = new Array(TOTAL_GROUPS).fill('pending');
             groupFirstDictation = new Array(TOTAL_GROUPS).fill(null);
-            const saved = localStorage.getItem('listeningBasicGroupStatus');
+            const saved = localStorage.getItem(_groupStatusKey);
             if (saved) {
                 try {
                     const data = JSON.parse(saved);
-                    if (data.groupStatus) {
-                        groupStatus = data.groupStatus;
-                    }
-                    if (Array.isArray(data.groupFirstDictation)) {
-                        groupFirstDictation = data.groupFirstDictation;
-                        while (groupFirstDictation.length < TOTAL_GROUPS) groupFirstDictation.push(null);
-                        if (groupFirstDictation.length > TOTAL_GROUPS) {
-                            groupFirstDictation = groupFirstDictation.slice(0, TOTAL_GROUPS);
-                        }
-                    }
+                    applyGroupStatusData(data);
                 } catch (e) {}
             }
         }
 
+        function applyGroupStatusData(data) {
+            if (!data) return;
+            if (data.groupStatus) {
+                groupStatus = data.groupStatus;
+                while (groupStatus.length < TOTAL_GROUPS) groupStatus.push('pending');
+                if (groupStatus.length > TOTAL_GROUPS) groupStatus = groupStatus.slice(0, TOTAL_GROUPS);
+            }
+            if (Array.isArray(data.groupFirstDictation)) {
+                groupFirstDictation = data.groupFirstDictation;
+                while (groupFirstDictation.length < TOTAL_GROUPS) groupFirstDictation.push(null);
+                if (groupFirstDictation.length > TOTAL_GROUPS) {
+                    groupFirstDictation = groupFirstDictation.slice(0, TOTAL_GROUPS);
+                }
+            }
+        }
+
         function saveGroupStatus() {
-            localStorage.setItem('listeningBasicGroupStatus', JSON.stringify({
+            localStorage.setItem(_groupStatusKey, JSON.stringify({
                 groupStatus: groupStatus,
                 groupFirstDictation: groupFirstDictation
             }));
+            scheduleTrialProgressSync();
         }
 
         function recordStage1Result() {
@@ -549,6 +557,18 @@
             content_version: _taskUrlParams.get('content_version') || '1'
         } : null;
 
+        // ==================== 试用身份（微信识别 · 进度落库） ====================
+        const _trialGuestWx = (_taskUrlParams.get('guest_wx') || '').trim();
+        const _trialCode = (_taskUrlParams.get('code') || '').trim().toUpperCase();
+        const _isTrialMode = (_taskUrlParams.get('trial') === '1' || !!_trialCode) && !!_trialCode;
+        const _progressKey = _isTrialMode
+            ? ('listeningBasicWordsProgress::' + _trialCode)
+            : 'listeningBasicWordsProgress';
+        const _groupStatusKey = _isTrialMode
+            ? ('listeningBasicGroupStatus::' + _trialCode)
+            : 'listeningBasicGroupStatus';
+        let _trialSyncTimer = null;
+
         function setupTaskModeUI() {
             if (!_taskMode) return;
             const g = _taskMode.groupIndex + 1;
@@ -591,14 +611,99 @@
             updateStats();
             startHeartbeat();
             document.getElementById('total-count').textContent = ALL_WORDS.length;
-            if (_taskMode) {
-                setupTaskModeUI();
-                renderGroupGrid();
-                selectGroup(_taskMode.groupIndex);
+            setupTrialModeUI();
+            const finishUi = function () {
+                if (_taskMode) {
+                    setupTaskModeUI();
+                    renderGroupGrid();
+                    selectGroup(_taskMode.groupIndex);
+                } else {
+                    renderGroupGrid();
+                    selectGroup(0);
+                }
+                updateStats();
+            };
+            if (_isTrialMode) {
+                loadTrialProgressFromServer().then(finishUi).catch(finishUi);
             } else {
-                renderGroupGrid();
-                selectGroup(0);
+                finishUi();
             }
+        }
+
+        function setupTrialModeUI() {
+            if (!_isTrialMode) return;
+            let banner = document.getElementById('trialModeBanner');
+            if (!banner) {
+                banner = document.createElement('div');
+                banner.id = 'trialModeBanner';
+                banner.style.cssText = 'background:#ecfdf5;border:1px solid #a7f3d0;color:#065f46;padding:10px 14px;margin:0 0 16px;border-radius:8px;font-size:.92rem;';
+                const container = document.querySelector('.container');
+                if (container) container.insertBefore(banner, container.firstChild);
+            }
+            const name = (_taskUrlParams.get('guest_name') || '').trim();
+            banner.innerHTML = '<strong>试用模式</strong>：进度按激活码 <code>' +
+                _trialCode.replace(/[<>&]/g, '') +
+                '</code> 保存到服务器' +
+                (name ? ('（' + name.replace(/[<>&]/g, '') + '）') : '') +
+                '，同一码换浏览器可续练';
+        }
+
+        function collectTrialProgressPayload() {
+            return {
+                mastered: masteredWords,
+                cooldown: failedWords.map(function (w) { return w.word; }),
+                totalSecondsLearned: totalSeconds,
+                groupStatus: groupStatus,
+                groupFirstDictation: groupFirstDictation,
+                timestamp: Date.now()
+            };
+        }
+
+        function scheduleTrialProgressSync() {
+            if (!_isTrialMode) return;
+            if (_trialSyncTimer) clearTimeout(_trialSyncTimer);
+            _trialSyncTimer = setTimeout(function () {
+                _trialSyncTimer = null;
+                syncTrialProgressToServer();
+            }, 600);
+        }
+
+        function syncTrialProgressToServer() {
+            if (!_isTrialMode) return Promise.resolve();
+            return fetch('/api/trial/progress', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    code: _trialCode,
+                    module_type: 'listening_basic',
+                    progress: collectTrialProgressPayload()
+                })
+            }).catch(function () {});
+        }
+
+        function loadTrialProgressFromServer() {
+            if (!_isTrialMode) return Promise.resolve();
+            const q = 'code=' + encodeURIComponent(_trialCode) +
+                '&module_type=listening_basic';
+            return fetch('/api/trial/progress?' + q)
+                .then(function (r) { return r.json(); })
+                .then(function (res) {
+                    const data = res && res.data;
+                    const progress = data && data.progress;
+                    if (!progress || typeof progress !== 'object') return;
+                    applyProgressData(progress);
+                    applyGroupStatusData(progress);
+                    localStorage.setItem(_progressKey, JSON.stringify({
+                        mastered: masteredWords,
+                        cooldown: failedWords.map(function (w) { return w && w.word ? w.word : w; }),
+                        totalSecondsLearned: totalSeconds,
+                        timestamp: Date.now()
+                    }));
+                    localStorage.setItem(_groupStatusKey, JSON.stringify({
+                        groupStatus: groupStatus,
+                        groupFirstDictation: groupFirstDictation
+                    }));
+                });
         }
 
         function startHeartbeat() {
@@ -638,7 +743,30 @@
             document.getElementById('stat-time').textContent = `${minutes}:${secondsPart.toString().padStart(2, '0')}`;
         }
 
-        // ==================== 本地存储 ====================
+        // ==================== 本地存储（试用生按微信分桶 + 同步服务器） ====================
+        function applyProgressData(data) {
+            if (!data) return;
+            if (data.totalSecondsLearned) {
+                totalSeconds = data.totalSecondsLearned;
+                reportedSeconds = totalSeconds;
+                updateTimeDisplay();
+            }
+            if (Array.isArray(data.mastered)) {
+                masteredWords = data.mastered.map(function (item) {
+                    if (item && typeof item === 'object') return item;
+                    const word = String(item || '');
+                    return ALL_WORDS.find(function (w) { return w.word === word; }) || { word: word };
+                });
+            }
+            if (Array.isArray(data.cooldown)) {
+                failedWords = data.cooldown.map(function (item) {
+                    if (item && typeof item === 'object') return item;
+                    const word = String(item || '');
+                    return ALL_WORDS.find(function (w) { return w.word === word; }) || { word: word };
+                });
+            }
+        }
+
         function saveProgress() {
             const data = {
                 mastered: masteredWords,
@@ -646,19 +774,15 @@
                 totalSecondsLearned: totalSeconds,
                 timestamp: Date.now()
             };
-            localStorage.setItem('listeningBasicWordsProgress', JSON.stringify(data));
+            localStorage.setItem(_progressKey, JSON.stringify(data));
+            scheduleTrialProgressSync();
         }
 
         function loadProgress() {
-            const saved = localStorage.getItem('listeningBasicWordsProgress');
+            const saved = localStorage.getItem(_progressKey);
             if (saved) {
                 try {
-                    const data = JSON.parse(saved);
-                    if (data.totalSecondsLearned) {
-                        totalSeconds = data.totalSecondsLearned;
-                        reportedSeconds = totalSeconds;
-                        updateTimeDisplay();
-                    }
+                    applyProgressData(JSON.parse(saved));
                 } catch (e) {
                     console.error('Failed to load progress:', e);
                 }
@@ -666,7 +790,8 @@
         }
 
         function clearProgress() {
-            localStorage.removeItem('listeningBasicWordsProgress');
+            localStorage.removeItem(_progressKey);
+            localStorage.removeItem(_groupStatusKey);
         }
 
         // ==================== 音频播放 ====================

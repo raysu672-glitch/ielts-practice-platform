@@ -879,7 +879,23 @@
         overall: speakAvg,
         confidence: speakConf,
         transcriptLen: anyTranscript ? 80 : 0,
-        items: S
+        items: S,
+        total: S.length,
+        scored: speakOveralls.length,
+        failed: S.filter(function (r) { return r.failed || r.skipped; }).length,
+        subscores: (function () {
+          var withSub = S.filter(function (r) { return r.subscores; });
+          if (!withSub.length) return null;
+          var keys = ['fluency', 'vocabulary', 'grammar', 'pronunciation'];
+          var out = {};
+          keys.forEach(function (k) {
+            var vals = withSub.map(function (r) { return Number(r.subscores[k]); }).filter(isFinite);
+            if (vals.length) {
+              out[k] = Math.round((vals.reduce(function (a, b) { return a + b; }, 0) / vals.length) * 2) / 2;
+            }
+          });
+          return Object.keys(out).length ? out : null;
+        })()
       }
     };
   }
@@ -922,10 +938,19 @@
       return (
         '<tr>' +
           '<td>' + escapeHtml(label) + '</td>' +
+          '<td class="left"><strong>' + escapeHtml(band.resultText || '—') + '</strong></td>' +
           '<td><strong>' + escapeHtml(band.label) + '</strong></td>' +
-          '<td>' + escapeHtml(band.confidence || '—') + '</td>' +
-          '<td class="left">' + escapeHtml(band.comment || '') + '</td>' +
           '<td>' + escapeHtml(tier.label) + '</td>' +
+          '<td>' + escapeHtml(band.confidence || '—') + '</td>' +
+        '</tr>' +
+        '<tr class="reason-row">' +
+          '<td colspan="5" class="left reason-cell">' +
+            '<div class="reason-label">为什么给这个分数</div>' +
+            '<div>' + escapeHtml(band.scoreReason || band.comment || '—') + '</div>' +
+            (band.comment && band.scoreReason
+              ? ('<div class="reason-comment">短评：' + escapeHtml(band.comment) + '</div>')
+              : '') +
+          '</td>' +
         '</tr>'
       );
     }
@@ -949,7 +974,7 @@
           '<p>' + escapeHtml(r.summary) + '</p>' +
         '</div>' +
         '<table class="report-table">' +
-          '<thead><tr><th>科目</th><th>预估区间</th><th>置信度</th><th>短评</th><th>分档</th></tr></thead>' +
+          '<thead><tr><th>科目</th><th>作答对错</th><th>预估区间</th><th>分档</th><th>置信度</th></tr></thead>' +
           '<tbody>' +
             row('听力', b.listening, t.listening) +
             row('阅读', b.reading, t.reading) +

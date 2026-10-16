@@ -537,22 +537,101 @@ async function loadRecords() {
     renderRecordsTable(_cachedRecordRows);
 }
 
-async function loadPlacementGuests() {
+var _cachedTrialGuests = [];
+var _cachedPlacementGuests = null;
+var _trialAdvisorFilter = '';
+
+function renderTrialGuestsSection() {
+    var html = '';
+    html += '<div style="display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin:0 0 10px;">';
+    html += '<h3 style="margin:0;font-size:1rem;">试用台学员</h3>';
+    if (_cachedTrialGuests.length) {
+        var advisors = [];
+        var seen = {};
+        for (var a = 0; a < _cachedTrialGuests.length; a++) {
+            var wx = String(_cachedTrialGuests[a].advisor_wx || '').trim();
+            if (wx && !seen[wx]) {
+                seen[wx] = true;
+                advisors.push(wx);
+            }
+        }
+        advisors.sort();
+        html += '<label style="margin-left:auto;font-size:13px;color:#444;display:flex;align-items:center;gap:6px;">老师微信 ';
+        html += '<select id="trialAdvisorFilter" class="records-filter-control" style="min-width:160px;" onchange="setTrialAdvisorFilter(this.value)">';
+        html += '<option value="">全部</option>';
+        for (var i = 0; i < advisors.length; i++) {
+            var opt = advisors[i];
+            html += '<option value="' + escapeHtml(opt) + '"' +
+                (_trialAdvisorFilter === opt ? ' selected' : '') + '>' +
+                escapeHtml(opt) + '</option>';
+        }
+        html += '</select></label>';
+    }
+    html += '</div>';
+
+    var trials = _cachedTrialGuests;
+    if (_trialAdvisorFilter) {
+        trials = trials.filter(function (tr) {
+            return String(tr.advisor_wx || '').trim() === _trialAdvisorFilter;
+        });
+    }
+    if (!_cachedTrialGuests.length) {
+        html += '<p style="color:#666;padding:12px;background:#f8f9fa;border-radius:8px;margin-bottom:18px;">暂无已激活试用生。分享 <code>/shiyong/?teacher=1</code> 生成系统激活码。</p>';
+        return html;
+    }
+    if (!trials.length) {
+        html += '<p style="color:#666;padding:12px;background:#f8f9fa;border-radius:8px;margin-bottom:18px;">当前筛选下无试用生。</p>';
+        return html;
+    }
+    html += '<div class="records-table-wrap" style="margin-bottom:22px;"><table class="records-table" style="width:100%;"><thead><tr style="background:#ecfdf5;">';
+    html += '<th style="padding:10px;">激活时间</th><th style="padding:10px;">老师微信</th>';
+    html += '<th style="padding:10px;">激活码</th><th style="padding:10px;">姓名</th>';
+    html += '<th style="padding:10px;">备注</th>';
+    html += '<th style="padding:10px;text-align:center;">剩余天</th><th style="padding:10px;text-align:center;">听力基础进度</th>';
+    html += '<th style="padding:10px;text-align:center;">学时</th></tr></thead><tbody>';
+    for (var t = 0; t < trials.length; t++) {
+        var tr = trials[t];
+        var lb = tr.listening_basic || {};
+        var done = lb.groups_done != null ? lb.groups_done : 0;
+        var secs = lb.seconds || 0;
+        html += '<tr style="border-bottom:1px solid #dee2e6;">';
+        html += '<td style="padding:10px;white-space:nowrap;">' + escapeHtml(formatChinaDateTime(tr.activated_at)) + '</td>';
+        html += '<td style="padding:10px;">' + escapeHtml(tr.advisor_wx || '—') + '</td>';
+        html += '<td style="padding:10px;font-family:monospace;font-weight:700;">' + escapeHtml(tr.code || '') + '</td>';
+        html += '<td style="padding:10px;"><strong>' + escapeHtml(tr.guest_name || '') + '</strong></td>';
+        html += '<td style="padding:10px;">' + escapeHtml(tr.guest_wx || '—') + '</td>';
+        html += '<td style="padding:10px;text-align:center;">' + escapeHtml(String(tr.days_left != null ? tr.days_left : '—')) + '</td>';
+        html += '<td style="padding:10px;text-align:center;font-weight:700;color:#059669;">已完成 ' + done + ' 组</td>';
+        html += '<td style="padding:10px;text-align:center;">' + escapeHtml(formatDuration(secs)) + '</td>';
+        html += '</tr>';
+    }
+    html += '</tbody></table></div>';
+    return html;
+}
+
+function setTrialAdvisorFilter(value) {
+    _trialAdvisorFilter = String(value || '').trim();
     var container = document.getElementById('placementGuestsList');
     if (!container) return;
-    container.innerHTML = '<p style="color:#666;padding:16px;">加载中…</p>';
-    var result = await teacherApiGet('/api/teacher/placement-guests?limit=300');
+    var html = renderTrialGuestsSection();
+    html += renderPlacementGuestsSection(_cachedPlacementGuests);
+    container.innerHTML = html;
+}
+
+function renderPlacementGuestsSection(result) {
+    var html = '<h3 style="margin:0 0 10px;font-size:1rem;">入学摸底访客</h3>';
+    if (!result) {
+        return html + '<p style="color:#666;padding:16px;">加载中…</p>';
+    }
     if (result.error) {
-        container.innerHTML = '<p style="color:#dc3545;padding:16px;">加载失败：' +
+        return html + '<p style="color:#dc3545;padding:16px;">摸底加载失败：' +
             escapeHtml((result.error && result.error.message) || '未知错误') + '</p>';
-        return;
     }
     var rows = result.data || [];
     if (!rows.length) {
-        container.innerHTML = '<p style="color:#666;padding:16px;background:#f8f9fa;border-radius:8px;">暂无访客摸底记录。分享链接 <code>/xinshengmodi/?guest=1</code></p>';
-        return;
+        return html + '<p style="color:#666;padding:16px;background:#f8f9fa;border-radius:8px;">暂无访客摸底记录。分享链接 <code>/xinshengmodi/?guest=1</code></p>';
     }
-    var html = '<div class="records-table-wrap"><table class="records-table" style="width:100%;"><thead><tr style="background:#f8f9fa;">';
+    html += '<div class="records-table-wrap"><table class="records-table" style="width:100%;"><thead><tr style="background:#f8f9fa;">';
     html += '<th style="padding:10px;">时间</th><th style="padding:10px;">姓名</th><th style="padding:10px;">联系方式</th>';
     html += '<th style="padding:10px;text-align:center;">目标分</th><th style="padding:10px;text-align:center;">综合预估</th>';
     html += '<th style="padding:10px;text-align:center;">用时</th><th style="padding:10px;">分科摘要</th></tr></thead><tbody>';
@@ -563,7 +642,11 @@ async function loadPlacementGuests() {
         var summaryBits = [];
         [['listening', '听'], ['reading', '读'], ['writing', '写'], ['speaking', '口']].forEach(function (pair) {
             var b = bands[pair[0]];
-            if (b && b.label) summaryBits.push(pair[1] + ' ' + b.label);
+            if (b && b.label) {
+                var bit = pair[1] + ' ' + b.label;
+                if (b.wrong != null && b.total) bit += '（错' + b.wrong + '/' + b.total + '）';
+                summaryBits.push(bit);
+            }
         });
         html += '<tr style="border-bottom:1px solid #dee2e6;vertical-align:top;">';
         html += '<td style="padding:10px;white-space:nowrap;">' + escapeHtml(formatChinaDateTime(r.created_at)) + '</td>';
@@ -584,7 +667,28 @@ async function loadPlacementGuests() {
         html += '</td></tr>';
     }
     html += '</tbody></table></div>';
-    container.innerHTML = html;
+    return html;
+}
+
+async function loadPlacementGuests() {
+    var container = document.getElementById('placementGuestsList');
+    if (!container) return;
+    container.innerHTML = '<p style="color:#666;padding:16px;">加载中…</p>';
+    var result = await teacherApiGet('/api/teacher/placement-guests?limit=300');
+    var trialResult = await teacherApiGet('/api/teacher/trial-guests?limit=300');
+
+    if (trialResult.error) {
+        _cachedTrialGuests = [];
+        container.innerHTML =
+            '<h3 style="margin:0 0 10px;font-size:1rem;">试用台学员</h3>' +
+            '<p style="color:#dc3545;padding:12px 0;">试用进度加载失败：' +
+            escapeHtml((trialResult.error && trialResult.error.message) || '未知错误') + '</p>' +
+            renderPlacementGuestsSection(result);
+        return;
+    }
+    _cachedTrialGuests = trialResult.data || [];
+    _cachedPlacementGuests = result;
+    container.innerHTML = renderTrialGuestsSection() + renderPlacementGuestsSection(result);
 }
 
 var _teacherStudents = [];
