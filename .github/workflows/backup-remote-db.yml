@@ -1,0 +1,62 @@
+# 发布清单第 1 步：把线上 SQLite 拉成可下载的备份。
+# 只在手动触发时运行，不随普通 push 部署。
+name: Backup remote database
+
+on:
+  workflow_dispatch:
+  pull_request:
+    types: [opened, synchronize]
+    paths:
+      - .github/workflows/backup-remote-db.yml
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install SSH client library
+        run: pip install paramiko
+
+      - name: Prepare SSH key
+        env:
+          DEPLOY_KEY: ${{ secrets.IELTS_DEPLOY_KEY }}
+        run: |
+          if [ -z "$DEPLOY_KEY" ]; then
+            echo "Missing GitHub secret IELTS_DEPLOY_KEY" >&2
+            exit 1
+          fi
+          install -d -m 700 "$HOME/.ssh"
+          printf '%s\n' "$DEPLOY_KEY" | tr -d '\r' > "$HOME/.ssh/ielts_deploy.pem"
+          chmod 600 "$HOME/.ssh/ielts_deploy.pem"
+
+      - name: Download remote databases
+        env:
+          IELTS_DEPLOY_HOST: ${{ secrets.IELTS_DEPLOY_HOST }}
+          IELTS_DEPLOY_PORT: ${{ secrets.IELTS_DEPLOY_PORT }}
+          IELTS_DEPLOY_USER: ${{ secrets.IELTS_DEPLOY_USER }}
+          TZ: Asia/Shanghai
+        run: |
+          if [ -z "$IELTS_DEPLOY_HOST" ]; then
+            echo "Missing GitHub secret IELTS_DEPLOY_HOST" >&2
+            exit 1
+          fi
+          export IELTS_DEPLOY_KEY="$HOME/.ssh/ielts_deploy.pem"
+          export IELTS_DEPLOY_USER="${IELTS_DEPLOY_USER:-root}"
+          export IELTS_DEPLOY_PORT="${IELTS_DEPLOY_PORT:-22}"
+          python scripts/backup_remote_db.py
+
+      - name: Upload database backup
+        uses: actions/upload-artifact@v4
+        with:
+          name: aliyun-db-backup
+          path: backups/aliyun_*/
+          retention-days: 1
+          if-no-files-found: error
