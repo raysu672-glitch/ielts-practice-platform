@@ -1,10 +1,14 @@
 import sys
+import types
 import unittest
 from pathlib import Path
 
 SCRIPTS_DIR = Path(__file__).resolve().parents[1] / "scripts"
 if str(SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPTS_DIR))
+
+# 发布工作流先跑测试、后装 paramiko。这里只检查生成的 nginx 文本。
+sys.modules.setdefault("paramiko", types.ModuleType("paramiko"))
 
 from deploy import SERVICE_PORT, build_nginx_conf  # noqa: E402
 
