@@ -207,7 +207,7 @@ function selectCategory(catId, options) {
   // 更新学习页标题
   document.getElementById('studyTitle').textContent = ' 课前学习 — ' + catName;
   document.getElementById('studySubtitle').textContent =
-    '学习每个词伙的正确拼写，共 ' + vocab.length + ' 个词伙';
+    '共 ' + vocab.length + ' 个词伙：默认闭卷，一次写对即过；点「显示英文」或写错则该词需写三遍';
 
   // 隐藏分类页，显示学习页
   document.getElementById('categoryPage').style.display = 'none';
@@ -313,18 +313,24 @@ var studyTimer = null;
 var studyTimeLeft = 300;
 
 /* ── 学习页状态 ── */
-var STUDY_ROUNDS = 3; // 每词伙须正确输入遍数；第2、3遍闭卷
+var STUDY_ROUNDS = 3; // 看过英文或写错后，须连续正确输入的遍数
 var studyIndex = 0;
 var studyRound = 1;
 var studySkipped = new Set();
 /** 课前打错后已展示英文；聚焦/输入时清空并隐藏 */
 var studyAnswerRevealed = false;
+/** 点过「显示英文」 */
+var studyPeeked = false;
+/** 需写满三遍（看过英文或写错过） */
+var studyNeedsFullRounds = false;
 
 function resetStudyState() {
   studyIndex   = 0;
   studyRound   = 1;
   studySkipped = new Set();
   studyAnswerRevealed = false;
+  studyPeeked = false;
+  studyNeedsFullRounds = false;
   // 课前不允许跳过
   document.getElementById('studySkipBtn').style.display = 'none';
   document.getElementById('studyFinishBtn').style.display = 'none';
@@ -333,7 +339,8 @@ function resetStudyState() {
   document.getElementById('studyHint').textContent = '';
   document.getElementById('studyInput').value = '';
   var enRef = document.getElementById('studyLearnEnRef');
-  if (enRef) enRef.style.visibility = '';
+  if (enRef) enRef.style.visibility = 'hidden';
+  resetStudyPeekBtn();
 }
 
 function resetGameState() {
@@ -392,6 +399,9 @@ function jumpToStudyItem(idx) {
   if (idx > studyIndex) return;
   studyIndex = idx;
   studyRound = 1;
+  studyPeeked = false;
+  studyNeedsFullRounds = false;
+  studyAnswerRevealed = false;
   studySkipped.delete(idx);
   showStudyCard(idx);
 }
@@ -422,7 +432,11 @@ function showStudyCard(idx) {
     return;
   }
   var item = vocab[idx];
+  // 进入新词（或跳回重做）时重置本词状态；studyRound 由调用方置 1
   studyAnswerRevealed = false;
+  studyPeeked = false;
+  studyNeedsFullRounds = false;
+  if (!studyRound || studyRound < 1) studyRound = 1;
   document.getElementById('studyProgress').textContent = (studyIndex + 1) + ' / ' + vocab.length;
 
   var card = document.getElementById('studyCard');
@@ -432,6 +446,7 @@ function showStudyCard(idx) {
   var enRef = document.getElementById('studyLearnEnRef');
   enRef.textContent = phraseDisplayAnswer(item.en);
   enRef.classList.add('answer-nosel');
+  enRef.style.visibility = 'hidden'; // 默认不显示，需点按钮
 
   document.getElementById('studyHint').textContent = '';
   document.getElementById('studyFeedback').textContent = '';
@@ -440,28 +455,91 @@ function showStudyCard(idx) {
   var input = document.getElementById('studyInput');
   input.value = '';
   input.className = 'study-learn-input';
+  resetStudyPeekBtn();
   applyStudyRoundUi();
   bindStudyAntiCheat();
   input.focus();
 }
 
-/** 第1遍可对照英文；第2、3遍隐藏英文 */
+function resetStudyPeekBtn() {
+  var btn = document.getElementById('studyPeekBtn');
+  if (!btn) return;
+  btn.style.display = '';
+  btn.disabled = false;
+  btn.classList.remove('peeked');
+  btn.textContent = '显示英文';
+}
+
+function onStudyPeekEnglish() {
+  if (studyPeeked) return;
+  studyPeeked = true;
+  studyNeedsFullRounds = true;
+  // 必须先于 applyStudyRoundUi，否则会被当成「未展示」再次隐藏
+  studyAnswerRevealed = true;
+  var item = vocab[studyIndex];
+  var enText = item ? phraseDisplayAnswer(item.en) : '';
+  var enRef = document.getElementById('studyLearnEnRef');
+  if (enRef) {
+    enRef.textContent = enText;
+    enRef.classList.add('answer-nosel', 'study-en-shown');
+    enRef.style.visibility = 'visible';
+  }
+  var hint = document.getElementById('studyHint');
+  if (hint) {
+    hint.innerHTML = '参考英文：<span class="answer-nosel">' + _escapeHtml(enText) +
+      '</span>（点击输入框开始输入时将隐藏）';
+    hint.style.color = '#3fb950';
+  }
+  var btn = document.getElementById('studyPeekBtn');
+  if (btn) {
+    btn.disabled = true;
+    btn.classList.add('peeked');
+    btn.textContent = '已查看（需写三遍）';
+  }
+  var feedback = document.getElementById('studyFeedback');
+  if (feedback) {
+    feedback.style.color = '#d29922';
+    feedback.textContent = '已查看英文，本题需连续正确输入 ' + STUDY_ROUNDS + ' 遍。';
+  }
+  applyStudyRoundUi();
+  // 再次确保可见（防 UI 刷新覆盖）
+  if (enRef) enRef.style.visibility = 'visible';
+  try { document.getElementById('studyInput').blur(); } catch (err) {}
+}
+
+/** 默认闭卷；看过/写错后进入三遍模式 */
 function applyStudyRoundUi() {
   var enRef = document.getElementById('studyLearnEnRef');
   var roundLabel = document.getElementById('studyRoundLabel');
   var input = document.getElementById('studyInput');
+  var peekBtn = document.getElementById('studyPeekBtn');
+
   if (roundLabel) {
-    roundLabel.textContent = '第 ' + studyRound + ' 遍（共需' + STUDY_ROUNDS + '遍）';
-    roundLabel.className = 'study-learn-round' + (studyRound >= 2 ? ' round2' : '');
+    if (!studyNeedsFullRounds) {
+      roundLabel.textContent = '闭卷挑战：一次写对即可过；看英文或写错则需写三遍';
+      roundLabel.className = 'study-learn-round';
+    } else {
+      roundLabel.textContent = '第 ' + studyRound + ' 遍（共需' + STUDY_ROUNDS + '遍）';
+      roundLabel.className = 'study-learn-round' + (studyRound >= 2 ? ' round2' : '');
+    }
   }
-  if (enRef) {
-    enRef.style.visibility = studyRound === 1 ? '' : 'hidden';
+  // 英文仅在「刚点开显示」且尚未因输入而隐藏时可见；其余时间隐藏
+  if (enRef && !studyAnswerRevealed) {
+    enRef.style.visibility = 'hidden';
   }
   if (input) {
-    if (studyRound === 1) {
-      input.placeholder = '输入英文词伙（第 1 遍，可对照）...';
+    if (!studyNeedsFullRounds) {
+      input.placeholder = '凭记忆输入英文词伙（可点「显示英文」，但看了要写三遍）...';
     } else {
-      input.placeholder = '第 ' + studyRound + ' 遍：凭记忆输入（不可看英文）...';
+      input.placeholder = '第 ' + studyRound + ' 遍：凭记忆输入...';
+    }
+  }
+  // 进入第2、3遍后不再提供显示英文（避免反复开卷）
+  if (peekBtn) {
+    if (studyNeedsFullRounds && studyRound >= 2) {
+      peekBtn.style.display = 'none';
+    } else if (!studyPeeked) {
+      peekBtn.style.display = '';
     }
   }
 }
@@ -474,7 +552,7 @@ function _escapeHtml(s) {
     .replace(/"/g, '&quot;');
 }
 
-/** 打错展示英文后：一点输入就藏英文并清空，逼重新敲 */
+/** 打错/看过英文后：一点输入就藏英文并清空，逼重新敲 */
 function hideStudyAnswerOnInput() {
   if (!studyAnswerRevealed) return;
   studyAnswerRevealed = false;
@@ -489,7 +567,10 @@ function hideStudyAnswerOnInput() {
     hint.textContent = '答案已隐藏，请凭记忆重新输入。';
     hint.style.color = '#8b949e';
   }
-  if (enRef) enRef.style.visibility = 'hidden';
+  if (enRef) {
+    enRef.style.visibility = 'hidden';
+    enRef.classList.remove('study-en-shown');
+  }
 }
 
 function bindStudyAntiCheat() {
@@ -522,6 +603,24 @@ document.getElementById('studyInput').onkeydown = function(e) {
   }
 };
 
+function markStudyPhraseDoneAndNext(msg) {
+  var feedback = document.getElementById('studyFeedback');
+  if (feedback) {
+    feedback.style.color = '#3fb950';
+    feedback.textContent = msg || ' 通过！';
+  }
+  var sc = document.getElementById('studyCard_' + studyIndex);
+  if (sc) { sc.classList.add('study-card-done'); }
+  setTimeout(function() {
+    studyIndex++;
+    studyRound = 1;
+    studyPeeked = false;
+    studyNeedsFullRounds = false;
+    studyAnswerRevealed = false;
+    showStudyCard(studyIndex);
+  }, 800);
+}
+
 function submitStudyInput() {
   var val      = document.getElementById('studyInput').value.trim().toLowerCase();
   var item     = vocab[studyIndex];
@@ -534,37 +633,40 @@ function submitStudyInput() {
 
   if (phraseMatchesAny(val, item.en)) {
     studyAnswerRevealed = false;
+    if (enRef) enRef.style.visibility = 'hidden';
     input.classList.add('correct');
     feedback.style.color = '#3fb950';
+    hint.textContent = '';
+
+    // 未看英文且从未写错：闭卷一遍正确即可过
+    if (!studyNeedsFullRounds) {
+      markStudyPhraseDoneAndNext(' 闭卷一次正确，过！');
+      return;
+    }
+
     if (studyRound < STUDY_ROUNDS) {
       feedback.textContent = ' 第 ' + studyRound + ' 遍正确！请再输入第 ' + (studyRound + 1) + ' 遍。';
-      hint.textContent = '';
       studyRound += 1;
       input.value = '';
       input.className = 'study-learn-input';
-      applyStudyRoundUi(); // 第2、3遍会藏英文
+      applyStudyRoundUi();
       setTimeout(function() { input.focus(); }, 100);
     } else {
-      feedback.textContent = ' 三遍全部正确！';
-      var sc = document.getElementById('studyCard_' + studyIndex);
-      if (sc) { sc.classList.add('study-card-done'); }
-      setTimeout(function() {
-        studyIndex++;
-        studyRound = 1;
-        showStudyCard(studyIndex);
-      }, 800);
+      markStudyPhraseDoneAndNext(' 三遍全部正确！');
     }
   } else {
-    // 打错：展示英文（禁复制）；主动失焦，点输入时再清空并隐藏
+    // 打错 → 锁定三遍；展示英文（禁复制）；点输入时清空并隐藏
+    studyNeedsFullRounds = true;
     input.classList.add('wrong');
     hint.innerHTML = '不正确。参考英文：<span class="answer-nosel">' +
       _escapeHtml(phraseDisplayAnswer(item.en)) +
       '</span>（点击输入框重试时将清空并隐藏）';
     hint.style.color = '#f85149';
-    feedback.textContent = '';
+    feedback.style.color = '#d29922';
+    feedback.textContent = '写错了，本题需连续正确输入 ' + STUDY_ROUNDS + ' 遍。';
     studyAnswerRevealed = true;
-    // 第2、3遍（及打错后）不显示顶部英文，只短暂出现在提示里
     if (enRef) enRef.style.visibility = 'hidden';
+    applyStudyRoundUi();
     try { input.blur(); } catch (err) {}
     setTimeout(function() {
       if (input) input.classList.remove('wrong');
@@ -576,6 +678,11 @@ document.getElementById('studySkipBtn').onclick = function() {
   // 课前不允许跳过（按钮已隐藏，兜底）
   return;
 };
+
+(function bindStudyPeekBtn() {
+  var btn = document.getElementById('studyPeekBtn');
+  if (btn) btn.onclick = onStudyPeekEnglish;
+})();
 
 // 全局：禁止从 .answer-nosel 复制 / 右键
 document.addEventListener('copy', function(e) {
