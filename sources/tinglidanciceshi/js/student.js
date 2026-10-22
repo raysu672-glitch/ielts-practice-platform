@@ -2949,10 +2949,14 @@ window.addEventListener('message', async function(event) {
                 return;
             }
             const d = result.data || {};
-            const msg = '跟读 ' + (d.practice_count || 0) + '/' + (d.required || 3) +
-                (d.day_complete ? ' · 今日已完成' : '') +
+            const minScore = d.count_min_score != null ? d.count_min_score : 30;
+            let msg = '跟读 ' + (d.practice_count || 0) + '/' + (d.required || 3);
+            if (d.counted === false) {
+                msg += ' · 本次未计次（需≥' + minScore + '%）';
+            }
+            msg += (d.day_complete ? ' · 今日已完成' : '') +
                 (d.passed_lesson ? ' · 已达70%，次日换篇' : '');
-            showToast(msg, d.day_complete ? 'success' : 'info');
+            showToast(msg, d.day_complete ? 'success' : (d.counted === false ? 'warning' : 'info'));
             loadTodayTasks();
         });
         return;

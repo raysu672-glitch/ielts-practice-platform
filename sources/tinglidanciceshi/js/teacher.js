@@ -4122,7 +4122,7 @@ function addUnitToTaskDraft(unitId) {
     scrollTaskPlanSegmentIntoView(u.module_type);
     schedulePackPreviewRefresh();
     if (u.module_type === 'listening_p4_speed') {
-        showToast('已设为跟读起始课：保存清单后生效（每日 3 次，≥70% 次日换篇，约 30 天）', 'success');
+        showToast('已设为跟读起始课：保存清单后生效（每日有效 3 次且≥30%计次，≥70% 次日换篇，约 30 天）', 'success');
     }
 }
 

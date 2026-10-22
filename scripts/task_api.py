@@ -27,6 +27,8 @@ UNITS_PREVIEW_DAYS = 14
 GENDU_MODULE = "listening_p4_speed"
 GENDU_PASS_SCORE = 70
 GENDU_DAILY_PRACTICES = 3
+# 当日计次门槛：低于此分视为静音/走过场，不计入「练满 3 次」
+GENDU_COUNT_MIN_SCORE = 30
 GENDU_ASSIGNMENT_DAYS = 30  # starts_on .. starts_on+29 inclusive
 # 阶段测**不限重测次数**（2026-09-20 决议）：学生想考几次就考几次，当天可连续重考。
 # 原先的「每天 2 次」上限已删除——它把「考不过」的学生直接锁死：既过不了、又不让再考。
@@ -1817,6 +1819,7 @@ def get_gendu_assignment(
     out["start_title"] = (start_unit["title"] if start_unit else "") or row["start_unit_id"]
     out["daily_required"] = GENDU_DAILY_PRACTICES
     out["pass_score"] = GENDU_PASS_SCORE
+    out["count_min_score"] = GENDU_COUNT_MIN_SCORE
     return out
 
 
@@ -1972,18 +1975,21 @@ def _gendu_pass_day(
 def _gendu_day_practice_count(
     conn: sqlite3.Connection, student_id: str, task_date: str
 ) -> int:
-    """某一天的有效跟读次数（**跨课文累加**）。
+    """某一天的有效跟读次数（**跨课文累加**，仅计 score≥GENDU_COUNT_MIN_SCORE）。
 
-    当日完成口径是「这一天练满 3 次」，不是「当前这一篇练满 3 次」。达标后当天
+    当日完成口径是「这一天有效练满 3 次」，不是「当前这一篇练满 3 次」。达标后当天
     换篇（旧版 bug）会把 1 次留在旧课、2 次记到新课，按课文单独算就成了 1/3 + 1/3，
     学生明明练了 3 遍却永远显示未完成（线上廉昕 2025114 即此例）。
+
+    低于 ``GENDU_COUNT_MIN_SCORE`` 的尝试仍写入事件表（可审计），但不计入完成进度，
+    用于挡住静音/几乎不读凑次数。
     """
     row = conn.execute(
         """
         SELECT COUNT(*) AS c FROM gendu_practice_events
-        WHERE student_id=? AND task_date=?
+        WHERE student_id=? AND task_date=? AND score>=?
         """,
-        (student_id, task_date),
+        (student_id, task_date, GENDU_COUNT_MIN_SCORE),
     ).fetchone()
     return int(row["c"] or 0) if row else 0
 
@@ -1991,11 +1997,11 @@ def _gendu_day_practice_count(
 def sync_gendu_day_done(
     conn: sqlite3.Connection, student_id: str, task_date: str
 ) -> bool:
-    """当天跟读满 3 次即完成任务，并把当天所有跟读行写成 ``done_study``。
+    """当天有效跟读满 3 次即完成任务，并把当天所有跟读行写成 ``done_study``。
 
-    唯一口径是 ``gendu_practice_events`` 的当天条数，跨课文累加。
-    识别率 ≥70% 只负责次日换篇（``advance_gendu_if_needed``），不在这里判断，
-    也不靠 ``plan_items.study_completed`` 代替。次数不够时不改状态，
+    有效次数 = ``gendu_practice_events`` 中 score≥GENDU_COUNT_MIN_SCORE 的当天条数，
+    跨课文累加。识别率 ≥70% 只负责次日换篇（``advance_gendu_if_needed``），
+    不在这里判断，也不靠 ``plan_items.study_completed`` 代替。次数不够时不改状态，
     已经写过完成的行也不撤销。有行被改写时立即提交。
     """
     if _gendu_day_practice_count(conn, student_id, task_date) < GENDU_DAILY_PRACTICES:
@@ -2191,7 +2197,10 @@ def report_gendu_practice(
         """,
         (student_id, item["unit_id"], plan_item_id, task_date, score_f),
     )
-    count = int(daily["gendu_practice_count"] or 0) + 1
+    counted = score_f >= GENDU_COUNT_MIN_SCORE
+    # 行上的计数与完成口径一致：只累加有效次数
+    prev_count = int(daily["gendu_practice_count"] or 0)
+    count = prev_count + (1 if counted else 0)
     best = daily["gendu_best_score"]
     best_f = score_f if best is None else max(float(best), score_f)
     conn.execute(
@@ -2203,7 +2212,7 @@ def report_gendu_practice(
         """,
         (count, best_f, int(daily["id"])),
     )
-    # 完成只看当天次数（含换篇前后），不看这一次的分数，也不看本行计数。
+    # 完成只看当天「有效」次数（score≥门槛，跨课文累加）
     day_total = _gendu_day_practice_count(conn, student_id, task_date)
     sync_gendu_day_done(conn, student_id, task_date)
     if score_f >= GENDU_PASS_SCORE:
@@ -2223,6 +2232,8 @@ def report_gendu_practice(
     return {
         "practice_count": day_total,
         "required": GENDU_DAILY_PRACTICES,
+        "count_min_score": GENDU_COUNT_MIN_SCORE,
+        "counted": counted,
         "best_score": best_f,
         "day_complete": day_total >= GENDU_DAILY_PRACTICES,
         "passed_lesson": score_f >= GENDU_PASS_SCORE
@@ -4985,7 +4996,9 @@ def complete_study(
         count = _gendu_day_practice_count(conn, student_id, today)
         if count < GENDU_DAILY_PRACTICES:
             raise ValueError(
-                f"听力跟读当日需完成 {GENDU_DAILY_PRACTICES} 次（当前 {count}/{GENDU_DAILY_PRACTICES}）"
+                f"听力跟读当日需有效完成 {GENDU_DAILY_PRACTICES} 次"
+                f"（识别率≥{GENDU_COUNT_MIN_SCORE}% 才计次；"
+                f"当前 {count}/{GENDU_DAILY_PRACTICES}）"
             )
         # 跟读是「每日打卡」型任务，完成只对当天有意义：不回写历史未打卡日
         # （那些行是诚实的「那天没练」记录，回写会把它们误报成已完成）。

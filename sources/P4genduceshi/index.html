@@ -432,6 +432,7 @@
                 <div class="standard-box">
                     <strong>测试流程：</strong>点击「开始测试」后，系统会同时播放原音频并开始录制你的跟读；原文播放结束后会再多录约 3 秒，方便把落后的跟读说完，然后自动停止录音并上传打分。<br>
                     <strong>评分方式：</strong>后端使用 Whisper 模型将录音转成文字，再与原文进行逐词比对，使用最长公共子序列（LCS）算法计算匹配度。<br>
+                    <strong>任务计次：</strong>识别率 ≥30% 才计入当日练习次数；需有效完成 3 次才算当天任务完成。≥70% 可用于次日换篇。<br>
                     <strong>得分公式：</strong>得分 = 匹配单词数 ÷ 原文总单词数 × 100<br>
                     <strong>💡 小提示：</strong>建议佩戴耳机测试，避免原音频被麦克风收进去；后端识别需要一些时间，请耐心等待。
                 </div>
@@ -498,7 +499,7 @@
     <script src="config.js"></script>
     <script>
         // ==================== 配置 ====================
-        const API_BASE = (window.API_CONFIG && window.API_CONFIG.API_BASE) || 'http://localhost:8000';
+        const API_BASE = (window.API_CONFIG && window.API_CONFIG.API_BASE) || '/api/p4';
 
         // ==================== 课程数据 ====================
         let currentLesson = {
@@ -1068,7 +1069,8 @@
 
                 const res = await fetch(`${API_BASE}/transcribe`, {
                     method: 'POST',
-                    body: form
+                    body: form,
+                    credentials: 'include'
                 });
 
                 if (!res.ok) {

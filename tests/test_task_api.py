@@ -23,6 +23,7 @@ from task_api import (  # noqa: E402
     LISTENING_BASIC_WORDS_PER_GROUP,
     STAGE_TEST_ATTENTION_FAILS,
     SHANGHAI,
+    GENDU_COUNT_MIN_SCORE,
     GENDU_DAILY_PRACTICES,
     GENDU_MODULE,
     GENDU_PASS_SCORE,
@@ -3187,9 +3188,9 @@ class TaskApiTests(unittest.TestCase):
         )
 
     def test_gendu_three_practices_complete_even_if_state_left_todo(self) -> None:
-        """三次跟读 = 当天任务完成，不看出分，也不看 daily 行有没有写成完成。
+        """三次有效跟读 = 当天任务完成，不看是否≥70%换篇，也不看 daily 行有没有写成完成。
 
-        识别率不到 70% 不换篇，但任务必须算完成。若记录写上了、行还停在 todo
+        识别率不到 70% 不换篇，但有效次数满 3 则任务必须算完成。若记录写上了、行还停在 todo
         （历史对账漏写），看板和积压也要按次数补上完成。
         """
         conn = _connect()
@@ -3210,7 +3211,7 @@ class TaskApiTests(unittest.TestCase):
         daily = build_daily_tasks(conn, "2025001", today)
         gendu = [x for x in daily if x["module_type"] == GENDU_MODULE][0]
         pid = gendu["plan_item_id"]
-        for score in (36.0, 0.0, 40.0):
+        for score in (36.0, 40.0, 42.0):
             report_gendu_practice(
                 conn, "2025001", plan_item_id=pid, score=score, task_date=today
             )
@@ -3270,6 +3271,54 @@ class TaskApiTests(unittest.TestCase):
             ("2025001", today, pid),
         ).fetchone()
         self.assertNotEqual(row["state"], "done_study")
+
+    def test_gendu_low_score_does_not_count_toward_day(self) -> None:
+        """识别率低于计次门槛不计入当日有效次数，挡静音凑次。"""
+        conn = _connect()
+        today = china_ymd()
+        start_unit = conn.execute(
+            """
+            SELECT unit_id FROM task_units
+            WHERE module_type=? ORDER BY unit_no LIMIT 1
+            """,
+            (GENDU_MODULE,),
+        ).fetchone()["unit_id"]
+        put_gendu_assignment(
+            conn, "2025001", {"start_unit_id": start_unit, "starts_on": today}
+        )
+        daily = build_daily_tasks(conn, "2025001", today)
+        pid = [x for x in daily if x["module_type"] == GENDU_MODULE][0]["plan_item_id"]
+
+        low = GENDU_COUNT_MIN_SCORE - 0.1
+        r_low = report_gendu_practice(
+            conn, "2025001", plan_item_id=pid, score=low, task_date=today
+        )
+        self.assertFalse(r_low["counted"])
+        self.assertEqual(r_low["practice_count"], 0)
+        self.assertFalse(r_low["day_complete"])
+
+        # 一次高分 + 两次极低分：有效只有 1 次，不能完成
+        report_gendu_practice(
+            conn, "2025001", plan_item_id=pid, score=76.0, task_date=today
+        )
+        r_pad = report_gendu_practice(
+            conn, "2025001", plan_item_id=pid, score=0.2, task_date=today
+        )
+        self.assertFalse(r_pad["counted"])
+        self.assertEqual(r_pad["practice_count"], 1)
+        self.assertFalse(r_pad["day_complete"])
+        self.assertEqual(_gendu_day_practice_count(conn, "2025001", today), 1)
+
+        # 补两次有效分才完成
+        report_gendu_practice(
+            conn, "2025001", plan_item_id=pid, score=35.0, task_date=today
+        )
+        r_done = report_gendu_practice(
+            conn, "2025001", plan_item_id=pid, score=40.0, task_date=today
+        )
+        self.assertTrue(r_done["counted"])
+        self.assertEqual(r_done["practice_count"], GENDU_DAILY_PRACTICES)
+        self.assertTrue(r_done["day_complete"])
 
     def test_gendu_no_advance_when_backfilling_yesterday(self) -> None:
         """回归（线上廉昕 2025114）：回填「昨日」不得触发跟读换课。
@@ -3657,6 +3706,12 @@ class TaskApiTests(unittest.TestCase):
         done = update_scope_progress(conn, "2025001", pid, scope_key="10", scope_done=2)
         self.assertEqual(done["scope_done"], 5)
         self.assertEqual(done["scope_keys"], ["6", "7", "8", "9", "10"])
+        # 带了句号但句号不属于本单元时，不能借 scope_done 把进度加一
+        rejected = update_scope_progress(
+            conn, "2025001", pid, scope_key="1", scope_done=5
+        )
+        self.assertEqual(rejected["scope_done"], 5)
+        self.assertEqual(rejected["scope_keys"], ["6", "7", "8", "9", "10"])
         complete_study(conn, "2025001", pid, "1", scope_done=2)
         plan = conn.execute(
             "SELECT study_completed FROM plan_items WHERE id=?", (pid,)
