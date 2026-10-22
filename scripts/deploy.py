@@ -458,19 +458,33 @@ def build_static_audio_locations() -> str:
     return "\n\n".join(blocks)
 
 
-def build_nginx_conf(*, with_https: bool) -> str:
-    static_audio = build_static_audio_locations()
-    proxy = f"""{static_audio}
-
-    location / {{
-        proxy_pass http://127.0.0.1:{SERVICE_PORT};
+def build_app_proxy_directives() -> str:
+    """Proxy headers shared by the site root and the larger /api/p4 upload location."""
+    return f"""        proxy_pass http://127.0.0.1:{SERVICE_PORT};
         proxy_http_version 1.1;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
         proxy_read_timeout 300s;
-        proxy_connect_timeout 10s;
+        proxy_connect_timeout 10s;"""
+
+
+def build_nginx_conf(*, with_https: bool) -> str:
+    static_audio = build_static_audio_locations()
+    app_proxy = build_app_proxy_directives()
+    # nginx 默认 client_max_body_size 为 1m。跟读整篇录音走 POST /api/p4/transcribe，
+    # 一篇 4～6 分钟的 webm 通常有 3～8MB，会在进 Python / ASR 之前被 413 拒绝。
+    proxy = f"""{static_audio}
+
+    location /api/p4/ {{
+        client_max_body_size 32m;
+        client_body_timeout 300s;
+{app_proxy}
+    }}
+
+    location / {{
+{app_proxy}
     }}"""
     if with_https:
         return f"""server {{
