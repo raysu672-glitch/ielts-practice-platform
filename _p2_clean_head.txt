@@ -1,0 +1,20 @@
+﻿python : Traceback (most recent call last):
+所在位置 C:\Users\49873\AppData\Local\Temp\ps-script-b2742c56-3a45-431b-9641-891d8630b438.ps1:110 字符: 1
++ python -c "
++ ~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (Traceback (most recent call last)::String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+  File "<string>", line 20, in <module>
+    if line.strip(): print(' ', line[:100])
+                     ~~~~~^^^^^^^^^^^^^^^^^
+UnicodeEncodeError: 'gbk' codec can't encode character '\U0001f464' in position 0: illegal multibyte sequence
+NEW len 9692 OLD len 9841 MAT len 8541
+NEW numbers ['1', '2', '3', '1', '2'] ... ['29', '30', '31', '32', '33'] count 42
+OLD numbers count 43 last ['32', '33', '34', '35', '36']
+MAT headings:
+  # P2素材.pdf
+  pages: 6
+  ===== PAGE 1 =====
+  P2 素材
+  

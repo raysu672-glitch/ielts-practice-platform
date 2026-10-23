@@ -1,0 +1,103 @@
+stats: {'explicit': 23, 'clue': 82, 'clue-alias': 33, 'clue-fuzzy': 0, 'derived': 93}
+
+failures: 231
+
+Watch|Have you ever got a watch as a gift?|explicit|['正面回答: only 1 chips', '频次: only 1 chips']
+---
+Work or studies|What subjects are you studying?|clue-alias|['正面回答: only 2 chips', '频次: only 1 chips', '感受: only 1 chips', 'no logic']
+---
+Work or studies|Why did you choose to study that subject?|clue-alias|['正面回答: only 2 chips', '频次: only 1 chips', '感受: only 1 chips', 'no logic']
+---
+Work or studies|What work do you do?|clue-alias|['正面回答: only 2 chips', '频次: only 1 chips', '感受: only 1 chips', 'no logic']
+---
+Work or studies|Why did you choose to do that type of work (or that job)?|clue-alias|['正面回答: only 1 chips', '频次: only 1 chips', '感受: only 1 chips', 'no logic']
+---
+Work or studies|What requirements did you need to meet to get your current job?|clue-alias|['正面回答: only 2 chips', '频次: only 1 chips', '感受: only 1 chips', 'no logic']
+---
+Work or studies|Who helps you the most? And how?|clue-alias|['频次: only 1 chips', '感受: only 1 chips', 'no logic']
+---
+Websites|Are there any changes to the websites you often visit?|explicit|['正面回答: only 1 chips', '来源或举例: only 2 chips', '频次: only 1 chips', '感受: only 1 chips']
+---
+Websites|What have you learned from websites that help with your life or studies?|explicit|['正面回答: only 1 chips', '频次: only 1 chips', '感受: only 1 chips']
+---
+Teachers|Do you have a teacher from your past that you still remember?|explicit|['正面回答: only 1 chips', '来源或举例: only 2 chips', '频次: only 1 chips', '感受: only 1 chips']
+---
+Teachers|Are you still in touch with your primary school teachers?|explicit|['正面回答: only 2 chips', '来源或举例: only 2 chips', '频次: only 1 chips', '感受: only 1 chips']
+---
+Teachers|In what way has your favourite teacher helped you?|explicit|['正面回答: only 1 chips', '来源或举例: only 2 chips', '频次: only 1 chips', '感受: only 1 chips']
+---
+The area you live in|Do you know any famous people in your area?|derived|['来源或举例: only 2 chips', '来源或举例: generic']
+---
+The area you live in|What are some changes in the area recently?|derived|['来源或举例: only 2 chips', '来源或举例: generic']
+---
+The area you live in|Do you know any of your neighbors?|derived|['来源或举例: only 2 chips', '来源或举例: generic']
+---
+The area you live in|Are the people in your neighborhood nice and friendly?|derived|['来源或举例: only 2 chips', '来源或举例: generic']
+---
+The area you live in|Do you live in a noisy or a quiet area?|derived|['来源或举例: only 2 chips', '来源或举例: generic']
+---
+Shopping|Have you ever returned anything you bought online?|derived|['来源或举例: only 2 chips', '来源或举例: generic']
+---
+Mirrors|Have you ever bought mirrors?|derived|['来源或举例: only 2 chips', '来源或举例: generic']
+---
+Music|Have you taken any music classes?|derived|['来源或举例: only 2 chips', '来源或举例: generic']
+---
+Home & Accommodation|Are the transport facilities to your home very good?|derived|['来源或举例: only 2 chips', '来源或举例: generic']
+---
+Home & Accommodation|Please describe the room you live in?|clue-alias|['正面回答: only 2 chips', '来源或举例: only 1 chips', '频次: only 1 chips', '频次: generic', '感受: only 2 chips', 'no logic']
+---
+Home & Accommodation|How long have you lived there?|clue-alias|['正面回答: only 2 chips', '来源或举例: only 1 chips', '频次: only 1 chips', '频次: generic', '感受: only 2 chips', 'no logic']
+---
+Home & Accommodation|Can you describe the place where you live?|clue-alias|['正面回答: only 2 chips', '来源或举例: only 1 chips', '频次: only 1 chips', '频次: generic', '感受: only 2 chips', 'no logic']
+---
+Home & Accommodation|Do you live in an apartment or a house?|clue-alias|['正面回答: only 2 chips', '来源或举例: only 1 chips', '频次: only 1 chips', '频次: generic', '感受: only 2 chips', 'no logic']
+---
+Home & Accommodation|Who do you live with?|clue-alias|['正面回答: only 2 chips', '来源或举例: only 1 chips', '频次: only 1 chips', '频次: generic', '感受: only 2 chips', 'no logic']
+---
+Home & Accommodation|What kinds of accommodation do you live in?|clue-alias|['正面回答: only 2 chips', '来源或举例: only 1 chips', '频次: only 1 chips', '频次: generic', '感受: only 2 chips', 'no logic']
+---
+Hometown|Where is your hometown?|clue-alias|['正面回答: only 2 chips', '来源或举例: only 1 chips', '频次: only 1 chips', '频次: generic', '感受: only 2 chips', 'no logic']
+---
+Hometown|Is that a big city or a small place?|clue-alias|['正面回答: only 2 chips', '来源或举例: only 1 chips', '频次: only 1 chips', '频次: generic', '感受: only 2 chips', 'no logic']
+---
+Hometown|Please describe your hometown a little?|clue-alias|['正面回答: only 2 chips', '来源或举例: only 1 chips', '频次: only 1 chips', '频次: generic', '感受: only 2 chips', 'no logic']
+---
+Hometown|How long have you been living there?|clue-alias|['正面回答: only 2 chips', '来源或举例: only 1 chips', '频次: only 1 chips', '频次: generic', '感受: only 2 chips', 'no logic']
+---
+Hometown|What's your hometown famous for?|clue-alias|['正面回答: only 2 chips', '来源或举例: only 1 chips', '频次: only 1 chips', '频次: generic', '感受: only 2 chips', 'no logic']
+---
+Hometown|Did you learn about the history of your hometown at school?|derived|['来源或举例: only 2 chips', '来源或举例: generic']
+---
+Hometown|Are there many young people in your hometown?|derived|['来源或举例: only 2 chips', '来源或举例: generic']
+---
+Hometown|Have you learned anything about the history of your hometown?|derived|['来源或举例: only 2 chips', '来源或举例: generic']
+---
+Hometown|Did you learn about the culture of your hometown in your childhood?|derived|['来源或举例: only 2 chips', '来源或举例: generic']
+---
+Headphones|What type of headphones do you use?|derived|['来源或举例: only 2 chips', '来源或举例: generic']
+---
+Social media|Have you ever posted anything on social media?|derived|['来源或举例: only 2 chips', '来源或举例: generic']
+---
+Social media|When did you start using social media?|derived|['来源或举例: only 2 chips', '来源或举例: generic']
+---
+Social media|Do your friends use social media?|derived|['来源或举例: only 2 chips', '来源或举例: generic']
+---
+Singing|Have you ever learnt how to sing?|derived|['来源或举例: only 2 chips', '来源或举例: generic']
+---
+Singing|Have you ever taken a singing class?|derived|['来源或举例: only 2 chips', '来源或举例: generic']
+---
+Outer space and stars|Have you ever learnt about outer space and stars?|derived|['来源或举例: only 2 chips', '来源或举例: generic']
+---
+The city you live in|What city do you live in?|clue-alias|['正面回答: only 2 chips', '来源或举例: only 1 chips', '频次: only 1 chips', '频次: generic', '感受: only 2 chips', 'no logic']
+---
+The city you live in|How long have you lived in this city?|clue-alias|['正面回答: only 2 chips', '来源或举例: only 1 chips', '频次: only 1 chips', '频次: generic', '感受: only 2 chips', 'no logic']
+---
+The city you live in|Is this city your permanent residence?|clue-alias|['正面回答: only 2 chips', '来源或举例: only 1 chips', '频次: only 1 chips', '频次: generic', '感受: only 2 chips', 'no logic']
+---
+The city you live in|Are there big changes in this city?|derived|['来源或举例: only 2 chips', '来源或举例: generic']
+---
+The city you live in|Are there people of different ages living in this city?|derived|['来源或举例: only 2 chips', '来源或举例: generic']
+---
+The city you live in|Are the people friendly in the city?|derived|['来源或举例: only 2 chips', '来源或举例: generic']
+---
+The city you live in|What's the weather like where you live?|clue-alias|['正面回答: only 2 chips', '来源或举例: only 1 chips', '频次: only 1 chips', '频次: generic', '感受: only 2 chips', 'no logic']

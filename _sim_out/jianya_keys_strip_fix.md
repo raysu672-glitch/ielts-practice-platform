@@ -1,0 +1,150 @@
+# 剑雅答案污染自动清洗报告
+
+- 污染条数扫描到: 138
+- 已清洗写回: 118
+- 跳过（仍需重抓）: 20
+- 改动文件数: 118
+
+## 已清洗
+
+- academic10/listening/sId=771 Q40: `expansion` (原长 10234) _C10 Test 1 Part 4_
+- academic10/listening/sId=775 Q40: `self-employed` (原长 10238) _C10 Test 2 Part 4_
+- academic10/listening/sId=780 Q40: `innovations` (原长 10236) _C10 Test 3 Part 4_
+- academic10/listening/sId=783 Q40: `tests` (原长 10230) _C10 Test 4 Part 4_
+- academic10/reading/sId=786 Q40: `NO` (原长 10227) _C10 Test 1 Part 3_
+- academic10/reading/sId=789 Q40: `NO` (原长 10228) _C10 Test 2 Part 3_
+- academic10/reading/sId=792 Q40: `NOT GIVEN` (原长 10235) _C10 Test 3 Part 3_
+- academic10/reading/sId=796 Q40: `YES` (原长 10229) _C10 Test 4 Part 3_
+- academic11/listening/sId=643 Q40: `payment / money` (原长 10242) _C11 Test 1 Part 4_
+- academic11/listening/sId=744 Q40: `consumption` (原长 10236) _C11 Test 2 Part 4_
+- academic11/listening/sId=748 Q40: `international` (原长 10238) _C11 Test 3 Part 4_
+- academic11/listening/sId=752 Q40: `identification) label` (原长 10245) _C11 Test 4 Part 4_
+- academic11/reading/sId=755 Q40: `A` (原长 10226) _C11 Test 1 Part 3_
+- academic11/reading/sId=758 Q40: `A` (原长 10227) _C11 Test 2 Part 3_
+- academic11/reading/sId=761 Q40: `theorems` (原长 10234) _C11 Test 3 Part 3_
+- academic11/reading/sId=764 Q40: `YES` (原长 10229) _C11 Test 4 Part 3_
+- academic12/listening/sId=724 Q40: `market share` (原长 10237) _C12 Test 1 Part 4_
+- academic12/listening/sId=728 Q40: `mediator` (原长 10233) _C12 Test 2 Part 4_
+- academic12/listening/sId=732 Q40: `cost / price` (原长 10236) _C12 Test 3 Part 4_
+- academic12/listening/sId=736 Q40: `silent` (原长 10231) _C12 Test 4 Part 4_
+- academic12/reading/sId=639 Q40: `C` (原长 10227) _C12 Test 2 Part 3_
+- academic12/reading/sId=714 Q40: `NO` (原长 10227) _C12 Test 1 Part 3_
+- academic12/reading/sId=717 Q40: `C` (原长 10227) _C12 Test 3 Part 3_
+- academic12/reading/sId=720 Q40: `shareholders / investors` (原长 10249) _C12 Test 4 Part 3_
+- academic13/listening/sId=609 Q40: `permanent` (原长 10234) _C13 Test 1 Part 4_
+- academic13/listening/sId=613 Q40: `self` (原长 10229) _C13 Test 2 Part 4_
+- academic13/listening/sId=617 Q40: `injury / injuries` (原长 10241) _C13 Test 3 Part 4_
+- academic13/listening/sId=621 Q40: `night` (原长 10230) _C13 Test 4 Part 4_
+- academic13/reading/sId=624 Q40: `NO` (原长 10227) _C13 Test 1 Part 3_
+- academic13/reading/sId=627 Q40: `D` (原长 10227) _C13 Test 2 Part 3_
+- academic13/reading/sId=630 Q40: `A` (原长 10227) _C13 Test 3 Part 3_
+- academic13/reading/sId=633 Q40: `NO` (原长 10228) _C13 Test 4 Part 3_
+- academic14/listening/sId=552 Q40: `wine` (原长 10229) _C14 Test 4 Part 4_
+- academic14/listening/sId=555 Q40: `Olympics` (原长 10233) _C14 Test 3 Part 4_
+- academic14/listening/sId=558 Q40: `telegraph` (原长 10234) _C14 Test 2 Part 4_
+- academic14/listening/sId=561 Q40: `migration` (原长 10234) _C14 Test 1 Part 4_
+- academic14/reading/sId=596 Q40: `characteristics` (原长 10240) _C14 Test 1 Part 3_
+- academic14/reading/sId=599 Q40: `NOT GIVEN` (原长 10235) _C14 Test 2 Part 3_
+- academic14/reading/sId=602 Q40: `targeted` (原长 10234) _C14 Test 3 Part 3_
+- academic14/reading/sId=605 Q40: `A` (原长 10227) _C14 Test 4 Part 3_
+- academic15/listening/sId=581 Q40: `Nests` (原长 10230) _C15 Test 1 Part 4_
+- academic15/listening/sId=585 Q40: `design` (原长 10231) _C15 Test 2 Part 4_
+- academic15/listening/sId=589 Q40: `Tax` (原长 10228) _C15 Test 3 Part 4_
+- academic15/listening/sId=593 Q40: `Advertising` (原长 10236) _C15 Test 4 Part 4_
+- academic15/reading/sId=565 Q40: `D` (原长 10227) _C15 Test 4 Part 3_
+- academic15/reading/sId=569 Q40: `A` (原长 10227) _C15 Test 3 Part 3_
+- academic15/reading/sId=572 Q40: `NO` (原长 10228) _C15 Test 2 Part 3_
+- academic15/reading/sId=575 Q40: `land) surface` (原长 10237) _C15 Test 1 Part 3_
+- academic16/listening/sId=650 Q40: `Practice / practise` (原长 10243) _C16 Test 1 Part 4_
+- academic16/listening/sId=654 Q40: `Habit` (原长 10230) _C16 Test 2 Part 4_
+- academic16/listening/sId=662 Q40: `Forest` (原长 10231) _C16 Test 4 Part 4_
+- academic16/reading/sId=646 Q40: `C` (原长 10226) _C16 Test 1 Part 3_
+- academic16/reading/sId=668 Q40: `TRUE` (原长 10230) _C16 Test 2 Part 3_
+- academic16/reading/sId=677 Q40: `Mustard plant(s) / mustard` (原长 10251) _C16 Test 3 Part 3_
+- academic16/reading/sId=691 Q40: `YES` (原长 10229) _C16 Test 4 Part 3_
+- academic17/listening/sId=1530 Q40: `Anxiety` (原长 10232) _C17 Test 1 Part 4_
+- academic17/listening/sId=1534 Q40: `Fluent` (原长 10231) _C17 Test 2 Part 4_
+- academic17/listening/sId=1538 Q40: `Atlas` (原长 10230) _C17 Test 3 Part 4_
+- academic17/listening/sId=1542 Q40: `Litre / liter` (原长 10237) _C17 Test 4 Part 4_
+- academic17/reading/sId=1545 Q40: `D` (原长 10226) _C17 Test 1 Part 3_
+- academic17/reading/sId=1548 Q40: `B` (原长 10227) _C17 Test 2 Part 3_
+- academic17/reading/sId=1551 Q40: `FALSE` (原长 10227) _C17 Test 3 Part 3_
+- academic17/reading/sId=1554 Q40: `Visual` (原长 10232) _C17 Test 4 Part 3_
+- academic18/listening/sId=2247 Q40: `Tourism` (原长 10248) _C18 Test 1 Part 4_
+- academic18/listening/sId=2251 Q40: `Handbag` (原长 10232) _C18 Test 2 Part 4_
+- academic18/listening/sId=2255 Q40: `Trust` (原长 10233) _C18 Test 3 Part 4_
+- academic18/listening/sId=2259 Q40: `Relatives` (原长 10234) _C18 Test 4 Part 4_
+- academic18/reading/sId=2278 Q40: `A` (原长 10226) _C18 Test 1 Part 3_
+- academic18/reading/sId=2281 Q40: `Outwards` (原长 10227) _C18 Test 2 Part 3_
+- academic18/reading/sId=2284 Q40: `NOT GIVEN` (原长 10235) _C18 Test 3 Part 3_
+- academic18/reading/sId=2287 Q40: `C` (原长 10227) _C18 Test 4 Part 3_
+- academic4/listening/sId=1429 Q40: `space` (原长 10268) _C4 Test 1 Part 4_
+- academic4/listening/sId=1433 Q40: `E` (原长 10246) _C4 Test 2 Part 4_
+- academic4/listening/sId=1437 Q40: `A and C` (原长 10260) _C4 Test 3 Part 4_
+- academic4/listening/sId=1441 Q40: `E` (原长 10250) _C4 Test 4 Part 4_
+- academic4/reading/sId=1444 Q40: `B` (原长 10224) _C4 Test 1 Part 3_
+- academic4/reading/sId=1447 Q40: `A` (原长 10224) _C4 Test 2 Part 3_
+- academic4/reading/sId=1450 Q40: `intuitions` (原长 10233) _C4 Test 3 Part 3_
+- academic4/reading/sId=1453 Q40: `NOT GIVEN` (原长 10232) _C4 Test 4 Part 3_
+- academic5/listening/sId=1354 Q40: `low-risk investments` (原长 10243) _C5 Test 1 Part 4_
+- academic5/listening/sId=1358 Q40: `young` (原长 10228) _C5 Test 2 Part 4_
+- academic5/listening/sId=1362 Q40: `business cards` (原长 10237) _C5 Test 3 Part 4_
+- academic5/listening/sId=1366 Q40: `C` (原长 10224) _C5 Test 4 Part 4_
+- academic5/reading/sId=1369 Q40: `I` (原长 10224) _C5 Test 1 Part 3_
+- academic5/reading/sId=1372 Q40: `local audience` (原长 10237) _C5 Test 2 Part 3_
+- academic5/reading/sId=1376 Q40: `D` (原长 10224) _C5 Test 3 Part 3_
+- academic5/reading/sId=1379 Q40: `classification` (原长 10237) _C5 Test 4 Part 3_
+- academic6/listening/sId=1298 Q40: `FALSE` (原长 10224) _C6 Test 1 Part 4_
+- academic6/listening/sId=1302 Q40: `poor sound quality` (原长 10241) _C6 Test 2 Part 4_
+- academic6/listening/sId=1306 Q40: `tops` (原长 10227) _C6 Test 3 Part 4_
+- academic6/listening/sId=1310 Q40: `leadership` (原长 10233) _C6 Test 4 Part 4_
+- academic6/reading/sId=1314 Q40: `imported` (原长 10231) _C6 Test 1 Part 3_
+- academic6/reading/sId=1317 Q40: `NOT GIVEN` (原长 10232) _C6 Test 2 Part 3_
+- academic6/reading/sId=1320 Q40: `preservation` (原长 10235) _C6 Test 3 Part 3_
+- academic6/reading/sId=1323 Q40: `D` (原长 10224) _C6 Test 4 Part 3_
+- academic7/listening/sId=1194 Q40: `intact` (原长 10229) _C7 Test 1 Part 4_
+- academic7/listening/sId=1202 Q40: `balance` (原长 10230) _C7 Test 2 Part 4_
+- academic7/listening/sId=1218 Q40: `chocolate` (原长 10232) _C7 Test 3 Part 4_
+- academic7/listening/sId=1222 Q40: `minerals` (原长 10231) _C7 Test 4 Part 4_
+- academic7/reading/sId=1234 Q40: `G` (原长 10224) _C7 Test 1 Part 3_
+- academic7/reading/sId=1238 Q40: `B` (原长 10224) _C7 Test 2 Part 3_
+- academic7/reading/sId=1244 Q40: `B` (原长 10224) _C7 Test 3 Part 3_
+- academic7/reading/sId=1247 Q40: `C` (原长 10224) _C7 Test 4 Part 3_
+- academic8/listening/sId=1105 Q40: `weather` (原长 10230) _C8 Test 1 Part 4_
+- academic8/listening/sId=1116 Q40: `skills` (原长 10229) _C8 Test 3 Part 4_
+- academic8/listening/sId=1164 Q40: `creation` (原长 10231) _C8 Test 4 Part 4_
+- academic8/reading/sId=1169 Q40: `big / large enough` (原长 10240) _C8 Test 1 Part 3_
+- academic8/reading/sId=1175 Q40: `cultures` (原长 10231) _C8 Test 2 Part 3_
+- academic8/reading/sId=1186 Q40: `YES` (原长 10226) _C8 Test 3 Part 3_
+- academic8/reading/sId=1189 Q40: `alcohol` (原长 10231) _C8 Test 4 Part 3_
+- academic9/listening/sId=1069 Q40: `networks` (原长 10231) _C9 Test 1 Part 4_
+- academic9/listening/sId=1073 Q40: `flexible` (原长 10231) _C9 Test 2 Part 4_
+- academic9/listening/sId=1079 Q40: `15 years` (原长 10231) _C9 Test 3 Part 4_
+- academic9/listening/sId=1086 Q40: `seeds` (原长 10228) _C9 Test 4 Part 4_
+- academic9/reading/sId=1089 Q40: `D` (原长 10224) _C9 Test 1 Part 3_
+- academic9/reading/sId=1092 Q40: `C` (原长 10225) _C9 Test 2 Part 3_
+- academic9/reading/sId=1095 Q40: `FALSE` (原长 10229) _C9 Test 3 Part 3_
+- academic9/reading/sId=1098 Q40: `TRUE` (原长 10228) _C9 Test 4 Part 3_
+
+## 跳过（需第 2 步重抓/手补）
+
+- academic10/reading/sId=787 Q2 raw_len=76156 cleaned=`'png",'` _C10 Test 2 Part 1_
+- academic10/reading/sId=790 Q1 raw_len=76100 cleaned=`'1.16"},'` _C10 Test 3 Part 1_
+- academic10/reading/sId=793 Q2 raw_len=75512 cleaned=`'png",'` _C10 Test 4 Part 1_
+- academic16/listening/sId=655 Q1 raw_len=77892 cleaned=`'1.16"},'` _C16 Test 3 Part 1_
+- academic16/listening/sId=655 Q2 raw_len=77702 cleaned=`'png",'` _C16 Test 3 Part 1_
+- academic16/listening/sId=655 Q3 raw_len=75014 cleaned=`',"name":'` _C16 Test 3 Part 1_
+- academic16/listening/sId=655 Q4 raw_len=50530 cleaned=`'21.3. */ outline-color: #ff703d; } .'` _C16 Test 3 Part 1_
+- academic16/listening/sId=655 Q5 raw_len=66684 cleaned=`'06rem;--wp--preset--shadow--natural: 6px 6px 9px rgba(0, 0, 0, 0.2);--wp--preset--shadow--deep: 12px 12px 50px rgba(0, 0'` _C16 Test 3 Part 1_
+- academic16/listening/sId=655 Q6 raw_len=78138 cleaned=`'webp","url":"https://'` _C16 Test 3 Part 1_
+- academic16/listening/sId=655 Q8 raw_len=22390 cleaned=`'662,0.000%2023.035,12.002%2018.660,12.002%20C14.285,12.002%208.594,0.000%202.658,0.000%20Z%22/%3E%3C/svg%3E");background'` _C16 Test 3 Part 1_
+- academic16/listening/sId=655 Q9 raw_len=19637 cleaned=`'png) ; background-position: 50% 90%; background-size:100px ; background-repeat: no-repeat; background-attachment: fixed;'` _C16 Test 3 Part 1_
+- academic16/listening/sId=656 Q12 raw_len=25090 cleaned=`'002%2018.660,12.002%20C14.285,12.002%208.594,0.000%202.658,0.000%20Z%22/%3E%3C/svg%3E");background-size:100% auto;}[data'` _C16 Test 3 Part 2_
+- academic16/listening/sId=656 Q13 raw_len=25430 cleaned=`'615,0.000%2050.938,0.000%2034.662,0.000%20C28.662,0.000%2023.035,12.002%2018.660,12.002%20C14.285,12.002%208.594,0.000%2'` _C16 Test 3 Part 2_
+- academic16/listening/sId=656 Q14 raw_len=40042 cleaned=`'0.0/72x72/","ext":".png","svgUrl":"https://s.w.org/images/core/emoji/14.0.0/svg/","svgExt":".svg"}; //# sourceURL=bb-twe'` _C16 Test 3 Part 2_
+- academic16/listening/sId=656 Q18 raw_len=24400 cleaned=`'660,12.002%20C14.285,12.002%208.594,0.000%202.658,0.000%20Z%22/%3E%3C/svg%3E");background-size:100% auto;}[data-bp-toolt'` _C16 Test 3 Part 2_
+- academic16/listening/sId=657 Q21 raw_len=61508 cleaned=`'3. */ outline-color: #ff703d; } .'` _C16 Test 3 Part 3_
+- academic16/listening/sId=657 Q23 raw_len=31491 cleaned=`'035,12.002%2018.660,12.002%20C14.285,12.002%208.594,0.000%202.658,0.000%20Z%22/%3E%3C/svg%3E");background-size:100% auto'` _C16 Test 3 Part 3_
+- academic16/listening/sId=657 Q28 raw_len=29821 cleaned=`'662,0.000%2023.035,12.002%2018.660,12.002%20C14.285,12.002%208.594,0.000%202.658,0.000%20Z%22/%3E%3C/svg%3E");background'` _C16 Test 3 Part 3_
+- academic16/listening/sId=658 Q34 raw_len=57829 cleaned=`'293% );max-width:34.293%;--container-widget-width:34.293%;--container-widget-flex-grow:0;top:0px;text-align:start;}.'` _C16 Test 3 Part 4_
+- academic16/listening/sId=658 Q40 raw_len=57114 cleaned=`'sheep — looking after …… paraphrases watching over, and the lecture lists knitting done “while watching over sheep, walk'` _C16 Test 3 Part 4_

@@ -1,0 +1,149 @@
+shishi	Watch	Have you ever got a watch as a gift?
+shishi	Work or studies	What subjects are you studying?
+shishi	Work or studies	Why did you choose to study that subject?
+shishi	Work or studies	What work do you do?
+shishi	Work or studies	Why did you choose to do that type of work (or that job)?
+shishi	Work or studies	What requirements did you need to meet to get your current job?
+shishi	Work or studies	Who helps you the most? And how?
+shishi	Websites	Are there any changes to the websites you often visit?
+shishi	Websites	What have you learned from websites that help with your life or studies?
+shishi	Teachers	Do you have a teacher from your past that you still remember?
+shishi	Teachers	Are you still in touch with your primary school teachers?
+shishi	Teachers	In what way has your favourite teacher helped you?
+shishi	The area you live in	Do you know any famous people in your area?
+shishi	The area you live in	What are some changes in the area recently?
+shishi	The area you live in	Do you know any of your neighbors?
+shishi	The area you live in	Are the people in your neighborhood nice and friendly?
+shishi	The area you live in	Do you live in a noisy or a quiet area?
+shishi	Shopping	Have you ever returned anything you bought online?
+shishi	Mirrors	Have you ever bought mirrors?
+shishi	Music	Have you taken any music classes?
+shishi	Home & Accommodation	Are the transport facilities to your home very good?
+shishi	Home & Accommodation	Please describe the room you live in?
+shishi	Home & Accommodation	How long have you lived there?
+shishi	Home & Accommodation	Can you describe the place where you live?
+shishi	Home & Accommodation	Do you live in an apartment or a house?
+shishi	Home & Accommodation	Who do you live with?
+shishi	Home & Accommodation	What kinds of accommodation do you live in?
+shishi	Hometown	Where is your hometown?
+shishi	Hometown	Is that a big city or a small place?
+shishi	Hometown	Please describe your hometown a little?
+shishi	Hometown	How long have you been living there?
+shishi	Hometown	What's your hometown famous for?
+shishi	Hometown	Did you learn about the history of your hometown at school?
+shishi	Hometown	Are there many young people in your hometown?
+shishi	Hometown	Have you learned anything about the history of your hometown?
+shishi	Hometown	Did you learn about the culture of your hometown in your childhood?
+shishi	Headphones	What type of headphones do you use?
+shishi	Social media	Have you ever posted anything on social media?
+shishi	Social media	When did you start using social media?
+shishi	Social media	Do your friends use social media?
+shishi	Singing	Have you ever learnt how to sing?
+shishi	Singing	Have you ever taken a singing class?
+shishi	Outer space and stars	Have you ever learnt about outer space and stars?
+shishi	The city you live in	What city do you live in?
+shishi	The city you live in	How long have you lived in this city?
+shishi	The city you live in	Is this city your permanent residence?
+shishi	The city you live in	Are there big changes in this city?
+shishi	The city you live in	Are there people of different ages living in this city?
+shishi	The city you live in	Are the people friendly in the city?
+shishi	The city you live in	What's the weather like where you live?
+shishi	Science	When did you start to learn about science?
+shishi	Science	What kinds of interesting things have you done with science?
+shishi	Views	Have you seen an unforgettable and beautiful view or scenery?
+shishi	Jokes & Comedies	Are you good at telling jokes?
+shishi	Jokes & Comedies	Do your friends like to tell jokes?
+shishi	Jokes & Comedies	Have you ever watched a live show?
+shishi	Gifts	Have you ever sent handmade gifts to others?
+shishi	Gifts	Have you ever received a great gift?
+shishi	Gifts	What gift have you received recently?
+shishi	Pets and Animals	Have you ever visited a zoo?
+shishi	Typing	When did you learn how to type on a keyboard?
+shishi	Typing	How do you improve your typing?
+shishi	Memory	Are you good at memorising things?
+shishi	Memory	Have you ever forgotten something important?
+shishi	Memory	What do you need to remember in your daily life?
+shishi	Life stages	What did you often do with your friends in your childhood?
+shishi	Life stages	Do you have any plans for the next five years?
+shishi	Crowded place	Is the city where you live crowded?
+shishi	Crowded place	Is there a crowded place near where you live?
+shishi	Crowded place	When was the last time you were in a crowded place?
+xihao	Cars	Did you enjoy traveling by car when you were a kid?
+xihao	Cars	What types of cars do you like?
+xihao	Cars	Will you buy an expensive car in the future?
+xihao	Websites	What is your favourite website?
+xihao	Websites	Would you like to have your own website?
+xihao	Teachers	Do you have a favorite teacher?
+xihao	Teachers	Do you want to be a teacher in the future?
+xihao	Public gardens and parks	Did you like going to parks as a child?
+xihao	Public gardens and parks	Do you still like going to parks now?
+xihao	Public gardens and parks	Would you like to see more parks in your city?
+xihao	Public gardens and parks	Are there any parks you want to go to in the future?
+xihao	Public gardens and parks	What do you like to do when visiting a park?
+xihao	Shopping	Do you like shopping?
+xihao	Mirrors	Do you like looking at yourself in the mirror? How often?
+xihao	Mirrors	Would you use mirrors to decorate your room?
+xihao	Clothing	What kind of clothes do you like to wear?
+xihao	Clothing	Do you like wearing T-shirts?
+xihao	Clothing	What colour clothes do you like?
+xihao	Tidiness	Do you like to keep things tidy?
+xihao	Singing	Do you like singing? Why?
+xihao	Singing	Who do you want to sing for?
+xihao	Singing	Do you like listening to others singing?
+xihao	Outer space and stars	Do you like science fiction movies? Why?
+xihao	Outer space and stars	Do you want to know more about outer space?
+xihao	Outer space and stars	Do you want to go into outer space in the future?
+xihao	Science	Do you like science?
+xihao	Science	Which science subject is interesting to you?
+xihao	Science	Do you like watching science TV programs?
+xihao	Spare time	Would you like to have more free time in the future?
+xihao	Jokes & Comedies	Do you like to watch comedies?
+xihao	Building	Do you want to live in a tall building?
+xihao	Childhood activities	What are your favourite activities?
+xihao	Life stages	Do you enjoy being the age you are now?
+xingwei	Watch	Do you wear a watch?
+xingwei	Cars	What do you usually do when there is a traffic jam?
+xingwei	Work or studies	What technology do you use when you study?
+xingwei	Work or studies	What technology do you use at work?
+xingwei	Websites	What kinds of websites do you often visit?
+xingwei	Shopping	How often do you go shopping?
+xingwei	Mirrors	Do you usually take a mirror with you?
+xingwei	Music	Do you listen to music while doing other things?
+xingwei	Clothing	Do you spend a lot of time choosing clothes?
+xingwei	Tidiness	Did you keep your room tidy as a child?
+xingwei	Tidiness	How do you keep your work or study space tidy?
+xingwei	Headphones	Do you use headphones?
+xingwei	Headphones	When would you use headphones?
+xingwei	Headphones	In what conditions would you not use headphones?
+xingwei	Spare time	Do you often have free time?
+xingwei	Spare time	What do you usually do in your spare time?
+xingwei	Pets and Animals	How often do you visit a zoo?
+xingwei	Memory	How do you remember important things?
+xingwei	Morning time	What did you do in the morning when you were little? Why?
+guandian	Watch	Why do some people wear expensive watches?
+guandian	Watch	Do you think it is important to wear a watch? Why?
+guandian	Cars	Do you think car colours are important?
+guandian	Websites	What kinds of websites are popular in your country?
+guandian	Music	Does happy music make you feel more excited?
+guandian	Tidiness	Do you think that it is necessary to be tidy?
+guandian	Headphones	Is wearing headphones comfortable?
+guandian	Social media	Do you think you spend too much time on social media?
+guandian	Social media	What do people often do on social media?
+guandian	Singing	Do you think singing can bring happiness to people?
+guandian	Science	Do Chinese people often visit science museums?
+guandian	Jokes & Comedies	Are comedy shows popular in your country?
+guandian	Pets and Animals	Are there many people keeping pets in your country?
+guandian	Pets and Animals	Should schools teach students knowledge about pets or animals?
+guandian	Life stages	How do people remember each stage of their lives?
+guandian	Life stages	At what age do you think people are the happiest?
+duibi	Cars	Do you prefer to be a driver or a passenger?
+duibi	Websites	Do you prefer getting information from websites or books?
+duibi	Teachers	Do you like your primary school teachers more than your high school teachers?
+duibi	Public gardens and parks	Would you prefer to play in a personal garden or public garden?
+duibi	Public gardens and parks	How are the parks today different from those you visited as a kid?
+duibi	Shopping	Do you prefer online shopping or in-store shopping?
+duibi	Music	Do you prefer sad or happy music?
+duibi	Clothing	Do you prefer to wear comfortable and casual clothes or smart clothes?
+duibi	Clothing	Do you wear different styles of clothes on weekdays and weekends?
+duibi	Spare time	Which day do you have more free time on, Saturday or Sunday?
+duibi	Childhood activities	Are there any differences between the activities you liked when you were a child and those you like now?

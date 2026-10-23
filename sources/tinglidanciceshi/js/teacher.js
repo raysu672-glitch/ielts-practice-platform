@@ -1555,6 +1555,10 @@ async function showStudentDetailProgress(studentId, studentName, filterModuleId)
         escapeHtml(displayName) +
         (moduleName ? (' · ' + moduleName + '进度') : ' · 学习情况') +
         '</h3>';
+    if (overviewMode) {
+        html += '<button type="button" class="btn btn-sm btn-primary" id="studentCheckupBtn" style="margin-left:12px;" onclick="runStudentCheckup(\'' +
+            escapeJsString(student.student_id || studentId) + '\')">学习体检</button>';
+    }
     html += '<div style="margin-top:8px;color:#666;font-size:0.9rem;">学号 ' + escapeHtml(student.student_id || studentId) +
         ' · 目标 ' + escapeHtml(String(studentTargetScore)) + ' 分 · 状态 ' + escapeHtml(statusText) + '</div>';
     html += '</div>';
@@ -1580,6 +1584,10 @@ async function showStudentDetailProgress(studentId, studentName, filterModuleId)
     html += '</div></div>';
 
     if (overviewMode) {
+        html += '<div id="studentCheckupPanel" style="display:none;margin:16px 0 20px;padding:14px;border:1px solid #bbf7d0;border-radius:10px;background:#f0fdf4;">';
+        html += '<h4 style="margin:0 0 8px;">学习体检报告</h4>';
+        html += '<div id="studentCheckupBody" style="white-space:pre-wrap;line-height:1.6;color:#14532d;font-size:0.95rem;"></div>';
+        html += '</div>';
         html += '<div id="studentActivityTimeline" style="margin:16px 0 20px;padding:14px;border:1px solid #c7d2fe;border-radius:10px;background:#eef2ff;">';
         html += '<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;">';
         html += '<h4 style="margin:0;">操作时间线 <span id="studentActivityScopeHint" style="font-weight:normal;color:#64748b;font-size:0.85rem;">全部记录 · 保留90天</span></h4>';
@@ -1750,6 +1758,47 @@ function _chinaTodayYmd() {
         var d = new Date();
         return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' +
             String(d.getDate()).padStart(2, '0');
+    }
+}
+
+async function runStudentCheckup(studentId) {
+    studentId = String(studentId || '').trim();
+    if (!studentId) {
+        showToast('缺少学号', 'error');
+        return;
+    }
+    var btn = document.getElementById('studentCheckupBtn');
+    var panel = document.getElementById('studentCheckupPanel');
+    var body = document.getElementById('studentCheckupBody');
+    if (btn) {
+        btn.disabled = true;
+        btn.textContent = '体检中…';
+    }
+    if (panel) panel.style.display = 'block';
+    if (body) body.textContent = '正在汇总学习数据并生成报告，请稍候…';
+    try {
+        var result = await teacherApiPost('/api/teacher/student-checkup', {
+            student_id: studentId,
+            days: 14
+        });
+        if (result.error) {
+            if (body) body.textContent = '';
+            if (panel) panel.style.display = 'none';
+            showToast((result.error && result.error.message) || '学习体检失败', 'error');
+            return;
+        }
+        var analysis = (result.data && result.data.analysis) || '';
+        if (body) body.textContent = analysis || '未生成报告内容';
+        if (panel) panel.style.display = 'block';
+    } catch (e) {
+        if (body) body.textContent = '';
+        if (panel) panel.style.display = 'none';
+        showToast((e && e.message) || '学习体检失败', 'error');
+    } finally {
+        if (btn) {
+            btn.disabled = false;
+            btn.textContent = '学习体检';
+        }
     }
 }
 

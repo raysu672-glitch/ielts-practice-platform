@@ -1,0 +1,860 @@
+﻿============================================================
+鐜嬭嫢婧?2025050 2026-10-07
+  events:104
+  22:26:30 task.open                writing_translate  鎵撳紑浠诲姟 鏀垮簻绀句細绫?路 5鍙?
+  22:27:53 translate.step_submit    writing_translate  缈昏瘧姝ラ閿欒
+  22:28:14 translate.step_submit    writing_translate  缈昏瘧姝ラ閿欒
+  22:28:26 translate.step_submit    writing_translate  缈昏瘧姝ラ閿欒
+  22:28:30 translate.step_submit    writing_translate  缈昏瘧姝ラ姝ｇ‘
+  22:29:03 translate.step_submit    writing_translate  缈昏瘧姝ラ閿欒
+  22:29:20 translate.step_submit    writing_translate  缈昏瘧姝ラ閿欒
+  22:29:23 translate.step_submit    writing_translate  缈昏瘧姝ラ閿欒
+  22:29:29 translate.step_submit    writing_translate  缈昏瘧姝ラ閿欒
+  22:29:59 translate.step_submit    writing_translate  缈昏瘧姝ラ閿欒
+  22:30:17 translate.step_submit    writing_translate  缈昏瘧姝ラ姝ｇ‘
+  22:31:15 translate.step_submit    writing_translate  缈昏瘧姝ラ姝ｇ‘
+  22:31:17 translate.sentence_done  writing_translate  瀹屾垚缈昏瘧鍙?#73
+  22:33:12 translate.step_submit    writing_translate  缈昏瘧姝ラ閿欒
+  22:33:24 translate.step_submit    writing_translate  缈昏瘧姝ラ閿欒
+  22:33:30 translate.step_submit    writing_translate  缈昏瘧姝ラ閿欒
+  22:33:37 translate.step_submit    writing_translate  缈昏瘧姝ラ姝ｇ‘
+  22:34:39 translate.step_submit    writing_translate  缈昏瘧姝ラ姝ｇ‘
+  22:34:52 translate.sentence_done  writing_translate  瀹屾垚缈昏瘧鍙?#74
+  22:35:31 translate.step_submit    writing_translate  缈昏瘧姝ラ閿欒
+  22:37:20 translate.step_submit    writing_translate  缈昏瘧姝ラ閿欒
+  22:37:32 translate.step_submit    writing_translate  缈昏瘧姝ラ閿欒
+  22:37:45 translate.step_submit    writing_translate  缈昏瘧姝ラ鍩烘湰姝ｇ‘
+  22:37:48 translate.step_submit    writing_translate  缈昏瘧姝ラ閿欒
+  22:37:49 translate.step_submit    writing_translate  缈昏瘧姝ラ姝ｇ‘
+  22:40:59 translate.step_submit    writing_translate  缈昏瘧姝ラ姝ｇ‘
+  22:41:01 translate.sentence_done  writing_translate  瀹屾垚缈昏瘧鍙?#75
+  22:41:27 translate.step_submit    writing_translate  缈昏瘧姝ラ閿欒
+  22:42:01 translate.step_submit    writing_translate  缈昏瘧姝ラ姝ｇ‘
+  22:42:50 translate.step_submit    writing_translate  缈昏瘧姝ラ閿欒
+  22:42:56 translate.step_submit    writing_translate  缈昏瘧姝ラ閿欒
+  22:42:57 translate.step_submit    writing_translate  缈昏瘧姝ラ姝ｇ‘
+  22:44:31 translate.step_submit    writing_translate  缈昏瘧姝ラ閿欒
+  22:44:47 translate.step_submit    writing_translate  缈昏瘧姝ラ姝ｇ‘
+  22:46:19 translate.step_submit    writing_translate  缈昏瘧姝ラ閿欒
+  22:46:32 translate.step_submit    writing_translate  缈昏瘧姝ラ閿欒
+  22:46:36 translate.step_submit    writing_translate  缈昏瘧姝ラ鍩烘湰姝ｇ‘
+  22:46:43 translate.step_submit    writing_translate  缈昏瘧姝ラ鍩烘湰姝ｇ‘
+  22:46:43 translate.step_submit    writing_translate  缈昏瘧姝ラ鍩烘湰姝ｇ‘
+  22:46:49 translate.step_submit    writing_translate  缈昏瘧姝ラ姝ｇ‘
+  22:48:02 translate.step_submit    writing_translate  缈昏瘧姝ラ鍩烘湰姝ｇ‘
+  22:48:08 translate.step_submit    writing_translate  缈昏瘧姝ラ鍩烘湰姝ｇ‘
+  22:48:12 translate.step_submit    writing_translate  缈昏瘧姝ラ姝ｇ‘
+  22:49:19 translate.sentence_done  writing_translate  瀹屾垚缈昏瘧鍙?#77
+  22:49:40 translate.step_submit    writing_translate  缈昏瘧姝ラ閿欒
+  22:50:05 translate.step_submit    writing_translate  缈昏瘧姝ラ姝ｇ‘
+  22:50:34 translate.step_submit    writing_translate  缈昏瘧姝ラ閿欒
+  22:50:46 translate.step_submit    writing_translate  缈昏瘧姝ラ姝ｇ‘
+  22:50:49 translate.sentence_done  writing_translate  瀹屾垚缈昏瘧鍙?#76
+  22:50:49 translate.unit_done      writing_translate  缈昏瘧鏈崟鍏冨畬鎴?
+  22:50:49 task.complete_ok         writing_translate  鍐欎綔鍙ュ瓙缈昏瘧 路 浠诲姟瀛︿範鎵撳嬀鎴愬姛锛堟斂搴滅ぞ浼氱被 路 5鍙ワ級
+  22:50:52 task.exit                writing_translate  閫€鍑轰换鍔℃ā鍧?
+  22:51:15 task.open                speaking_complex   鎵撳紑浠诲姟 澶嶅悎鍙?路 鍙ュ瀷p1
+  22:51:59 task.exit                speaking_complex   閫€鍑轰换鍔℃ā鍧?
+  22:52:27 task.open                reading_synonym    鎵撳紑浠诲姟 鍗曞厓15 路 鐜鐢熸€佺瘒
+  22:53:36 synonym.group_done       reading_synonym    瀹屾垚鍚屼箟鏇挎崲涓€缁?
+  22:54:30 synonym.group_done       reading_synonym    瀹屾垚鍚屼箟鏇挎崲涓€缁?
+  22:55:27 synonym.group_done       reading_synonym    瀹屾垚鍚屼箟鏇挎崲涓€缁?
+  22:57:44 synonym.group_done       reading_synonym    瀹屾垚鍚屼箟鏇挎崲涓€缁?
+  22:58:27 synonym.group_done       reading_synonym    瀹屾垚鍚屼箟鏇挎崲涓€缁?
+  22:59:00 synonym.group_done       reading_synonym    瀹屾垚鍚屼箟鏇挎崲涓€缁?
+  22:59:11 synonym.group_done       reading_synonym    瀹屾垚鍚屼箟鏇挎崲涓€缁?
+  22:59:18 synonym.group_done       reading_synonym    瀹屾垚鍚屼箟鏇挎崲涓€缁?
+  22:59:27 synonym.group_done       reading_synonym    瀹屾垚鍚屼箟鏇挎崲涓€缁?
+  22:59:29 synonym.group_done       reading_synonym    瀹屾垚鍚屼箟鏇挎崲涓€缁?
+  22:59:29 task.complete_ok         reading_synonym    闃呰鍚屼箟鏇挎崲 路 浠诲姟瀛︿範鎵撳嬀鎴愬姛锛堝崟鍏?5 路 鐜鐢熸€佺瘒锛?
+  22:59:31 task.exit                reading_synonym    閫€鍑轰换鍔℃ā鍧?
+  23:21:50 task.open                speaking_complex   鎵撳紑浠诲姟 澶嶅悎鍙?路 鍙ュ瀷p1
+  23:25:24 task.exit                speaking_complex   閫€鍑轰换鍔℃ā鍧?
+  23:25:28 task.open                speaking_complex   鎵撳紑浠诲姟 澶嶅悎鍙?路 鍙ュ瀷p1
+  23:25:36 task.exit                speaking_complex   閫€鍑轰换鍔℃ā鍧?
+  23:25:40 task.open                speaking_complex   鎵撳紑浠诲姟 澶嶅悎鍙?路 鍙ュ瀷p1
+  23:37:13 task.exit                speaking_complex   閫€鍑轰换鍔℃ā鍧?
+  23:37:17 task.open                speaking_complex   鎵撳紑浠诲姟 澶嶅悎鍙?路 鍙ュ瀷p1
+  23:38:33 task.exit                speaking_complex   閫€鍑轰换鍔℃ā鍧?
+  23:38:39 task.open                speaking_complex   鎵撳紑浠诲姟 澶嶅悎鍙?路 鍙ュ瀷p1
+  23:38:48 task.exit                speaking_complex   閫€鍑轰换鍔℃ā鍧?
+  23:38:53 task.open                speaking_complex   鎵撳紑浠诲姟 澶嶅悎鍙?路 鍙ュ瀷p1
+  23:39:02 task.exit                speaking_complex   閫€鍑轰换鍔℃ā鍧?
+  23:39:08 task.open                speaking_complex   鎵撳紑浠诲姟 澶嶅悎鍙?路 鍙ュ瀷p1
+  23:40:45 task.exit                speaking_complex   閫€鍑轰换鍔℃ā鍧?
+  23:40:47 task.open                speaking_complex   鎵撳紑浠诲姟 澶嶅悎鍙?路 鍙ュ瀷p1
+  23:40:59 task.exit                speaking_complex   閫€鍑轰换鍔℃ā鍧?
+  23:41:00 task.exit                                   閫€鍑轰换鍔℃ā鍧?
+============================================================
+鐜嬭嫢婧?2025050 2026-09-28
+  events:160
+  21:37:37 task.open                writing_translate  鎵撳紑浠诲姟 鏀垮簻绀句細绫?路 5鍙?
+  21:37:43 task.exit                writing_translate  閫€鍑轰换鍔℃ā鍧?
+  21:37:44 task.open                writing_translate  鎵撳紑浠诲姟 鏀垮簻绀句細绫?路 5鍙?
+  21:37:50 translate.step_submit    writing_translate  缈昏瘧姝ラ閿欒
+  21:38:47 translate.step_submit    writing_translate  缈昏瘧姝ラ姝ｇ‘
+  21:40:19 translate.step_submit    writing_translate  缈昏瘧姝ラ閿欒
+  21:40:38 translate.step_submit    writing_translate  缈昏瘧姝ラ姝ｇ‘
+  21:40:39 translate.sentence_done  writing_translate  瀹屾垚缈昏瘧鍙?#43
+  21:41:47 translate.step_submit    writing_translate  缈昏瘧姝ラ姝ｇ‘
+  21:46:39 translate.step_submit    writing_translate  缈昏瘧姝ラ閿欒
+  22:08:27 translate.step_submit    writing_translate  缈昏瘧姝ラ閿欒
+  22:08:36 translate.step_submit    writing_translate  缈昏瘧姝ラ閿欒
+  22:08:40 translate.step_submit    writing_translate  缈昏瘧姝ラ閿欒
+  22:08:49 translate.step_submit    writing_translate  缈昏瘧姝ラ姝ｇ‘
+  22:08:50 translate.sentence_done  writing_translate  瀹屾垚缈昏瘧鍙?#44
+  22:09:04 translate.step_submit    writing_translate  缈昏瘧姝ラ閿欒
+  22:09:13 translate.step_submit    writing_translate  缈昏瘧姝ラ姝ｇ‘
+  22:09:32 translate.step_submit    writing_translate  缈昏瘧姝ラ姝ｇ‘
+  22:12:46 translate.step_submit    writing_translate  缈昏瘧姝ラ閿欒
+  22:14:32 translate.step_submit    writing_translate  缈昏瘧姝ラ姝ｇ‘
+  22:14:33 translate.sentence_done  writing_translate  瀹屾垚缈昏瘧鍙?#45
+  22:15:14 translate.step_submit    writing_translate  缈昏瘧姝ラ閿欒
+  22:15:50 translate.step_submit    writing_translate  缈昏瘧姝ラ姝ｇ‘
+  22:16:37 translate.step_submit    writing_translate  缈昏瘧姝ラ閿欒
+  22:16:53 translate.step_submit    writing_translate  缈昏瘧姝ラ姝ｇ‘
+  22:17:36 translate.step_submit    writing_translate  缈昏瘧姝ラ閿欒
+  22:18:52 translate.step_submit    writing_translate  缈昏瘧姝ラ姝ｇ‘
+  22:19:04 translate.step_submit    writing_translate  缈昏瘧姝ラ姝ｇ‘
+  22:22:36 translate.sentence_done  writing_translate  瀹屾垚缈昏瘧鍙?#46
+  22:23:46 translate.step_submit    writing_translate  缈昏瘧姝ラ閿欒
+  22:23:50 translate.step_submit    writing_translate  缈昏瘧姝ラ姝ｇ‘
+  22:24:28 translate.step_submit    writing_translate  缈昏瘧姝ラ閿欒
+  22:24:44 translate.step_submit    writing_translate  缈昏瘧姝ラ閿欒
+  22:24:53 translate.step_submit    writing_translate  缈昏瘧姝ラ姝ｇ‘
+  22:24:53 translate.step_submit    writing_translate  缈昏瘧姝ラ姝ｇ‘
+  22:25:37 translate.step_submit    writing_translate  缈昏瘧姝ラ閿欒
+  22:27:09 translate.step_submit    writing_translate  缈昏瘧姝ラ閿欒
+  22:27:17 translate.step_submit    writing_translate  缈昏瘧姝ラ姝ｇ‘
+  22:29:00 translate.step_submit    writing_translate  缈昏瘧姝ラ閿欒
+  22:30:35 translate.step_submit    writing_translate  缈昏瘧姝ラ鍩烘湰姝ｇ‘
+  22:30:41 translate.step_submit    writing_translate  缈昏瘧姝ラ姝ｇ‘
+  22:30:42 translate.sentence_done  writing_translate  瀹屾垚缈昏瘧鍙?#47
+  22:30:42 translate.unit_done      writing_translate  缈昏瘧鏈崟鍏冨畬鎴?
+  22:30:42 task.complete_ok         writing_translate  鍐欎綔鍙ュ瓙缈昏瘧 路 浠诲姟瀛︿範鎵撳嬀鎴愬姛锛堟斂搴滅ぞ浼氱被 路 5鍙ワ級
+  22:30:46 task.exit                writing_translate  閫€鍑轰换鍔℃ā鍧?
+  22:49:00 task.open                sentence           鎵撳紑浠诲姟 绗?鍗曞厓 路 鍙?1-35
+  22:49:22 sentence.abc_submit      sentence           涓昏皳瀹惧～绌洪敊璇?#0
+  22:49:28 sentence.abc_submit      sentence           涓昏皳瀹惧～绌洪敊璇?#0
+  22:49:45 sentence.abc_submit      sentence           涓昏皳瀹惧～绌烘纭?#0
+  22:50:09 sentence.abc_submit      sentence           涓昏皳瀹惧～绌烘纭?#1
+  22:50:21 sentence.abc_submit      sentence           涓昏皳瀹惧～绌烘纭?#2
+  22:50:30 sentence.drag_result     sentence           鎸傞潬姝ｇ‘
+  22:50:33 sentence.drag_result     sentence           鎸傞潬閿欒
+  22:50:34 sentence.drag_result     sentence           鎸傞潬閿欒
+  22:50:35 sentence.drag_result     sentence           鎸傞潬閿欒
+  22:50:35 sentence.drag_result     sentence           鎸傞潬姝ｇ‘
+  22:50:37 sentence.drag_result     sentence           鎸傞潬閿欒
+  22:50:37 sentence.drag_result     sentence           鎸傞潬姝ｇ‘
+  22:50:39 sentence.drag_result     sentence           鎸傞潬閿欒
+  22:50:40 sentence.drag_result     sentence           鎸傞潬姝ｇ‘
+  22:55:14 sentence.abc_submit      sentence           涓昏皳瀹惧～绌洪敊璇?#0
+  22:55:20 sentence.abc_submit      sentence           涓昏皳瀹惧～绌烘纭?#0
+  22:55:34 sentence.abc_submit      sentence           涓昏皳瀹惧～绌烘纭?#1
+  22:55:39 sentence.abc_submit      sentence           涓昏皳瀹惧～绌烘纭?#2
+  22:55:49 sentence.abc_submit      sentence           涓昏皳瀹惧～绌烘纭?#3
+  22:56:16 sentence.abc_submit      sentence           涓昏皳瀹惧～绌烘纭?#4
+  22:56:22 sentence.abc_submit      sentence           涓昏皳瀹惧～绌烘纭?#5
+  22:57:35 sentence.drag_result     sentence           鎸傞潬姝ｇ‘
+  22:57:45 sentence.drag_result     sentence           鎸傞潬閿欒
+  22:57:50 sentence.drag_result     sentence           鎸傞潬姝ｇ‘
+  22:57:58 sentence.drag_result     sentence           鎸傞潬姝ｇ‘
+  22:58:01 sentence.drag_result     sentence           鎸傞潬閿欒
+  22:58:02 sentence.drag_result     sentence           鎸傞潬閿欒
+  22:58:03 sentence.drag_result     sentence           鎸傞潬閿欒
+  22:58:05 sentence.drag_result     sentence           鎸傞潬姝ｇ‘
+  23:00:08 sentence.abc_submit      sentence           涓昏皳瀹惧～绌烘纭?#0
+  23:00:12 sentence.abc_submit      sentence           涓昏皳瀹惧～绌烘纭?#1
+  23:00:18 sentence.abc_submit      sentence           涓昏皳瀹惧～绌烘纭?#2
+  23:00:21 sentence.drag_result     sentence           鎸傞潬閿欒
+  23:00:22 sentence.drag_result     sentence           鎸傞潬閿欒
+  23:00:23 sentence.drag_result     sentence           鎸傞潬姝ｇ‘
+  23:00:25 sentence.drag_result     sentence           鎸傞潬姝ｇ‘
+  23:02:43 sentence.abc_submit      sentence           涓昏皳瀹惧～绌洪敊璇?#0
+  23:03:02 sentence.abc_submit      sentence           涓昏皳瀹惧～绌洪敊璇?#0
+  23:03:08 sentence.abc_submit      sentence           涓昏皳瀹惧～绌烘纭?#0
+  23:04:00 sentence.abc_submit      sentence           涓昏皳瀹惧～绌洪敊璇?#1
+  23:04:13 sentence.abc_submit      sentence           涓昏皳瀹惧～绌洪敊璇?#1
+  23:04:41 sentence.abc_submit      sentence           涓昏皳瀹惧～绌烘纭?#1
+  23:04:43 sentence.drag_result     sentence           鎸傞潬姝ｇ‘
+  23:04:45 sentence.drag_result     sentence           鎸傞潬姝ｇ‘
+  23:11:59 sentence.abc_submit      sentence           涓昏皳瀹惧～绌烘纭?#0
+  23:12:04 sentence.abc_submit      sentence           涓昏皳瀹惧～绌洪敊璇?#1
+  23:12:06 sentence.abc_submit      sentence           涓昏皳瀹惧～绌洪敊璇?#1
+  23:12:06 sentence.abc_submit      sentence           涓昏皳瀹惧～绌洪敊璇?#1
+  23:26:21 sentence.abc_submit      sentence           涓昏皳瀹惧～绌洪敊璇?#1
+  23:26:22 sentence.abc_submit      sentence           涓昏皳瀹惧～绌烘纭?#1
+  23:26:28 sentence.abc_submit      sentence           涓昏皳瀹惧～绌烘纭?#2
+  23:26:31 sentence.drag_result     sentence           鎸傞潬閿欒
+  23:26:32 sentence.drag_result     sentence           鎸傞潬閿欒
+  23:26:37 sentence.drag_result     sentence           鎸傞潬姝ｇ‘
+  23:27:12 sentence.drag_result     sentence           鎸傞潬姝ｇ‘
+  23:27:15 sentence.drag_result     sentence           鎸傞潬姝ｇ‘
+  23:27:16 sentence.drag_result     sentence           鎸傞潬閿欒
+  23:27:17 sentence.drag_result     sentence           鎸傞潬姝ｇ‘
+  23:29:31 task.complete_ok         sentence           闀块毦鍙ュ垎鏋?路 浠诲姟瀛︿範鎵撳嬀鎴愬姛锛堢7鍗曞厓 路 鍙?1-35锛?
+  23:29:45 task.exit                sentence           閫€鍑轰换鍔℃ā鍧?
+  23:29:54 task.open                reading_synonym    鎵撳紑浠诲姟 鍗曞厓9 路 瀵规瘮杞姌绡?
+  23:30:59 synonym.group_done       reading_synonym    瀹屾垚鍚屼箟鏇挎崲涓€缁?
+  23:32:12 synonym.group_done       reading_synonym    瀹屾垚鍚屼箟鏇挎崲涓€缁?
+  23:36:19 synonym.group_done       reading_synonym    瀹屾垚鍚屼箟鏇挎崲涓€缁?
+  23:36:19 synonym.group_done       reading_synonym    瀹屾垚鍚屼箟鏇挎崲涓€缁?
+  23:37:53 synonym.group_done       reading_synonym    瀹屾垚鍚屼箟鏇挎崲涓€缁?
+  23:38:26 synonym.group_done       reading_synonym    瀹屾垚鍚屼箟鏇挎崲涓€缁?
+  23:38:45 synonym.group_done       reading_synonym    瀹屾垚鍚屼箟鏇挎崲涓€缁?
+  23:39:02 synonym.group_done       reading_synonym    瀹屾垚鍚屼箟鏇挎崲涓€缁?
+  23:39:18 synonym.group_done       reading_synonym    瀹屾垚鍚屼箟鏇挎崲涓€缁?
+  23:39:24 synonym.group_done       reading_synonym    瀹屾垚鍚屼箟鏇挎崲涓€缁?
+  23:39:24 task.complete_ok         reading_synonym    闃呰鍚屼箟鏇挎崲 路 浠诲姟瀛︿範鎵撳嬀鎴愬姛锛堝崟鍏? 路 瀵规瘮杞姌绡囷級
+  23:39:25 task.exit                reading_synonym    閫€鍑轰换鍔℃ā鍧?
+============================================================
+鍒樻€¤景 2025169 2026-09-30
+  events:66
+  14:01:20 synonym.group_done       reading_synonym    瀹屾垚鍚屼箟鏇挎崲涓€缁?
+  14:01:20 synonym.group_done       reading_synonym    瀹屾垚鍚屼箟鏇挎崲涓€缁?
+  14:26:14 synonym.group_done       reading_synonym    瀹屾垚鍚屼箟鏇挎崲涓€缁?
+  14:27:54 synonym.group_done       reading_synonym    瀹屾垚鍚屼箟鏇挎崲涓€缁?
+  14:27:54 synonym.group_done       reading_synonym    瀹屾垚鍚屼箟鏇挎崲涓€缁?
+  14:28:27 synonym.group_done       reading_synonym    瀹屾垚鍚屼箟鏇挎崲涓€缁?
+  14:29:20 synonym.group_done       reading_synonym    瀹屾垚鍚屼箟鏇挎崲涓€缁?
+  14:29:54 synonym.group_done       reading_synonym    瀹屾垚鍚屼箟鏇挎崲涓€缁?
+  14:30:29 synonym.group_done       reading_synonym    瀹屾垚鍚屼箟鏇挎崲涓€缁?
+  14:31:03 synonym.group_done       reading_synonym    瀹屾垚鍚屼箟鏇挎崲涓€缁?
+  14:31:20 synonym.group_done       reading_synonym    瀹屾垚鍚屼箟鏇挎崲涓€缁?
+  14:31:30 synonym.group_done       reading_synonym    瀹屾垚鍚屼箟鏇挎崲涓€缁?
+  14:34:10 synonym.group_done       reading_synonym    瀹屾垚鍚屼箟鏇挎崲涓€缁?
+  14:35:16 synonym.group_done       reading_synonym    瀹屾垚鍚屼箟鏇挎崲涓€缁?
+  14:36:34 synonym.group_done       reading_synonym    瀹屾垚鍚屼箟鏇挎崲涓€缁?
+  14:37:10 synonym.group_done       reading_synonym    瀹屾垚鍚屼箟鏇挎崲涓€缁?
+  14:37:10 synonym.group_done       reading_synonym    瀹屾垚鍚屼箟鏇挎崲涓€缁?
+  14:39:28 synonym.group_done       reading_synonym    瀹屾垚鍚屼箟鏇挎崲涓€缁?
+  14:39:43 synonym.group_done       reading_synonym    瀹屾垚鍚屼箟鏇挎崲涓€缁?
+  14:40:19 synonym.group_done       reading_synonym    瀹屾垚鍚屼箟鏇挎崲涓€缁?
+  14:41:05 synonym.group_done       reading_synonym    瀹屾垚鍚屼箟鏇挎崲涓€缁?
+  14:41:10 synonym.group_done       reading_synonym    瀹屾垚鍚屼箟鏇挎崲涓€缁?
+  14:42:00 synonym.group_done       reading_synonym    瀹屾垚鍚屼箟鏇挎崲涓€缁?
+  14:42:05 synonym.group_done       reading_synonym    瀹屾垚鍚屼箟鏇挎崲涓€缁?
+  14:42:07 synonym.group_done       reading_synonym    瀹屾垚鍚屼箟鏇挎崲涓€缁?
+  14:42:08 synonym.group_done       reading_synonym    瀹屾垚鍚屼箟鏇挎崲涓€缁?
+  14:42:16 synonym.group_done       reading_synonym    瀹屾垚鍚屼箟鏇挎崲涓€缁?
+  14:42:16 synonym.group_done       reading_synonym    瀹屾垚鍚屼箟鏇挎崲涓€缁?
+  14:42:17 synonym.group_done       reading_synonym    瀹屾垚鍚屼箟鏇挎崲涓€缁?
+  14:42:18 synonym.group_done       reading_synonym    瀹屾垚鍚屼箟鏇挎崲涓€缁?
+  14:42:20 synonym.group_done       reading_synonym    瀹屾垚鍚屼箟鏇挎崲涓€缁?
+  14:42:21 synonym.group_done       reading_synonym    瀹屾垚鍚屼箟鏇挎崲涓€缁?
+  14:42:43 synonym.group_done       reading_synonym    瀹屾垚鍚屼箟鏇挎崲涓€缁?
+  14:42:46 synonym.group_done       reading_synonym    瀹屾垚鍚屼箟鏇挎崲涓€缁?
+  14:42:48 synonym.group_done       reading_synonym    瀹屾垚鍚屼箟鏇挎崲涓€缁?
+  14:42:50 synonym.group_done       reading_synonym    瀹屾垚鍚屼箟鏇挎崲涓€缁?
+  14:42:51 synonym.group_done       reading_synonym    瀹屾垚鍚屼箟鏇挎崲涓€缁?
+  14:42:53 synonym.group_done       reading_synonym    瀹屾垚鍚屼箟鏇挎崲涓€缁?
+  14:42:54 synonym.group_done       reading_synonym    瀹屾垚鍚屼箟鏇挎崲涓€缁?
+  14:42:55 synonym.group_done       reading_synonym    瀹屾垚鍚屼箟鏇挎崲涓€缁?
+  14:42:57 synonym.group_done       reading_synonym    瀹屾垚鍚屼箟鏇挎崲涓€缁?
+  14:43:10 synonym.group_done       reading_synonym    瀹屾垚鍚屼箟鏇挎崲涓€缁?
+  14:43:29 synonym.group_done       reading_synonym    瀹屾垚鍚屼箟鏇挎崲涓€缁?
+  14:43:32 synonym.group_done       reading_synonym    瀹屾垚鍚屼箟鏇挎崲涓€缁?
+  14:43:33 synonym.group_done       reading_synonym    瀹屾垚鍚屼箟鏇挎崲涓€缁?
+  14:43:35 synonym.group_done       reading_synonym    瀹屾垚鍚屼箟鏇挎崲涓€缁?
+  14:43:36 synonym.group_done       reading_synonym    瀹屾垚鍚屼箟鏇挎崲涓€缁?
+  14:43:38 synonym.group_done       reading_synonym    瀹屾垚鍚屼箟鏇挎崲涓€缁?
+  14:43:40 synonym.group_done       reading_synonym    瀹屾垚鍚屼箟鏇挎崲涓€缁?
+  14:43:44 synonym.group_done       reading_synonym    瀹屾垚鍚屼箟鏇挎崲涓€缁?
+  14:43:45 synonym.group_done       reading_synonym    瀹屾垚鍚屼箟鏇挎崲涓€缁?
+  14:52:30 synonym.group_done       reading_synonym    瀹屾垚鍚屼箟鏇挎崲涓€缁?
+  14:52:45 synonym.group_done       reading_synonym    瀹屾垚鍚屼箟鏇挎崲涓€缁?
+  14:53:14 synonym.group_done       reading_synonym    瀹屾垚鍚屼箟鏇挎崲涓€缁?
+  14:53:43 synonym.group_done       reading_synonym    瀹屾垚鍚屼箟鏇挎崲涓€缁?
+  14:53:56 synonym.group_done       reading_synonym    瀹屾垚鍚屼箟鏇挎崲涓€缁?
+  14:54:35 synonym.group_done       reading_synonym    瀹屾垚鍚屼箟鏇挎崲涓€缁?
+  14:55:08 synonym.group_done       reading_synonym    瀹屾垚鍚屼箟鏇挎崲涓€缁?
+  14:55:25 synonym.group_done       reading_synonym    瀹屾垚鍚屼箟鏇挎崲涓€缁?
+  14:56:09 synonym.group_done       reading_synonym    瀹屾垚鍚屼箟鏇挎崲涓€缁?
+  14:56:26 synonym.group_done       reading_synonym    瀹屾垚鍚屼箟鏇挎崲涓€缁?
+  14:56:32 task.exit                reading_synonym    閫€鍑轰换鍔℃ā鍧?
+  14:56:40 task.exit                reading_synonym    閫€鍑轰换鍔℃ā鍧?
+============================================================
+鐜嬩紛娉?2025047 2026-10-06
+  events:110
+  12:11:44 task.open                listening_basic    鎵撳紑浠诲姟 绗?缁?
+  12:12:20 task.open                writing_phrase     鎵撳紑浠诲姟 鍩虹蹇呰儗 路 11-20
+  17:22:50 task.complete_ok         writing_phrase     鍐欎綔璇嶄紮 路 浠诲姟瀛︿範鎵撳嬀鎴愬姛锛堝熀纭€蹇呰儗 路 11-20锛?
+  17:22:54 task.exit                writing_phrase     閫€鍑轰换鍔℃ā鍧?
+  17:23:13 task.open                writing_translate  鎵撳紑浠诲姟 缃戠粶绉戞妧绫?路 5鍙?
+  17:24:25 translate.step_submit    writing_translate  缈昏瘧姝ラ閿欒
+  17:24:57 translate.step_submit    writing_translate  缈昏瘧姝ラ閿欒
+  17:25:36 translate.step_submit    writing_translate  缈昏瘧姝ラ鍩烘湰姝ｇ‘
+  17:25:55 translate.step_submit    writing_translate  缈昏瘧姝ラ姝ｇ‘
+  17:26:13 translate.step_submit    writing_translate  缈昏瘧姝ラ閿欒
+  17:28:07 translate.step_submit    writing_translate  缈昏瘧姝ラ閿欒
+  17:29:19 translate.step_submit    writing_translate  缈昏瘧姝ラ閿欒
+  17:29:20 translate.step_submit    writing_translate  缈昏瘧姝ラ閿欒
+  17:29:20 translate.step_submit    writing_translate  缈昏瘧姝ラ閿欒
+  17:29:21 translate.step_submit    writing_translate  缈昏瘧姝ラ閿欒
+  17:29:21 translate.step_submit    writing_translate  缈昏瘧姝ラ閿欒
+  17:29:22 translate.step_submit    writing_translate  缈昏瘧姝ラ閿欒
+  17:31:50 translate.step_submit    writing_translate  缈昏瘧姝ラ姝ｇ‘
+  17:31:53 translate.sentence_done  writing_translate  瀹屾垚缈昏瘧鍙?#6
+  17:32:03 task.exit                writing_translate  閫€鍑轰换鍔℃ā鍧?
+  17:32:09 task.open                writing_translate  鎵撳紑浠诲姟 缃戠粶绉戞妧绫?路 5鍙?
+  17:32:25 translate.step_submit    writing_translate  缈昏瘧姝ラ閿欒
+  17:32:43 translate.step_submit    writing_translate  缈昏瘧姝ラ姝ｇ‘
+  17:32:48 translate.step_submit    writing_translate  缈昏瘧姝ラ閿欒
+  17:34:31 translate.step_submit    writing_translate  缈昏瘧姝ラ姝ｇ‘
+  17:34:41 translate.step_submit    writing_translate  缈昏瘧姝ラ閿欒
+  17:36:27 translate.step_submit    writing_translate  缈昏瘧姝ラ姝ｇ‘
+  17:36:32 translate.step_submit    writing_translate  缈昏瘧姝ラ閿欒
+  17:36:44 translate.step_submit    writing_translate  缈昏瘧姝ラ姝ｇ‘
+  17:36:46 translate.sentence_done  writing_translate  瀹屾垚缈昏瘧鍙?#7
+  17:37:48 translate.step_submit    writing_translate  缈昏瘧姝ラ閿欒
+  17:37:57 translate.step_submit    writing_translate  缈昏瘧姝ラ姝ｇ‘
+  17:38:21 translate.step_submit    writing_translate  缈昏瘧姝ラ閿欒
+  17:39:34 translate.step_submit    writing_translate  缈昏瘧姝ラ姝ｇ‘
+  17:39:35 translate.sentence_done  writing_translate  瀹屾垚缈昏瘧鍙?#8
+  17:40:08 translate.step_submit    writing_translate  缈昏瘧姝ラ閿欒
+  17:40:34 translate.step_submit    writing_translate  缈昏瘧姝ラ閿欒
+  17:40:35 translate.step_submit    writing_translate  缈昏瘧姝ラ閿欒
+  17:40:57 translate.step_submit    writing_translate  缈昏瘧姝ラ姝ｇ‘
+  17:41:05 translate.step_submit    writing_translate  缈昏瘧姝ラ閿欒
+  17:41:15 translate.step_submit    writing_translate  缈昏瘧姝ラ姝ｇ‘
+  17:41:15 translate.sentence_done  writing_translate  瀹屾垚缈昏瘧鍙?#9
+  17:41:26 translate.step_submit    writing_translate  缈昏瘧姝ラ閿欒
+  17:44:00 translate.step_submit    writing_translate  缈昏瘧姝ラ姝ｇ‘
+  17:44:04 translate.step_submit    writing_translate  缈昏瘧姝ラ閿欒
+  17:46:04 translate.step_submit    writing_translate  缈昏瘧姝ラ姝ｇ‘
+  17:46:08 translate.step_submit    writing_translate  缈昏瘧姝ラ閿欒
+  17:46:17 translate.step_submit    writing_translate  缈昏瘧姝ラ姝ｇ‘
+  17:46:18 translate.sentence_done  writing_translate  瀹屾垚缈昏瘧鍙?#10
+  17:46:27 task.exit                writing_translate  閫€鍑轰换鍔℃ā鍧?
+  17:46:33 task.open                writing_translate  鎵撳紑浠诲姟 缃戠粶绉戞妧绫?路 5鍙?
+  17:46:37 task.exit                writing_translate  閫€鍑轰换鍔℃ā鍧?
+  17:46:41 task.open                writing_translate  鎵撳紑浠诲姟 缃戠粶绉戞妧绫?路 5鍙?
+  17:46:57 task.exit                writing_translate  閫€鍑轰换鍔℃ā鍧?
+  17:47:02 task.open                writing_translate  鎵撳紑浠诲姟 缃戠粶绉戞妧绫?路 5鍙?
+  17:47:05 translate.step_submit    writing_translate  缈昏瘧姝ラ閿欒
+  17:47:14 translate.step_submit    writing_translate  缈昏瘧姝ラ姝ｇ‘
+  17:47:17 translate.step_submit    writing_translate  缈昏瘧姝ラ閿欒
+  17:47:23 translate.step_submit    writing_translate  缈昏瘧姝ラ姝ｇ‘
+  17:47:24 translate.sentence_done  writing_translate  瀹屾垚缈昏瘧鍙?#6
+  17:47:30 task.exit                writing_translate  閫€鍑轰换鍔℃ā鍧?
+  17:47:52 task.open                reading_synonym    鎵撳紑浠诲姟 鍗曞厓2 路 瀛︽湳鏍稿績绡?
+  17:48:50 synonym.group_done       reading_synonym    瀹屾垚鍚屼箟鏇挎崲涓€缁?
+  17:49:11 synonym.group_done       reading_synonym    瀹屾垚鍚屼箟鏇挎崲涓€缁?
+  17:50:09 synonym.group_done       reading_synonym    瀹屾垚鍚屼箟鏇挎崲涓€缁?
+  17:50:25 synonym.group_done       reading_synonym    瀹屾垚鍚屼箟鏇挎崲涓€缁?
+  17:51:23 synonym.group_done       reading_synonym    瀹屾垚鍚屼箟鏇挎崲涓€缁?
+  17:51:55 synonym.group_done       reading_synonym    瀹屾垚鍚屼箟鏇挎崲涓€缁?
+  17:52:15 synonym.group_done       reading_synonym    瀹屾垚鍚屼箟鏇挎崲涓€缁?
+  17:52:29 synonym.group_done       reading_synonym    瀹屾垚鍚屼箟鏇挎崲涓€缁?
+  17:52:51 synonym.group_done       reading_synonym    瀹屾垚鍚屼箟鏇挎崲涓€缁?
+  17:52:57 synonym.group_done       reading_synonym    瀹屾垚鍚屼箟鏇挎崲涓€缁?
+  17:52:57 task.complete_ok         reading_synonym    闃呰鍚屼箟鏇挎崲 路 浠诲姟瀛︿範鎵撳嬀鎴愬姛锛堝崟鍏? 路 瀛︽湳鏍稿績绡囷級
+  17:53:05 task.exit                reading_synonym    閫€鍑轰换鍔℃ā鍧?
+  18:46:20 task.open                listening_basic    鎵撳紑浠诲姟 绗?缁?
+  19:08:01 task.complete_ok         listening_basic    鍚姏鍩虹璇嶆眹 路 浠诲姟瀛︿範鎵撳嬀鎴愬姛锛堢1缁勶級
+  19:08:22 task.open                listening_basic    鎵撳紑浠诲姟 绗?缁?
+  19:09:02 task.open                listening_basic    鎵撳紑浠诲姟 绗?缁?
+  19:09:25 task.open                listening_basic    鎵撳紑浠诲姟 绗?缁?
+  19:36:22 task.complete_ok         listening_basic    鍚姏鍩虹璇嶆眹 路 浠诲姟瀛︿範鎵撳嬀鎴愬姛锛堢3缁勶級
+============================================================
+鐜嬪浗鐟?2025065 2026-10-05
+  events:68
+  13:44:22 translate.step_submit    writing_translate  缈昏瘧姝ラ閿欒
+  13:44:23 translate.step_submit    writing_translate  缈昏瘧姝ラ閿欒
+  13:44:24 translate.step_submit    writing_translate  缈昏瘧姝ラ閿欒
+  13:44:24 translate.step_submit    writing_translate  缈昏瘧姝ラ閿欒
+  13:44:24 translate.step_submit    writing_translate  缈昏瘧姝ラ閿欒
+  13:44:25 translate.step_submit    writing_translate  缈昏瘧姝ラ閿欒
+  13:45:18 translate.step_submit    writing_translate  缈昏瘧姝ラ閿欒
+  13:45:20 translate.step_submit    writing_translate  缈昏瘧姝ラ閿欒
+  13:45:22 translate.step_submit    writing_translate  缈昏瘧姝ラ閿欒
+  13:45:40 translate.step_submit    writing_translate  缈昏瘧姝ラ姝ｇ‘
+  13:45:41 translate.sentence_done  writing_translate  瀹屾垚缈昏瘧鍙?#53
+  13:45:57 task.exit                writing_translate  閫€鍑轰换鍔℃ā鍧?
+  13:45:58 task.open                writing_phrase     鎵撳紑浠诲姟 灏忎綔鏂囪瘝浼欎笁 路 1-10
+  13:46:13 task.exit                writing_phrase     閫€鍑轰换鍔℃ā鍧?
+  22:24:16 task.open                writing_phrase     鎵撳紑浠诲姟 灏忎綔鏂囪瘝浼欎笁 路 1-10
+  22:48:44 task.complete_ok         writing_phrase     鍐欎綔璇嶄紮 路 浠诲姟瀛︿範鎵撳嬀鎴愬姛锛堝皬浣滄枃璇嶄紮涓?路 1-10锛?
+  22:48:48 task.exit                writing_phrase     閫€鍑轰换鍔℃ā鍧?
+  22:48:50 task.open                writing_translate  鎵撳紑浠诲姟 鍋ュ悍楗绫?路 4鍙?
+  22:48:55 translate.step_submit    writing_translate  缈昏瘧姝ラ閿欒
+  22:49:03 translate.step_submit    writing_translate  缈昏瘧姝ラ姝ｇ‘
+  22:49:07 translate.step_submit    writing_translate  缈昏瘧姝ラ閿欒
+  22:49:14 translate.step_submit    writing_translate  缈昏瘧姝ラ閿欒
+  22:49:30 translate.step_submit    writing_translate  缈昏瘧姝ラ閿欒
+  22:49:31 translate.step_submit    writing_translate  缈昏瘧姝ラ閿欒
+  22:49:31 translate.step_submit    writing_translate  缈昏瘧姝ラ閿欒
+  22:49:46 translate.step_submit    writing_translate  缈昏瘧姝ラ姝ｇ‘
+  22:49:48 translate.sentence_done  writing_translate  瀹屾垚缈昏瘧鍙?#16
+  22:49:53 translate.step_submit    writing_translate  缈昏瘧姝ラ閿欒
+  22:50:01 translate.step_submit    writing_translate  缈昏瘧姝ラ姝ｇ‘
+  22:50:04 translate.step_submit    writing_translate  缈昏瘧姝ラ閿欒
+  22:50:11 translate.step_submit    writing_translate  缈昏瘧姝ラ姝ｇ‘
+  22:50:18 translate.step_submit    writing_translate  缈昏瘧姝ラ閿欒
+  22:50:27 translate.step_submit    writing_translate  缈昏瘧姝ラ姝ｇ‘
+  22:50:30 translate.step_submit    writing_translate  缈昏瘧姝ラ閿欒
+  22:50:37 translate.step_submit    writing_translate  缈昏瘧姝ラ姝ｇ‘
+  22:50:39 translate.sentence_done  writing_translate  瀹屾垚缈昏瘧鍙?#17
+  22:50:46 translate.step_submit    writing_translate  缈昏瘧姝ラ閿欒
+  22:50:53 translate.step_submit    writing_translate  缈昏瘧姝ラ姝ｇ‘
+  22:50:56 translate.step_submit    writing_translate  缈昏瘧姝ラ閿欒
+  22:51:04 translate.step_submit    writing_translate  缈昏瘧姝ラ姝ｇ‘
+  22:51:45 translate.step_submit    writing_translate  缈昏瘧姝ラ閿欒
+  22:51:53 translate.step_submit    writing_translate  缈昏瘧姝ラ姝ｇ‘
+  22:51:57 translate.step_submit    writing_translate  缈昏瘧姝ラ閿欒
+  22:52:04 translate.step_submit    writing_translate  缈昏瘧姝ラ姝ｇ‘
+  22:52:05 translate.sentence_done  writing_translate  瀹屾垚缈昏瘧鍙?#18
+  22:52:13 translate.step_submit    writing_translate  缈昏瘧姝ラ閿欒
+  22:52:20 translate.step_submit    writing_translate  缈昏瘧姝ラ姝ｇ‘
+  22:52:24 translate.step_submit    writing_translate  缈昏瘧姝ラ閿欒
+  22:52:33 translate.step_submit    writing_translate  缈昏瘧姝ラ姝ｇ‘
+  22:52:38 translate.step_submit    writing_translate  缈昏瘧姝ラ閿欒
+  22:52:43 translate.step_submit    writing_translate  缈昏瘧姝ラ姝ｇ‘
+  22:52:47 translate.step_submit    writing_translate  缈昏瘧姝ラ閿欒
+  22:52:52 translate.step_submit    writing_translate  缈昏瘧姝ラ姝ｇ‘
+  22:52:54 translate.sentence_done  writing_translate  瀹屾垚缈昏瘧鍙?#19
+  22:52:54 translate.unit_done      writing_translate  缈昏瘧鏈崟鍏冨畬鎴?
+  22:52:55 task.complete_ok         writing_translate  鍐欎綔鍙ュ瓙缈昏瘧 路 浠诲姟瀛︿範鎵撳嬀鎴愬姛锛堝仴搴烽ギ椋熺被 路 4鍙ワ級
+  22:53:01 task.exit                writing_translate  閫€鍑轰换鍔℃ā鍧?
+============================================================
+搴炲摬鏂?2025117 2026-09-28
+  events:178
+  19:46:49 task.open                sentence           鎵撳紑浠诲姟 绗?鍗曞厓 路 鍙?6-30
+  19:47:14 sentence.abc_submit      sentence           涓昏皳瀹惧～绌烘纭?#0
+  19:47:19 sentence.abc_submit      sentence           涓昏皳瀹惧～绌烘纭?#1
+  19:47:27 sentence.abc_submit      sentence           涓昏皳瀹惧～绌烘纭?#2
+  19:47:36 sentence.abc_submit      sentence           涓昏皳瀹惧～绌烘纭?#3
+  19:47:42 sentence.abc_submit      sentence           涓昏皳瀹惧～绌烘纭?#4
+  19:47:48 sentence.abc_submit      sentence           涓昏皳瀹惧～绌烘纭?#5
+  19:48:02 sentence.drag_result     sentence           鎸傞潬姝ｇ‘
+  19:48:14 sentence.drag_result     sentence           鎸傞潬姝ｇ‘
+  19:48:27 sentence.drag_result     sentence           鎸傞潬姝ｇ‘
+  19:48:37 sentence.drag_result     sentence           鎸傞潬閿欒
+  19:48:39 sentence.drag_result     sentence           鎸傞潬閿欒
+  19:48:40 sentence.drag_result     sentence           鎸傞潬閿欒
+  19:48:43 sentence.drag_result     sentence           鎸傞潬姝ｇ‘
+  19:51:43 sentence.abc_submit      sentence           涓昏皳瀹惧～绌烘纭?#0
+  19:51:51 sentence.abc_submit      sentence           涓昏皳瀹惧～绌烘纭?#1
+  19:52:00 sentence.abc_submit      sentence           涓昏皳瀹惧～绌烘纭?#2
+  19:52:07 sentence.abc_submit      sentence           涓昏皳瀹惧～绌烘纭?#3
+  19:52:17 sentence.drag_result     sentence           鎸傞潬姝ｇ‘
+  19:52:36 sentence.drag_result     sentence           鎸傞潬閿欒
+  19:52:38 sentence.drag_result     sentence           鎸傞潬閿欒
+  19:52:40 sentence.drag_result     sentence           鎸傞潬姝ｇ‘
+  19:52:52 sentence.drag_result     sentence           鎸傞潬閿欒
+  19:53:05 sentence.drag_result     sentence           鎸傞潬姝ｇ‘
+  19:54:44 sentence.drag_result     sentence           鎸傞潬閿欒
+  19:54:47 sentence.drag_result     sentence           鎸傞潬閿欒
+  19:54:49 sentence.drag_result     sentence           鎸傞潬閿欒
+  19:54:49 sentence.drag_result     sentence           鎸傞潬閿欒
+  19:54:50 sentence.drag_result     sentence           鎸傞潬閿欒
+  19:54:53 sentence.drag_result     sentence           鎸傞潬姝ｇ‘
+  19:55:30 task.exit                sentence           閫€鍑轰换鍔℃ā鍧?
+  19:55:32 task.open                sentence           鎵撳紑浠诲姟 绗?鍗曞厓 路 鍙?6-30
+  19:55:51 sentence.abc_submit      sentence           涓昏皳瀹惧～绌烘纭?#0
+  19:55:58 sentence.abc_submit      sentence           涓昏皳瀹惧～绌烘纭?#1
+  19:56:05 sentence.abc_submit      sentence           涓昏皳瀹惧～绌烘纭?#2
+  19:56:15 sentence.abc_submit      sentence           涓昏皳瀹惧～绌烘纭?#3
+  19:56:27 sentence.drag_result     sentence           鎸傞潬姝ｇ‘
+  19:56:34 sentence.drag_result     sentence           鎸傞潬姝ｇ‘
+  19:58:42 sentence.abc_submit      sentence           涓昏皳瀹惧～绌烘纭?#0
+  19:58:53 sentence.abc_submit      sentence           涓昏皳瀹惧～绌洪敊璇?#1
+  19:58:55 sentence.abc_submit      sentence           涓昏皳瀹惧～绌洪敊璇?#1
+  19:58:56 sentence.abc_submit      sentence           涓昏皳瀹惧～绌烘纭?#1
+  19:59:29 sentence.abc_submit      sentence           涓昏皳瀹惧～绌烘纭?#2
+  19:59:32 sentence.drag_result     sentence           鎸傞潬姝ｇ‘
+  19:59:41 sentence.drag_result     sentence           鎸傞潬閿欒
+  19:59:42 sentence.drag_result     sentence           鎸傞潬姝ｇ‘
+  20:00:36 sentence.abc_submit      sentence           涓昏皳瀹惧～绌烘纭?#0
+  20:00:43 sentence.abc_submit      sentence           涓昏皳瀹惧～绌烘纭?#1
+  20:00:46 sentence.drag_result     sentence           鎸傞潬姝ｇ‘
+  20:00:53 sentence.drag_result     sentence           鎸傞潬閿欒
+  20:00:54 sentence.drag_result     sentence           鎸傞潬閿欒
+  20:00:55 sentence.drag_result     sentence           鎸傞潬姝ｇ‘
+  20:01:11 task.complete_ok         sentence           闀块毦鍙ュ垎鏋?路 浠诲姟瀛︿範鎵撳嬀鎴愬姛锛堢6鍗曞厓 路 鍙?6-30锛?
+  20:01:16 task.exit                sentence           閫€鍑轰换鍔℃ā鍧?
+  20:01:18 task.open                writing_phrase     鎵撳紑浠诲姟 灏忎綔鏂囪瘝浼欎笁 路 1-10
+  20:14:35 task.complete_ok         writing_phrase     鍐欎綔璇嶄紮 路 浠诲姟瀛︿範鎵撳嬀鎴愬姛锛堝皬浣滄枃璇嶄紮涓?路 1-10锛?
+  20:14:36 task.exit                writing_phrase     閫€鍑轰换鍔℃ā鍧?
+  20:16:21 task.open                writing_translate  鎵撳紑浠诲姟 浣撹偛濂ヨ繍绫?路 7鍙?
+  20:17:08 translate.step_submit    writing_translate  缈昏瘧姝ラ閿欒
+  20:17:19 translate.step_submit    writing_translate  缈昏瘧姝ラ姝ｇ‘
+  20:18:23 translate.step_submit    writing_translate  缈昏瘧姝ラ閿欒
+  20:18:51 translate.step_submit    writing_translate  缈昏瘧姝ラ姝ｇ‘
+  20:18:52 translate.sentence_done  writing_translate  瀹屾垚缈昏瘧鍙?#31
+  20:19:15 translate.step_submit    writing_translate  缈昏瘧姝ラ閿欒
+  20:19:26 translate.step_submit    writing_translate  缈昏瘧姝ラ姝ｇ‘
+  20:20:02 translate.step_submit    writing_translate  缈昏瘧姝ラ閿欒
+  20:20:11 translate.step_submit    writing_translate  缈昏瘧姝ラ閿欒
+  20:20:15 translate.step_submit    writing_translate  缈昏瘧姝ラ姝ｇ‘
+  20:20:32 translate.step_submit    writing_translate  缈昏瘧姝ラ鍩烘湰姝ｇ‘
+  20:20:55 translate.step_submit    writing_translate  缈昏瘧姝ラ閿欒
+  20:21:08 translate.step_submit    writing_translate  缈昏瘧姝ラ姝ｇ‘
+  20:21:29 translate.step_submit    writing_translate  缈昏瘧姝ラ閿欒
+  20:21:52 translate.step_submit    writing_translate  缈昏瘧姝ラ閿欒
+  20:21:54 translate.step_submit    writing_translate  缈昏瘧姝ラ閿欒
+  20:21:54 translate.step_submit    writing_translate  缈昏瘧姝ラ閿欒
+  20:21:54 translate.step_submit    writing_translate  缈昏瘧姝ラ閿欒
+  20:21:55 translate.step_submit    writing_translate  缈昏瘧姝ラ閿欒
+  20:21:55 translate.step_submit    writing_translate  缈昏瘧姝ラ閿欒
+  20:21:55 translate.step_submit    writing_translate  缈昏瘧姝ラ閿欒
+  20:21:55 translate.step_submit    writing_translate  缈昏瘧姝ラ閿欒
+  20:21:55 translate.step_submit    writing_translate  缈昏瘧姝ラ閿欒
+  20:21:55 translate.step_submit    writing_translate  缈昏瘧姝ラ閿欒
+  20:21:56 translate.step_submit    writing_translate  缈昏瘧姝ラ閿欒
+  20:21:56 translate.step_submit    writing_translate  缈昏瘧姝ラ閿欒
+  20:22:03 translate.step_submit    writing_translate  缈昏瘧姝ラ姝ｇ‘
+  20:22:04 translate.sentence_done  writing_translate  瀹屾垚缈昏瘧鍙?#32
+  20:22:32 translate.step_submit    writing_translate  缈昏瘧姝ラ閿欒
+  20:22:41 translate.step_submit    writing_translate  缈昏瘧姝ラ姝ｇ‘
+  20:23:57 translate.step_submit    writing_translate  缈昏瘧姝ラ閿欒
+  20:24:27 translate.step_submit    writing_translate  缈昏瘧姝ラ姝ｇ‘
+  20:24:29 translate.sentence_done  writing_translate  瀹屾垚缈昏瘧鍙?#33
+  20:25:18 translate.step_submit    writing_translate  缈昏瘧姝ラ閿欒
+  20:25:29 translate.step_submit    writing_translate  缈昏瘧姝ラ鍩烘湰姝ｇ‘
+  20:26:23 translate.step_submit    writing_translate  缈昏瘧姝ラ鍩烘湰姝ｇ‘
+  20:26:24 translate.sentence_done  writing_translate  瀹屾垚缈昏瘧鍙?#34
+  20:27:17 translate.step_submit    writing_translate  缈昏瘧姝ラ閿欒
+  20:27:26 translate.step_submit    writing_translate  缈昏瘧姝ラ姝ｇ‘
+  20:27:43 translate.step_submit    writing_translate  缈昏瘧姝ラ姝ｇ‘
+  20:27:56 translate.step_submit    writing_translate  缈昏瘧姝ラ閿欒
+  20:28:16 translate.step_submit    writing_translate  缈昏瘧姝ラ姝ｇ‘
+  20:28:18 translate.sentence_done  writing_translate  瀹屾垚缈昏瘧鍙?#35
+  20:28:31 task.exit                writing_translate  閫€鍑轰换鍔℃ā鍧?
+  20:28:33 task.open                writing_translate  鎵撳紑浠诲姟 浣撹偛濂ヨ繍绫?路 7鍙?
+  20:28:36 task.exit                writing_translate  閫€鍑轰换鍔℃ā鍧?
+  20:28:42 task.open                writing_translate  鎵撳紑浠诲姟 浣撹偛濂ヨ繍绫?路 7鍙?
+  20:28:52 task.exit                writing_translate  閫€鍑轰换鍔℃ā鍧?
+  20:28:57 task.open                writing_translate  鎵撳紑浠诲姟 浣撹偛濂ヨ繍绫?路 7鍙?
+  20:29:02 translate.step_submit    writing_translate  缈昏瘧姝ラ閿欒
+  20:29:09 translate.step_submit    writing_translate  缈昏瘧姝ラ姝ｇ‘
+  20:29:13 translate.step_submit    writing_translate  缈昏瘧姝ラ閿欒
+  20:29:23 translate.step_submit    writing_translate  缈昏瘧姝ラ姝ｇ‘
+  20:29:24 translate.sentence_done  writing_translate  瀹屾垚缈昏瘧鍙?#31
+  20:29:41 translate.step_submit    writing_translate  缈昏瘧姝ラ閿欒
+  20:29:50 translate.step_submit    writing_translate  缈昏瘧姝ラ姝ｇ‘
+  20:30:05 translate.step_submit    writing_translate  缈昏瘧姝ラ閿欒
+  20:30:11 translate.step_submit    writing_translate  缈昏瘧姝ラ姝ｇ‘
+  20:30:45 translate.step_submit    writing_translate  缈昏瘧姝ラ閿欒
+  20:31:04 translate.step_submit    writing_translate  缈昏瘧姝ラ閿欒
+  20:31:05 translate.step_submit    writing_translate  缈昏瘧姝ラ閿欒
+  20:31:06 translate.step_submit    writing_translate  缈昏瘧姝ラ閿欒
+  20:31:12 translate.step_submit    writing_translate  缈昏瘧姝ラ閿欒
+  20:31:13 translate.step_submit    writing_translate  缈昏瘧姝ラ閿欒
+  20:31:23 translate.step_submit    writing_translate  缈昏瘧姝ラ姝ｇ‘
+  20:31:35 translate.step_submit    writing_translate  缈昏瘧姝ラ閿欒
+  20:31:53 translate.step_submit    writing_translate  缈昏瘧姝ラ姝ｇ‘
+  20:31:55 translate.sentence_done  writing_translate  瀹屾垚缈昏瘧鍙?#36
+  20:32:15 translate.step_submit    writing_translate  缈昏瘧姝ラ鍩烘湰姝ｇ‘
+  20:32:48 translate.step_submit    writing_translate  缈昏瘧姝ラ閿欒
+  20:33:04 translate.step_submit    writing_translate  缈昏瘧姝ラ姝ｇ‘
+  20:33:05 translate.sentence_done  writing_translate  瀹屾垚缈昏瘧鍙?#37
+  20:33:11 task.exit                writing_translate  閫€鍑轰换鍔℃ā鍧?
+  20:33:16 task.open                writing_translate  鎵撳紑浠诲姟 浣撹偛濂ヨ繍绫?路 7鍙?
+  20:33:20 task.exit                writing_translate  閫€鍑轰换鍔℃ā鍧?
+============================================================
+鏇归泤娣?2025066 2026-10-01
+  events:57
+  19:29:37 task.open                writing_translate  鎵撳紑浠诲姟 鏂囧彶闊宠壓绫?路 6鍙?
+  19:29:53 translate.step_submit    writing_translate  缈昏瘧姝ラ閿欒
+  19:30:00 translate.step_submit    writing_translate  缈昏瘧姝ラ閿欒
+  19:30:00 translate.step_submit    writing_translate  缈昏瘧姝ラ閿欒
+  19:30:00 translate.step_submit    writing_translate  缈昏瘧姝ラ閿欒
+  19:30:00 translate.step_submit    writing_translate  缈昏瘧姝ラ閿欒
+  19:30:03 translate.step_submit    writing_translate  缈昏瘧姝ラ姝ｇ‘
+  19:30:09 translate.step_submit    writing_translate  缈昏瘧姝ラ閿欒
+  19:30:17 translate.step_submit    writing_translate  缈昏瘧姝ラ姝ｇ‘
+  19:30:19 translate.sentence_done  writing_translate  瀹屾垚缈昏瘧鍙?#25
+  19:30:26 translate.step_submit    writing_translate  缈昏瘧姝ラ閿欒
+  19:37:35 translate.step_submit    writing_translate  缈昏瘧姝ラ姝ｇ‘
+  19:41:14 translate.step_submit    writing_translate  缈昏瘧姝ラ閿欒
+  19:41:27 translate.step_submit    writing_translate  缈昏瘧姝ラ姝ｇ‘
+  19:43:28 translate.sentence_done  writing_translate  瀹屾垚缈昏瘧鍙?#26
+  19:43:35 translate.step_submit    writing_translate  缈昏瘧姝ラ閿欒
+  19:43:44 translate.step_submit    writing_translate  缈昏瘧姝ラ姝ｇ‘
+  19:43:47 translate.step_submit    writing_translate  缈昏瘧姝ラ閿欒
+  19:43:56 translate.step_submit    writing_translate  缈昏瘧姝ラ姝ｇ‘
+  19:44:00 translate.step_submit    writing_translate  缈昏瘧姝ラ閿欒
+  19:44:06 translate.step_submit    writing_translate  缈昏瘧姝ラ姝ｇ‘
+  19:44:10 translate.step_submit    writing_translate  缈昏瘧姝ラ閿欒
+  19:44:20 translate.step_submit    writing_translate  缈昏瘧姝ラ姝ｇ‘
+  19:44:21 translate.sentence_done  writing_translate  瀹屾垚缈昏瘧鍙?#27
+  19:44:25 translate.step_submit    writing_translate  缈昏瘧姝ラ閿欒
+  19:44:32 translate.step_submit    writing_translate  缈昏瘧姝ラ姝ｇ‘
+  19:44:35 translate.step_submit    writing_translate  缈昏瘧姝ラ閿欒
+  19:44:43 translate.step_submit    writing_translate  缈昏瘧姝ラ姝ｇ‘
+  19:44:43 translate.sentence_done  writing_translate  瀹屾垚缈昏瘧鍙?#28
+  19:44:47 translate.step_submit    writing_translate  缈昏瘧姝ラ閿欒
+  19:44:54 translate.step_submit    writing_translate  缈昏瘧姝ラ姝ｇ‘
+  19:44:57 translate.step_submit    writing_translate  缈昏瘧姝ラ閿欒
+  19:45:05 translate.step_submit    writing_translate  缈昏瘧姝ラ姝ｇ‘
+  19:45:06 translate.sentence_done  writing_translate  瀹屾垚缈昏瘧鍙?#29
+  19:45:13 translate.step_submit    writing_translate  缈昏瘧姝ラ閿欒
+  19:45:23 translate.step_submit    writing_translate  缈昏瘧姝ラ閿欒
+  19:45:32 translate.step_submit    writing_translate  缈昏瘧姝ラ姝ｇ‘
+  19:45:43 translate.step_submit    writing_translate  缈昏瘧姝ラ閿欒
+  19:45:49 translate.step_submit    writing_translate  缈昏瘧姝ラ姝ｇ‘
+  19:45:50 translate.sentence_done  writing_translate  瀹屾垚缈昏瘧鍙?#30
+  19:45:50 translate.unit_done      writing_translate  缈昏瘧鏈崟鍏冨畬鎴?
+  19:45:50 task.complete_ok         writing_translate  鍐欎綔鍙ュ瓙缈昏瘧 路 浠诲姟瀛︿範鎵撳嬀鎴愬姛锛堟枃鍙查煶鑹虹被 路 6鍙ワ級
+  19:45:54 task.exit                writing_translate  閫€鍑轰换鍔℃ā鍧?
+  19:45:56 task.open                listening_p4_speed 鎵撳紑浠诲姟 P1 路 C4T2S1 路 瀛︾敓浣忓
+============================================================
+鐜嬪織鐫?2025082 2026-10-06
+  events:30
+  15:06:27 sentence.abc_submit      sentence           涓昏皳瀹惧～绌烘纭?#0
+  15:06:46 sentence.abc_submit      sentence           涓昏皳瀹惧～绌烘纭?#1
+  15:06:50 sentence.abc_submit      sentence           涓昏皳瀹惧～绌烘纭?#2
+  15:06:51 sentence.abc_submit      sentence           涓昏皳瀹惧～绌烘纭?#3
+  15:06:52 sentence.abc_submit      sentence           涓昏皳瀹惧～绌烘纭?#4
+  15:06:53 sentence.abc_submit      sentence           涓昏皳瀹惧～绌烘纭?#5
+  15:11:07 sentence.drag_result     sentence           鎸傞潬姝ｇ‘
+  15:11:10 sentence.drag_result     sentence           鎸傞潬閿欒
+  15:11:12 sentence.drag_result     sentence           鎸傞潬閿欒
+  15:11:13 sentence.drag_result     sentence           鎸傞潬閿欒
+  15:11:16 sentence.drag_result     sentence           鎸傞潬姝ｇ‘
+  15:11:21 sentence.drag_result     sentence           鎸傞潬閿欒
+  15:11:22 sentence.drag_result     sentence           鎸傞潬閿欒
+  15:11:24 sentence.drag_result     sentence           鎸傞潬閿欒
+  15:11:26 sentence.drag_result     sentence           鎸傞潬姝ｇ‘
+  15:11:31 sentence.drag_result     sentence           鎸傞潬姝ｇ‘
+  15:15:26 sentence.abc_submit      sentence           涓昏皳瀹惧～绌烘纭?#0
+  15:15:27 sentence.abc_submit      sentence           涓昏皳瀹惧～绌烘纭?#1
+  15:15:27 sentence.abc_submit      sentence           涓昏皳瀹惧～绌烘纭?#2
+  15:15:31 sentence.drag_result     sentence           鎸傞潬姝ｇ‘
+  15:15:33 sentence.drag_result     sentence           鎸傞潬姝ｇ‘
+  15:15:35 sentence.drag_result     sentence           鎸傞潬閿欒
+  15:15:36 sentence.drag_result     sentence           鎸傞潬閿欒
+  15:15:37 sentence.drag_result     sentence           鎸傞潬閿欒
+  15:15:40 sentence.drag_result     sentence           鎸傞潬姝ｇ‘
+============================================================
+瀹嬬煡瀹?2025118 2026-09-30
+  events:20
+  00:09:53 task.open                listening_p4_speed 鎵撳紑浠诲姟 P1 路 C5T3S1 路 鏃呴鍜ㄨ
+  00:10:45 task.exit                listening_p4_speed 閫€鍑轰换鍔℃ā鍧?
+  00:11:25 task.open                listening_synonym  鎵撳紑浠诲姟 绗?2鍗曞厓 路 棰?6-60
+  00:13:08 task.complete_ok         listening_synonym  鍚姏鍚屼箟鏇挎崲 路 浠诲姟瀛︿範鎵撳嬀鎴愬姛锛堢12鍗曞厓 路 棰?6-60锛?
+  00:13:11 task.exit                listening_synonym  閫€鍑轰换鍔℃ā鍧?
+  00:13:14 task.open                writing_phrase     鎵撳紑浠诲姟 鍝佹牸鏁欒偛绫?路 11-20
+  00:17:32 task.complete_ok         writing_phrase     鍐欎綔璇嶄紮 路 浠诲姟瀛︿範鎵撳嬀鎴愬姛锛堝搧鏍兼暀鑲茬被 路 11-20锛?
+  00:17:33 task.exit                writing_phrase     閫€鍑轰换鍔℃ā鍧?
+  00:17:38 task.open                listening_basic    鎵撳紑浠诲姟 绗?2缁?
+  00:26:39 task.complete_ok         listening_basic    鍚姏鍩虹璇嶆眹 路 浠诲姟瀛︿範鎵撳嬀鎴愬姛锛堢22缁勶級
+  00:27:03 task.open                listening_basic    鎵撳紑浠诲姟 绗?3缁?
+  00:34:06 task.complete_ok         listening_basic    鍚姏鍩虹璇嶆眹 路 浠诲姟瀛︿範鎵撳嬀鎴愬姛锛堢23缁勶級
+  00:46:49 task.open                listening_p4_speed 鎵撳紑浠诲姟 P1 路 C5T3S1 路 鏃呴鍜ㄨ
+  00:51:32 task.exit                listening_p4_speed 閫€鍑轰换鍔℃ā鍧?
+  00:51:36 task.open                listening_p4_speed 鎵撳紑浠诲姟 P1 路 C5T3S1 路 鏃呴鍜ㄨ
+  01:00:49 task.exit                listening_p4_speed 閫€鍑轰换鍔℃ā鍧?
+  gendu table:
+    {'task_date': '2026-09-30', 'score': 72.7, 'created_at': '2026-09-29T16:51:25.469Z', 'unit_id': 'listening_gendu_c5t3s1'}
+    {'task_date': '2026-09-30', 'score': 0.0, 'created_at': '2026-09-29T16:56:05.630Z', 'unit_id': 'listening_gendu_c5t3s1'}
+    {'task_date': '2026-09-30', 'score': 0.0, 'created_at': '2026-09-29T17:00:32.688Z', 'unit_id': 'listening_gendu_c5t3s1'}
+============================================================
+瀹嬬煡瀹?2025118 2026-10-01
+  events:19
+  22:16:11 task.open                listening_synonym  鎵撳紑浠诲姟 绗?3鍗曞厓 路 棰?1-65
+  22:17:25 task.complete_ok         listening_synonym  鍚姏鍚屼箟鏇挎崲 路 浠诲姟瀛︿範鎵撳嬀鎴愬姛锛堢13鍗曞厓 路 棰?1-65锛?
+  22:17:29 task.exit                listening_synonym  閫€鍑轰换鍔℃ā鍧?
+  22:17:59 task.open                writing_phrase     鎵撳紑浠诲姟 浜烘枃鍘嗗彶绫?路 1-10
+  22:23:59 task.complete_ok         writing_phrase     鍐欎綔璇嶄紮 路 浠诲姟瀛︿範鎵撳嬀鎴愬姛锛堜汉鏂囧巻鍙茬被 路 1-10锛?
+  22:24:01 task.exit                writing_phrase     閫€鍑轰换鍔℃ā鍧?
+  22:30:19 task.open                listening_basic    鎵撳紑浠诲姟 绗?4缁?
+  22:30:30 task.open                listening_basic    鎵撳紑浠诲姟 绗?4缁?
+  22:39:23 task.complete_ok         listening_basic    鍚姏鍩虹璇嶆眹 路 浠诲姟瀛︿範鎵撳嬀鎴愬姛锛堢24缁勶級
+  22:39:26 task.open                listening_basic    鎵撳紑浠诲姟 绗?5缁?
+  22:45:23 task.complete_ok         listening_basic    鍚姏鍩虹璇嶆眹 路 浠诲姟瀛︿範鎵撳嬀鎴愬姛锛堢25缁勶級
+  22:48:50 task.open                listening_p4_speed 鎵撳紑浠诲姟 P1 路 C5T4S1 路 浣忓鐧昏
+  22:54:54 task.exit                listening_p4_speed 閫€鍑轰换鍔℃ā鍧?
+  22:54:55 task.open                listening_p4_speed 鎵撳紑浠诲姟 P1 路 C5T4S1 路 浣忓鐧昏
+  22:59:13 task.exit                listening_p4_speed 閫€鍑轰换鍔℃ā鍧?
+  22:59:19 task.open                listening_p4_speed 鎵撳紑浠诲姟 P1 路 C5T4S1 路 浣忓鐧昏
+  23:03:34 task.exit                listening_p4_speed 閫€鍑轰换鍔℃ā鍧?
+  gendu table:
+    {'task_date': '2026-10-01', 'score': 74.1, 'created_at': '2026-10-01T14:54:32.913Z', 'unit_id': 'listening_gendu_c5t4s1'}
+    {'task_date': '2026-10-01', 'score': 1.9, 'created_at': '2026-10-01T14:59:05.698Z', 'unit_id': 'listening_gendu_c5t4s1'}
+    {'task_date': '2026-10-01', 'score': 1.9, 'created_at': '2026-10-01T15:03:27.641Z', 'unit_id': 'listening_gendu_c5t4s1'}
+============================================================
+鏉庡彲棣?2025080 2026-09-28
+  events:6
+  17:25:26 task.open                listening_p4_speed 鎵撳紑浠诲姟 P1 路 C5T1S1 路 鏃呰鍜ㄨ
+  17:28:53 task.exit                listening_p4_speed 閫€鍑轰换鍔℃ā鍧?
+  17:28:56 task.open                listening_p4_speed 鎵撳紑浠诲姟 P1 路 C5T1S1 路 鏃呰鍜ㄨ
+  17:30:54 task.exit                listening_p4_speed 閫€鍑轰换鍔℃ā鍧?
+  17:31:40 task.open                listening_p4_speed 鎵撳紑浠诲姟 P1 路 C5T1S1 路 鏃呰鍜ㄨ
+  17:53:47 task.exit                listening_p4_speed 閫€鍑轰换鍔℃ā鍧?
+  gendu table:
+    {'task_date': '2026-09-28', 'score': 63.1, 'created_at': '2026-09-28T09:36:34.334Z', 'unit_id': 'listening_gendu_c5t1s1'}
+    {'task_date': '2026-09-28', 'score': 0.0, 'created_at': '2026-09-28T09:42:21.462Z', 'unit_id': 'listening_gendu_c5t1s1'}
+    {'task_date': '2026-09-28', 'score': 0.0, 'created_at': '2026-09-28T09:49:29.201Z', 'unit_id': 'listening_gendu_c5t1s1'}
+============================================================
+鏉庡彲棣?2025080 2026-09-29
+  events:2
+  15:33:31 task.open                listening_p4_speed 鎵撳紑浠诲姟 P1 路 C5T1S1 路 鏃呰鍜ㄨ
+  20:06:18 task.open                listening_p4_speed 鎵撳紑浠诲姟 P1 路 C5T1S1 路 鏃呰鍜ㄨ
+  gendu table:
+    {'task_date': '2026-09-29', 'score': 0.6, 'created_at': '2026-09-29T07:38:31.218Z', 'unit_id': 'listening_gendu_c5t1s1'}
+    {'task_date': '2026-09-29', 'score': 1.6, 'created_at': '2026-09-29T07:44:08.131Z', 'unit_id': 'listening_gendu_c5t1s1'}
+    {'task_date': '2026-09-29', 'score': 66.5, 'created_at': '2026-09-29T12:11:18.758Z', 'unit_id': 'listening_gendu_c5t1s1'}
+============================================================
+宀虫旦鏉?2025093 2026-10-01
+  events:222
+  17:21:14 task.open                dictation          鎵撳紑浠诲姟 绗?0缁?
+  17:50:59 task.complete_ok         dictation          鍚姏1000璇?路 浠诲姟瀛︿範鎵撳嬀鎴愬姛锛堢40缁勶級
+  17:51:03 task.open                sentence           鎵撳紑浠诲姟 绗?鍗曞厓 路 鍙?-5
+  17:51:17 task.exit                sentence           閫€鍑轰换鍔℃ā鍧?
+  17:51:19 task.open                writing_translate  鎵撳紑浠诲姟 缃戠粶绉戞妧绫?路 5鍙?
+  17:53:43 translate.step_submit    writing_translate  缈昏瘧姝ラ閿欒
+  17:53:54 translate.step_submit    writing_translate  缈昏瘧姝ラ閿欒
+  17:53:59 translate.step_submit    writing_translate  缈昏瘧姝ラ姝ｇ‘
+  17:55:13 translate.step_submit    writing_translate  缈昏瘧姝ラ閿欒
+  17:55:47 translate.step_submit    writing_translate  缈昏瘧姝ラ閿欒
+  17:55:54 translate.step_submit    writing_translate  缈昏瘧姝ラ姝ｇ‘
+  17:57:48 translate.step_submit    writing_translate  缈昏瘧姝ラ閿欒
+  17:58:01 translate.step_submit    writing_translate  缈昏瘧姝ラ姝ｇ‘
+  17:58:02 translate.sentence_done  writing_translate  瀹屾垚缈昏瘧鍙?#1
+  17:59:06 translate.step_submit    writing_translate  缈昏瘧姝ラ閿欒
+  17:59:18 translate.step_submit    writing_translate  缈昏瘧姝ラ姝ｇ‘
+  18:00:23 translate.step_submit    writing_translate  缈昏瘧姝ラ閿欒
+  18:00:30 translate.step_submit    writing_translate  缈昏瘧姝ラ閿欒
+  18:00:36 translate.step_submit    writing_translate  缈昏瘧姝ラ姝ｇ‘
+  18:01:38 translate.step_submit    writing_translate  缈昏瘧姝ラ閿欒
+  18:01:49 translate.step_submit    writing_translate  缈昏瘧姝ラ姝ｇ‘
+  18:01:50 translate.sentence_done  writing_translate  瀹屾垚缈昏瘧鍙?#2
+  18:01:55 translate.step_submit    writing_translate  缈昏瘧姝ラ閿欒
+  18:02:06 translate.step_submit    writing_translate  缈昏瘧姝ラ姝ｇ‘
+  18:02:28 translate.step_submit    writing_translate  缈昏瘧姝ラ閿欒
+  18:02:35 translate.step_submit    writing_translate  缈昏瘧姝ラ姝ｇ‘
+  18:02:47 translate.step_submit    writing_translate  缈昏瘧姝ラ閿欒
+  18:02:52 translate.step_submit    writing_translate  缈昏瘧姝ラ閿欒
+  18:02:54 translate.step_submit    writing_translate  缈昏瘧姝ラ姝ｇ‘
+  18:02:55 translate.sentence_done  writing_translate  瀹屾垚缈昏瘧鍙?#3
+  18:03:06 task.exit                writing_translate  閫€鍑轰换鍔℃ā鍧?
+  18:03:21 task.open                writing_translate  鎵撳紑浠诲姟 缃戠粶绉戞妧绫?路 5鍙?
+  18:03:28 translate.step_submit    writing_translate  缈昏瘧姝ラ閿欒
+  18:03:34 translate.step_submit    writing_translate  缈昏瘧姝ラ姝ｇ‘
+  18:03:38 translate.step_submit    writing_translate  缈昏瘧姝ラ閿欒
+  18:03:43 translate.step_submit    writing_translate  缈昏瘧姝ラ姝ｇ‘
+  18:03:46 translate.step_submit    writing_translate  缈昏瘧姝ラ閿欒
+  18:03:50 translate.step_submit    writing_translate  缈昏瘧姝ラ姝ｇ‘
+  18:03:51 translate.sentence_done  writing_translate  瀹屾垚缈昏瘧鍙?#1
+  18:03:54 translate.step_submit    writing_translate  缈昏瘧姝ラ閿欒
+  18:03:57 translate.step_submit    writing_translate  缈昏瘧姝ラ姝ｇ‘
+  18:04:00 translate.step_submit    writing_translate  缈昏瘧姝ラ閿欒
+  18:04:03 translate.step_submit    writing_translate  缈昏瘧姝ラ姝ｇ‘
+  18:04:05 translate.step_submit    writing_translate  缈昏瘧姝ラ閿欒
+  18:04:11 translate.step_submit    writing_translate  缈昏瘧姝ラ姝ｇ‘
+  18:04:12 translate.sentence_done  writing_translate  瀹屾垚缈昏瘧鍙?#2
+  18:04:14 translate.step_submit    writing_translate  缈昏瘧姝ラ閿欒
+  18:04:21 translate.step_submit    writing_translate  缈昏瘧姝ラ姝ｇ‘
+  18:04:24 translate.step_submit    writing_translate  缈昏瘧姝ラ閿欒
+  18:04:24 translate.step_submit    writing_translate  缈昏瘧姝ラ閿欒
+  18:04:30 translate.step_submit    writing_translate  缈昏瘧姝ラ姝ｇ‘
+  18:04:33 translate.step_submit    writing_translate  缈昏瘧姝ラ閿欒
+  18:04:37 translate.step_submit    writing_translate  缈昏瘧姝ラ閿欒
+  18:04:42 translate.step_submit    writing_translate  缈昏瘧姝ラ姝ｇ‘
+  18:04:43 translate.sentence_done  writing_translate  瀹屾垚缈昏瘧鍙?#3
+  18:14:43 translate.step_submit    writing_translate  缈昏瘧姝ラ閿欒
+  18:14:49 translate.step_submit    writing_translate  缈昏瘧姝ラ姝ｇ‘
+  18:15:46 translate.step_submit    writing_translate  缈昏瘧姝ラ閿欒
+  18:15:56 translate.step_submit    writing_translate  缈昏瘧姝ラ姝ｇ‘
+  18:15:57 translate.sentence_done  writing_translate  瀹屾垚缈昏瘧鍙?#4
+  18:16:28 translate.step_submit    writing_translate  缈昏瘧姝ラ閿欒
+  18:16:38 translate.step_submit    writing_translate  缈昏瘧姝ラ姝ｇ‘
+  18:17:00 translate.step_submit    writing_translate  缈昏瘧姝ラ閿欒
+  18:17:07 translate.step_submit    writing_translate  缈昏瘧姝ラ閿欒
+  18:17:08 translate.step_submit    writing_translate  缈昏瘧姝ラ閿欒
+  18:17:12 translate.step_submit    writing_translate  缈昏瘧姝ラ姝ｇ‘
+  18:17:13 translate.sentence_done  writing_translate  瀹屾垚缈昏瘧鍙?#5
+  18:17:13 translate.unit_done      writing_translate  缈昏瘧鏈崟鍏冨畬鎴?
+  18:17:13 task.complete_ok         writing_translate  鍐欎綔鍙ュ瓙缈昏瘧 路 浠诲姟瀛︿範鎵撳嬀鎴愬姛锛堢綉缁滅鎶€绫?路 5鍙ワ級
+  18:17:21 task.exit                writing_translate  閫€鍑轰换鍔℃ā鍧?
+  18:17:23 task.open                sentence           鎵撳紑浠诲姟 绗?鍗曞厓 路 鍙?-5
+  18:19:35 task.exit                sentence           閫€鍑轰换鍔℃ā鍧?
+  18:19:36 task.open                dictation          鎵撳紑浠诲姟 绗?3缁?
+  18:24:25 task.complete_ok         dictation          鍚姏1000璇?路 浠诲姟瀛︿範鎵撳嬀鎴愬姛锛堢43缁勶級
+  18:24:27 task.open                sentence           鎵撳紑浠诲姟 绗?鍗曞厓 路 鍙?-5
+  18:41:31 sentence.abc_submit      sentence           涓昏皳瀹惧～绌烘纭?#0
+  18:42:15 sentence.abc_submit      sentence           涓昏皳瀹惧～绌烘纭?#1
+  18:42:32 sentence.abc_submit      sentence           涓昏皳瀹惧～绌烘纭?#2
+  18:42:45 sentence.abc_submit      sentence           涓昏皳瀹惧～绌烘纭?#3
+  18:43:02 sentence.abc_submit      sentence           涓昏皳瀹惧～绌烘纭?#4
+  18:43:09 sentence.abc_submit      sentence           涓昏皳瀹惧～绌烘纭?#5
+  18:43:45 sentence.drag_result     sentence           鎸傞潬閿欒
+  18:44:17 sentence.drag_result     sentence           鎸傞潬姝ｇ‘
+  18:44:49 sentence.drag_result     sentence           鎸傞潬閿欒
+  18:44:51 sentence.drag_result     sentence           鎸傞潬姝ｇ‘
+  18:45:02 sentence.drag_result     sentence           鎸傞潬姝ｇ‘
+  18:45:04 sentence.drag_result     sentence           鎸傞潬閿欒
+  18:45:04 sentence.drag_result     sentence           鎸傞潬閿欒
+  18:45:07 sentence.drag_result     sentence           鎸傞潬閿欒
+  18:45:10 sentence.drag_result     sentence           鎸傞潬姝ｇ‘
+  18:46:46 task.exit                sentence           閫€鍑轰换鍔℃ā鍧?
+  18:46:49 task.open                sentence           鎵撳紑浠诲姟 绗?鍗曞厓 路 鍙?-5
+  18:47:44 sentence.abc_submit      sentence           涓昏皳瀹惧～绌烘纭?#0
+  18:48:18 sentence.abc_submit      sentence           涓昏皳瀹惧～绌洪敊璇?#1
+  18:49:02 sentence.abc_submit      sentence           涓昏皳瀹惧～绌烘纭?#1
+  18:49:14 sentence.abc_submit      sentence           涓昏皳瀹惧～绌烘纭?#2
+  18:49:21 sentence.abc_submit      sentence           涓昏皳瀹惧～绌烘纭?#3
+  18:49:55 sentence.abc_submit      sentence           涓昏皳瀹惧～绌烘纭?#4
+  18:50:32 sentence.abc_submit      sentence           涓昏皳瀹惧～绌烘纭?#5
+  18:50:42 sentence.drag_result     sentence           鎸傞潬閿欒
+  18:50:47 sentence.drag_result     sentence           鎸傞潬姝ｇ‘
+  18:50:50 sentence.drag_result     sentence           鎸傞潬姝ｇ‘
+  18:50:55 sentence.drag_result     sentence           鎸傞潬姝ｇ‘
+  18:50:57 sentence.drag_result     sentence           鎸傞潬姝ｇ‘
+  19:03:40 task.exit                sentence           閫€鍑轰换鍔℃ā鍧?
+  19:03:42 task.open                sentence           鎵撳紑浠诲姟 绗?鍗曞厓 路 鍙?-5
+  19:08:57 sentence.abc_submit      sentence           涓昏皳瀹惧～绌烘纭?#0
+  19:09:05 sentence.abc_submit      sentence           涓昏皳瀹惧～绌烘纭?#1
+  19:09:16 sentence.abc_submit      sentence           涓昏皳瀹惧～绌烘纭?#2
+  19:09:24 sentence.drag_result     sentence           鎸傞潬閿欒
+  19:09:28 sentence.drag_result     sentence           鎸傞潬閿欒
+  19:09:30 sentence.drag_result     sentence           鎸傞潬姝ｇ‘
+  19:09:33 sentence.drag_result     sentence           鎸傞潬閿欒
+  19:09:36 sentence.drag_result     sentence           鎸傞潬閿欒
+  19:09:38 sentence.drag_result     sentence           鎸傞潬閿欒
+  19:09:39 sentence.drag_result     sentence           鎸傞潬姝ｇ‘
+  19:10:03 sentence.drag_result     sentence           鎸傞潬姝ｇ‘
+  19:10:54 sentence.abc_submit      sentence           涓昏皳瀹惧～绌烘纭?#0
+  19:11:16 sentence.abc_submit      sentence           涓昏皳瀹惧～绌烘纭?#1
+  19:11:17 sentence.abc_submit      sentence           涓昏皳瀹惧～绌烘纭?#2
+  19:11:50 sentence.drag_result     sentence           鎸傞潬姝ｇ‘
+  19:11:51 sentence.drag_result     sentence           鎸傞潬姝ｇ‘
+  19:11:51 sentence.drag_result     sentence           鎸傞潬姝ｇ‘
+  19:12:23 sentence.abc_submit      sentence           涓昏皳瀹惧～绌烘纭?#0
+  19:12:32 sentence.abc_submit      sentence           涓昏皳瀹惧～绌烘纭?#1
+  19:12:48 sentence.abc_submit      sentence           涓昏皳瀹惧～绌烘纭?#2
+  19:13:06 sentence.abc_submit      sentence           涓昏皳瀹惧～绌洪敊璇?#3
+  19:13:19 sentence.abc_submit      sentence           涓昏皳瀹惧～绌烘纭?#3
+  19:13:26 sentence.abc_submit      sentence           涓昏皳瀹惧～绌烘纭?#4
+  19:13:48 sentence.drag_result     sentence           鎸傞潬閿欒
+  19:14:03 sentence.drag_result     sentence           鎸傞潬姝ｇ‘
+  19:14:53 sentence.abc_submit      sentence           涓昏皳瀹惧～绌烘纭?#0
+  19:15:05 sentence.abc_submit      sentence           涓昏皳瀹惧～绌洪敊璇?#1
+  19:15:15 sentence.abc_submit      sentence           涓昏皳瀹惧～绌洪敊璇?#1
+  19:16:04 sentence.abc_submit      sentence           涓昏皳瀹惧～绌烘纭?#1
+  19:17:39 sentence.abc_submit      sentence           涓昏皳瀹惧～绌烘纭?#2
+  19:17:54 sentence.abc_submit      sentence           涓昏皳瀹惧～绌烘纭?#3
+  19:18:00 sentence.abc_submit      sentence           涓昏皳瀹惧～绌烘纭?#4
+  19:18:50 sentence.drag_result     sentence           鎸傞潬姝ｇ‘
+  19:18:59 sentence.drag_result     sentence           鎸傞潬閿欒
+  19:19:00 sentence.drag_result     sentence           鎸傞潬閿欒
+  19:19:04 sentence.drag_result     sentence           鎸傞潬姝ｇ‘
+  19:19:07 sentence.drag_result     sentence           鎸傞潬姝ｇ‘
+  19:19:12 sentence.drag_result     sentence           鎸傞潬閿欒
+  19:19:14 sentence.drag_result     sentence           鎸傞潬閿欒
+  19:19:16 sentence.drag_result     sentence           鎸傞潬閿欒
+  19:19:17 sentence.drag_result     sentence           鎸傞潬閿欒
+  19:19:17 sentence.drag_result     sentence           鎸傞潬閿欒
+  19:19:19 sentence.drag_result     sentence           鎸傞潬姝ｇ‘
+  19:19:55 sentence.abc_submit      sentence           涓昏皳瀹惧～绌烘纭?#0
+  19:20:00 sentence.abc_submit      sentence           涓昏皳瀹惧～绌烘纭?#1
+  19:20:06 sentence.abc_submit      sentence           涓昏皳瀹惧～绌烘纭?#2
+  19:20:17 sentence.drag_result     sentence           鎸傞潬姝ｇ‘
+  19:20:22 sentence.drag_result     sentence           鎸傞潬閿欒
+  19:20:23 sentence.drag_result     sentence           鎸傞潬姝ｇ‘
+  19:20:27 sentence.drag_result     sentence           鎸傞潬閿欒
+  19:20:28 sentence.drag_result     sentence           鎸傞潬姝ｇ‘
+  19:20:31 task.complete_ok         sentence           闀块毦鍙ュ垎鏋?路 浠诲姟瀛︿範鎵撳嬀鎴愬姛锛堢1鍗曞厓 路 鍙?-5锛?
+  19:20:37 task.exit                sentence           閫€鍑轰换鍔℃ā鍧?

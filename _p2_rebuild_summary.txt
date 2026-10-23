@@ -1,0 +1,14 @@
+P2 rebuild summary
+questions: 56
+materials kept: 8 ids=['yumeng', 'sun', 'movie', 'badminton', 'bear', 'basketball', 'tianchi', 'robot']
+material usage:
+  yumeng: 14
+  tianchi: 13
+  badminton: 9
+  sun: 8
+  bear+basketball: 4
+  movie: 4
+  bear: 2
+  robot: 2
+sampleEn all >=120: True
+examples: #1 近期改变->badminton, #23 近期看过且享受的电影->movie, #50 对家庭重要的东西->bear

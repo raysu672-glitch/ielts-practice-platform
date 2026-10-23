@@ -1,0 +1,10 @@
+写作词伙 | categories.js:301「性别/年龄歧视」 | discriminate on the basis of gender | discriminate on the basis of gender or age | 中英不匹配
+写作词伙测试 | index.html:302「性别/年龄歧视」 | discriminate on the basis of gender | discriminate on the basis of gender or age | 中英不匹配
+听力模块 | modules.js:319「性别/年龄歧视」 | discriminate on the basis of gender | discriminate on the basis of gender or age | 中英不匹配
+
+--- TOTAL 3 ---
+写作词伙: 1条
+写作词伙测试: 1条
+听力模块: 1条
+听力2400: 已干净
+听力基础: 已干净

@@ -460,7 +460,21 @@ def build_static_audio_locations() -> str:
 
 def build_nginx_conf(*, with_https: bool) -> str:
     static_audio = build_static_audio_locations()
+    # /api/p4/ 跟读上传需更大 body；默认 1m 会 413，识别服务收不到音频。
     proxy = f"""{static_audio}
+
+    location /api/p4/ {{
+        client_max_body_size 32m;
+        client_body_timeout 300s;
+        proxy_pass http://127.0.0.1:{SERVICE_PORT};
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_read_timeout 300s;
+        proxy_connect_timeout 10s;
+    }}
 
     location / {{
         proxy_pass http://127.0.0.1:{SERVICE_PORT};

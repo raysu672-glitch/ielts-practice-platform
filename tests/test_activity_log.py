@@ -13,7 +13,9 @@ if str(SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPTS_DIR))
 
 from activity_log import (  # noqa: E402
+    build_activity_summary_for_ai,
     ensure_activity_tables,
+    format_activity_summary_prompt,
     list_student_activity,
     log_activity,
     log_student_client_events,
@@ -148,6 +150,38 @@ class ActivityLogTests(unittest.TestCase):
             self.conn, "2025001", page=2, page_size=2, paginate=True
         )
         self.assertEqual(len(page2["events"]), 1)
+
+    def test_build_activity_summary_for_ai(self) -> None:
+        log_activity(
+            self.conn,
+            actor_role="student",
+            actor_id="2025001",
+            actor_name="测",
+            action="task.open",
+            module_type="sentence",
+            target_student_id="2025001",
+            summary="开任务",
+            prune_occasionally=False,
+        )
+        log_activity(
+            self.conn,
+            actor_role="teacher",
+            actor_id="admin",
+            actor_name="管理员",
+            action="plan.save",
+            target_student_id="2025001",
+            summary="保存计划",
+            prune_occasionally=False,
+        )
+        summary = build_activity_summary_for_ai(self.conn, days=7)
+        self.assertEqual(summary["total_events"], 2)
+        self.assertEqual(summary["by_role"].get("student"), 1)
+        self.assertEqual(summary["by_role"].get("teacher"), 1)
+        self.assertTrue(summary["top_actions"])
+        prompt = format_activity_summary_prompt(summary)
+        self.assertIn("事件总数：2", prompt)
+        self.assertIn("task.open", prompt)
+        self.assertIn("plan.save", prompt)
 
 
 if __name__ == "__main__":

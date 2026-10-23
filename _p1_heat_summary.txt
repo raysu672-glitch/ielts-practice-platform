@@ -1,0 +1,6 @@
+shishi 事实陈述类 q=75 topics=28
+xihao 喜好类 q=69 topics=31
+xingwei 行为习惯类 q=30 topics=21
+guandian 观点类 q=31 topics=20
+duibi 对比类 q=26 topics=18
+TOTAL 231

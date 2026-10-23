@@ -1,0 +1,791 @@
+[
+  {
+    "id": 2,
+    "category": "网络科技类",
+    "fullChinese": "例如，一些留学的学生无需担心思乡之情带来的困扰，因为他们可以通过 FaceTime 等即时通讯工具与家人保持日常联系。",
+    "finalEnglish": "For example, when some students study abroad, they would not be bothered by the problem of homesickness, as they can use instant communication tools, such as FaceTime, to talk with their families on a daily basis.",
+    "logicExplanation": "主句 + as原因状语从句，主句前有when时间状语从句。",
+    "steps": [
+      {
+        "label": "纯净主干",
+        "chinese": "他们不会受到困扰。",
+        "hint": "主句核心：they would not be bothered",
+        "correctAnswer": "They would not be bothered.",
+        "keywords": [
+          "would not be bothered (不会受到困扰)"
+        ]
+      },
+      {
+        "label": "添加状语和施动者",
+        "chinese": "【例如】，【留学的】学生不会受到【思乡之情带来的】困扰。",
+        "hint": "For example引导；by the problem of homesickness是被动语态的施动者",
+        "correctAnswer": "For example, when some students study abroad, they would not be bothered by the problem of homesickness.",
+        "keywords": [
+          "For example (例如)",
+          "homesickness (思乡之情)",
+          "studying abroad (留学)"
+        ]
+      },
+      {
+        "label": "添加原因状语从句",
+        "chinese": "例如，留学的学生不会受到思乡之情带来的困扰，【因为他们可以通过即时通讯工具与家人保持日常联系】。",
+        "hint": "as引导原因状语从句",
+        "correctAnswer": "For example, when some students study abroad, they would not be bothered by the problem of homesickness, as they can use instant communication tools, such as FaceTime, to talk with their families on a daily basis.",
+        "keywords": [
+          "as (因为)",
+          "instant communication tools (即时通讯工具)",
+          "on a daily basis (日常地)"
+        ]
+      }
+    ]
+  },
+  {
+    "id": 3,
+    "category": "网络科技类",
+    "fullChinese": "此外，患有相同疾病的患者还能建立在线社区，在那里分享战胜疾病的励志故事以及有助于康复的实用信息。",
+    "finalEnglish": "In addition, people suffering from the same disease are able to establish an online community where they can share inspiring stories of fighting diseases as well as useful information for recovery.",
+    "logicExplanation": "主谓宾结构，宾语后接where引导的定语从句。",
+    "steps": [
+      {
+        "label": "纯净主干",
+        "chinese": "人们能够建立社区。",
+        "hint": "In addition, people are able to establish a community",
+        "correctAnswer": "In addition, people are able to establish a community.",
+        "keywords": [
+          "In addition (此外)",
+          "are able to (能够)",
+          "establish (建立)"
+        ]
+      },
+      {
+        "label": "添加主语修饰",
+        "chinese": "【患有相同疾病的】人们能够建立【在线】社区。",
+        "hint": "people suffering from the same disease作主语修饰",
+        "correctAnswer": "In addition, people suffering from the same disease are able to establish an online community.",
+        "keywords": [
+          "suffering from (患有)",
+          "the same disease (相同疾病)",
+          "online (在线的)"
+        ]
+      },
+      {
+        "label": "添加定语从句",
+        "chinese": "患有相同疾病的人们能够建立在线社区，【在那里分享战胜疾病的励志故事以及有助于康复的实用信息】。",
+        "hint": "where引导定语从句修饰community",
+        "correctAnswer": "In addition, people suffering from the same disease are able to establish an online community where they can share inspiring stories of fighting diseases as well as useful information for recovery.",
+        "keywords": [
+          "where (在那里)",
+          "inspiring stories (励志故事)",
+          "as well as (以及)",
+          "recovery (康复)"
+        ]
+      }
+    ]
+  },
+  {
+    "id": 4,
+    "category": "网络科技类",
+    "fullChinese": "科技能够有效助力传统技能与生活方式的传承。",
+    "finalEnglish": "Technology can positively contribute to the keeping alive of traditional skills and ways of life.",
+    "logicExplanation": "简单主谓宾结构，contribute to 后接名词短语。",
+    "steps": [
+      {
+        "label": "纯净主干",
+        "chinese": "科技能够助力传承。",
+        "hint": "Technology can contribute to the keeping alive",
+        "correctAnswer": "Technology can contribute to the keeping alive.",
+        "keywords": [
+          "Technology (科技)",
+          "contribute to (助力/有助于)"
+        ]
+      },
+      {
+        "label": "添加副词和宾语修饰",
+        "chinese": "科技能够【有效】助力【传统技能与生活方式的】传承。",
+        "hint": "positively修饰contribute；of traditional skills and ways of life修饰the keeping alive",
+        "correctAnswer": "Technology can positively contribute to the keeping alive of traditional skills and ways of life.",
+        "keywords": [
+          "positively (有效地)",
+          "traditional skills (传统技能)",
+          "ways of life (生活方式)"
+        ]
+      }
+    ]
+  },
+  {
+    "id": 8,
+    "category": "网络科技类",
+    "fullChinese": "尽管如此，计算机技能对幼儿带来的明显益处不容忽视。",
+    "finalEnglish": "In spite of this, the obvious benefits of computer skills for young children cannot be denied.",
+    "logicExplanation": "简单句，介词短语开头，主语 + 被动谓语。",
+    "steps": [
+      {
+        "label": "纯净主干",
+        "chinese": "尽管如此，益处不容忽视。",
+        "hint": "In spite of this, the benefits cannot be denied",
+        "correctAnswer": "In spite of this, the benefits cannot be denied.",
+        "keywords": [
+          "In spite of this (尽管如此)",
+          "benefits (益处)",
+          "cannot be denied (不容忽视)"
+        ]
+      },
+      {
+        "label": "添加主语修饰",
+        "chinese": "尽管如此，【计算机技能对幼儿带来的】【明显的】益处不容忽视。",
+        "hint": "of computer skills for young children修饰benefits；obvious修饰benefits",
+        "correctAnswer": "In spite of this, the obvious benefits of computer skills for young children cannot be denied.",
+        "keywords": [
+          "computer skills (计算机技能)",
+          "for young children (对幼儿)",
+          "obvious (明显的)",
+          "denied (否认/忽视)"
+        ]
+      }
+    ]
+  },
+  {
+    "id": 10,
+    "category": "网络科技类",
+    "fullChinese": "因此，儿童应尽早学会热情且自信地使用各类设备，并且这些技能将伴随他们整个学习和职业生涯。",
+    "finalEnglish": "Therefore, it is important that children learn at an early age to use the equipment enthusiastically and with confidence as they will need these skills throughout their studies and working lives.",
+    "logicExplanation": "it is important that... 主句 + as 原因状语从句。",
+    "steps": [
+      {
+        "label": "纯净主干",
+        "chinese": "因此，儿童应学会使用设备。",
+        "hint": "Therefore, it is important that children learn to use the equipment",
+        "correctAnswer": "Therefore, it is important that children learn to use the equipment.",
+        "keywords": [
+          "Therefore (因此)",
+          "it is important that (重要的是)",
+          "learn to use (学会使用)"
+        ]
+      },
+      {
+        "label": "添加状语修饰",
+        "chinese": "因此，儿童应【尽早】学会【热情且自信地】使用【各类】设备。",
+        "hint": "at an early age表示时间；enthusiastically and with confidence表示方式",
+        "correctAnswer": "Therefore, it is important that children learn at an early age to use the equipment enthusiastically and with confidence.",
+        "keywords": [
+          "at an early age (尽早)",
+          "enthusiastically (热情地)",
+          "with confidence (自信地)"
+        ]
+      },
+      {
+        "label": "添加原因状语从句",
+        "chinese": "因此，儿童应尽早学会热情且自信地使用各类设备，【并且这些技能将伴随他们整个学习和职业生涯】。",
+        "hint": "as引导原因从句",
+        "correctAnswer": "Therefore, it is important that children learn at an early age to use the equipment enthusiastically and with confidence as they will need these skills throughout their studies and working lives.",
+        "keywords": [
+          "as (因为/并且)",
+          "throughout (贯穿/伴随)",
+          "studies and working lives (学习和职业生涯)"
+        ]
+      }
+    ]
+  },
+  {
+    "id": 12,
+    "category": "网络科技类",
+    "fullChinese": "我们的太空邻居很可能会分享其更为先进的技术，帮助我们解决地球上的诸多问题。",
+    "finalEnglish": "It is likely that our neighbours in space would lend us their far more advanced technologies to solve a series of problems on the Earth.",
+    "logicExplanation": "It is likely that... 形式主语句，that从句中含不定式目的状语。",
+    "steps": [
+      {
+        "label": "纯净主干",
+        "chinese": "很可能会分享技术。",
+        "hint": "It is likely that our neighbours would lend us their technologies",
+        "correctAnswer": "It is likely that our neighbours would lend us their technologies.",
+        "keywords": [
+          "It is likely that (很可能会)",
+          "lend us (分享给我们)",
+          "technologies (技术)"
+        ]
+      },
+      {
+        "label": "添加主语修饰、宾语修饰和目的状语",
+        "chinese": "【我们的太空邻居】很可能会分享其【更为先进的】技术，【帮助我们解决地球上的诸多问题】。",
+        "hint": "in space修饰neighbours；far more advanced修饰technologies；to solve a series of problems on the Earth是目的状语",
+        "correctAnswer": "It is likely that our neighbours in space would lend us their far more advanced technologies to solve a series of problems on the Earth.",
+        "keywords": [
+          "neighbours in space (太空邻居)",
+          "far more advanced (更为先进的)",
+          "a series of (一系列/诸多)",
+          "on the Earth (地球上)"
+        ]
+      }
+    ]
+  },
+  {
+    "id": 13,
+    "category": "网络科技类",
+    "fullChinese": "例如，如果我们能通过外星友人的技术支持实现自身进步，环境污染或许就能被彻底消除，威胁生命的疾病也可能得到治愈。",
+    "finalEnglish": "For example, environmental pollution could be eradicated and life-threatening diseases could be cured if we are technologically improved by our alien friends.",
+    "logicExplanation": "and 连接两个并列被动句，if 条件状语从句后置。",
+    "steps": [
+      {
+        "label": "纯净主干",
+        "chinese": "例如，环境污染能被消除，疾病也能被治愈。",
+        "hint": "For example, environmental pollution could be eradicated and diseases could be cured",
+        "correctAnswer": "For example, environmental pollution could be eradicated and diseases could be cured.",
+        "keywords": [
+          "environmental pollution (环境污染)",
+          "could be eradicated (能被彻底消除)",
+          "diseases (疾病)",
+          "could be cured (能得到治愈)"
+        ]
+      },
+      {
+        "label": "添加主语修饰和条件状语从句",
+        "chinese": "例如，【威胁生命的】疾病也能被治愈，【如果我们能通过外星友人的技术支持实现自身进步】。",
+        "hint": "life-threatening修饰diseases；if we are technologically improved by our alien friends表示条件",
+        "correctAnswer": "For example, environmental pollution could be eradicated and life-threatening diseases could be cured if we are technologically improved by our alien friends.",
+        "keywords": [
+          "life-threatening (威胁生命的)",
+          "if (如果)",
+          "technologically improved (在技术上实现进步)",
+          "alien friends (外星友人)"
+        ]
+      }
+    ]
+  },
+  {
+    "id": 47,
+    "category": "政府社会类",
+    "fullChinese": "这是因为人们担心，用于制造原子弹等大规模杀伤性武器的放射性材料纯化技术，可能会落入不法之徒手中。",
+    "finalEnglish": "This is due to the fear that the technology of purifying radioactive materials which can be used to produce powerful weapons of massive destruction, such as an atomic bomb, may fall into wrong hands.",
+    "logicExplanation": "主句 + that同位语从句（含which定语从句 + such as插入语）。",
+    "steps": [
+      {
+        "label": "纯净主干",
+        "chinese": "这是因为担心。",
+        "hint": "先翻译主干，\"这是因为\"是This is due to",
+        "correctAnswer": "This is due to the fear.",
+        "keywords": [
+          "This is due to (这是因为)",
+          "fear (担心)"
+        ]
+      },
+      {
+        "label": "添加宾语从句",
+        "chinese": "这是因为担心【技术可能会落入不法之徒手中】。",
+        "hint": "\"技术\"是technology，\"落入不法之徒手中\"是fall into wrong hands",
+        "correctAnswer": "This is due to the fear that the technology may fall into wrong hands.",
+        "keywords": [
+          "technology (技术)",
+          "fall into wrong hands (落入不法之徒手中)"
+        ]
+      },
+      {
+        "label": "添加修饰语",
+        "chinese": "这是因为担心【用于制造原子弹等大规模杀伤性武器的放射性材料纯化】技术可能会落入不法之徒手中。",
+        "hint": "\"放射性材料纯化\"是purifying radioactive materials",
+        "correctAnswer": "This is due to the fear that the technology of purifying radioactive materials which can be used to produce powerful weapons of massive destruction may fall into wrong hands.",
+        "keywords": [
+          "purifying radioactive materials (放射性材料纯化)",
+          "weapons of massive destruction (大规模杀伤性武器)"
+        ]
+      },
+      {
+        "label": "添加插入语",
+        "chinese": "这是因为担心用于制造【原子弹等】大规模杀伤性武器的放射性材料纯化技术可能会落入不法之徒手中。",
+        "hint": "\"原子弹\"是atomic bomb，用such as插入",
+        "correctAnswer": "This is due to the fear that the technology of purifying radioactive materials which can be used to produce powerful weapons of massive destruction, such as an atomic bomb, may fall into wrong hands.",
+        "keywords": [
+          "such as an atomic bomb (原子弹等)"
+        ]
+      }
+    ]
+  },
+  {
+    "id": 64,
+    "category": "政府社会类",
+    "fullChinese": "例如，当哥哥给弟弟妹妹读睡前故事时，父母就能自由地做自己想做的事。",
+    "finalEnglish": "For example, when the elder brother reads bed stories to the younger ones, their parents are free to do what they want.",
+    "logicExplanation": "过渡词 + when时间状语从句 + 主句（含what宾语从句）。",
+    "steps": [
+      {
+        "label": "纯净主干",
+        "chinese": "父母就能自由地做自己想做的事。",
+        "hint": "Their parents are free to do what they want",
+        "correctAnswer": "Their parents are free to do what they want.",
+        "keywords": [
+          "be free to do (自由地做)",
+          "what they want (他们想做的事)"
+        ]
+      },
+      {
+        "label": "添加时间状语从句",
+        "chinese": "【当哥哥给弟弟妹妹读睡前故事时，】父母就能自由地做自己想做的事。",
+        "hint": "when the elder brother reads bed stories to the younger ones放句首",
+        "correctAnswer": "When the elder brother reads bed stories to the younger ones, their parents are free to do what they want.",
+        "keywords": [
+          "elder brother (哥哥)",
+          "bed stories (睡前故事)",
+          "younger ones (弟弟妹妹)"
+        ]
+      },
+      {
+        "label": "添加过渡词",
+        "chinese": "【例如，】当哥哥给弟弟妹妹读睡前故事时，父母就能自由地做自己想做的事。",
+        "hint": "For example放句首",
+        "correctAnswer": "For example, when the elder brother reads bed stories to the younger ones, their parents are free to do what they want.",
+        "keywords": [
+          "For example (例如)"
+        ]
+      }
+    ]
+  },
+  {
+    "id": 69,
+    "category": "政府社会类",
+    "fullChinese": "以年轻人为例，他们在租房或购房时往往需要依靠父母提供经济支持。",
+    "finalEnglish": "Young adults, for example, have to rely on their parents for financial help when renting a flat or buying a house.",
+    "logicExplanation": "主句 + for example插入语 + when时间状语从句。",
+    "steps": [
+      {
+        "label": "纯净主干",
+        "chinese": "年轻人需要依靠父母提供经济支持。",
+        "hint": "Young adults have to rely on their parents for financial help",
+        "correctAnswer": "Young adults have to rely on their parents for financial help.",
+        "keywords": [
+          "Young adults (年轻人)",
+          "rely on (依靠)",
+          "financial help (经济支持)"
+        ]
+      },
+      {
+        "label": "添加时间状语从句",
+        "chinese": "年轻人【在租房或购房时】往往需要依靠父母提供经济支持。",
+        "hint": "when renting a flat or buying a house放句末",
+        "correctAnswer": "Young adults have to rely on their parents for financial help when renting a flat or buying a house.",
+        "keywords": [
+          "renting a flat (租房)",
+          "buying a house (购房)"
+        ]
+      },
+      {
+        "label": "添加插入语",
+        "chinese": "【以年轻人为例，】他们在租房或购房时往往需要依靠父母提供经济支持。",
+        "hint": "for example作为插入语放在主语后",
+        "correctAnswer": "Young adults, for example, have to rely on their parents for financial help when renting a flat or buying a house.",
+        "keywords": [
+          "for example (以…为例)"
+        ]
+      }
+    ]
+  },
+  {
+    "id": 76,
+    "category": "政府社会类",
+    "fullChinese": "此外，学习外语也颇具难度。",
+    "finalEnglish": "In addition, learning a foreign language is rather challenging.",
+    "logicExplanation": "主系表结构，添加过渡词和程度副词。",
+    "steps": [
+      {
+        "label": "纯净主干",
+        "chinese": "学习外语颇具难度。",
+        "hint": "Learning a foreign language is challenging",
+        "correctAnswer": "Learning a foreign language is challenging.",
+        "keywords": [
+          "challenging (颇具难度的)",
+          "learning (学习)",
+          "foreign language (外语)"
+        ]
+      },
+      {
+        "label": "添加过渡词和程度副词",
+        "chinese": "【此外】，学习外语【也】【颇为】难度。",
+        "hint": "In addition表递进，rather修饰形容词表程度",
+        "correctAnswer": "In addition, learning a foreign language is rather challenging.",
+        "keywords": [
+          "In addition (此外)",
+          "rather (颇为)"
+        ]
+      }
+    ]
+  },
+  {
+    "id": 77,
+    "category": "政府社会类",
+    "fullChinese": "因此，当这些孩子抵达异国他乡后，他们很难立即进入普通学校就读，这很可能引发更多负面影响，例如社交孤立和抑郁情绪。",
+    "finalEnglish": "Therefore, when these children arrive in a foreign country, it would be impossible for them to go to a normal school very soon, which probably leads to more negative impacts, such as isolation and depression.",
+    "logicExplanation": "主句+时间状语从句+非限制性定语从句+举例，层层递进。",
+    "steps": [
+      {
+        "label": "纯净主干",
+        "chinese": "他们很难进入学校。",
+        "hint": "It would be impossible for them to go to a school",
+        "correctAnswer": "It would be impossible for them to go to a school.",
+        "keywords": [
+          "impossible (不可能)",
+          "for them (对他们而言)"
+        ]
+      },
+      {
+        "label": "添加修饰语",
+        "chinese": "他们很难【立即】进入【普通】学校【就读】。",
+        "hint": "very soon表立即，normal修饰school",
+        "correctAnswer": "It would be impossible for them to go to a normal school very soon.",
+        "keywords": [
+          "very soon (立即)",
+          "normal school (普通学校)"
+        ]
+      },
+      {
+        "label": "添加时间状语从句和过渡词",
+        "chinese": "【因此】，【当这些孩子抵达异国他乡后】，他们很难立即进入普通学校就读。",
+        "hint": "Therefore表因果过渡，when引导时间状语从句",
+        "correctAnswer": "Therefore, when these children arrive in a foreign country, it would be impossible for them to go to a normal school very soon.",
+        "keywords": [
+          "Therefore (因此)",
+          "when (当…时)",
+          "foreign country (异国)"
+        ]
+      },
+      {
+        "label": "添加非限制性定语从句",
+        "chinese": "因此，当这些孩子抵达异国他乡后，他们很难立即进入普通学校就读，【这很可能引发更多负面影响】。",
+        "hint": "which引导非限制性定语从句",
+        "correctAnswer": "Therefore, when these children arrive in a foreign country, it would be impossible for them to go to a normal school very soon, which probably leads to more negative impacts.",
+        "keywords": [
+          "which (这)",
+          "probably (很可能)",
+          "negative impacts (负面影响)"
+        ]
+      },
+      {
+        "label": "添加举例",
+        "chinese": "因此，当这些孩子抵达异国他乡后，他们很难立即进入普通学校就读，这很可能引发更多负面影响，【例如社交孤立和抑郁情绪】。",
+        "hint": "such as用于举例",
+        "correctAnswer": "Therefore, when these children arrive in a foreign country, it would be impossible for them to go to a normal school very soon, which probably leads to more negative impacts, such as isolation and depression.",
+        "keywords": [
+          "such as (例如)",
+          "isolation (孤立)",
+          "depression (抑郁)"
+        ]
+      }
+    ]
+  },
+  {
+    "id": 80,
+    "category": "政府社会类",
+    "fullChinese": "然而如今，邻居们几乎不再见面交谈，因为他们更热衷于在线分享八卦和照片。",
+    "finalEnglish": "Today, however, neighbours barely meet and talk with each other, as they are more addicted to online sharing of gossips and pictures.",
+    "logicExplanation": "主句+原因状语从句，过渡词放句中。",
+    "steps": [
+      {
+        "label": "纯净主干",
+        "chinese": "邻居们见面交谈。",
+        "hint": "Neighbours meet and talk",
+        "correctAnswer": "Neighbours meet and talk.",
+        "keywords": [
+          "neighbours (邻居)",
+          "meet and talk (见面交谈)"
+        ]
+      },
+      {
+        "label": "添加修饰语",
+        "chinese": "邻居们【几乎不再】【互相】见面交谈。",
+        "hint": "barely表几乎不，with each other表互相",
+        "correctAnswer": "Neighbours barely meet and talk with each other.",
+        "keywords": [
+          "barely (几乎不)",
+          "with each other (互相)"
+        ]
+      },
+      {
+        "label": "添加过渡词和时间",
+        "chinese": "【然而】【如今】，邻居们几乎不再见面交谈。",
+        "hint": "Today表时间，however表转折",
+        "correctAnswer": "Today, however, neighbours barely meet and talk with each other.",
+        "keywords": [
+          "Today (如今)",
+          "however (然而)"
+        ]
+      },
+      {
+        "label": "添加原因状语从句",
+        "chinese": "然而如今，邻居们几乎不再见面交谈，【因为他们更热衷于在线分享八卦和照片】。",
+        "hint": "as引导原因状语从句",
+        "correctAnswer": "Today, however, neighbours barely meet and talk with each other, as they are more addicted to online sharing of gossips and pictures.",
+        "keywords": [
+          "as (因为)",
+          "addicted to (热衷于)",
+          "online sharing (在线分享)"
+        ]
+      }
+    ]
+  },
+  {
+    "id": 81,
+    "category": "城市交通类",
+    "fullChinese": "精心规划假期旅行至关重要，这不仅能帮助人们节省开支，还能让假期过得更加愉快。",
+    "finalEnglish": "It is important to plan a holiday trip carefully, because it helps people to save money as well as enjoy the vacation better.",
+    "logicExplanation": "形式主语结构+原因状语从句，as well as连接并列好处。",
+    "steps": [
+      {
+        "label": "纯净主干",
+        "chinese": "规划旅行至关重要。",
+        "hint": "It is important to plan a holiday trip",
+        "correctAnswer": "It is important to plan a holiday trip.",
+        "keywords": [
+          "It is important (至关重要)",
+          "plan (规划)"
+        ]
+      },
+      {
+        "label": "添加副词修饰",
+        "chinese": "【精心】规划假期旅行至关重要。",
+        "hint": "carefully放在动词后修饰plan",
+        "correctAnswer": "It is important to plan a holiday trip carefully.",
+        "keywords": [
+          "carefully (精心地)",
+          "holiday trip (假期旅行)"
+        ]
+      },
+      {
+        "label": "添加原因状语从句",
+        "chinese": "精心规划假期旅行至关重要，【因为这能帮助人们节省开支，还能让假期过得更加愉快】。",
+        "hint": "because引导原因从句，as well as连接两个并列好处",
+        "correctAnswer": "It is important to plan a holiday trip carefully, because it helps people to save money as well as enjoy the vacation better.",
+        "keywords": [
+          "because (因为)",
+          "save money (节省开支)",
+          "as well as (以及)"
+        ]
+      }
+    ]
+  },
+  {
+    "id": 88,
+    "category": "教育学习类",
+    "fullChinese": "学生行为不良的首要原因是出生率持续下降，导致家庭规模缩小、子女数量减少。",
+    "finalEnglish": "The first reason for students' poor behavior is that the birth rate is decreasing so that families are becoming smaller with fewer children.",
+    "logicExplanation": "主系表结构，表语从句+结果状语从句，so that连接因果。",
+    "steps": [
+      {
+        "label": "纯净主干",
+        "chinese": "首要原因是出生率下降。",
+        "hint": "The first reason is that the birth rate is decreasing",
+        "correctAnswer": "The first reason is that the birth rate is decreasing.",
+        "keywords": [
+          "The first reason (首要原因)",
+          "birth rate (出生率)",
+          "decreasing (下降)"
+        ]
+      },
+      {
+        "label": "添加修饰语",
+        "chinese": "【学生行为不良的】首要原因是出生率【持续】下降。",
+        "hint": "for students' poor behavior作reason的后置定语",
+        "correctAnswer": "The first reason for students' poor behavior is that the birth rate is decreasing.",
+        "keywords": [
+          "poor behavior (行为不良)",
+          "for (对于)"
+        ]
+      },
+      {
+        "label": "添加结果状语从句",
+        "chinese": "学生行为不良的首要原因是出生率持续下降，【导致家庭规模缩小、子女数量减少】。",
+        "hint": "so that引导结果状语从句",
+        "correctAnswer": "The first reason for students' poor behavior is that the birth rate is decreasing so that families are becoming smaller with fewer children.",
+        "keywords": [
+          "so that (导致/以至于)",
+          "becoming smaller (缩小)",
+          "fewer children (子女减少)"
+        ]
+      }
+    ]
+  },
+  {
+    "id": 103,
+    "category": "教育学习类",
+    "fullChinese": "首先，要求学生穿校服有助于减轻同伴压力。",
+    "finalEnglish": "First, requiring students to wear uniforms helps reduce peer pressure.",
+    "logicExplanation": "动名词作主语+谓语+宾语，过渡词表列举首位。",
+    "steps": [
+      {
+        "label": "纯净主干",
+        "chinese": "要求穿校服有助于减轻压力。",
+        "hint": "Requiring students to wear uniforms helps reduce peer pressure",
+        "correctAnswer": "Requiring students to wear uniforms helps reduce peer pressure.",
+        "keywords": [
+          "requiring (要求)",
+          "helps reduce (有助于减轻)",
+          "peer pressure (同伴压力)"
+        ]
+      },
+      {
+        "label": "添加过渡词",
+        "chinese": "【首先】，要求学生穿校服有助于减轻同伴压力。",
+        "hint": "First表列举的第一点",
+        "correctAnswer": "First, requiring students to wear uniforms helps reduce peer pressure.",
+        "keywords": [
+          "First (首先)"
+        ]
+      }
+    ]
+  },
+  {
+    "id": 106,
+    "category": "教育学习类",
+    "fullChinese": "此外，校服制度还能保障校园安全。",
+    "finalEnglish": "In addition, the rule of wearing school uniforms keeps the campus safe.",
+    "logicExplanation": "简单主谓宾补结构，过渡词表递进。",
+    "steps": [
+      {
+        "label": "纯净主干",
+        "chinese": "校服制度保障校园安全。",
+        "hint": "The rule of wearing school uniforms keeps the campus safe",
+        "correctAnswer": "The rule of wearing school uniforms keeps the campus safe.",
+        "keywords": [
+          "keeps...safe (保障安全)",
+          "the campus (校园)",
+          "the rule (制度)"
+        ]
+      },
+      {
+        "label": "添加过渡词",
+        "chinese": "【此外】，校服制度【还能】保障校园安全。",
+        "hint": "In addition表递进",
+        "correctAnswer": "In addition, the rule of wearing school uniforms keeps the campus safe.",
+        "keywords": [
+          "In addition (此外)"
+        ]
+      }
+    ]
+  },
+  {
+    "id": 108,
+    "category": "教育学习类",
+    "fullChinese": "这些孩子往往被过度溺爱。",
+    "finalEnglish": "These children are often spoilt.",
+    "logicExplanation": "极简主系表结构，被动语态。",
+    "steps": [
+      {
+        "label": "纯净主干",
+        "chinese": "这些孩子被溺爱。",
+        "hint": "These children are spoilt",
+        "correctAnswer": "These children are spoilt.",
+        "keywords": [
+          "are spoilt (被溺爱)",
+          "These children (这些孩子)"
+        ]
+      },
+      {
+        "label": "添加修饰语",
+        "chinese": "这些孩子【往往】【被过度】溺爱。",
+        "hint": "often表往往",
+        "correctAnswer": "These children are often spoilt.",
+        "keywords": [
+          "often (往往)"
+        ]
+      }
+    ]
+  },
+  {
+    "id": 112,
+    "category": "教育学习类",
+    "fullChinese": "某些地区的危险与荒野环境对普通人而言构成了天然屏障，这正是《人与野》这类电视节目广受欢迎的原因。",
+    "finalEnglish": "The danger and wilderness of some places set up a barrier for ordinary people, which is the reason why TV programs like Man vs Wild enjoy a great popularity.",
+    "logicExplanation": "主谓宾结构+非限制性定语从句（含why引导的定语从句嵌套）。",
+    "steps": [
+      {
+        "label": "纯净主干",
+        "chinese": "危险与荒野构成了屏障。",
+        "hint": "The danger and wilderness set up a barrier",
+        "correctAnswer": "The danger and wilderness set up a barrier.",
+        "keywords": [
+          "danger (危险)",
+          "wilderness (荒野)",
+          "set up a barrier (构成屏障)"
+        ]
+      },
+      {
+        "label": "添加修饰语",
+        "chinese": "【某些地区的】危险与荒野【环境】【对普通人而言】构成了【天然】屏障。",
+        "hint": "of some places作后置定语，for ordinary people表对普通人而言",
+        "correctAnswer": "The danger and wilderness of some places set up a barrier for ordinary people.",
+        "keywords": [
+          "of some places (某些地区的)",
+          "for ordinary people (对普通人而言)"
+        ]
+      },
+      {
+        "label": "添加定语从句",
+        "chinese": "某些地区的危险与荒野环境对普通人而言构成了天然屏障，【这正是《人与野》这类电视节目广受欢迎的原因】。",
+        "hint": "which引导非限制性定语从句",
+        "correctAnswer": "The danger and wilderness of some places set up a barrier for ordinary people, which is the reason why TV programs like Man vs Wild enjoy a great popularity.",
+        "keywords": [
+          "which (这)",
+          "the reason why (…的原因)",
+          "enjoy a great popularity (广受欢迎)"
+        ]
+      }
+    ]
+  },
+  {
+    "id": 113,
+    "category": "教育学习类",
+    "fullChinese": "有些旅游目的地游客可能遭遇绑架或抢劫。",
+    "finalEnglish": "There are some destinations where tourists may be kidnapped or robbed.",
+    "logicExplanation": "There be句型+定语从句，where引导地点定语从句。",
+    "steps": [
+      {
+        "label": "纯净主干",
+        "chinese": "有些目的地存在。",
+        "hint": "There are some destinations",
+        "correctAnswer": "There are some destinations.",
+        "keywords": [
+          "There are (有些/存在)",
+          "destinations (目的地)"
+        ]
+      },
+      {
+        "label": "添加定语从句",
+        "chinese": "【有些旅游目的地】【游客可能遭遇绑架或抢劫】。",
+        "hint": "where引导定语从句修饰destinations",
+        "correctAnswer": "There are some destinations where tourists may be kidnapped or robbed.",
+        "keywords": [
+          "where (在那些地方)",
+          "kidnapped (绑架)",
+          "robbed (抢劫)"
+        ]
+      }
+    ]
+  },
+  {
+    "id": 114,
+    "category": "教育学习类",
+    "fullChinese": "而徒步旅行者则极易感染疟疾或禽流感等疾病。",
+    "finalEnglish": "There are also places where trekkers are highly vulnerable to diseases, like malaria or bird flu.",
+    "logicExplanation": "There be句型+定语从句+举例，also承接上文。",
+    "steps": [
+      {
+        "label": "纯净主干",
+        "chinese": "有些地方徒步旅行者极易感染疾病。",
+        "hint": "There are also places where trekkers are vulnerable to diseases",
+        "correctAnswer": "There are also places where trekkers are vulnerable to diseases.",
+        "keywords": [
+          "also (也/还)",
+          "trekkers (徒步旅行者)",
+          "vulnerable to (极易感染)"
+        ]
+      },
+      {
+        "label": "添加举例",
+        "chinese": "有些地方徒步旅行者极易感染疾病，【例如疟疾或禽流感】。",
+        "hint": "like表例如",
+        "correctAnswer": "There are also places where trekkers are highly vulnerable to diseases, like malaria or bird flu.",
+        "keywords": [
+          "like (例如)",
+          "malaria (疟疾)",
+          "bird flu (禽流感)"
+        ]
+      }
+    ]
+  }
+]

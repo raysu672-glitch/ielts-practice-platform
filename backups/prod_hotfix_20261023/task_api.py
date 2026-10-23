@@ -1,0 +1,5274 @@
+"""Task system API helpers (MVP).
+
+Caller enforces session identity. All dates use Asia/Shanghai calendar days.
+"""
+
+from __future__ import annotations
+
+import json
+import re
+import sqlite3
+from collections import OrderedDict
+from datetime import datetime, timedelta, timezone
+from pathlib import Path
+from typing import Any, Optional
+from zoneinfo import ZoneInfo
+
+SHANGHAI = ZoneInfo("Asia/Shanghai")
+DEFAULT_WEEKDAY_MINUTES = 40
+DEFAULT_WEEKEND_MINUTES = 90
+DEFAULT_UNITS_PER_DAY = 1
+# 按分钟装箱（time_budget）已下线：装箱只按「每科每日单元配额」（units_per_day）。
+# PACK_MODE_TIME_BUDGET 只作历史值保留，用于读旧档案 / 老数据兼容判断，不再可选。
+PACK_MODE_TIME_BUDGET = "time_budget"
+PACK_MODE_UNITS_PER_DAY = "units_per_day"
+PACK_MODES = (PACK_MODE_UNITS_PER_DAY,)
+UNITS_PREVIEW_DAYS = 14
+GENDU_MODULE = "listening_p4_speed"
+GENDU_PASS_SCORE = 70
+GENDU_DAILY_PRACTICES = 3
+# 当日计次门槛：低于此分视为静音/走过场，不计入「练满 3 次」
+GENDU_COUNT_MIN_SCORE = 30
+GENDU_ASSIGNMENT_DAYS = 30  # starts_on .. starts_on+29 inclusive
+# 阶段测**不限重测次数**（2026-09-20 决议）：学生想考几次就考几次，当天可连续重考。
+# 原先的「每天 2 次」上限已删除——它把「考不过」的学生直接锁死：既过不了、又不让再考。
+#
+# 保留下来的只有「考太多次还没过 → 请助教介入」的提示线，纯展示用，不做任何拦截。
+# 达到这条线时，教师端「待通过阶段测」列会显示「N 项 多次未过」徽章。
+STAGE_TEST_ATTENTION_FAILS = 3
+
+READING_SETS = [
+    (1, "入门基础篇"),
+    (2, "学术核心篇"),
+    (3, "阅读高频篇"),
+    (4, "动词进阶篇"),
+    (5, "形容词扩展篇"),
+    (6, "名词辨析篇"),
+    (7, "副词强化篇"),
+    (8, "因果逻辑篇"),
+    (9, "对比转折篇"),
+    (10, "程度修饰篇"),
+    (11, "时间序列篇"),
+    (12, "数量比例篇"),
+    (13, "情感态度篇"),
+    (14, "科技学术篇"),
+    (15, "环境生态篇"),
+    (16, "社会文化篇"),
+    (17, "经济商业篇"),
+    (18, "教育学习篇"),
+    (19, "健康医疗篇"),
+    (20, "法律政治篇"),
+    (21, "艺术媒体篇"),
+    (22, "自然科学篇"),
+    (23, "综合提升篇"),
+]
+
+# 听力两个词库的「每组多少词」（页面按这个口径切组）。
+DICTATION_WORDS_PER_GROUP = 20
+LISTENING_BASIC_WORDS_PER_GROUP = 50
+# 词库读不出来时的兜底组数（正常不会走到）。
+#
+# 组数必须在 _REPO_ROOT 定义之后按页面里 ALL_WORDS 的**实际条数**算，
+# 不能再硬编码：2026-09-02 的内容治理把听力1000词从 1000 条去重成 949 条
+# （48 组），而单元数还按 50 建，dictation_u49/u50 成了空组——学生被排到后
+# 页面只有「第 1 / 0 个单词」，任务永远做不完，天天累积。
+_DICTATION_GROUP_FALLBACK = 48
+_LISTENING_BASIC_GROUP_FALLBACK = 41
+LISTENING_SYNONYM_QUESTION_COUNT = 120
+LISTENING_SYNONYM_PER_UNIT = 5
+SENTENCE_COUNT = 60
+SENTENCE_PER_UNIT = 5
+SPEAKING_P2_APPLY_QUESTION_COUNT = 56
+SPEAKING_P2_APPLY_PER_UNIT = 5
+
+WRITING_PHRASE_CATEGORIES = [
+    ("__foundation__", "基础必背"),
+    ("小作文词伙一", "小作文词伙一"),
+    ("小作文词伙二", "小作文词伙二"),
+    ("小作文词伙三", "小作文词伙三"),
+    ("暴力犯罪类", "暴力犯罪类"),
+    ("家庭旅游类", "家庭旅游类"),
+    ("健康饮食类", "健康饮食类"),
+    ("媒体广告类", "媒体广告类"),
+    ("能源环保类", "能源环保类"),
+    ("品格教育类", "品格教育类"),
+    ("人文历史类", "人文历史类"),
+    ("商业职场类", "商业职场类"),
+    ("网络科技类", "网络科技类"),
+    ("政府社会类", "政府社会类"),
+]
+WRITING_PHRASE_PER_UNIT = 10
+_PHRASE_ITEM_RE = re.compile(
+    r"\{\s*zh:\s*(['\"])((?:\\.|(?!\1).)*)\1\s*,\s*en:\s*(['\"])((?:\\.|(?!\3).)*)\3\s*\}",
+    re.S,
+)
+SPEAKING_COMPLEX_PATTERNS = [f"p{i}" for i in range(1, 8)]
+SPEAKING_COMPLEX_ADV = [f"a{i}" for i in range(1, 11)]
+SPEAKING_P2_MATERIALS = [
+    ("yumeng", "朋友·雨萌"),
+    ("sun", "明星·孙颖莎"),
+    ("movie", "影视·夏洛特烦恼"),
+    ("badminton", "运动·羽毛球"),
+    ("bear", "动物·熊"),
+    ("basketball", "运动·篮球"),
+    ("tianchi", "地点·天池"),
+    ("robot", "科技·机器人"),
+]
+LISTENING_GENDU_LESSONS = [
+    ("p1", "C4T1S1", "学校出行"),
+    ("p1", "C4T2S1", "学生住宿"),
+    ("p1", "C4T3S1", "合租搬家"),
+    ("p1", "C4T4S1", "假期安排"),
+    ("p1", "C5T1S1", "旅行咨询"),
+    ("p1", "C5T2S1", "大学图书馆"),
+    ("p1", "C5T3S1", "旅馆咨询"),
+    ("p1", "C5T4S1", "住宿登记"),
+    ("p1", "C6T1S1", "体育中心"),
+    ("p1", "C6T2S1", "博物馆参观"),
+    ("p1", "C6T3S1", "开银行账户"),
+    ("p1", "C6T4S1", "会议预订"),
+    ("p4", "C4T1S4", "城市景观"),
+    ("p4", "C4T2S4", "儿童语言"),
+    ("p4", "C4T3S4", "鲨鱼"),
+    ("p4", "C4T4S4", "斯特拉迪瓦里小提琴"),
+    ("p4", "C5T1S4", "职业态度"),
+    ("p4", "C5T2S4", "绿色产品"),
+    ("p4", "C5T3S4", "电影研究"),
+    ("p4", "C5T4S4", "南极"),
+    ("p4", "C6T1S4", "气候与冰"),
+    ("p4", "C6T2S4", "伊卡洛斯与飞行"),
+    ("p4", "C6T3S4", "地图史"),
+    ("p4", "C6T4S4", "亚洲狮"),
+]
+_REPO_ROOT = Path(__file__).resolve().parents[1]
+
+
+def _count_listening_words(html_name: str) -> int:
+    """读听力页面内嵌的 ALL_WORDS 条数（与线上页面同一份数据）。"""
+    path = _REPO_ROOT / "sources" / "tinglidanciceshi" / html_name
+    try:
+        text = path.read_text(encoding="utf-8")
+    except OSError:
+        return 0
+    m = re.search(r"const\s+ALL_WORDS\s*=\s*", text)
+    if not m:
+        return 0
+    start = text.index("[", m.end())
+    depth, in_str, esc = 0, False, False
+    for i in range(start, len(text)):
+        ch = text[i]
+        if in_str:
+            if esc:
+                esc = False
+            elif ch == "\\":
+                esc = True
+            elif ch == '"':
+                in_str = False
+            continue
+        if ch == '"':
+            in_str = True
+        elif ch == "[":
+            depth += 1
+        elif ch == "]":
+            depth -= 1
+            if depth == 0:
+                try:
+                    return len(json.loads(text[start : i + 1]))
+                except json.JSONDecodeError:
+                    return 0
+    return 0
+
+
+def _listening_group_count(html_name: str, per_group: int, fallback: int) -> int:
+    """词库条数 → 组数（向上取整）。词库读不出来时用兜底值，不让模块整体没单元。"""
+    n = _count_listening_words(html_name)
+    if n <= 0 or per_group <= 0:
+        return fallback
+    return -(-n // per_group)
+
+
+DICTATION_GROUP_COUNT = _listening_group_count(
+    "listening.html", DICTATION_WORDS_PER_GROUP, _DICTATION_GROUP_FALLBACK
+)
+LISTENING_BASIC_GROUP_COUNT = _listening_group_count(
+    "listening_basic.html", LISTENING_BASIC_WORDS_PER_GROUP, _LISTENING_BASIC_GROUP_FALLBACK
+)
+
+EXPECTED_TASK_UNIT_COUNTS = {
+    "reading_synonym": 23,
+    "dictation": DICTATION_GROUP_COUNT,
+    "listening_basic": LISTENING_BASIC_GROUP_COUNT,
+    "listening_synonym": 24,
+    "sentence": 12,
+    "writing_phrase": 28,
+    "writing_translate": 23,
+    "listening_p4_speed": 24,
+    "speaking_complex": 17,
+    "speaking_p1": 24,
+    "speaking_p2_material": 8,
+    "speaking_p2_apply": 12,
+}
+
+
+def _task_units_seed_complete(conn: sqlite3.Connection) -> bool:
+    rows = conn.execute(
+        """
+        SELECT module_type, COUNT(*) AS c FROM task_units
+        WHERE is_active=1
+        GROUP BY module_type
+        """
+    ).fetchall()
+    got = {r["module_type"]: int(r["c"]) for r in rows}
+    for mt, n in EXPECTED_TASK_UNIT_COUNTS.items():
+        if got.get(mt, 0) < n:
+            return False
+    return True
+
+
+def _has_excess_units(conn: sqlite3.Connection) -> bool:
+    """是否有 unit_no 超出数据源实际组数的启用单元（如历史遗留的 dictation_u49/u50）。"""
+    rows = conn.execute(
+        """
+        SELECT module_type, MAX(unit_no) AS top FROM task_units
+        WHERE is_active=1 GROUP BY module_type
+        """
+    ).fetchall()
+    for r in rows:
+        n = EXPECTED_TASK_UNIT_COUNTS.get(r["module_type"])
+        if n is not None and int(r["top"] or 0) > n:
+            return True
+    return False
+
+
+def _retire_excess_units(conn: sqlite3.Connection) -> dict[str, int]:
+    """停用「超出词库/题库实际范围」的单元，并清掉学生排课里指向它们的僵尸任务。
+
+    成因见文件顶部注释：词库被治理后组数变少，单元数没跟着改，多出来的单元
+    在页面上是空组，学生点进去做不完，每天仍被重新排进任务列表。
+    """
+    stats = {"units": 0, "plan_items": 0, "draft": 0, "daily_tasks": 0}
+    dead: list[str] = []
+    for mt, n in EXPECTED_TASK_UNIT_COUNTS.items():
+        rows = conn.execute(
+            "SELECT unit_id FROM task_units WHERE module_type=? AND unit_no>? AND is_active=1",
+            (mt, n),
+        ).fetchall()
+        dead.extend(r["unit_id"] for r in rows)
+    if not dead:
+        return stats
+
+    marks = ",".join("?" * len(dead))
+    cur = conn.execute(f"UPDATE task_units SET is_active=0 WHERE unit_id IN ({marks})", dead)
+    stats["units"] = cur.rowcount or 0
+    cur = conn.execute(f"DELETE FROM plan_items_draft WHERE unit_id IN ({marks})", dead)
+    stats["draft"] = cur.rowcount or 0
+    cur = conn.execute(
+        f"UPDATE plan_items SET status='removed' WHERE unit_id IN ({marks}) AND status='pending'",
+        dead,
+    )
+    stats["plan_items"] = cur.rowcount or 0
+    cur = conn.execute(
+        f"""
+        DELETE FROM daily_tasks
+        WHERE state IN ('todo', 'in_progress')
+          AND plan_item_id IN (SELECT id FROM plan_items WHERE unit_id IN ({marks}))
+        """,
+        dead,
+    )
+    stats["daily_tasks"] = cur.rowcount or 0
+    conn.commit()
+    return stats
+
+
+def china_ymd(now: Optional[datetime] = None) -> str:
+    dt = now or datetime.now(timezone.utc)
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    return dt.astimezone(SHANGHAI).strftime("%Y-%m-%d")
+
+
+def is_weekend(ymd: str) -> bool:
+    d = datetime.strptime(ymd, "%Y-%m-%d").date()
+    return d.weekday() >= 5
+
+
+def _prev_ymd(ymd: str) -> str:
+    """``ymd`` 的前一天（看板回看「昨天」用）。"""
+    d = datetime.strptime(ymd, "%Y-%m-%d").date()
+    return (d - timedelta(days=1)).strftime("%Y-%m-%d")
+
+
+def default_effective_from(now: Optional[datetime] = None) -> str:
+    """Default pending/draft effective date: tomorrow (Asia/Shanghai)."""
+    today = datetime.strptime(china_ymd(now), "%Y-%m-%d").date()
+    return (today + timedelta(days=1)).strftime("%Y-%m-%d")
+
+
+def normalize_effective_from(raw: Any, *, now: Optional[datetime] = None) -> str:
+    today = china_ymd(now)
+    if raw is None or raw == "":
+        return default_effective_from(now)
+    if not isinstance(raw, str):
+        raise ValueError("生效日期格式应为 YYYY-MM-DD")
+    try:
+        datetime.strptime(raw, "%Y-%m-%d")
+    except ValueError as exc:
+        raise ValueError("生效日期格式应为 YYYY-MM-DD") from exc
+    if raw < today:
+        raise ValueError("生效日期不能早于今天")
+    return raw
+
+
+def _row_to_dict(row: Optional[sqlite3.Row]) -> Optional[dict[str, Any]]:
+    if row is None:
+        return None
+    return dict(row)
+
+
+def ensure_task_tables(conn: sqlite3.Connection) -> None:
+    conn.executescript(
+        """
+        CREATE TABLE IF NOT EXISTS task_units (
+            unit_id TEXT PRIMARY KEY,
+            module_type TEXT NOT NULL,
+            parent_module TEXT NOT NULL,
+            unit_no INTEGER NOT NULL,
+            title TEXT NOT NULL,
+            content_ref TEXT NOT NULL DEFAULT '{}',
+            est_minutes INTEGER NOT NULL DEFAULT 15,
+            content_version TEXT NOT NULL DEFAULT '1',
+            completion_rule TEXT NOT NULL DEFAULT '',
+            study_url TEXT NOT NULL DEFAULT '',
+            test_url TEXT NOT NULL DEFAULT '',
+            is_active INTEGER NOT NULL DEFAULT 1,
+            updated_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+        );
+
+        CREATE TABLE IF NOT EXISTS student_time_profiles (
+            student_id TEXT PRIMARY KEY REFERENCES students(student_id),
+            weekday_minutes INTEGER NOT NULL DEFAULT 40,
+            weekend_minutes INTEGER NOT NULL DEFAULT 90,
+            stage_test_every_n INTEGER NOT NULL DEFAULT 3,
+            pack_mode TEXT NOT NULL DEFAULT 'units_per_day',
+            pending_weekday_minutes INTEGER,
+            pending_weekend_minutes INTEGER,
+            pending_stage_test_every_n INTEGER,
+            pending_pack_mode TEXT,
+            updated_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+        );
+
+        CREATE TABLE IF NOT EXISTS student_module_daily_quota (
+            student_id TEXT NOT NULL REFERENCES students(student_id),
+            module_type TEXT NOT NULL,
+            weekday_units INTEGER NOT NULL DEFAULT 1,
+            weekend_units INTEGER NOT NULL DEFAULT 1,
+            pending_weekday_units INTEGER,
+            pending_weekend_units INTEGER,
+            updated_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+            PRIMARY KEY (student_id, module_type)
+        );
+
+        CREATE TABLE IF NOT EXISTS plan_items (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            student_id TEXT NOT NULL REFERENCES students(student_id),
+            sort_order INTEGER NOT NULL DEFAULT 0,
+            item_type TEXT NOT NULL CHECK (item_type IN ('study', 'test')),
+            unit_id TEXT,
+            module_type TEXT NOT NULL DEFAULT '',
+            test_unit_ids TEXT NOT NULL DEFAULT '[]',
+            test_title TEXT NOT NULL DEFAULT '',
+            est_minutes INTEGER,
+            status TEXT NOT NULL DEFAULT 'pending'
+                CHECK (status IN ('pending', 'paused', 'removed')),
+            study_completed INTEGER NOT NULL DEFAULT 0,
+            study_completed_version TEXT,
+            test_passed INTEGER NOT NULL DEFAULT 0,
+            test_attempt_count_today INTEGER NOT NULL DEFAULT 0,
+            test_attempt_ymd TEXT,
+            need_refresh INTEGER NOT NULL DEFAULT 0,
+            restudy_count INTEGER NOT NULL DEFAULT 0,
+            refresh_reason TEXT,
+            last_completed_at TEXT,
+            created_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+            updated_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+        );
+        CREATE INDEX IF NOT EXISTS idx_plan_items_student
+            ON plan_items(student_id, sort_order);
+
+        CREATE TABLE IF NOT EXISTS plan_items_draft (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            student_id TEXT NOT NULL REFERENCES students(student_id),
+            sort_order INTEGER NOT NULL DEFAULT 0,
+            item_type TEXT NOT NULL CHECK (item_type IN ('study', 'test')),
+            unit_id TEXT,
+            module_type TEXT NOT NULL DEFAULT '',
+            test_unit_ids TEXT NOT NULL DEFAULT '[]',
+            test_title TEXT NOT NULL DEFAULT '',
+            est_minutes INTEGER,
+            status TEXT NOT NULL DEFAULT 'pending'
+                CHECK (status IN ('pending', 'paused', 'removed')),
+            created_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+            updated_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+        );
+        CREATE INDEX IF NOT EXISTS idx_plan_items_draft_student
+            ON plan_items_draft(student_id, sort_order);
+
+        CREATE TABLE IF NOT EXISTS daily_tasks (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            student_id TEXT NOT NULL REFERENCES students(student_id),
+            task_date TEXT NOT NULL,
+            plan_item_id INTEGER NOT NULL REFERENCES plan_items(id),
+            priority_class TEXT NOT NULL DEFAULT 'fresh'
+                CHECK (priority_class IN ('content_refresh', 'carry_over', 'fresh')),
+            sort_in_day INTEGER NOT NULL DEFAULT 0,
+            state TEXT NOT NULL DEFAULT 'todo'
+                CHECK (state IN ('todo', 'in_progress', 'done_study',
+                                 'done_pass', 'done_fail')),
+            locked INTEGER NOT NULL DEFAULT 1,
+            forced INTEGER NOT NULL DEFAULT 0,
+            created_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+            UNIQUE(student_id, task_date, plan_item_id)
+        );
+        CREATE INDEX IF NOT EXISTS idx_daily_tasks_student_date
+            ON daily_tasks(student_id, task_date);
+
+        CREATE TABLE IF NOT EXISTS plan_draft_meta (
+            student_id TEXT PRIMARY KEY REFERENCES students(student_id),
+            saved_ymd TEXT NOT NULL,
+            effective_from TEXT,
+            updated_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+        );
+
+        CREATE TABLE IF NOT EXISTS task_unit_progress (
+            student_id TEXT NOT NULL,
+            plan_item_id INTEGER NOT NULL,
+            unit_id TEXT NOT NULL,
+            scope_done INTEGER NOT NULL DEFAULT 0,
+            scope_total INTEGER NOT NULL DEFAULT 0,
+            scope_keys TEXT NOT NULL DEFAULT '[]',
+            updated_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+            PRIMARY KEY (student_id, plan_item_id)
+        );
+
+        CREATE TABLE IF NOT EXISTS student_plan_pause (
+            student_id TEXT PRIMARY KEY REFERENCES students(student_id),
+            pause_from TEXT NOT NULL,
+            resume_on TEXT NOT NULL,
+            reason TEXT NOT NULL,
+            created_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+            updated_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+        );
+
+        CREATE TABLE IF NOT EXISTS student_gendu_assignment (
+            student_id TEXT PRIMARY KEY REFERENCES students(student_id),
+            start_unit_id TEXT NOT NULL,
+            current_unit_id TEXT NOT NULL,
+            starts_on TEXT NOT NULL,
+            ends_on TEXT NOT NULL,
+            passed_current INTEGER NOT NULL DEFAULT 0,
+            created_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+            updated_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+        );
+
+        CREATE TABLE IF NOT EXISTS gendu_practice_events (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            student_id TEXT NOT NULL,
+            unit_id TEXT NOT NULL,
+            plan_item_id INTEGER,
+            task_date TEXT NOT NULL,
+            score REAL NOT NULL,
+            created_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+        );
+        CREATE INDEX IF NOT EXISTS idx_gendu_practice_student_date
+            ON gendu_practice_events(student_id, task_date);
+        """
+    )
+    _migrate_task_effective_columns(conn)
+    conn.commit()
+
+
+def _migrate_task_effective_columns(conn: sqlite3.Connection) -> None:
+    tables = {
+        r[0]
+        for r in conn.execute(
+            "SELECT name FROM sqlite_master WHERE type='table'"
+        ).fetchall()
+    }
+    if "student_time_profiles" in tables:
+        cols = {
+            r[1]
+            for r in conn.execute("PRAGMA table_info(student_time_profiles)").fetchall()
+        }
+        if "pending_effective_from" not in cols:
+            conn.execute(
+                "ALTER TABLE student_time_profiles ADD COLUMN pending_effective_from TEXT"
+            )
+        if "pack_mode" not in cols:
+            conn.execute(
+                "ALTER TABLE student_time_profiles ADD COLUMN pack_mode TEXT NOT NULL DEFAULT 'units_per_day'"
+            )
+        if "pending_pack_mode" not in cols:
+            conn.execute(
+                "ALTER TABLE student_time_profiles ADD COLUMN pending_pack_mode TEXT"
+            )
+    if "student_module_daily_quota" not in tables:
+        conn.execute(
+            """
+            CREATE TABLE student_module_daily_quota (
+                student_id TEXT NOT NULL REFERENCES students(student_id),
+                module_type TEXT NOT NULL,
+                weekday_units INTEGER NOT NULL DEFAULT 1,
+                weekend_units INTEGER NOT NULL DEFAULT 1,
+                pending_weekday_units INTEGER,
+                pending_weekend_units INTEGER,
+                updated_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+                PRIMARY KEY (student_id, module_type)
+            )
+            """
+        )
+    if "plan_draft_meta" in tables:
+        cols = {
+            r[1] for r in conn.execute("PRAGMA table_info(plan_draft_meta)").fetchall()
+        }
+        if "effective_from" not in cols:
+            conn.execute(
+                "ALTER TABLE plan_draft_meta ADD COLUMN effective_from TEXT"
+            )
+    if "student_plan_pause" not in tables:
+        conn.execute(
+            """
+            CREATE TABLE student_plan_pause (
+                student_id TEXT PRIMARY KEY REFERENCES students(student_id),
+                pause_from TEXT NOT NULL,
+                resume_on TEXT NOT NULL,
+                reason TEXT NOT NULL,
+                created_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+                updated_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+            )
+            """
+        )
+    if "student_gendu_assignment" not in tables:
+        conn.execute(
+            """
+            CREATE TABLE student_gendu_assignment (
+                student_id TEXT PRIMARY KEY REFERENCES students(student_id),
+                start_unit_id TEXT NOT NULL,
+                current_unit_id TEXT NOT NULL,
+                starts_on TEXT NOT NULL,
+                ends_on TEXT NOT NULL,
+                passed_current INTEGER NOT NULL DEFAULT 0,
+                created_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+                updated_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+            )
+            """
+        )
+    if "gendu_practice_events" not in tables:
+        conn.execute(
+            """
+            CREATE TABLE gendu_practice_events (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                student_id TEXT NOT NULL,
+                unit_id TEXT NOT NULL,
+                plan_item_id INTEGER,
+                task_date TEXT NOT NULL,
+                score REAL NOT NULL,
+                created_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+            )
+            """
+        )
+        conn.execute(
+            """
+            CREATE INDEX IF NOT EXISTS idx_gendu_practice_student_date
+                ON gendu_practice_events(student_id, task_date)
+            """
+        )
+    if "daily_tasks" in tables:
+        dt_cols = {
+            r[1] for r in conn.execute("PRAGMA table_info(daily_tasks)").fetchall()
+        }
+        if "gendu_practice_count" not in dt_cols:
+            conn.execute(
+                "ALTER TABLE daily_tasks ADD COLUMN gendu_practice_count INTEGER NOT NULL DEFAULT 0"
+            )
+        if "gendu_best_score" not in dt_cols:
+            conn.execute(
+                "ALTER TABLE daily_tasks ADD COLUMN gendu_best_score REAL"
+            )
+    if "plan_items" in tables:
+        pi_cols = {r[1] for r in conn.execute("PRAGMA table_info(plan_items)").fetchall()}
+        # 「测不过 → 重学」已自动触发过几次（2026-09-20）。用来封顶，避免
+        # 「考不过→重学→再考不过→再重学」无限循环，把清单卡在同一批单元上。
+        if "restudy_count" not in pi_cols:
+            conn.execute(
+                "ALTER TABLE plan_items ADD COLUMN restudy_count INTEGER NOT NULL DEFAULT 0"
+            )
+        # need_refresh 的「原因」：'restudy' = 阶段测没过要重学；其它/NULL = 换题内容更新。
+        # 两者共用 need_refresh 这一个开关，但学生端文案不同（「需重学」/「内容已更新」）。
+        if "refresh_reason" not in pi_cols:
+            conn.execute("ALTER TABLE plan_items ADD COLUMN refresh_reason TEXT")
+    if "task_unit_progress" in tables:
+        prog_cols = {
+            r[1] for r in conn.execute("PRAGMA table_info(task_unit_progress)").fetchall()
+        }
+        # 记下具体做完了哪些句/题。只存一个数字的话，学生退出再进会从 0 重报，
+        # 把已经做过的进度盖掉，单元永远凑不满、任务交不上去。
+        if "scope_keys" not in prog_cols:
+            conn.execute(
+                "ALTER TABLE task_unit_progress ADD COLUMN scope_keys TEXT NOT NULL DEFAULT '[]'"
+            )
+
+
+def _draft_meta_effective_from(meta: Optional[dict[str, Any]], today: str) -> Optional[str]:
+    if not meta:
+        return None
+    if meta.get("effective_from"):
+        return str(meta["effective_from"])
+    saved = meta.get("saved_ymd")
+    if not saved:
+        return default_effective_from()
+    if saved < today:
+        return today
+    saved_day = datetime.strptime(saved, "%Y-%m-%d").date()
+    return (saved_day + timedelta(days=1)).strftime("%Y-%m-%d")
+
+
+def _profile_pending_due(row: dict[str, Any], task_date: str) -> bool:
+    has_pending = any(
+        row.get(k) is not None
+        for k in (
+            "pending_weekday_minutes",
+            "pending_weekend_minutes",
+            "pending_stage_test_every_n",
+            "pending_pack_mode",
+        )
+    )
+    if not has_pending and not _quotas_have_pending(row.get("module_quotas") or []):
+        return False
+    eff = row.get("pending_effective_from")
+    if eff:
+        return str(eff) <= task_date
+    updated = (row.get("updated_at") or "")[:10]
+    if updated and updated >= task_date:
+        return False
+    return True
+
+
+def _units_or_default(value: Any) -> int:
+    """配额取值：None 才回落到默认，**0 是合法配额**（当天不排这科）。
+
+    不能用 `value or DEFAULT`：0 是 falsy，会被静默改成 1，于是
+        ① `_quotas_have_pending` 判不出「0 → 1」的变更，老师把某科从
+           「仅周末」改回「周中也排」时改不动；
+        ② `_serialize_quota_rows` 认为排程没变，当天任务不重建。
+    """
+    if value is None:
+        return DEFAULT_UNITS_PER_DAY
+    return max(0, int(value))
+
+
+def _quotas_have_pending(quotas: list[dict[str, Any]]) -> bool:
+    for q in quotas:
+        if q.get("pending_weekday_units") is not None:
+            if int(q["pending_weekday_units"]) != _units_or_default(q.get("weekday_units")):
+                return True
+        if q.get("pending_weekend_units") is not None:
+            if int(q["pending_weekend_units"]) != _units_or_default(q.get("weekend_units")):
+                return True
+    return False
+
+
+def _pending_effective_from_summary(
+    conn: sqlite3.Connection, student_id: str, *, pending_plan_change: bool
+) -> Optional[str]:
+    if not pending_plan_change:
+        return None
+    today = china_ymd()
+    dates: list[str] = []
+    draft_n = conn.execute(
+        "SELECT COUNT(*) AS c FROM plan_items_draft WHERE student_id=?", (student_id,)
+    ).fetchone()["c"]
+    if draft_n:
+        meta = conn.execute(
+            "SELECT saved_ymd, effective_from FROM plan_draft_meta WHERE student_id=?",
+            (student_id,),
+        ).fetchone()
+        eff = _draft_meta_effective_from(dict(meta) if meta else None, today)
+        if eff:
+            dates.append(eff)
+    tp = ensure_time_profile(conn, student_id)
+    if any(
+        tp.get(k) is not None
+        for k in (
+            "pending_weekday_minutes",
+            "pending_weekend_minutes",
+            "pending_stage_test_every_n",
+            "pending_pack_mode",
+        )
+    ) or _quotas_have_pending(tp.get("module_quotas") or []):
+        eff = tp.get("pending_effective_from")
+        if eff:
+            dates.append(str(eff))
+        else:
+            dates.append(default_effective_from())
+    return min(dates) if dates else default_effective_from()
+
+
+def _upsert_task_unit(
+    conn: sqlite3.Connection,
+    *,
+    unit_id: str,
+    module_type: str,
+    parent_module: str,
+    unit_no: int,
+    title: str,
+    content_ref: dict[str, Any],
+    est_minutes: int,
+    completion_rule: str,
+    study_url: str,
+) -> None:
+    conn.execute(
+        """
+        INSERT INTO task_units (
+            unit_id, module_type, parent_module, unit_no, title,
+            content_ref, est_minutes, content_version, completion_rule,
+            study_url, is_active
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, '1', ?, ?, 1)
+        ON CONFLICT(unit_id) DO UPDATE SET
+            module_type=excluded.module_type,
+            parent_module=excluded.parent_module,
+            unit_no=excluded.unit_no,
+            title=excluded.title,
+            content_ref=excluded.content_ref,
+            est_minutes=excluded.est_minutes,
+            completion_rule=excluded.completion_rule,
+            study_url=excluded.study_url,
+            is_active=1
+        """,
+        (
+            unit_id,
+            module_type,
+            parent_module,
+            unit_no,
+            title,
+            json.dumps(content_ref, ensure_ascii=False),
+            est_minutes,
+            completion_rule,
+            study_url,
+        ),
+    )
+
+
+def _load_p1_question_keys() -> list[str]:
+    path = _REPO_ROOT / "sources" / "kouyulianxi" / "p1-data.js"
+    if not path.is_file():
+        return []
+    text = path.read_text(encoding="utf-8")
+    marker = "P1_DATA ="
+    i = text.find(marker)
+    if i < 0:
+        return []
+    start = text.find("{", i)
+    end = text.rfind("};")
+    if start < 0 or end < 0:
+        return []
+    try:
+        data = json.loads(text[start : end + 1])
+    except json.JSONDecodeError:
+        return []
+    keys: list[str] = []
+    for cat in data.get("categories") or []:
+        cid = cat.get("id")
+        for q in cat.get("questions") or []:
+            keys.append(f"{cid}:{q.get('id')}")
+    return keys
+
+
+def _unescape_js_string(raw: str) -> str:
+    return (
+        str(raw or "")
+        .replace("\\'", "'")
+        .replace('\\"', '"')
+        .replace("\\\\", "\\")
+    )
+
+
+def _parse_phrase_items(block: str) -> list[dict[str, str]]:
+    out: list[dict[str, str]] = []
+    for m in _PHRASE_ITEM_RE.finditer(block or ""):
+        out.append(
+            {
+                "zh": _unescape_js_string(m.group(2)),
+                "en": _unescape_js_string(m.group(4)),
+            }
+        )
+    return out
+
+
+def _load_writing_phrase_by_category() -> OrderedDict[str, list[dict[str, str]]]:
+    """Load phrase banks from xiezuocihuo sources (foundation + categories)."""
+    by_cat: OrderedDict[str, list[dict[str, str]]] = OrderedDict()
+
+    game_path = _REPO_ROOT / "sources" / "xiezuocihuo" / "game.js"
+    if game_path.is_file():
+        text = game_path.read_text(encoding="utf-8")
+        m = re.search(r"foundationVocab\s*=\s*\[(.*?)\];", text, re.S)
+        if m:
+            by_cat["__foundation__"] = _parse_phrase_items(m.group(1))
+
+    cat_path = _REPO_ROOT / "sources" / "xiezuocihuo" / "categories.js"
+    if cat_path.is_file():
+        text = cat_path.read_text(encoding="utf-8")
+        for block in re.split(r"\{\s*id:\s*", text)[1:]:
+            if block.startswith("'"):
+                end = block.find("'", 1)
+                if end < 0:
+                    continue
+                cat_id = block[1:end]
+                rest = block[end + 1 :]
+            elif block.startswith('"'):
+                end = block.find('"', 1)
+                if end < 0:
+                    continue
+                cat_id = block[1:end]
+                rest = block[end + 1 :]
+            else:
+                continue
+            if not cat_id:
+                continue
+            by_cat[cat_id] = _parse_phrase_items(rest)
+
+    return by_cat
+
+
+def _load_translation_items() -> list[dict[str, Any]]:
+    path = _REPO_ROOT / "sources" / "juzifanyixin" / "translation_data.json"
+    if not path.is_file():
+        return []
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError):
+        return []
+    return data if isinstance(data, list) else []
+
+
+def seed_mvp_units(conn: sqlite3.Connection) -> None:
+    """Idempotent seed for all task-plan subjects (excludes writing_correction).
+
+    Skips work when all expected module counts are already present — important
+    because /api/task/units calls this on every request. 仍会在发现「越界单元」
+    时跑一次，把多出来的空单元停用并清掉学生排课里的僵尸任务（自愈）。
+    """
+    if _task_units_seed_complete(conn) and not _has_excess_units(conn):
+        return
+    for set_id, name in READING_SETS:
+        scope_total = 5 if set_id == 23 else 10
+        _upsert_task_unit(
+            conn,
+            unit_id=f"reading_synonym_u{set_id:02d}",
+            module_type="reading_synonym",
+            parent_module="reading_synonym",
+            unit_no=set_id,
+            title=f"单元{set_id} · {name}",
+            content_ref={"setId": set_id, "scope_total": scope_total},
+            est_minutes=15,
+            completion_rule="all_subgroups_once",
+            study_url=f"../tongyitihuan/index.html?unit={set_id}",
+        )
+
+    for i in range(DICTATION_GROUP_COUNT):
+        unit_no = i + 1
+        _upsert_task_unit(
+            conn,
+            unit_id=f"dictation_u{unit_no:02d}",
+            module_type="dictation",
+            parent_module="dictation",
+            unit_no=unit_no,
+            title=f"第{unit_no}组",
+            content_ref={"groupIndex": i, "scope_total": 20},
+            est_minutes=25,
+            completion_rule="four_stage_completed",
+            study_url=f"listening.html?group={i}",
+        )
+
+    for i in range(LISTENING_BASIC_GROUP_COUNT):
+        unit_no = i + 1
+        _upsert_task_unit(
+            conn,
+            unit_id=f"listening_basic_u{unit_no:02d}",
+            module_type="listening_basic",
+            parent_module="listening_basic",
+            unit_no=unit_no,
+            title=f"第{unit_no}组",
+            content_ref={"groupIndex": i, "scope_total": 50},
+            est_minutes=35,
+            completion_rule="four_stage_completed",
+            study_url=f"listening_basic.html?group={i}",
+        )
+
+    for i in range(0, LISTENING_SYNONYM_QUESTION_COUNT, LISTENING_SYNONYM_PER_UNIT):
+        unit_no = i // LISTENING_SYNONYM_PER_UNIT + 1
+        qids = list(range(i + 1, i + LISTENING_SYNONYM_PER_UNIT + 1))
+        _upsert_task_unit(
+            conn,
+            unit_id=f"listening_synonym_u{unit_no:02d}",
+            module_type="listening_synonym",
+            parent_module="listening_synonym",
+            unit_no=unit_no,
+            title=f"第{unit_no}单元 · 题{qids[0]}-{qids[-1]}",
+            content_ref={
+                "questionIds": qids,
+                "startId": qids[0],
+                "endId": qids[-1],
+                "scope_total": len(qids),
+            },
+            est_minutes=12,
+            completion_rule="questions_once",
+            study_url=f"../daanjutingxie/index.html?startId={qids[0]}&endId={qids[-1]}",
+        )
+
+    for i in range(0, SENTENCE_COUNT, SENTENCE_PER_UNIT):
+        unit_no = i // SENTENCE_PER_UNIT + 1
+        nums = list(range(i + 1, i + SENTENCE_PER_UNIT + 1))
+        _upsert_task_unit(
+            conn,
+            unit_id=f"sentence_u{unit_no:02d}",
+            module_type="sentence",
+            parent_module="sentence",
+            unit_no=unit_no,
+            title=f"第{unit_no}单元 · 句{nums[0]}-{nums[-1]}",
+            content_ref={"sentenceNums": nums, "scope_total": len(nums)},
+            est_minutes=20,
+            completion_rule="sentences_once",
+            study_url=f"../changnanju/index.html?from={nums[0]}&to={nums[-1]}",
+        )
+
+    phrase_bank = _load_writing_phrase_by_category()
+    phrase_unit_no = 0
+    for cat_id, cat_name in WRITING_PHRASE_CATEGORIES:
+        rows = list(phrase_bank.get(cat_id) or [])
+        if not rows:
+            phrase_unit_no += 1
+            _upsert_task_unit(
+                conn,
+                unit_id=f"writing_phrase_u{phrase_unit_no:02d}",
+                module_type="writing_phrase",
+                parent_module="writing_phrase",
+                unit_no=phrase_unit_no,
+                title=cat_name,
+                content_ref={"categoryId": cat_id, "scope_total": 1},
+                est_minutes=15,
+                completion_rule="category_round_once",
+                study_url=f"../xiezuocihuo/index.html?categoryId={cat_id}",
+            )
+            continue
+        for j in range(0, len(rows), WRITING_PHRASE_PER_UNIT):
+            chunk = rows[j : j + WRITING_PHRASE_PER_UNIT]
+            phrase_unit_no += 1
+            start = j + 1
+            end = j + len(chunk)
+            indexes = list(range(j, j + len(chunk)))
+            _upsert_task_unit(
+                conn,
+                unit_id=f"writing_phrase_u{phrase_unit_no:02d}",
+                module_type="writing_phrase",
+                parent_module="writing_phrase",
+                unit_no=phrase_unit_no,
+                title=f"{cat_name} · {start}-{end}",
+                content_ref={
+                    "categoryId": cat_id,
+                    "itemIndexes": indexes,
+                    "from": start,
+                    "to": end,
+                    "scope_total": len(chunk),
+                },
+                est_minutes=15,
+                completion_rule="phrases_once",
+                study_url=(
+                    f"../xiezuocihuo/index.html?categoryId={cat_id}"
+                    f"&from={start}&to={end}"
+                ),
+            )
+
+    by_cat: OrderedDict[str, list[dict[str, Any]]] = OrderedDict()
+    for it in _load_translation_items():
+        cat = str(it.get("category") or "未分类")
+        by_cat.setdefault(cat, []).append(it)
+    t_no = 0
+    for cat, rows in by_cat.items():
+        n = len(rows)
+        chunks = [rows] if n <= 10 else [rows[j : j + 5] for j in range(0, n, 5)]
+        for chunk in chunks:
+            t_no += 1
+            indexes = [int(x.get("id") or 0) for x in chunk]
+            _upsert_task_unit(
+                conn,
+                unit_id=f"writing_translate_u{t_no:02d}",
+                module_type="writing_translate",
+                parent_module="writing_translate",
+                unit_no=t_no,
+                title=f"{cat} · {len(chunk)}句",
+                content_ref={
+                    "category": cat,
+                    "itemIds": indexes,
+                    "itemIndexes": list(range(len(chunk))),
+                    "scope_total": len(chunk),
+                },
+                est_minutes=15,
+                completion_rule="items_once",
+                study_url=(
+                    f"../juzifanyixin/index.html?category={cat}"
+                    f"&ids={','.join(str(x) for x in indexes)}"
+                ),
+            )
+
+    for idx, (part, code, topic) in enumerate(LISTENING_GENDU_LESSONS, start=1):
+        unit_id = "listening_p4_u01" if code == "C4T1S4" else f"listening_gendu_{code.lower()}"
+        _upsert_task_unit(
+            conn,
+            unit_id=unit_id,
+            module_type="listening_p4_speed",
+            parent_module="listening_p4_speed",
+            unit_no=idx,
+            title=f"{'P1' if part == 'p1' else 'P4'} · {code} · {topic}",
+            content_ref={"lessonId": code, "part": part, "scope_total": 1},
+            est_minutes=15,
+            completion_rule="asr_ge_70",
+            study_url=f"../P4genduceshi/index.html?lessonId={code}&part={part}",
+        )
+
+    c_no = 0
+    for pid in SPEAKING_COMPLEX_PATTERNS:
+        c_no += 1
+        _upsert_task_unit(
+            conn,
+            unit_id=f"speaking_complex_pattern_{pid}",
+            module_type="speaking_complex",
+            parent_module="speaking",
+            unit_no=c_no,
+            title=f"复合句 · 句型{pid}",
+            content_ref={"kind": "pattern", "id": pid, "scope_total": 10},
+            est_minutes=25,
+            completion_rule="three_tracks",
+            study_url=f"/kouyulianxi/index.html?part=p1&p1=complex&kind=pattern&id={pid}",
+        )
+    for aid in SPEAKING_COMPLEX_ADV:
+        c_no += 1
+        _upsert_task_unit(
+            conn,
+            unit_id=f"speaking_complex_adv_{aid}",
+            module_type="speaking_complex",
+            parent_module="speaking",
+            unit_no=c_no,
+            title=f"复合句 · 词组{aid}",
+            content_ref={"kind": "adv", "id": aid, "scope_total": 10},
+            est_minutes=25,
+            completion_rule="three_tracks",
+            study_url=f"/kouyulianxi/index.html?part=p1&p1=complex&kind=adv&id={aid}",
+        )
+
+    p1_keys = _load_p1_question_keys()
+    if not p1_keys:
+        for cat, n in (
+            ("shishi", 75),
+            ("xihao", 69),
+            ("xingwei", 30),
+            ("guandian", 31),
+            ("duibi", 26),
+        ):
+            for qid in range(1, n + 1):
+                p1_keys.append(f"{cat}:{qid}")
+    for i in range(0, len(p1_keys), 10):
+        chunk = p1_keys[i : i + 10]
+        unit_no = i // 10 + 1
+        _upsert_task_unit(
+            conn,
+            unit_id=f"speaking_p1_u{unit_no:02d}",
+            module_type="speaking_p1",
+            parent_module="speaking",
+            unit_no=unit_no,
+            title=f"P1 第{unit_no}单元 · {len(chunk)}题",
+            content_ref={"questionKeys": chunk, "scope_total": len(chunk)},
+            est_minutes=30,
+            completion_rule="questions_practiced",
+            study_url="/kouyulianxi/index.html?part=p1&keys=" + ",".join(chunk),
+        )
+
+    for idx, (mid, mname) in enumerate(SPEAKING_P2_MATERIALS, start=1):
+        _upsert_task_unit(
+            conn,
+            unit_id=f"speaking_p2_mat_{mid}",
+            module_type="speaking_p2_material",
+            parent_module="speaking",
+            unit_no=idx,
+            title=mname,
+            content_ref={"materialId": mid, "scope_total": 1},
+            est_minutes=20,
+            completion_rule="material_once",
+            study_url=f"/kouyulianxi/index.html?part=p2&mode=memorize&material={mid}",
+        )
+
+    for i in range(0, SPEAKING_P2_APPLY_QUESTION_COUNT, SPEAKING_P2_APPLY_PER_UNIT):
+        unit_no = i // SPEAKING_P2_APPLY_PER_UNIT + 1
+        indexes = list(
+            range(i, min(i + SPEAKING_P2_APPLY_PER_UNIT, SPEAKING_P2_APPLY_QUESTION_COUNT))
+        )
+        _upsert_task_unit(
+            conn,
+            unit_id=f"speaking_p2_apply_u{unit_no:02d}",
+            module_type="speaking_p2_apply",
+            parent_module="speaking",
+            unit_no=unit_no,
+            title=f"P2套题 第{unit_no}单元 · {len(indexes)}题",
+            content_ref={"questionIndexes": indexes, "scope_total": len(indexes)},
+            est_minutes=25,
+            completion_rule="apply_once",
+            study_url=(
+                f"/kouyulianxi/index.html?part=p2&mode=apply"
+                f"&from={indexes[0]}&to={indexes[-1]}"
+            ),
+        )
+
+    conn.commit()
+    # 数据源缩短后会留下「越界单元」（页面上是空组），一并停用并清掉学生排课。
+    _retire_excess_units(conn)
+
+
+def list_units(conn: sqlite3.Connection, module_type: Optional[str] = None) -> list[dict[str, Any]]:
+    if module_type:
+        rows = conn.execute(
+            "SELECT * FROM task_units WHERE is_active=1 AND module_type=? ORDER BY unit_no",
+            (module_type,),
+        ).fetchall()
+    else:
+        rows = conn.execute(
+            "SELECT * FROM task_units WHERE is_active=1 ORDER BY module_type, unit_no"
+        ).fetchall()
+    out = []
+    for row in rows:
+        d = dict(row)
+        try:
+            d["content_ref"] = json.loads(d.get("content_ref") or "{}")
+        except json.JSONDecodeError:
+            d["content_ref"] = {}
+        out.append(d)
+    return out
+
+
+def list_module_quotas(conn: sqlite3.Connection, student_id: str) -> list[dict[str, Any]]:
+    rows = conn.execute(
+        "SELECT * FROM student_module_daily_quota WHERE student_id=? ORDER BY module_type",
+        (student_id,),
+    ).fetchall()
+    return [dict(r) for r in rows]
+
+
+def ensure_module_quota(
+    conn: sqlite3.Connection, student_id: str, module_type: str
+) -> dict[str, Any]:
+    row = conn.execute(
+        """
+        SELECT * FROM student_module_daily_quota
+        WHERE student_id=? AND module_type=?
+        """,
+        (student_id, module_type),
+    ).fetchone()
+    if row:
+        return dict(row)
+    conn.execute(
+        """
+        INSERT INTO student_module_daily_quota (
+            student_id, module_type, weekday_units, weekend_units
+        ) VALUES (?, ?, ?, ?)
+        """,
+        (student_id, module_type, DEFAULT_UNITS_PER_DAY, DEFAULT_UNITS_PER_DAY),
+    )
+    conn.commit()
+    return dict(
+        conn.execute(
+            """
+            SELECT * FROM student_module_daily_quota
+            WHERE student_id=? AND module_type=?
+            """,
+            (student_id, module_type),
+        ).fetchone()
+    )
+
+
+def _quota_row_units(
+    row: Optional[dict[str, Any]],
+    task_date: str,
+    *,
+    prefer_pending: bool = False,
+) -> int:
+    if not row:
+        return DEFAULT_UNITS_PER_DAY
+    weekend = is_weekend(task_date)
+    # 注意：0 是合法配额（当天不排这科），不能用 `or` 兜底，否则 0 会被当成未设置。
+    if weekend:
+        if prefer_pending and row.get("pending_weekend_units") is not None:
+            return max(0, int(row["pending_weekend_units"]))
+        if row.get("weekend_units") is not None:
+            return max(0, int(row["weekend_units"]))
+        return DEFAULT_UNITS_PER_DAY
+    if prefer_pending and row.get("pending_weekday_units") is not None:
+        return max(0, int(row["pending_weekday_units"]))
+    if row.get("weekday_units") is not None:
+        return max(0, int(row["weekday_units"]))
+    return DEFAULT_UNITS_PER_DAY
+
+
+def _pending_quotas_apply_on(
+    conn: sqlite3.Connection, student_id: str, day: str
+) -> bool:
+    """True when pending module quotas should be used for calendar day ``day``."""
+    tp = ensure_time_profile(conn, student_id)
+    eff = tp.get("pending_effective_from")
+    return bool(eff) and str(day) >= str(eff)
+
+
+def _resolve_units_quota_map(
+    conn: sqlite3.Connection,
+    student_id: str,
+    day: str,
+    plan_items: list[dict[str, Any]],
+    *,
+    quota_overrides: Optional[dict[str, dict[str, int]]] = None,
+    override_from: Optional[str] = None,
+) -> dict[str, int]:
+    """Live quotas before生效日；生效日及以后用 pending，或教师表单 overrides。"""
+    if quota_overrides and override_from and str(day) >= str(override_from):
+        return _module_quota_map(
+            conn,
+            student_id,
+            day,
+            plan_items,
+            quota_overrides=quota_overrides,
+            prefer_pending=False,
+        )
+    return _module_quota_map(
+        conn,
+        student_id,
+        day,
+        plan_items,
+        prefer_pending=_pending_quotas_apply_on(conn, student_id, day),
+    )
+
+
+def _module_quota_map(
+    conn: sqlite3.Connection,
+    student_id: str,
+    task_date: str,
+    plan_items: list[dict[str, Any]],
+    *,
+    quota_overrides: Optional[dict[str, dict[str, int]]] = None,
+    prefer_pending: bool = False,
+) -> dict[str, int]:
+    """module_type -> units allowed this calendar day."""
+    overrides = quota_overrides or {}
+    rows = {r["module_type"]: r for r in list_module_quotas(conn, student_id)}
+    modules = []
+    seen: set[str] = set()
+    for it in plan_items:
+        mt = str(it.get("module_type") or "other")
+        if mt not in seen:
+            seen.add(mt)
+            modules.append(mt)
+    out: dict[str, int] = {}
+    for mt in modules:
+        ov = overrides.get(mt) or {}
+        if is_weekend(task_date):
+            if "weekend_units" in ov:
+                out[mt] = max(0, int(ov["weekend_units"]))
+                continue
+        elif "weekday_units" in ov:
+            out[mt] = max(0, int(ov["weekday_units"]))
+            continue
+        out[mt] = _quota_row_units(rows.get(mt), task_date, prefer_pending=prefer_pending)
+    return out
+
+
+def apply_pending_quotas(conn: sqlite3.Connection, student_id: str) -> None:
+    rows = list_module_quotas(conn, student_id)
+    for row in rows:
+        updates = []
+        params: list[Any] = []
+        if row.get("pending_weekday_units") is not None:
+            updates.append("weekday_units=?")
+            params.append(row["pending_weekday_units"])
+            updates.append("pending_weekday_units=NULL")
+        if row.get("pending_weekend_units") is not None:
+            updates.append("weekend_units=?")
+            params.append(row["pending_weekend_units"])
+            updates.append("pending_weekend_units=NULL")
+        if updates:
+            params.extend([student_id, row["module_type"]])
+            conn.execute(
+                f"UPDATE student_module_daily_quota SET {', '.join(updates)}, "
+                f"updated_at=strftime('%Y-%m-%dT%H:%M:%fZ','now') "
+                f"WHERE student_id=? AND module_type=?",
+                params,
+            )
+
+
+def _serialize_quota_rows(rows: list[dict[str, Any]]) -> str:
+    return json.dumps(
+        [
+            {
+                "module_type": r.get("module_type"),
+                "weekday_units": _units_or_default(r.get("weekday_units")),
+                "weekend_units": _units_or_default(r.get("weekend_units")),
+            }
+            for r in rows
+        ],
+        sort_keys=True,
+        ensure_ascii=False,
+    )
+
+
+def _quotas_changed(old_rows: list[dict[str, Any]], new_rows: list[dict[str, Any]]) -> bool:
+    return _serialize_quota_rows(old_rows) != _serialize_quota_rows(new_rows)
+
+
+def ensure_time_profile(conn: sqlite3.Connection, student_id: str) -> dict[str, Any]:
+    row = conn.execute(
+        "SELECT * FROM student_time_profiles WHERE student_id=?", (student_id,)
+    ).fetchone()
+    if row:
+        d = dict(row)
+        d["pack_mode"] = d.get("pack_mode") or PACK_MODE_UNITS_PER_DAY
+        d["module_quotas"] = list_module_quotas(conn, student_id)
+        return d
+    conn.execute(
+        """
+        INSERT INTO student_time_profiles (student_id, weekday_minutes, weekend_minutes)
+        VALUES (?, ?, ?)
+        """,
+        (student_id, DEFAULT_WEEKDAY_MINUTES, DEFAULT_WEEKEND_MINUTES),
+    )
+    conn.commit()
+    d = dict(
+        conn.execute(
+            "SELECT * FROM student_time_profiles WHERE student_id=?", (student_id,)
+        ).fetchone()
+    )
+    d["pack_mode"] = d.get("pack_mode") or PACK_MODE_UNITS_PER_DAY
+    d["module_quotas"] = list_module_quotas(conn, student_id)
+    return d
+
+
+def apply_pending_profile(conn: sqlite3.Connection, student_id: str, task_date: str) -> None:
+    """Merge pending minutes into live fields (call on first access of a new day)."""
+    row = ensure_time_profile(conn, student_id)
+    updates = []
+    params: list[Any] = []
+    if row.get("pending_weekday_minutes") is not None:
+        updates.append("weekday_minutes=?")
+        params.append(row["pending_weekday_minutes"])
+        updates.append("pending_weekday_minutes=NULL")
+    if row.get("pending_weekend_minutes") is not None:
+        updates.append("weekend_minutes=?")
+        params.append(row["pending_weekend_minutes"])
+        updates.append("pending_weekend_minutes=NULL")
+    if row.get("pending_stage_test_every_n") is not None:
+        updates.append("stage_test_every_n=?")
+        params.append(row["pending_stage_test_every_n"])
+        updates.append("pending_stage_test_every_n=NULL")
+    if updates:
+        params.append(student_id)
+        conn.execute(
+            f"UPDATE student_time_profiles SET {', '.join(updates)}, "
+            f"updated_at=strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE student_id=?",
+            params,
+        )
+    apply_pending_quotas(conn, student_id)
+
+
+def get_time_profile(conn: sqlite3.Connection, student_id: str) -> dict[str, Any]:
+    return ensure_time_profile(conn, student_id)
+
+
+def put_time_profile(
+    conn: sqlite3.Connection, student_id: str, payload: dict[str, Any]
+) -> dict[str, Any]:
+    """Write pending values; effective_from defaults to tomorrow."""
+    ensure_time_profile(conn, student_id)
+    weekday = payload.get("weekday_minutes")
+    weekend = payload.get("weekend_minutes")
+    every_n = payload.get("stage_test_every_n")
+    pack_mode = payload.get("pack_mode")
+    if pack_mode is not None and pack_mode != PACK_MODE_UNITS_PER_DAY:
+        raise ValueError("pack_mode 只支持 units_per_day（按分钟装箱已下线）")
+    effective_from = normalize_effective_from(payload.get("effective_from"))
+    conn.execute(
+        """
+        UPDATE student_time_profiles SET
+            pending_weekday_minutes = COALESCE(?, pending_weekday_minutes),
+            pending_weekend_minutes = COALESCE(?, pending_weekend_minutes),
+            pending_stage_test_every_n = COALESCE(?, pending_stage_test_every_n),
+            pending_effective_from = ?,
+            updated_at = strftime('%Y-%m-%dT%H:%M:%fZ','now')
+        WHERE student_id = ?
+        """,
+        (weekday, weekend, every_n, effective_from, student_id),
+    )
+    module_quotas = payload.get("module_quotas")
+    if isinstance(module_quotas, list):
+        for q in module_quotas:
+            mt = q.get("module_type")
+            if not mt:
+                continue
+            ensure_module_quota(conn, student_id, str(mt))
+            wd_u = q.get("weekday_units")
+            we_u = q.get("weekend_units")
+            conn.execute(
+                """
+                UPDATE student_module_daily_quota SET
+                    pending_weekday_units = COALESCE(?, pending_weekday_units),
+                    pending_weekend_units = COALESCE(?, pending_weekend_units),
+                    updated_at = strftime('%Y-%m-%dT%H:%M:%fZ','now')
+                WHERE student_id=? AND module_type=?
+                """,
+                (wd_u, we_u, student_id, str(mt)),
+            )
+    today = china_ymd()
+    if payload.get("effective") == "today" or effective_from <= today:
+        apply_pending_profile(conn, student_id, today)
+        conn.execute(
+            "UPDATE student_time_profiles SET pending_effective_from=NULL WHERE student_id=?",
+            (student_id,),
+        )
+        conn.execute(
+            "DELETE FROM daily_tasks WHERE student_id=? AND task_date=?",
+            (student_id, today),
+        )
+    conn.commit()
+    return get_time_profile(conn, student_id)
+
+
+def _parse_json_list(raw: Any) -> list[Any]:
+    if isinstance(raw, list):
+        return raw
+    if not raw:
+        return []
+    try:
+        val = json.loads(raw)
+        return val if isinstance(val, list) else []
+    except (json.JSONDecodeError, TypeError):
+        return []
+
+
+def _plan_progress(conn: sqlite3.Connection, student_id: str) -> dict[str, dict[str, int]]:
+    """module_type -> {study_x, study_y, pass_a, pass_b, restudy_n}.
+
+    ``restudy_n`` 是历史字段：一度用于「考挂 → 覆盖单元重学」（2026-09-20 已废除，
+    改为只留阶段测挂着）。保留字段与教师端「·重N」显示，兼容早期数据，正常恒为 0。
+    """
+    rows = conn.execute(
+        """
+        SELECT module_type, item_type, status, study_completed, test_passed,
+               COALESCE(need_refresh, 0) AS need_refresh, refresh_reason
+        FROM plan_items WHERE student_id=? AND status!='removed'
+        """,
+        (student_id,),
+    ).fetchall()
+    prog: dict[str, dict[str, int]] = {}
+    for row in rows:
+        mt = row["module_type"] or ""
+        if mt not in prog:
+            prog[mt] = {
+                "study_x": 0,
+                "study_y": 0,
+                "pass_a": 0,
+                "pass_b": 0,
+                "restudy_n": 0,
+            }
+        if row["item_type"] == "study":
+            prog[mt]["study_y"] += 1
+            if row["study_completed"]:
+                prog[mt]["study_x"] += 1
+            elif row["need_refresh"] and str(row["refresh_reason"] or "") == "restudy":
+                prog[mt]["restudy_n"] += 1
+        elif row["item_type"] == "test":
+            prog[mt]["pass_b"] += 1
+            if row["test_passed"]:
+                prog[mt]["pass_a"] += 1
+    return prog
+
+
+def catalog_unit_progress_for_student(
+    conn: sqlite3.Connection, student_id: str
+) -> dict[str, dict[str, int]]:
+    """科目内容库单元进度：done/total，total 来自 task_units，不是计划条目数。"""
+    ensure_task_tables(conn)
+    sid = str(student_id or "").strip()
+    totals = {
+        str(r["module_type"]): int(r["c"] or 0)
+        for r in conn.execute(
+            """
+            SELECT module_type, COUNT(*) AS c
+            FROM task_units WHERE is_active=1
+            GROUP BY module_type
+            """
+        ).fetchall()
+        if r["module_type"]
+    }
+    done_map = {
+        str(r["module_type"]): int(r["c"] or 0)
+        for r in conn.execute(
+            """
+            SELECT module_type, COUNT(DISTINCT unit_id) AS c
+            FROM plan_items
+            WHERE student_id=? AND item_type='study' AND study_completed=1
+              AND unit_id IS NOT NULL AND TRIM(unit_id) != ''
+            GROUP BY module_type
+            """,
+            (sid,),
+        ).fetchall()
+        if r["module_type"]
+    }
+    out: dict[str, dict[str, int]] = {}
+    for mt, total in totals.items():
+        done = min(int(done_map.get(mt, 0)), total)
+        out[mt] = {"done": done, "total": total}
+    speak_keys = [
+        mt
+        for mt in totals
+        if mt == "speaking" or mt.startswith("speaking_")
+    ]
+    if speak_keys:
+        speak_total = sum(totals[mt] for mt in speak_keys)
+        speak_done = sum(int(done_map.get(mt, 0)) for mt in speak_keys)
+        out["speaking"] = {
+            "done": min(speak_done, speak_total),
+            "total": speak_total,
+        }
+    return out
+
+
+def effective_plan_status(conn: sqlite3.Connection, student_id: str) -> str:
+    """none | all_paused | active (D28). Schedule pause → all_paused while active."""
+    expire_plan_pause_if_due(conn, student_id)
+    if is_plan_schedule_paused(conn, student_id, china_ymd()):
+        rows = conn.execute(
+            "SELECT 1 FROM plan_items WHERE student_id=? AND status!='removed' LIMIT 1",
+            (student_id,),
+        ).fetchone()
+        return "all_paused" if rows else "none"
+    rows = conn.execute(
+        "SELECT status FROM plan_items WHERE student_id=? AND status!='removed'",
+        (student_id,),
+    ).fetchall()
+    if not rows:
+        return "none"
+    if all(r["status"] == "paused" for r in rows):
+        return "all_paused"
+    if any(r["status"] == "pending" for r in rows):
+        return "active"
+    return "all_paused"
+
+
+def _parse_ymd_strict(raw: Any, *, field: str) -> str:
+    if not isinstance(raw, str) or not raw.strip():
+        raise ValueError(f"{field} 须为 YYYY-MM-DD")
+    try:
+        datetime.strptime(raw.strip(), "%Y-%m-%d")
+    except ValueError as exc:
+        raise ValueError(f"{field} 须为 YYYY-MM-DD") from exc
+    return raw.strip()
+
+
+def get_plan_pause(
+    conn: sqlite3.Connection, student_id: str, *, on_date: Optional[str] = None
+) -> Optional[dict[str, Any]]:
+    """Return pause row enriched with active/upcoming flags, or None."""
+    expire_plan_pause_if_due(conn, student_id, on_date=on_date)
+    row = conn.execute(
+        "SELECT * FROM student_plan_pause WHERE student_id=?",
+        (student_id,),
+    ).fetchone()
+    if not row:
+        return None
+    d = dict(row)
+    day = on_date or china_ymd()
+    pause_from = str(d["pause_from"])
+    resume_on = str(d["resume_on"])
+    d["active"] = pause_from <= day < resume_on
+    d["upcoming"] = pause_from > day
+    return d
+
+
+def is_plan_schedule_paused(
+    conn: sqlite3.Connection, student_id: str, task_date: str
+) -> bool:
+    pause = get_plan_pause(conn, student_id, on_date=task_date)
+    return bool(pause and pause.get("active"))
+
+
+def expire_plan_pause_if_due(
+    conn: sqlite3.Connection,
+    student_id: str,
+    *,
+    on_date: Optional[str] = None,
+) -> bool:
+    """Auto-clear pause when resume_on has arrived. Returns True if cleared."""
+    day = on_date or china_ymd()
+    row = conn.execute(
+        "SELECT resume_on FROM student_plan_pause WHERE student_id=?",
+        (student_id,),
+    ).fetchone()
+    if not row:
+        return False
+    if str(row["resume_on"]) <= day:
+        conn.execute("DELETE FROM student_plan_pause WHERE student_id=?", (student_id,))
+        conn.commit()
+        return True
+    return False
+
+
+def put_plan_pause(
+    conn: sqlite3.Connection, student_id: str, payload: dict[str, Any]
+) -> dict[str, Any]:
+    """Set / replace schedule pause. reason required; resume_on > pause_from >= today."""
+    ensure_task_tables(conn)
+    today = china_ymd()
+    pause_from = _parse_ymd_strict(payload.get("pause_from"), field="暂停起始日")
+    resume_on = _parse_ymd_strict(payload.get("resume_on"), field="恢复日期")
+    reason = str(payload.get("reason") or "").strip()
+    if not reason:
+        raise ValueError("请填写暂停原因")
+    if len(reason) > 500:
+        raise ValueError("暂停原因请控制在 500 字以内")
+    if pause_from < today:
+        raise ValueError("暂停起始日不能早于今天")
+    if resume_on <= pause_from:
+        raise ValueError("恢复日期须晚于暂停起始日")
+    live_n = conn.execute(
+        "SELECT COUNT(*) AS c FROM plan_items WHERE student_id=? AND status!='removed'",
+        (student_id,),
+    ).fetchone()["c"]
+    if live_n < 1:
+        raise ValueError("该生尚无生效清单，无法暂停")
+    conn.execute(
+        """
+        INSERT INTO student_plan_pause (student_id, pause_from, resume_on, reason, updated_at)
+        VALUES (?, ?, ?, ?, strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+        ON CONFLICT(student_id) DO UPDATE SET
+            pause_from=excluded.pause_from,
+            resume_on=excluded.resume_on,
+            reason=excluded.reason,
+            updated_at=excluded.updated_at
+        """,
+        (student_id, pause_from, resume_on, reason),
+    )
+    # Clear daily tasks inside the pause window from today forward.
+    clear_from = max(pause_from, today)
+    conn.execute(
+        """
+        DELETE FROM daily_tasks
+        WHERE student_id=? AND task_date>=? AND task_date<?
+        """,
+        (student_id, clear_from, resume_on),
+    )
+    conn.commit()
+    return get_plan(conn, student_id)
+
+
+def clear_plan_pause(conn: sqlite3.Connection, student_id: str) -> dict[str, Any]:
+    """Cancel pause early (resume immediately)."""
+    conn.execute("DELETE FROM student_plan_pause WHERE student_id=?", (student_id,))
+    conn.commit()
+    return get_plan(conn, student_id)
+
+
+# --- Listening gendu (跟读) assignment ---------------------------------------
+
+def _ymd_plus_days(ymd: str, days: int) -> str:
+    return (
+        datetime.strptime(ymd, "%Y-%m-%d").date() + timedelta(days=days)
+    ).strftime("%Y-%m-%d")
+
+
+def _gendu_unit_or_raise(conn: sqlite3.Connection, unit_id: str) -> dict[str, Any]:
+    row = conn.execute(
+        "SELECT * FROM task_units WHERE unit_id=? AND is_active=1", (unit_id,)
+    ).fetchone()
+    if not row:
+        raise ValueError("跟读单元不存在")
+    if str(row["module_type"]) != GENDU_MODULE:
+        raise ValueError("请选择听力跟读单元")
+    return dict(row)
+
+
+def _next_gendu_unit_id(
+    conn: sqlite3.Connection, current_unit_id: str
+) -> Optional[str]:
+    cur = conn.execute(
+        "SELECT unit_no FROM task_units WHERE unit_id=? AND module_type=?",
+        (current_unit_id, GENDU_MODULE),
+    ).fetchone()
+    if not cur:
+        return None
+    nxt = conn.execute(
+        """
+        SELECT unit_id FROM task_units
+        WHERE module_type=? AND is_active=1 AND unit_no>?
+        ORDER BY unit_no LIMIT 1
+        """,
+        (GENDU_MODULE, int(cur["unit_no"])),
+    ).fetchone()
+    return str(nxt["unit_id"]) if nxt else None
+
+
+def _ensure_gendu_plan_item(
+    conn: sqlite3.Connection, student_id: str, unit_id: str
+) -> int:
+    """Ensure one pending live plan_item for the current gendu unit; soft-remove others."""
+    unit = _gendu_unit_or_raise(conn, unit_id)
+    conn.execute(
+        """
+        UPDATE plan_items SET status='removed',
+            updated_at=strftime('%Y-%m-%dT%H:%M:%fZ','now')
+        WHERE student_id=? AND module_type=? AND item_type='study'
+          AND status='pending' AND unit_id!=?
+        """,
+        (student_id, GENDU_MODULE, unit_id),
+    )
+    existing = conn.execute(
+        """
+        SELECT id FROM plan_items
+        WHERE student_id=? AND unit_id=? AND item_type='study' AND status='pending'
+        ORDER BY id DESC LIMIT 1
+        """,
+        (student_id, unit_id),
+    ).fetchone()
+    if existing:
+        conn.execute(
+            """
+            UPDATE plan_items SET
+                study_completed=0,
+                study_completed_version=NULL,
+                need_refresh=0,
+                module_type=?,
+                est_minutes=?,
+                updated_at=strftime('%Y-%m-%dT%H:%M:%fZ','now')
+            WHERE id=?
+            """,
+            (GENDU_MODULE, int(unit.get("est_minutes") or 15), int(existing["id"])),
+        )
+        return int(existing["id"])
+    max_so = conn.execute(
+        "SELECT COALESCE(MAX(sort_order), -1) AS m FROM plan_items WHERE student_id=?",
+        (student_id,),
+    ).fetchone()["m"]
+    cur = conn.execute(
+        """
+        INSERT INTO plan_items (
+            student_id, sort_order, item_type, unit_id, module_type,
+            est_minutes, status, study_completed
+        ) VALUES (?, ?, 'study', ?, ?, ?, 'pending', 0)
+        """,
+        (
+            student_id,
+            int(max_so) + 1,
+            unit_id,
+            GENDU_MODULE,
+            int(unit.get("est_minutes") or 15),
+        ),
+    )
+    return int(cur.lastrowid)
+
+
+def _raw_gendu_assignment(
+    conn: sqlite3.Connection, student_id: str
+) -> Optional[dict[str, Any]]:
+    row = conn.execute(
+        "SELECT * FROM student_gendu_assignment WHERE student_id=?",
+        (student_id,),
+    ).fetchone()
+    return dict(row) if row else None
+
+
+def get_gendu_assignment(
+    conn: sqlite3.Connection,
+    student_id: str,
+    *,
+    on_date: Optional[str] = None,
+) -> Optional[dict[str, Any]]:
+    ensure_task_tables(conn)
+    row = _raw_gendu_assignment(conn, student_id)
+    if not row:
+        return None
+    day = on_date or china_ymd()
+    starts_on = str(row["starts_on"])
+    ends_on = str(row["ends_on"])
+    unit = conn.execute(
+        "SELECT title, unit_no FROM task_units WHERE unit_id=?",
+        (row["current_unit_id"],),
+    ).fetchone()
+    start_unit = conn.execute(
+        "SELECT title, unit_no FROM task_units WHERE unit_id=?",
+        (row["start_unit_id"],),
+    ).fetchone()
+    out = dict(row)
+    out["passed_current"] = bool(row.get("passed_current"))
+    out["active"] = starts_on <= day <= ends_on
+    out["upcoming"] = starts_on > day
+    out["expired"] = day > ends_on
+    out["current_title"] = (unit["title"] if unit else "") or row["current_unit_id"]
+    out["current_unit_no"] = int(unit["unit_no"]) if unit else None
+    out["start_title"] = (start_unit["title"] if start_unit else "") or row["start_unit_id"]
+    out["daily_required"] = GENDU_DAILY_PRACTICES
+    out["pass_score"] = GENDU_PASS_SCORE
+    out["count_min_score"] = GENDU_COUNT_MIN_SCORE
+    return out
+
+
+def put_gendu_assignment(
+    conn: sqlite3.Connection, student_id: str, payload: dict[str, Any]
+) -> dict[str, Any]:
+    """Teacher starts / resets a 30-day gendu assignment from a chosen unit."""
+    ensure_task_tables(conn)
+    seed_mvp_units(conn)
+    start_unit_id = str(payload.get("start_unit_id") or "").strip()
+    if not start_unit_id:
+        raise ValueError("请选择起始跟读课")
+    _gendu_unit_or_raise(conn, start_unit_id)
+    today = china_ymd()
+    starts_on = payload.get("starts_on")
+    if starts_on:
+        starts_on = _parse_ymd_strict(starts_on, field="开始日期")
+    else:
+        starts_on = today
+    ends_on = _ymd_plus_days(starts_on, GENDU_ASSIGNMENT_DAYS - 1)
+    conn.execute(
+        """
+        INSERT INTO student_gendu_assignment (
+            student_id, start_unit_id, current_unit_id, starts_on, ends_on,
+            passed_current, updated_at
+        ) VALUES (?, ?, ?, ?, ?, 0, strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+        ON CONFLICT(student_id) DO UPDATE SET
+            start_unit_id=excluded.start_unit_id,
+            current_unit_id=excluded.current_unit_id,
+            starts_on=excluded.starts_on,
+            ends_on=excluded.ends_on,
+            passed_current=0,
+            updated_at=excluded.updated_at
+        """,
+        (student_id, start_unit_id, start_unit_id, starts_on, ends_on),
+    )
+    _ensure_gendu_plan_item(conn, student_id, start_unit_id)
+    # Rebuild today's pack if already materialized
+    conn.execute(
+        "DELETE FROM daily_tasks WHERE student_id=? AND task_date>=?",
+        (student_id, today),
+    )
+    conn.commit()
+    asg = get_gendu_assignment(conn, student_id)
+    return {"gendu_assignment": asg, "plan": get_plan(conn, student_id)}
+
+
+def clear_gendu_assignment(conn: sqlite3.Connection, student_id: str) -> dict[str, Any]:
+    ensure_task_tables(conn)
+    conn.execute(
+        "DELETE FROM student_gendu_assignment WHERE student_id=?", (student_id,)
+    )
+    conn.execute(
+        """
+        UPDATE plan_items SET status='removed',
+            updated_at=strftime('%Y-%m-%dT%H:%M:%fZ','now')
+        WHERE student_id=? AND module_type=? AND status='pending'
+        """,
+        (student_id, GENDU_MODULE),
+    )
+    today = china_ymd()
+    conn.execute(
+        """
+        DELETE FROM daily_tasks
+        WHERE student_id=? AND task_date>=?
+          AND plan_item_id IN (
+            SELECT id FROM plan_items WHERE student_id=? AND module_type=?
+          )
+        """,
+        (student_id, today, student_id, GENDU_MODULE),
+    )
+    conn.commit()
+    return {"gendu_assignment": None, "plan": get_plan(conn, student_id)}
+
+
+def _sync_gendu_from_live_plan(
+    conn: sqlite3.Connection,
+    student_id: str,
+    *,
+    starts_on: Optional[str] = None,
+) -> None:
+    """Derive 跟读作业 from live plan: first gendu study unit = start lesson.
+
+    If an active assignment already points at a unit still in the plan, keep progress.
+    Otherwise open/replace a 30-day assignment from the first listed gendu unit.
+    Does not commit; caller owns the transaction.
+    """
+    ensure_task_tables(conn)
+    rows = conn.execute(
+        """
+        SELECT unit_id FROM plan_items
+        WHERE student_id=? AND status='pending' AND item_type='study'
+          AND module_type=?
+        ORDER BY sort_order, id
+        """,
+        (student_id, GENDU_MODULE),
+    ).fetchall()
+    unit_ids = [str(r["unit_id"]) for r in rows if r["unit_id"]]
+    if not unit_ids:
+        conn.execute(
+            "DELETE FROM student_gendu_assignment WHERE student_id=?", (student_id,)
+        )
+        return
+    asg = _raw_gendu_assignment(conn, student_id)
+    today = china_ymd()
+    if asg:
+        cur = str(asg["current_unit_id"])
+        ends_on = str(asg["ends_on"])
+        if cur in unit_ids and today <= ends_on:
+            _ensure_gendu_plan_item(conn, student_id, cur)
+            return
+    start_unit_id = unit_ids[0]
+    _gendu_unit_or_raise(conn, start_unit_id)
+    start_ymd = starts_on or today
+    if starts_on:
+        start_ymd = _parse_ymd_strict(starts_on, field="开始日期")
+    ends_on = _ymd_plus_days(start_ymd, GENDU_ASSIGNMENT_DAYS - 1)
+    conn.execute(
+        """
+        INSERT INTO student_gendu_assignment (
+            student_id, start_unit_id, current_unit_id, starts_on, ends_on,
+            passed_current, updated_at
+        ) VALUES (?, ?, ?, ?, ?, 0, strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+        ON CONFLICT(student_id) DO UPDATE SET
+            start_unit_id=excluded.start_unit_id,
+            current_unit_id=excluded.current_unit_id,
+            starts_on=excluded.starts_on,
+            ends_on=excluded.ends_on,
+            passed_current=0,
+            updated_at=excluded.updated_at
+        """,
+        (student_id, start_unit_id, start_unit_id, start_ymd, ends_on),
+    )
+    _ensure_gendu_plan_item(conn, student_id, start_unit_id)
+
+
+def _gendu_pass_day(
+    conn: sqlite3.Connection, student_id: str, unit_id: str
+) -> Optional[str]:
+    """当前课首次过关（≥70）的那一天（上海日期）。没有记录时返回 None。"""
+    row = conn.execute(
+        """
+        SELECT MIN(task_date) AS d FROM gendu_practice_events
+        WHERE student_id=? AND unit_id=? AND score >= ?
+        """,
+        (student_id, unit_id, GENDU_PASS_SCORE),
+    ).fetchone()
+    if not row or not row["d"]:
+        return None
+    return str(row["d"])
+
+
+def _gendu_day_practice_count(
+    conn: sqlite3.Connection, student_id: str, task_date: str
+) -> int:
+    """某一天的有效跟读次数（**跨课文累加**，仅计 score≥GENDU_COUNT_MIN_SCORE）。
+
+    当日完成口径是「这一天有效练满 3 次」，不是「当前这一篇练满 3 次」。达标后当天
+    换篇（旧版 bug）会把 1 次留在旧课、2 次记到新课，按课文单独算就成了 1/3 + 1/3，
+    学生明明练了 3 遍却永远显示未完成（线上廉昕 2025114 即此例）。
+
+    低于 ``GENDU_COUNT_MIN_SCORE`` 的尝试仍写入事件表（可审计），但不计入完成进度，
+    用于挡住静音/几乎不读凑次数。
+    """
+    row = conn.execute(
+        """
+        SELECT COUNT(*) AS c FROM gendu_practice_events
+        WHERE student_id=? AND task_date=? AND score>=?
+        """,
+        (student_id, task_date, GENDU_COUNT_MIN_SCORE),
+    ).fetchone()
+    return int(row["c"] or 0) if row else 0
+
+
+def sync_gendu_day_done(
+    conn: sqlite3.Connection, student_id: str, task_date: str
+) -> bool:
+    """当天有效跟读满 3 次即完成任务，并把当天所有跟读行写成 ``done_study``。
+
+    有效次数 = ``gendu_practice_events`` 中 score≥GENDU_COUNT_MIN_SCORE 的当天条数，
+    跨课文累加。识别率 ≥70% 只负责次日换篇（``advance_gendu_if_needed``），
+    不在这里判断，也不靠 ``plan_items.study_completed`` 代替。次数不够时不改状态，
+    已经写过完成的行也不撤销。有行被改写时立即提交。
+    """
+    if _gendu_day_practice_count(conn, student_id, task_date) < GENDU_DAILY_PRACTICES:
+        return False
+    cur = conn.execute(
+        """
+        UPDATE daily_tasks SET state='done_study'
+        WHERE student_id=? AND task_date=?
+          AND plan_item_id IN (
+            SELECT id FROM plan_items WHERE student_id=? AND module_type=?
+          )
+          AND state NOT IN ('done_study', 'done_pass')
+        """,
+        (student_id, task_date, student_id, GENDU_MODULE),
+    )
+    if cur.rowcount:
+        conn.commit()
+    return True
+
+
+def advance_gendu_if_needed(
+    conn: sqlite3.Connection, student_id: str, task_date: str
+) -> bool:
+    """If current lesson passed (≥70%), advance pointer for this calendar day."""
+    asg = _raw_gendu_assignment(conn, student_id)
+    if not asg or not int(asg.get("passed_current") or 0):
+        return False
+    starts_on = str(asg["starts_on"])
+    ends_on = str(asg["ends_on"])
+    if task_date < starts_on or task_date > ends_on:
+        return False
+    current_unit = str(asg["current_unit_id"])
+    # 「次日起换课」：过关当天不换课。否则回填「昨日」时会误判成新的一天而立刻
+    # 换课，把还没布置过的新课塞进历史日期（幽灵任务），并覆盖当天已完成的旧课记录。
+    pass_day = _gendu_pass_day(conn, student_id, current_unit)
+    if pass_day and pass_day >= task_date:
+        return False
+    # If daily tasks for this day already exist for current unit, wait — but when
+    # building a new day, passed_current means yesterday (or earlier) hit 70%.
+    # Heuristic: if this day already has a daily_task for current unit with practices,
+    # don't advance mid-day. Only advance when materializing a fresh day OR when
+    # no daily row yet for current unit on that day.
+    today_row = conn.execute(
+        """
+        SELECT d.id, d.gendu_practice_count
+        FROM daily_tasks d
+        JOIN plan_items p ON p.id = d.plan_item_id
+        WHERE d.student_id=? AND d.task_date=? AND p.unit_id=?
+        LIMIT 1
+        """,
+        (student_id, task_date, current_unit),
+    ).fetchone()
+    if today_row and int(today_row["gendu_practice_count"] or 0) > 0:
+        return False
+    # If today already locked with this unit and count=0, still advance if passed
+    # (new day, not yet practiced). If locked mid-day from earlier materialize
+    # before pass, rematerialize is rare — delete today's gendu daily and advance.
+    next_id = _next_gendu_unit_id(conn, current_unit)
+    if not next_id:
+        # Last lesson: keep practicing until ends_on; clear flag so we don't loop.
+        conn.execute(
+            """
+            UPDATE student_gendu_assignment SET passed_current=0,
+                updated_at=strftime('%Y-%m-%dT%H:%M:%fZ','now')
+            WHERE student_id=?
+            """,
+            (student_id,),
+        )
+        conn.commit()
+        return False
+    # Complete old plan item(s) for current unit
+    conn.execute(
+        """
+        UPDATE plan_items SET study_completed=1,
+            last_completed_at=strftime('%Y-%m-%dT%H:%M:%fZ','now'),
+            updated_at=strftime('%Y-%m-%dT%H:%M:%fZ','now')
+        WHERE student_id=? AND unit_id=? AND item_type='study' AND status='pending'
+        """,
+        (student_id, current_unit),
+    )
+    conn.execute(
+        """
+        DELETE FROM daily_tasks
+        WHERE student_id=? AND task_date=?
+          AND plan_item_id IN (
+            SELECT id FROM plan_items WHERE student_id=? AND unit_id=?
+          )
+        """,
+        (student_id, task_date, student_id, current_unit),
+    )
+    conn.execute(
+        """
+        UPDATE student_gendu_assignment SET
+            current_unit_id=?, passed_current=0,
+            updated_at=strftime('%Y-%m-%dT%H:%M:%fZ','now')
+        WHERE student_id=?
+        """,
+        (next_id, student_id),
+    )
+    _ensure_gendu_plan_item(conn, student_id, next_id)
+    conn.commit()
+    return True
+
+
+def _gendu_aware_plan_items(
+    conn: sqlite3.Connection,
+    student_id: str,
+    task_date: str,
+    plan_items: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    """When assignment active, only current gendu unit; when expired/upcoming, drop gendu."""
+    advance_gendu_if_needed(conn, student_id, task_date)
+    asg = _raw_gendu_assignment(conn, student_id)
+    if not asg:
+        return plan_items
+    starts_on = str(asg["starts_on"])
+    ends_on = str(asg["ends_on"])
+    non_gendu = [
+        it for it in plan_items if str(it.get("module_type") or "") != GENDU_MODULE
+    ]
+    if task_date < starts_on or task_date > ends_on:
+        return non_gendu
+    # 历史日期不补跟读：换课后当前课在当天还不存在，补进去就是幽灵任务。
+    if task_date < china_ymd():
+        return non_gendu
+    current_unit = str(asg["current_unit_id"])
+    pid = _ensure_gendu_plan_item(conn, student_id, current_unit)
+    row = conn.execute(
+        """
+        SELECT p.*, u.title AS unit_title
+        FROM plan_items p
+        LEFT JOIN task_units u ON u.unit_id = p.unit_id
+        WHERE p.id=?
+        """,
+        (pid,),
+    ).fetchone()
+    if not row:
+        return non_gendu
+    item = dict(row)
+    # Keep current lesson packable until pointer advances
+    item["study_completed"] = 0
+    return non_gendu + [item]
+
+
+def report_gendu_practice(
+    conn: sqlite3.Connection,
+    student_id: str,
+    *,
+    plan_item_id: int,
+    score: float,
+    task_date: Optional[str] = None,
+) -> dict[str, Any]:
+    """Record one follow-read attempt; day done at 3; pass (≥70%) unlocks next-day advance."""
+    ensure_task_tables(conn)
+    task_date = task_date or china_ymd()
+    try:
+        score_f = float(score)
+    except (TypeError, ValueError) as exc:
+        raise ValueError("识别率无效") from exc
+    if score_f < 0 or score_f > 100:
+        raise ValueError("识别率须在 0–100")
+    asg = _raw_gendu_assignment(conn, student_id)
+    if not asg:
+        raise ValueError("尚未安排听力跟读作业")
+    if not (str(asg["starts_on"]) <= task_date <= str(asg["ends_on"])):
+        raise ValueError("跟读作业不在有效期内")
+    item = conn.execute(
+        "SELECT * FROM plan_items WHERE id=? AND student_id=?",
+        (plan_item_id, student_id),
+    ).fetchone()
+    if not item:
+        raise ValueError("计划条目不存在")
+    if str(item["module_type"]) != GENDU_MODULE:
+        raise ValueError("非听力跟读任务")
+    if str(item["unit_id"]) != str(asg["current_unit_id"]):
+        raise ValueError("请跟读当前指定课文")
+    # Ensure today's daily row exists
+    build_daily_tasks(conn, student_id, task_date)
+    daily = conn.execute(
+        """
+        SELECT * FROM daily_tasks
+        WHERE student_id=? AND task_date=? AND plan_item_id=?
+        """,
+        (student_id, task_date, plan_item_id),
+    ).fetchone()
+    if not daily:
+        raise ValueError("今日未安排该跟读任务")
+    conn.execute(
+        """
+        INSERT INTO gendu_practice_events
+            (student_id, unit_id, plan_item_id, task_date, score)
+        VALUES (?, ?, ?, ?, ?)
+        """,
+        (student_id, item["unit_id"], plan_item_id, task_date, score_f),
+    )
+    counted = score_f >= GENDU_COUNT_MIN_SCORE
+    # 行上的计数与完成口径一致：只累加有效次数
+    prev_count = int(daily["gendu_practice_count"] or 0)
+    count = prev_count + (1 if counted else 0)
+    best = daily["gendu_best_score"]
+    best_f = score_f if best is None else max(float(best), score_f)
+    conn.execute(
+        """
+        UPDATE daily_tasks SET
+            gendu_practice_count=?,
+            gendu_best_score=?
+        WHERE id=?
+        """,
+        (count, best_f, int(daily["id"])),
+    )
+    # 完成只看当天「有效」次数（score≥门槛，跨课文累加）
+    day_total = _gendu_day_practice_count(conn, student_id, task_date)
+    sync_gendu_day_done(conn, student_id, task_date)
+    if score_f >= GENDU_PASS_SCORE:
+        conn.execute(
+            """
+            UPDATE student_gendu_assignment SET passed_current=1,
+                updated_at=strftime('%Y-%m-%dT%H:%M:%fZ','now')
+            WHERE student_id=?
+            """,
+            (student_id,),
+        )
+    conn.commit()
+    today_data = get_today(conn, student_id) if task_date == china_ymd() else {
+        "items": _enrich_daily(conn, student_id, task_date),
+        "gendu_assignment": get_gendu_assignment(conn, student_id, on_date=task_date),
+    }
+    return {
+        "practice_count": day_total,
+        "required": GENDU_DAILY_PRACTICES,
+        "count_min_score": GENDU_COUNT_MIN_SCORE,
+        "counted": counted,
+        "best_score": best_f,
+        "day_complete": day_total >= GENDU_DAILY_PRACTICES,
+        "passed_lesson": score_f >= GENDU_PASS_SCORE
+        or bool(_raw_gendu_assignment(conn, student_id).get("passed_current")),
+        "today": today_data,
+    }
+
+
+def get_plan(conn: sqlite3.Connection, student_id: str) -> dict[str, Any]:
+    maybe_apply_pending_for_today(conn, student_id, china_ymd())
+    live = [
+        dict(r)
+        for r in conn.execute(
+            """
+            SELECT p.*, u.title AS unit_title, u.content_ref, u.content_version,
+                   u.study_url, u.est_minutes AS unit_est_minutes
+            FROM plan_items p
+            LEFT JOIN task_units u ON u.unit_id = p.unit_id
+            WHERE p.student_id=? AND p.status!='removed'
+            ORDER BY p.sort_order
+            """,
+            (student_id,),
+        ).fetchall()
+    ]
+    draft = [
+        dict(r)
+        for r in conn.execute(
+            """
+            SELECT d.*, u.title AS unit_title
+            FROM plan_items_draft d
+            LEFT JOIN task_units u ON u.unit_id = d.unit_id
+            WHERE d.student_id=? AND d.status!='removed'
+            ORDER BY d.sort_order
+            """,
+            (student_id,),
+        ).fetchall()
+    ]
+    for item in live + draft:
+        item["test_unit_ids"] = _parse_json_list(item.get("test_unit_ids"))
+        if item.get("content_ref"):
+            try:
+                item["content_ref"] = json.loads(item["content_ref"])
+            except (json.JSONDecodeError, TypeError):
+                pass
+    tp = get_time_profile(conn, student_id)
+    pending_change = bool(draft) or _profile_has_real_pending(tp)
+    draft_order_issues = _stage_test_order_issues(draft) if draft else []
+    today = china_ymd()
+    meta_row = conn.execute(
+        "SELECT saved_ymd, effective_from FROM plan_draft_meta WHERE student_id=?",
+        (student_id,),
+    ).fetchone()
+    meta = dict(meta_row) if meta_row else None
+    draft_effective_from = (
+        _draft_meta_effective_from(meta, today) if draft else None
+    )
+    pending_profile_effective_from = (
+        tp.get("pending_effective_from")
+        if _profile_has_real_pending(tp)
+        else None
+    )
+    return {
+        "live": live,
+        "draft": draft,
+        "draft_pending": bool(draft),
+        "progress": _plan_progress(conn, student_id),
+        "plan_status": effective_plan_status(conn, student_id),
+        "plan_pause": get_plan_pause(conn, student_id),
+        "pending_plan_change": pending_change,
+        "draft_effective_from": draft_effective_from,
+        "pending_profile_effective_from": pending_profile_effective_from,
+        "pending_effective_from": _pending_effective_from_summary(
+            conn, student_id, pending_plan_change=pending_change
+        ),
+        "draft_order_issues": draft_order_issues,
+        "time_profile": tp,
+        "gendu_assignment": get_gendu_assignment(conn, student_id),
+    }
+
+
+def _profile_has_real_pending(tp: dict[str, Any]) -> bool:
+    if tp.get("pending_weekday_minutes") is not None:
+        if int(tp["pending_weekday_minutes"]) != int(tp.get("weekday_minutes") or 0):
+            return True
+    if tp.get("pending_weekend_minutes") is not None:
+        if int(tp["pending_weekend_minutes"]) != int(tp.get("weekend_minutes") or 0):
+            return True
+    if tp.get("pending_stage_test_every_n") is not None:
+        if int(tp["pending_stage_test_every_n"]) != int(tp.get("stage_test_every_n") or 0):
+            return True
+    if _quotas_have_pending(tp.get("module_quotas") or []):
+        return True
+    return False
+
+
+def _study_unit_ids_in_plan(conn: sqlite3.Connection, student_id: str, table: str) -> set[str]:
+    rows = conn.execute(
+        f"""
+        SELECT unit_id FROM {table}
+        WHERE student_id=? AND item_type='study' AND status!='removed' AND unit_id IS NOT NULL
+        """,
+        (student_id,),
+    ).fetchall()
+    return {r["unit_id"] for r in rows if r["unit_id"]}
+
+
+def put_plan_draft(
+    conn: sqlite3.Connection,
+    student_id: str,
+    items: list[dict[str, Any]],
+    *,
+    effective_from: Optional[str] = None,
+) -> dict[str, Any]:
+    """Replace draft list. Enforces D26 unique unit_id for study items."""
+    seen: set[str] = set()
+    for it in items:
+        if it.get("item_type") == "study" and it.get("status", "pending") != "removed":
+            uid = it.get("unit_id")
+            if not uid:
+                raise ValueError("study 条目必须有 unit_id")
+            if uid in seen:
+                raise ValueError(f"该单元已在计划中: {uid}")
+            seen.add(uid)
+            unit = conn.execute(
+                "SELECT unit_id, module_type FROM task_units WHERE unit_id=?", (uid,)
+            ).fetchone()
+            if not unit:
+                raise ValueError(f"未知单元: {uid}")
+
+    items = normalize_stage_test_positions(items)
+    conn.execute("DELETE FROM plan_items_draft WHERE student_id=?", (student_id,))
+    for idx, it in enumerate(items):
+        item_type = it.get("item_type") or "study"
+        unit_id = it.get("unit_id")
+        module_type = it.get("module_type") or ""
+        if item_type == "study" and unit_id:
+            u = conn.execute(
+                "SELECT module_type, est_minutes FROM task_units WHERE unit_id=?", (unit_id,)
+            ).fetchone()
+            if u:
+                module_type = u["module_type"]
+        status = it.get("status") or "pending"
+        conn.execute(
+            """
+            INSERT INTO plan_items_draft (
+                student_id, sort_order, item_type, unit_id, module_type,
+                test_unit_ids, test_title, est_minutes, status
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                student_id,
+                idx,
+                item_type,
+                unit_id,
+                module_type,
+                json.dumps(it.get("test_unit_ids") or [], ensure_ascii=False),
+                it.get("test_title") or "",
+                it.get("est_minutes"),
+                status,
+            ),
+        )
+    raw_eff = effective_from
+    eff_ymd = normalize_effective_from(effective_from)
+    conn.execute(
+        """
+        INSERT INTO plan_draft_meta (student_id, saved_ymd, effective_from)
+        VALUES (?, ?, ?)
+        ON CONFLICT(student_id) DO UPDATE SET
+            saved_ymd=excluded.saved_ymd,
+            effective_from=excluded.effective_from,
+            updated_at=strftime('%Y-%m-%dT%H:%M:%fZ','now')
+        """,
+        (student_id, china_ymd(), eff_ymd),
+    )
+    live_n = conn.execute(
+        "SELECT COUNT(*) AS c FROM plan_items WHERE student_id=? AND status!='removed'",
+        (student_id,),
+    ).fetchone()["c"]
+    today = china_ymd()
+    # Apply when due. Empty live + omitted effective_from still goes live today
+    # (API/tests convenience). An explicit future date is always respected —
+    # otherwise「明天生效」on a first plan would still create today's tasks.
+    apply_now = eff_ymd <= today or (
+        live_n == 0 and (raw_eff is None or raw_eff == "")
+    )
+    if apply_now:
+        apply_draft_to_live(conn, student_id)
+        conn.execute("DELETE FROM plan_draft_meta WHERE student_id=?", (student_id,))
+        if eff_ymd == today and live_n > 0:
+            conn.execute(
+                "DELETE FROM daily_tasks WHERE student_id=? AND task_date=?",
+                (student_id, today),
+            )
+    conn.commit()
+    # Belt-and-suspenders: due drafts/profile must merge even if caller skipped the branch.
+    maybe_apply_pending_for_today(conn, student_id, today)
+    # After a live apply, ensure today has a pack (don't wait for student to open 今日任务).
+    if apply_now and eff_ymd <= today:
+        build_daily_tasks(conn, student_id, today)
+    return get_plan(conn, student_id)
+
+
+def apply_draft_to_live(conn: sqlite3.Connection, student_id: str) -> dict[str, Any]:
+    """Promote draft → live. Preserves completion state for matching unit_id study items."""
+    draft = conn.execute(
+        "SELECT * FROM plan_items_draft WHERE student_id=? ORDER BY sort_order",
+        (student_id,),
+    ).fetchall()
+    if not draft:
+        return get_plan(conn, student_id)
+
+    old = {
+        r["unit_id"]: dict(r)
+        for r in conn.execute(
+            """
+            SELECT * FROM plan_items
+            WHERE student_id=? AND item_type='study' AND unit_id IS NOT NULL
+            """,
+            (student_id,),
+        ).fetchall()
+        if r["unit_id"]
+    }
+
+    # Soft-remove live rows not in draft (keep history for backlog refs: mark removed)
+    conn.execute(
+        "UPDATE plan_items SET status='removed', updated_at=strftime('%Y-%m-%dT%H:%M:%fZ','now') "
+        "WHERE student_id=? AND status!='removed'",
+        (student_id,),
+    )
+
+    for idx, d in enumerate(draft):
+        d = dict(d)
+        unit_id = d.get("unit_id")
+        prev = old.get(unit_id) if d["item_type"] == "study" and unit_id else None
+        conn.execute(
+            """
+            INSERT INTO plan_items (
+                student_id, sort_order, item_type, unit_id, module_type,
+                test_unit_ids, test_title, est_minutes, status,
+                study_completed, study_completed_version, test_passed,
+                need_refresh
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)
+            """,
+            (
+                student_id,
+                idx,
+                d["item_type"],
+                unit_id,
+                d["module_type"],
+                d.get("test_unit_ids") or "[]",
+                d.get("test_title") or "",
+                d.get("est_minutes"),
+                d.get("status") or "pending",
+                (prev or {}).get("study_completed") or 0,
+                (prev or {}).get("study_completed_version"),
+                0 if d["item_type"] == "test" else 0,
+            ),
+        )
+
+    conn.execute("DELETE FROM plan_items_draft WHERE student_id=?", (student_id,))
+    _sync_gendu_from_live_plan(conn, student_id)
+    conn.commit()
+    return get_plan(conn, student_id)
+
+
+def maybe_apply_pending_for_today(conn: sqlite3.Connection, student_id: str, task_date: str) -> None:
+    """On first access of task_date: merge profile/draft pending if effective_from is due."""
+    row = ensure_time_profile(conn, student_id)
+    # Drop stale pending_* that equal live (avoids false「待生效」banner).
+    if not _profile_has_real_pending(row) and any(
+        row.get(k) is not None
+        for k in (
+            "pending_weekday_minutes",
+            "pending_weekend_minutes",
+            "pending_stage_test_every_n",
+            "pending_effective_from",
+        )
+    ):
+        conn.execute(
+            """
+            UPDATE student_time_profiles SET
+                pending_weekday_minutes=NULL,
+                pending_weekend_minutes=NULL,
+                pending_stage_test_every_n=NULL,
+                pending_effective_from=NULL,
+                updated_at=strftime('%Y-%m-%dT%H:%M:%fZ','now')
+            WHERE student_id=?
+            """,
+            (student_id,),
+        )
+        conn.execute(
+            """
+            UPDATE student_module_daily_quota SET
+                pending_weekday_units=NULL,
+                pending_weekend_units=NULL,
+                updated_at=strftime('%Y-%m-%dT%H:%M:%fZ','now')
+            WHERE student_id=?
+            """,
+            (student_id,),
+        )
+        row = ensure_time_profile(conn, student_id)
+    if _profile_pending_due(row, task_date):
+        old_wd = int(row["weekday_minutes"])
+        old_we = int(row["weekend_minutes"])
+        old_quotas = list_module_quotas(conn, student_id)
+        apply_pending_profile(conn, student_id, task_date)
+        conn.execute(
+            "UPDATE student_time_profiles SET pending_effective_from=NULL WHERE student_id=?",
+            (student_id,),
+        )
+        merged = ensure_time_profile(conn, student_id)
+        schedule_changed = (
+            int(merged["weekday_minutes"]) != old_wd
+            or int(merged["weekend_minutes"]) != old_we
+            or _quotas_changed(old_quotas, merged.get("module_quotas") or [])
+        )
+        if schedule_changed:
+            conn.execute(
+                "DELETE FROM daily_tasks WHERE student_id=? AND task_date=?",
+                (student_id, task_date),
+            )
+    draft_count = conn.execute(
+        "SELECT COUNT(*) AS c FROM plan_items_draft WHERE student_id=?", (student_id,)
+    ).fetchone()["c"]
+    if not draft_count:
+        # Orphan meta without draft rows
+        conn.execute("DELETE FROM plan_draft_meta WHERE student_id=?", (student_id,))
+        conn.commit()
+        return
+    meta = conn.execute(
+        "SELECT saved_ymd, effective_from FROM plan_draft_meta WHERE student_id=?",
+        (student_id,),
+    ).fetchone()
+    eff = _draft_meta_effective_from(dict(meta) if meta else None, task_date)
+    if not eff or eff > task_date:
+        conn.commit()
+        return
+    apply_draft_to_live(conn, student_id)
+    conn.execute("DELETE FROM plan_draft_meta WHERE student_id=?", (student_id,))
+    if eff == task_date:
+        conn.execute(
+            "DELETE FROM daily_tasks WHERE student_id=? AND task_date=?",
+            (student_id, task_date),
+        )
+    conn.commit()
+
+
+def _budget_minutes(
+    profile: dict[str, Any],
+    task_date: str,
+    *,
+    weekday_override: Optional[int] = None,
+    weekend_override: Optional[int] = None,
+    prefer_pending: bool = False,
+) -> int:
+    """Resolve daily pack budget; overrides (teacher form) win over pending/live."""
+    weekend = is_weekend(task_date)
+    if weekend:
+        if weekend_override is not None:
+            return max(0, int(weekend_override))
+        if prefer_pending and profile.get("pending_weekend_minutes") is not None:
+            return int(profile["pending_weekend_minutes"])
+        return int(profile["weekend_minutes"])
+    if weekday_override is not None:
+        return max(0, int(weekday_override))
+    if prefer_pending and profile.get("pending_weekday_minutes") is not None:
+        return int(profile["pending_weekday_minutes"])
+    return int(profile["weekday_minutes"])
+
+
+def _est_minutes(conn: sqlite3.Connection, plan_item: dict[str, Any]) -> int:
+    if plan_item.get("est_minutes"):
+        return int(plan_item["est_minutes"])
+    if plan_item.get("unit_id"):
+        u = conn.execute(
+            "SELECT est_minutes FROM task_units WHERE unit_id=?", (plan_item["unit_id"],)
+        ).fetchone()
+        if u:
+            return int(u["est_minutes"])
+    return 15 if plan_item.get("item_type") == "study" else 20
+
+
+def _item_done(item: dict[str, Any]) -> bool:
+    if item.get("item_type") == "study":
+        return bool(item.get("study_completed"))
+    return bool(item.get("test_passed"))
+
+
+def _paused_modules(
+    conn: sqlite3.Connection, student_id: str, on_date: str
+) -> set[str]:
+    """配额被显式设为 0 的模块 = 助教已暂停该科。
+
+    判定用「周中与周末都为 0」：只把单边设为 0 是「那几天不排」（例如工作日不排、
+    周末排），不算暂停，否则积压数会随星期来回跳。这类被暂停模块的未完成条目既不会
+    被派发、也不该算作积压（否则会变成永远清不掉的「假积压」）。
+    """
+    paused: set[str] = set()
+    for row in list_module_quotas(conn, student_id):
+        wd, we = row.get("weekday_units"), row.get("weekend_units")
+        if wd is None or we is None:
+            # 未设置 = 按默认 1 条/天排，不算暂停
+            continue
+        if max(0, int(wd)) <= 0 and max(0, int(we)) <= 0:
+            mt = str(row.get("module_type") or "")
+            if mt:
+                paused.add(mt)
+    # 跟读在有效期内会被强制保留 1 条/天（见 build_daily_tasks），不算暂停。
+    asg = _raw_gendu_assignment(conn, student_id)
+    if asg and str(asg["starts_on"]) <= on_date <= str(asg["ends_on"]):
+        paused.discard(GENDU_MODULE)
+    return paused
+
+
+def backlog_plan_item_ids(
+    conn: sqlite3.Connection,
+    student_id: str,
+    *,
+    before_date: Optional[str] = None,
+) -> list[int]:
+    """D23: unfinished items that appeared in daily_tasks *before* before_date.
+
+    Today's unfinished tasks do not count yet (the day is still in progress).
+    ``before_date`` defaults to China today.
+
+    **用途限定**：这是给打包器挑「优先补做」候选集的，口径是「以前派过、仍未完成」。
+    看板展示的「积压」数字已改为 ``day_unfinished_count``（回看昨天那批任务），
+    两者口径刻意不同，不要互相替换。
+
+    早于「计划生效日」的日期一律不算：那是计划尚未创建时被旧版回填逻辑塞进去的
+    幽灵行（9/17 之前 ensure_active_plan_daily_tasks 无下限回填），学生当天根本
+    没有这批任务，计成积压会一直挂着并标红。
+    """
+    cutoff = before_date or china_ymd()
+    plan_start = _plan_effective_start(conn, student_id)
+    if plan_start and cutoff <= plan_start:
+        return []
+    rows = conn.execute(
+        """
+        SELECT DISTINCT d.plan_item_id, p.module_type, p.item_type
+        FROM daily_tasks d
+        JOIN plan_items p ON p.id = d.plan_item_id
+        WHERE d.student_id=?
+          AND d.task_date < ?
+          AND d.task_date >= ?
+          AND p.status != 'removed'
+          AND (
+            (p.item_type='study' AND p.study_completed=0)
+            OR (p.item_type='test' AND p.test_passed=0)
+          )
+        ORDER BY d.task_date, d.sort_in_day
+        """,
+        (student_id, cutoff, plan_start or ""),
+    ).fetchall()
+    # 配额被设为 0 的模块（助教暂停）不计积压：它们的条目本来就不会被派发，
+    # 计进来只会一直挂着、学生怎么做都清不掉，还会把看板标红。
+    paused = _paused_modules(conn, student_id, cutoff)
+    # 跟读单元：最近一次安排日「做满 3 次 = 当日完成」即不计积压（即使未过 70 分关）。
+    # study_completed 只在过 70 分、次日切课时才置 1，否则会误报为积压。
+    out: list[int] = []
+    for r in rows:
+        pid = int(r["plan_item_id"])
+        mt = str(r["module_type"] or "")
+        if mt in paused:
+            continue
+        if mt == GENDU_MODULE and str(r["item_type"] or "") == "study":
+            latest = conn.execute(
+                """
+                SELECT state, task_date FROM daily_tasks
+                WHERE student_id=? AND plan_item_id=? AND task_date<?
+                  AND task_date >= ?
+                ORDER BY task_date DESC LIMIT 1
+                """,
+                (student_id, pid, cutoff, plan_start or ""),
+            ).fetchone()
+            if latest and (
+                str(latest["state"] or "") in ("done_study", "done_pass")
+                or sync_gendu_day_done(conn, student_id, str(latest["task_date"]))
+            ):
+                continue
+        out.append(pid)
+    return out
+
+
+def _session_study_date_expr() -> str:
+    return "date(COALESCE(ended_at, created_at), '+8 hours')"
+
+
+def sum_today_study_seconds(
+    conn: sqlite3.Connection,
+    student_id: str,
+    task_date: str,
+) -> int:
+    try:
+        row = conn.execute(
+            f"""
+            SELECT COALESCE(SUM(duration_seconds), 0) AS total
+            FROM study_sessions
+            WHERE student_id=?
+              AND session_kind='study'
+              AND {_session_study_date_expr()} = ?
+            """,
+            (student_id, task_date),
+        ).fetchone()
+        return int(row["total"] or 0) if row else 0
+    except sqlite3.OperationalError:
+        return 0
+
+
+def sum_total_study_seconds(conn: sqlite3.Connection, student_id: str) -> int:
+    try:
+        row = conn.execute(
+            """
+            SELECT COALESCE(SUM(duration_seconds), 0) AS total
+            FROM study_sessions
+            WHERE student_id=?
+              AND session_kind='study'
+            """,
+            (student_id,),
+        ).fetchone()
+        return int(row["total"] or 0) if row else 0
+    except sqlite3.OperationalError:
+        return 0
+
+
+def sum_today_study_by_plan_item(
+    conn: sqlite3.Connection,
+    student_id: str,
+    task_date: str,
+) -> dict[int, int]:
+    try:
+        rows = conn.execute(
+            f"""
+            SELECT plan_item_id, COALESCE(SUM(duration_seconds), 0) AS total
+            FROM study_sessions
+            WHERE student_id=?
+              AND session_kind='study'
+              AND plan_item_id IS NOT NULL
+              AND {_session_study_date_expr()} = ?
+            GROUP BY plan_item_id
+            """,
+            (student_id, task_date),
+        ).fetchall()
+        return {int(r["plan_item_id"]): int(r["total"]) for r in rows}
+    except sqlite3.OperationalError:
+        return {}
+
+
+def _minutes_from_seconds(seconds: int) -> float:
+    return round(max(0, int(seconds)) / 60, 1)
+
+
+def _interleave_by_module(items: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Round-robin across module_type; preserve sort_order within each module.
+
+    When only one module is present, return global sort_order (unchanged behavior).
+    Module cycle order = order each subject first appears in the plan (sort_order).
+    """
+    if not items:
+        return []
+    by_mod: dict[str, list[dict[str, Any]]] = {}
+    mod_first: dict[str, int] = {}
+    for item in items:
+        mt = str(item.get("module_type") or "other")
+        if mt not in by_mod:
+            by_mod[mt] = []
+            mod_first[mt] = int(item.get("sort_order") or 0)
+        by_mod[mt].append(item)
+    if len(by_mod) <= 1:
+        return sorted(items, key=lambda x: int(x.get("sort_order") or 0))
+    module_keys = sorted(by_mod.keys(), key=lambda m: mod_first[m])
+    queues = {m: list(by_mod[m]) for m in module_keys}
+    out: list[dict[str, Any]] = []
+    while True:
+        progressed = False
+        for m in module_keys:
+            if not queues[m]:
+                continue
+            out.append(queues[m].pop(0))
+            progressed = True
+        if not progressed:
+            break
+    return out
+
+
+def normalize_stage_test_positions(items: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Place each stage test after the last study unit it covers; drop exact duplicates."""
+    out = [dict(x) for x in items if x.get("item_type") != "test"]
+    tests = [dict(x) for x in items if x.get("item_type") == "test"]
+    seen_cov: set[frozenset[str]] = set()
+    unique_tests: list[dict[str, Any]] = []
+    for test in tests:
+        covers = frozenset(_parse_json_list(test.get("test_unit_ids")) or [])
+        if not covers or covers in seen_cov:
+            continue
+        seen_cov.add(covers)
+        unique_tests.append(test)
+
+    keyed: list[tuple[int, int, int, dict[str, Any]]] = []
+    for test in unique_tests:
+        covers = set(_parse_json_list(test.get("test_unit_ids")) or [])
+        indices = [
+            i
+            for i, st in enumerate(out)
+            if st.get("item_type") == "study" and st.get("unit_id") in covers
+        ]
+        if not indices:
+            keyed.append((len(out), 0, 0, test))
+            continue
+        keyed.append((max(indices), min(indices), len(covers), test))
+
+    keyed.sort(key=lambda row: (row[0], row[1], row[2]))
+    for last_si, _first_si, _n, test in reversed(keyed):
+        out.insert(last_si + 1, test)
+    return out
+
+
+def _stage_test_order_issues(items: list[dict[str, Any]]) -> list[str]:
+    """Human-readable warnings when a test appears before units it covers."""
+    issues: list[str] = []
+    study_seen: set[str] = set()
+    for idx, it in enumerate(items):
+        if it.get("item_type") == "study" and it.get("unit_id"):
+            study_seen.add(it["unit_id"])
+        elif it.get("item_type") == "test":
+            covers = set(_parse_json_list(it.get("test_unit_ids")) or [])
+            missing = [u for u in covers if u not in study_seen]
+            if missing:
+                title = it.get("test_title") or "阶段测"
+                issues.append(f"第{idx + 1}条「{title}」排在部分学习单元之前")
+    return issues
+
+
+def _plan_items_from_draft_rows(rows: list) -> list[dict[str, Any]]:
+    plan_items: list[dict[str, Any]] = []
+    for i, row in enumerate(rows):
+        d = dict(row)
+        d["id"] = -(i + 1)
+        d["study_completed"] = 0
+        d["test_passed"] = 0
+        d["need_refresh"] = 0
+        d["test_unit_ids"] = _parse_json_list(d.get("test_unit_ids"))
+        plan_items.append(d)
+    return plan_items
+
+
+def _plan_items_from_payload(
+    conn: sqlite3.Connection, items: list[dict[str, Any]]
+) -> list[dict[str, Any]]:
+    plan_items: list[dict[str, Any]] = []
+    for i, it in enumerate(items):
+        if it.get("status") == "removed":
+            continue
+        d = dict(it)
+        d["id"] = -(i + 1)
+        d["study_completed"] = int(d.get("study_completed") or 0)
+        d["test_passed"] = int(d.get("test_passed") or 0)
+        d["need_refresh"] = int(d.get("need_refresh") or 0)
+        d["test_unit_ids"] = _parse_json_list(d.get("test_unit_ids"))
+        if d.get("item_type") == "study" and d.get("unit_id"):
+            u = conn.execute(
+                "SELECT title, est_minutes, module_type FROM task_units WHERE unit_id=?",
+                (d["unit_id"],),
+            ).fetchone()
+            if u:
+                d["unit_title"] = u["title"]
+                d["unit_est_minutes"] = u["est_minutes"]
+                if not d.get("module_type"):
+                    d["module_type"] = u["module_type"]
+        plan_items.append(d)
+    return plan_items
+
+
+def _hydrate_plan_items_with_live(
+    conn: sqlite3.Connection, student_id: str, plan_items: list[dict[str, Any]]
+) -> list[dict[str, Any]]:
+    """Attach live plan_item ids / completion flags so previews match student packing."""
+    live_rows = [
+        dict(r)
+        for r in conn.execute(
+            """
+            SELECT p.*, u.title AS unit_title
+            FROM plan_items p
+            LEFT JOIN task_units u ON u.unit_id = p.unit_id
+            WHERE p.student_id=? AND p.status!='removed'
+            ORDER BY p.sort_order
+            """,
+            (student_id,),
+        ).fetchall()
+    ]
+    by_unit: dict[str, dict[str, Any]] = {}
+    tests: list[dict[str, Any]] = []
+    for row in live_rows:
+        row["test_unit_ids"] = _parse_json_list(row.get("test_unit_ids"))
+        if row.get("item_type") == "study" and row.get("unit_id"):
+            by_unit[str(row["unit_id"])] = row
+        elif row.get("item_type") == "test":
+            tests.append(row)
+
+    def _test_key(ids: list[Any]) -> str:
+        return "\u0001".join(sorted(str(x) for x in (ids or [])))
+
+    used_live: set[int] = set()
+    for d in plan_items:
+        live = None
+        if d.get("item_type") == "study" and d.get("unit_id"):
+            live = by_unit.get(str(d["unit_id"]))
+        elif d.get("item_type") == "test":
+            key = _test_key(d.get("test_unit_ids") or [])
+            for t in tests:
+                if int(t["id"]) in used_live:
+                    continue
+                if _test_key(t.get("test_unit_ids") or []) == key:
+                    live = t
+                    break
+        if not live:
+            continue
+        used_live.add(int(live["id"]))
+        d["id"] = int(live["id"])
+        d["study_completed"] = int(live.get("study_completed") or 0)
+        d["test_passed"] = int(live.get("test_passed") or 0)
+        d["need_refresh"] = int(live.get("need_refresh") or 0)
+        d["status"] = live.get("status") or d.get("status") or "pending"
+        if live.get("unit_title"):
+            d["unit_title"] = live["unit_title"]
+    return plan_items
+
+
+def _schedule_day_from_daily(
+    conn: sqlite3.Connection, student_id: str, task_date: str
+) -> Optional[dict[str, Any]]:
+    rows = conn.execute(
+        "SELECT 1 FROM daily_tasks WHERE student_id=? AND task_date=? LIMIT 1",
+        (student_id, task_date),
+    ).fetchone()
+    if not rows:
+        return None
+    enriched = _enrich_daily(conn, student_id, task_date)
+    if not enriched:
+        return {
+            "task_date": task_date,
+            "items": [],
+            "units_total": 0,
+            "source": "actual",
+        }
+    return {
+        "task_date": task_date,
+        "items": [
+            {
+                "title": x.get("title"),
+                "module_type": x.get("module_type"),
+                "item_type": x.get("item_type"),
+                "est_minutes": x.get("est_minutes"),
+                "priority_class": x.get("priority_class"),
+                "state": x.get("state"),
+            }
+            for x in enriched
+        ],
+        "units_total": len(enriched),
+        "source": "actual",
+    }
+
+
+def _aligned_units_schedule(
+    conn: sqlite3.Connection,
+    student_id: str,
+    plan_items: list[dict[str, Any]],
+    *,
+    start_date: str,
+    quota_resolver,
+    days: int = UNITS_PREVIEW_DAYS,
+) -> list[dict[str, Any]]:
+    """Schedule aligned with student: today uses locked daily_tasks when present."""
+    today = china_ymd()
+    plan_items = _gendu_aware_plan_items(conn, student_id, start_date, list(plan_items))
+    released = {pid for pid in _released_plan_item_ids(conn, student_id) if pid > 0}
+    schedule: list[dict[str, Any]] = []
+    cursor = start_date
+    left = days
+
+    if cursor <= today and left > 0:
+        actual = _schedule_day_from_daily(conn, student_id, today)
+        if actual is not None:
+            schedule.append(actual)
+            left -= 1
+            cursor = (
+                datetime.strptime(today, "%Y-%m-%d").date() + timedelta(days=1)
+            ).strftime("%Y-%m-%d")
+        else:
+            backlog = {
+                pid
+                for pid in backlog_plan_item_ids(conn, student_id, before_date=today)
+                if pid > 0
+            }
+            picks = _units_pack_picks(
+                plan_items,
+                task_date=today,
+                quota_map=quota_resolver(today),
+                backlog_ids=backlog,
+                released_ids=released,
+                released_means_done=True,  # 试算：把已派过的当作已完成
+            )
+            schedule.append(
+                {
+                    "task_date": today,
+                    "items": _units_pack_to_preview_items(conn, picks),
+                    "units_total": len(picks),
+                    "source": "simulated",
+                }
+            )
+            for item, _p, _f in picks:
+                if _should_release_plan_item(item):
+                    released.add(int(item["id"]))
+            left -= 1
+            cursor = (
+                datetime.strptime(today, "%Y-%m-%d").date() + timedelta(days=1)
+            ).strftime("%Y-%m-%d")
+
+    if left > 0:
+        rest = _preview_units_schedule(
+            conn,
+            plan_items,
+            cursor,
+            quota_resolver=quota_resolver,
+            days=left,
+            initial_released=released,
+            initial_backlog=set(),
+        )
+        schedule.extend(rest)
+    while schedule and not (schedule[-1].get("items") or []):
+        schedule.pop()
+    return schedule
+
+
+def _quota_overrides_from_payload(
+    module_quotas: Any,
+) -> dict[str, dict[str, int]]:
+    if not isinstance(module_quotas, list):
+        return {}
+    out: dict[str, dict[str, int]] = {}
+    for q in module_quotas:
+        if not isinstance(q, dict):
+            continue
+        mt = str(q.get("module_type") or "")
+        if not mt:
+            continue
+        entry: dict[str, int] = {}
+        if q.get("weekday_units") is not None:
+            entry["weekday_units"] = max(0, int(q["weekday_units"]))
+        if q.get("weekend_units") is not None:
+            entry["weekend_units"] = max(0, int(q["weekend_units"]))
+        if entry:
+            out[mt] = entry
+    return out
+
+
+def preview_daily_pack_items(
+    conn: sqlite3.Connection,
+    student_id: str,
+    items: list[dict[str, Any]],
+    task_date: Optional[str] = None,
+    *,
+    weekday_minutes: Optional[int] = None,
+    weekend_minutes: Optional[int] = None,
+    pack_mode: Optional[str] = None,
+    module_quotas: Optional[list[dict[str, Any]]] = None,
+    effective_from: Optional[str] = None,
+) -> dict[str, Any]:
+    """Preview packing for a draft item list (saved or unsaved).
+
+    Units mode aligns with the student: today uses locked daily_tasks when present;
+    draft rows are hydrated with live plan_item ids so released/backlog match.
+    Quotas follow 生效日：之前用已生效，之后用 pending / 表单试算。
+    """
+    task_date = task_date or china_ymd()
+    profile = ensure_time_profile(conn, student_id)
+    plan_items = _hydrate_plan_items_with_live(
+        conn, student_id, _plan_items_from_payload(conn, items)
+    )
+    quota_overrides = _quota_overrides_from_payload(module_quotas)
+    override_from = None
+    if quota_overrides:
+        raw_eff = (
+            effective_from
+            or profile.get("pending_effective_from")
+            or task_date
+        )
+        try:
+            datetime.strptime(str(raw_eff), "%Y-%m-%d")
+            override_from = str(raw_eff)
+        except (TypeError, ValueError):
+            override_from = task_date
+
+    def _quota_for(day: str) -> dict[str, int]:
+        return _resolve_units_quota_map(
+            conn,
+            student_id,
+            day,
+            plan_items,
+            quota_overrides=quota_overrides or None,
+            override_from=override_from,
+        )
+
+    schedule = _aligned_units_schedule(
+        conn,
+        student_id,
+        plan_items,
+        start_date=task_date,
+        quota_resolver=_quota_for,
+    )
+    quota_map = _quota_for(task_date)
+    today_row = next(
+        (d for d in schedule if d.get("task_date") == task_date),
+        schedule[0] if schedule else None,
+    )
+    today_items = (today_row or {}).get("items") or []
+    return {
+        "source": "draft_items_aligned",
+        "task_date": task_date,
+        "pack_mode": PACK_MODE_UNITS_PER_DAY,
+        "module_quotas": quota_map,
+        "schedule": schedule,
+        "items": today_items,
+        "units_total": len(today_items),
+        "est_total_minutes": sum(int(x.get("est_minutes") or 0) for x in today_items),
+        "rotated": len({x.get("module_type") for x in today_items if x.get("module_type")})
+        > 1,
+        "aligned": True,
+        "quota_override_from": override_from,
+    }
+
+
+def preview_daily_pack(
+    conn: sqlite3.Connection,
+    student_id: str,
+    task_date: Optional[str] = None,
+    *,
+    source: str = "live",
+    pack_mode: Optional[str] = None,
+    module_quotas: Optional[list[dict[str, Any]]] = None,
+    weekday_minutes: Optional[int] = None,
+    weekend_minutes: Optional[int] = None,
+) -> dict[str, Any]:
+    """Simulate daily boxing (multi-module rotation). Live + existing daily → actual today."""
+    task_date = task_date or china_ymd()
+    maybe_apply_pending_for_today(conn, student_id, task_date)
+    profile = ensure_time_profile(conn, student_id)
+    quota_overrides = _quota_overrides_from_payload(module_quotas)
+
+    if source == "live":
+        existing = conn.execute(
+            "SELECT COUNT(*) AS c FROM daily_tasks WHERE student_id=? AND task_date=?",
+            (student_id, task_date),
+        ).fetchone()
+        if existing and int(existing["c"]) > 0:
+            daily = _enrich_daily(conn, student_id, task_date)
+            modules = {d.get("module_type") for d in daily if d.get("module_type")}
+            return {
+                "source": "live_locked",
+                "task_date": task_date,
+                "pack_mode": PACK_MODE_UNITS_PER_DAY,
+                "est_total_minutes": sum(d.get("est_minutes") or 0 for d in daily),
+                "rotated": len(modules) > 1,
+                "units_total": len(daily),
+                "items": [
+                    {
+                        "title": d.get("title"),
+                        "module_type": d.get("module_type"),
+                        "item_type": d.get("item_type"),
+                        "est_minutes": d.get("est_minutes"),
+                        "priority_class": d.get("priority_class"),
+                    }
+                    for d in daily
+                ],
+            }
+
+    if source == "draft":
+        rows = conn.execute(
+            """
+            SELECT d.*, u.title AS unit_title, u.est_minutes AS unit_est_minutes
+            FROM plan_items_draft d
+            LEFT JOIN task_units u ON u.unit_id = d.unit_id
+            WHERE d.student_id=? AND d.status='pending'
+            ORDER BY d.sort_order
+            """,
+            (student_id,),
+        ).fetchall()
+        plan_items = _plan_items_from_draft_rows(rows)
+    else:
+        plan_items = [
+            dict(r)
+            for r in conn.execute(
+                """
+                SELECT p.*, u.title AS unit_title
+                FROM plan_items p
+                LEFT JOIN task_units u ON u.unit_id = p.unit_id
+                WHERE p.student_id=? AND p.status='pending'
+                ORDER BY p.sort_order
+                """,
+                (student_id,),
+            ).fetchall()
+        ]
+
+    prefer = not quota_overrides and pack_mode is None and source == "draft"
+
+    def _quota_for(day: str) -> dict[str, int]:
+        if source == "draft":
+            return _module_quota_map(
+                conn,
+                student_id,
+                day,
+                plan_items,
+                quota_overrides=quota_overrides,
+                prefer_pending=prefer,
+            )
+        return _resolve_units_quota_map(
+            conn,
+            student_id,
+            day,
+            plan_items,
+            quota_overrides=quota_overrides or None,
+            override_from=(
+                profile.get("pending_effective_from") or task_date
+                if quota_overrides
+                else None
+            ),
+        )
+
+    if source == "draft":
+        # Saved draft only: ideal from scratch (no live released state).
+        quota_map = _quota_for(task_date)
+        sim = _simulate_units_pack(
+            conn,
+            plan_items,
+            task_date=task_date,
+            quota_map=quota_map,
+            backlog_items=[],
+            released_ids=set(),
+        )
+        schedule = _preview_units_schedule(
+            conn,
+            plan_items,
+            task_date,
+            quota_resolver=_quota_for,
+        )
+        return {
+            "source": "draft",
+            "task_date": task_date,
+            "pack_mode": PACK_MODE_UNITS_PER_DAY,
+            "module_quotas": quota_map,
+            "schedule": schedule,
+            **sim,
+        }
+
+    # Live plan: same algorithm as student today + upcoming.
+    schedule = _aligned_units_schedule(
+        conn,
+        student_id,
+        plan_items,
+        start_date=task_date,
+        quota_resolver=_quota_for,
+    )
+    quota_map = _quota_for(task_date)
+    today_row = next(
+        (d for d in schedule if d.get("task_date") == task_date),
+        schedule[0] if schedule else None,
+    )
+    today_items = (today_row or {}).get("items") or []
+    return {
+        "source": "live_aligned",
+        "task_date": task_date,
+        "pack_mode": PACK_MODE_UNITS_PER_DAY,
+        "module_quotas": quota_map,
+        "schedule": schedule,
+        "items": today_items,
+        "units_total": len(today_items),
+        "est_total_minutes": sum(int(x.get("est_minutes") or 0) for x in today_items),
+        "rotated": len({x.get("module_type") for x in today_items if x.get("module_type")})
+        > 1,
+        "aligned": True,
+    }
+
+
+def _released_plan_item_ids(conn: sqlite3.Connection, student_id: str) -> set[int]:
+    rows = conn.execute(
+        "SELECT DISTINCT plan_item_id FROM daily_tasks WHERE student_id=?",
+        (student_id,),
+    ).fetchall()
+    return {int(r["plan_item_id"]) for r in rows}
+
+
+def _module_order_from_items(items: list[dict[str, Any]]) -> list[str]:
+    order: list[str] = []
+    seen: set[str] = set()
+    for it in sorted(items, key=lambda x: int(x.get("sort_order") or 0)):
+        mt = str(it.get("module_type") or "other")
+        if mt not in seen:
+            seen.add(mt)
+            order.append(mt)
+    return order
+
+
+def _is_fresh_priority_day(task_date: str) -> bool:
+    """quota == 1 时的轮转开关：偶数日优先新单元，奇数日优先消化积压。
+
+    用日期奇偶而不是查库状态，保持打包函数纯粹、可预测（同样的输入永远同样的输出）。
+    """
+    try:
+        return int(str(task_date)[-2:]) % 2 == 0
+    except (TypeError, ValueError):
+        return True
+
+
+def _units_pack_picks(
+    plan_items: list[dict[str, Any]],
+    *,
+    task_date: str,
+    quota_map: dict[str, int],
+    backlog_ids: set[int],
+    released_ids: set[int],
+    released_means_done: bool = False,
+) -> list[tuple[dict[str, Any], str, bool]]:
+    """Return (item, priority_class, forced) for one calendar day.
+
+    Per module: take up to ``quota`` items — backlog first (oldest sort_order),
+    then fresh. Backlog beyond today's quota stays for later days (not dumped
+    all at once after a heavy weekend).
+
+    新单元保底：积压把名额占满时让出一个给新单元。否则学生只要有一次没做完，
+    同一批任务就会被无限重发、新内容再也进不来（线上 2025085 连续 10 天条目
+    完全相同，完成率 0%）。``quota == 1`` 时两支按日期轮流——直接让给新单元
+    会让积压永远消化不了。
+
+    **阶段测免额（2026-09-20 决议）**：``quota`` 只管学习单元，阶段测**不占**每日
+    配额，也不受它限制。学生反馈「阶段测过不去、占着名额，新单元进不来」，
+    所以把测从配额里摘出来：没过的测一直挂在任务列表里，考过就消失。
+    两条附加约束：
+
+    1. **模块仍然要排**（``quota > 0``）：助教把某科设成当天不排（配额 0）时，
+       那一科的测也不派，与「这天不排这科」保持一致；
+    2. **覆盖单元要先学完**：一条测只有在其 ``test_unit_ids`` 覆盖的学习单元
+       都已经完成、或者**就在今天这批里一起派下去**时才派。这样它是跟着
+       「最后一个覆盖单元」同一天出现的（学完就考），不会在只学了一半时
+       就看见覆盖更大范围的测、提前考挂。
+
+    ``released_means_done`` 只给「多日试算」预览用：预览里 `plan_items` 是快照，
+    模拟日做完的单元不会真的写上 ``study_completed``，只能靠 ``released_ids``
+    充当「假设已完成」，否则预览里永远看不到阶段测。
+    """
+    active = [
+        dict(it)
+        for it in plan_items
+        if it.get("status", "pending") == "pending" and not _item_done(it)
+    ]
+    refresh: list[dict[str, Any]] = []
+    for it in sorted(active, key=lambda x: int(x.get("sort_order") or 0)):
+        if it.get("item_type") == "study" and it.get("need_refresh") and not it.get("study_completed"):
+            refresh.append(it)
+    refresh_ids = {int(it["id"]) for it in refresh}
+
+    # 覆盖单元是否已学完。用完整的 plan_items 而不是 active——已完成的单元不在 active 里。
+    unit_done: dict[str, bool] = {}
+    for it in plan_items:
+        if it.get("item_type") != "study":
+            continue
+        uid = str(it.get("unit_id") or "")
+        if not uid:
+            continue
+        ok = _item_done(it) or (
+            released_means_done and int(it.get("id") or 0) in released_ids
+        )
+        unit_done[uid] = ok if uid not in unit_done else (unit_done[uid] and ok)
+
+    pool: list[dict[str, Any]] = []
+    meta: dict[int, tuple[str, bool]] = {}
+    module_order = _module_order_from_items(active)
+
+    # ---- 第一遍：学习单元（受 quota 约束） ----
+    for mt in module_order:
+        quota = max(0, int(quota_map.get(mt, DEFAULT_UNITS_PER_DAY)))
+        mod_studies = [
+            it
+            for it in active
+            if str(it.get("module_type") or "other") == mt
+            and it.get("item_type") != "test"
+            and int(it["id"]) not in refresh_ids
+        ]
+        backlog_mod = [
+            it for it in mod_studies if int(it["id"]) in backlog_ids
+        ]
+        backlog_mod.sort(key=lambda x: int(x.get("sort_order") or 0))
+        fresh_mod = [
+            it
+            for it in mod_studies
+            if int(it["id"]) not in backlog_ids and int(it["id"]) not in released_ids
+        ]
+        fresh_mod.sort(key=lambda x: int(x.get("sort_order") or 0))
+        take_backlog = backlog_mod[:quota]
+        slots = max(0, quota - len(take_backlog))
+        if take_backlog and slots == 0 and fresh_mod:
+            if quota >= 2:
+                take_backlog = take_backlog[:-1]
+            elif _is_fresh_priority_day(task_date):
+                # quota 只有 1：偶数日让给新单元，奇数日消化积压，两边都往前走
+                take_backlog = []
+            slots = max(0, quota - len(take_backlog))
+        for it in take_backlog:
+            pid = int(it["id"])
+            meta[pid] = ("carry_over", False)
+            pool.append(it)
+        for it in fresh_mod[:slots]:
+            pid = int(it["id"])
+            meta[pid] = ("fresh", False)
+            pool.append(it)
+
+    # 今天这批里派下去的学习单元也算「已覆盖」，供第二遍判断测是否就绪。
+    taken_units = {
+        str(it.get("unit_id") or "")
+        for it in pool
+        if it.get("item_type") == "study"
+    }
+
+    # ---- 第二遍：阶段测（免额，但模块当天要排、覆盖单元要就绪） ----
+    for mt in module_order:
+        quota = max(0, int(quota_map.get(mt, DEFAULT_UNITS_PER_DAY)))
+        if quota <= 0:
+            continue
+        mod_tests = [
+            it
+            for it in active
+            if str(it.get("module_type") or "other") == mt
+            and it.get("item_type") == "test"
+            and int(it["id"]) not in refresh_ids
+        ]
+        mod_tests.sort(key=lambda x: int(x.get("sort_order") or 0))
+        for it in mod_tests:
+            covered = _parse_json_list(it.get("test_unit_ids")) or []
+            ready = True
+            for uid in covered:
+                if uid not in unit_done:
+                    continue  # 清单里没有这个单元（换题/移除），不阻塞
+                if unit_done[uid] or uid in taken_units:
+                    continue
+                ready = False
+                break
+            if not ready:
+                continue
+            pid = int(it["id"])
+            # 归到 carry_over：它是「以前派过、还没搞定」的，与积压同性质，
+            # 打包器据此优先补做。免额，所以不参与上面的 slots 计算。
+            meta[pid] = ("carry_over", False)
+            pool.append(it)
+
+    result: list[tuple[dict[str, Any], str, bool]] = []
+    for it in refresh:
+        result.append((it, "content_refresh", True))
+    for it in _interleave_by_module(pool):
+        pid = int(it["id"])
+        prio, forced = meta.get(pid, ("fresh", False))
+        result.append((it, prio, forced))
+    return result
+
+
+def _units_pack_to_preview_items(
+    conn: sqlite3.Connection, picks: list[tuple[dict[str, Any], str, bool]]
+) -> list[dict[str, Any]]:
+    out: list[dict[str, Any]] = []
+    for item, prio, _forced in picks:
+        title = item.get("unit_title") or item.get("test_title") or item.get("unit_id") or "任务"
+        if item.get("item_type") == "test":
+            title = item.get("test_title") or title
+        out.append(
+            {
+                "title": title,
+                "module_type": item.get("module_type"),
+                "item_type": item.get("item_type"),
+                "est_minutes": _est_minutes(conn, item),
+                "priority_class": prio,
+            }
+        )
+    return out
+
+
+def _simulate_units_pack(
+    conn: sqlite3.Connection,
+    plan_items: list[dict[str, Any]],
+    *,
+    task_date: str,
+    quota_map: dict[str, int],
+    backlog_items: Optional[list[dict[str, Any]]] = None,
+    released_ids: Optional[set[int]] = None,
+) -> dict[str, Any]:
+    backlog_ids = {int(it["id"]) for it in (backlog_items or [])}
+    released = set(released_ids or [])
+    picks = _units_pack_picks(
+        plan_items,
+        task_date=task_date,
+        quota_map=quota_map,
+        backlog_ids=backlog_ids,
+        released_ids=released,
+        released_means_done=True,  # 试算：把已派过的当作已完成
+    )
+    out_items = _units_pack_to_preview_items(conn, picks)
+    modules = {x.get("module_type") for x in out_items if x.get("module_type")}
+    per_module: dict[str, int] = {}
+    for x in out_items:
+        mt = str(x.get("module_type") or "other")
+        per_module[mt] = per_module.get(mt, 0) + 1
+    return {
+        "est_total_minutes": sum(x["est_minutes"] for x in out_items),
+        "rotated": len(modules) > 1,
+        "items": out_items,
+        "units_total": len(out_items),
+        "units_by_module": per_module,
+    }
+
+
+def _should_release_plan_item(item: dict[str, Any]) -> bool:
+    """Gendu current lesson repeats daily until pass — do not consume from released set."""
+    return str(item.get("module_type") or "") != GENDU_MODULE
+
+
+def _preview_units_schedule(
+    conn: sqlite3.Connection,
+    plan_items: list[dict[str, Any]],
+    start_date: str,
+    *,
+    quota_resolver,
+    days: int = UNITS_PREVIEW_DAYS,
+    initial_released: Optional[set[int]] = None,
+    initial_backlog: Optional[set[int]] = None,
+) -> list[dict[str, Any]]:
+    """Simulate forward release for teacher multi-day preview.
+
+    Assumes the student completes each simulated day's tasks so the calendar
+    shows planned queue progression (virtual consumption), not endless carry-over.
+    Real backlog is only applied on the first preview day when provided.
+    """
+    released = set(initial_released or [])
+    done_ids = {int(it["id"]) for it in plan_items if _item_done(it)}
+    schedule: list[dict[str, Any]] = []
+    start = datetime.strptime(start_date, "%Y-%m-%d").date()
+    for offset in range(days):
+        day = (start + timedelta(days=offset)).strftime("%Y-%m-%d")
+        quota_map = quota_resolver(day)
+        if offset == 0:
+            if initial_backlog is not None:
+                backlog_ids = set(initial_backlog)
+            elif released:
+                backlog_ids = {pid for pid in released if pid not in done_ids}
+            else:
+                backlog_ids = set()
+        else:
+            backlog_ids = set()
+        picks = _units_pack_picks(
+            plan_items,
+            task_date=day,
+            quota_map=quota_map,
+            backlog_ids=backlog_ids,
+            released_ids=released,
+            released_means_done=True,  # 试算：假设每天的任务都做完
+        )
+        items = _units_pack_to_preview_items(conn, picks)
+        schedule.append({"task_date": day, "items": items, "units_total": len(items)})
+        for item, _prio, _forced in picks:
+            if _should_release_plan_item(item):
+                released.add(int(item["id"]))
+        if not picks and all(_item_done(it) or int(it["id"]) in released for it in plan_items):
+            break
+    return schedule
+
+
+def _materialize_daily_picks(
+    conn: sqlite3.Connection,
+    student_id: str,
+    task_date: str,
+    picks: list[tuple[dict[str, Any], str, bool]],
+) -> None:
+    for sort_i, (item, prio, forced) in enumerate(picks):
+        conn.execute(
+            """
+            INSERT INTO daily_tasks (
+                student_id, task_date, plan_item_id, priority_class,
+                sort_in_day, state, locked, forced
+            ) VALUES (?, ?, ?, ?, ?, 'todo', 1, ?)
+            """,
+            (student_id, task_date, int(item["id"]), prio, sort_i, 1 if forced else 0),
+        )
+
+
+def _ensure_gendu_in_existing_daily(
+    conn: sqlite3.Connection, student_id: str, task_date: str
+) -> None:
+    """If assignment active but today's locked pack lacks current gendu, append it.
+
+    历史日期（task_date < 今天）只读：跟读换课后不得回头改写过去某天的记录。
+    否则会把学生当天尚未布置的新课塞进历史日期（幽灵任务 → 假积压），
+    并把已完成旧课的那一天覆盖掉。
+    """
+    if task_date < china_ymd():
+        return
+    asg = get_gendu_assignment(conn, student_id, on_date=task_date)
+    if not asg or not asg.get("active"):
+        if asg and (asg.get("expired") or asg.get("upcoming")):
+            conn.execute(
+                """
+                DELETE FROM daily_tasks
+                WHERE student_id=? AND task_date=?
+                  AND plan_item_id IN (
+                    SELECT id FROM plan_items
+                    WHERE student_id=? AND module_type=?
+                  )
+                """,
+                (student_id, task_date, student_id, GENDU_MODULE),
+            )
+            conn.commit()
+        return
+    current_unit = str(asg["current_unit_id"])
+    pid = _ensure_gendu_plan_item(conn, student_id, current_unit)
+    has = conn.execute(
+        """
+        SELECT 1 FROM daily_tasks
+        WHERE student_id=? AND task_date=? AND plan_item_id=?
+        """,
+        (student_id, task_date, pid),
+    ).fetchone()
+    if has:
+        return
+    conn.execute(
+        """
+        DELETE FROM daily_tasks
+        WHERE student_id=? AND task_date=?
+          AND plan_item_id IN (
+            SELECT id FROM plan_items
+            WHERE student_id=? AND module_type=? AND id!=?
+          )
+        """,
+        (student_id, task_date, student_id, GENDU_MODULE, pid),
+    )
+    max_sort = conn.execute(
+        """
+        SELECT COALESCE(MAX(sort_in_day), -1) AS m FROM daily_tasks
+        WHERE student_id=? AND task_date=?
+        """,
+        (student_id, task_date),
+    ).fetchone()["m"]
+    conn.execute(
+        """
+        INSERT INTO daily_tasks (
+            student_id, task_date, plan_item_id, priority_class,
+            sort_in_day, state, locked, forced
+        ) VALUES (?, ?, ?, 'fresh', ?, 'todo', 1, 0)
+        """,
+        (student_id, task_date, pid, int(max_sort) + 1),
+    )
+    conn.commit()
+
+
+def _ensure_refresh_in_existing_daily(
+    conn: sqlite3.Connection, student_id: str, task_date: str
+) -> int:
+    """把「换题导致 ``need_refresh``」的单元补进**当天已锁定**的任务包，返回补进去的条数。
+
+    打包只在当天第一次打开时发生，之后当天的列表就锁定了（跟读走的是同一套
+    ``_ensure_gendu_in_existing_daily``）。助教当天换题、或内容版本更新时，规范要求
+    「换题后立刻插回今日并优先」，所以这里要补进当前这一天。
+
+    只补今天：历史日期只读，回头改写会把新任务塞进过去某天（幽灵任务 → 假积压）。
+    """
+    if task_date != china_ymd():
+        return 0
+    existing = conn.execute(
+        "SELECT COUNT(*) AS c FROM daily_tasks WHERE student_id=? AND task_date=?",
+        (student_id, task_date),
+    ).fetchone()["c"]
+    if not int(existing or 0):
+        # 当天还没打包，build_daily_tasks 自然会带上这些条目，不用补。
+        return 0
+    rows = conn.execute(
+        """
+        SELECT p.id FROM plan_items p
+        WHERE p.student_id=? AND p.status='pending' AND p.item_type='study'
+          AND COALESCE(p.need_refresh,0)=1 AND COALESCE(p.study_completed,0)=0
+          AND NOT EXISTS (
+            SELECT 1 FROM daily_tasks d
+            WHERE d.student_id=p.student_id AND d.task_date=? AND d.plan_item_id=p.id
+          )
+        ORDER BY p.sort_order
+        """,
+        (student_id, task_date),
+    ).fetchall()
+    if not rows:
+        return 0
+    max_sort = conn.execute(
+        "SELECT COALESCE(MAX(sort_in_day), -1) AS m FROM daily_tasks "
+        "WHERE student_id=? AND task_date=?",
+        (student_id, task_date),
+    ).fetchone()["m"]
+    for i, r in enumerate(rows):
+        conn.execute(
+            """
+            INSERT INTO daily_tasks (
+                student_id, task_date, plan_item_id, priority_class,
+                sort_in_day, state, locked, forced
+            ) VALUES (?, ?, ?, 'content_refresh', ?, 'todo', 1, 1)
+            """,
+            (student_id, task_date, int(r["id"]), int(max_sort) + 1 + i),
+        )
+    conn.commit()
+    return len(rows)
+
+
+def _build_daily_tasks_units(
+    conn: sqlite3.Connection,
+    student_id: str,
+    task_date: Optional[str] = None,
+) -> list[dict[str, Any]]:
+    task_date = task_date or china_ymd()
+    advanced = advance_gendu_if_needed(conn, student_id, task_date)
+    if advanced:
+        conn.execute(
+            "DELETE FROM daily_tasks WHERE student_id=? AND task_date=?",
+            (student_id, task_date),
+        )
+        conn.commit()
+
+    existing = conn.execute(
+        """
+        SELECT * FROM daily_tasks WHERE student_id=? AND task_date=?
+        ORDER BY sort_in_day
+        """,
+        (student_id, task_date),
+    ).fetchall()
+    if existing:
+        _ensure_gendu_in_existing_daily(conn, student_id, task_date)
+        # 助教今天刚换题时，当天列表已锁定，不补进去就要等到明天
+        # （详见 _ensure_refresh_in_existing_daily）。
+        _ensure_refresh_in_existing_daily(conn, student_id, task_date)
+        return _enrich_daily(conn, student_id, task_date)
+
+    live = [
+        dict(r)
+        for r in conn.execute(
+            """
+            SELECT p.*, u.title AS unit_title
+            FROM plan_items p
+            LEFT JOIN task_units u ON u.unit_id = p.unit_id
+            WHERE p.student_id=? AND p.status='pending'
+            ORDER BY p.sort_order
+            """,
+            (student_id,),
+        ).fetchall()
+    ]
+    live = _gendu_aware_plan_items(conn, student_id, task_date, live)
+    live = [it for it in live if _item_available_on(it, task_date)]
+    backlog_ids = set(backlog_plan_item_ids(conn, student_id, before_date=task_date))
+    released_ids = _released_plan_item_ids(conn, student_id)
+    quota_map = _module_quota_map(conn, student_id, task_date, live)
+    asg = get_gendu_assignment(conn, student_id, on_date=task_date)
+    if asg and asg.get("active"):
+        quota_map[GENDU_MODULE] = max(1, int(quota_map.get(GENDU_MODULE) or 1))
+    picks = _units_pack_picks(
+        live,
+        task_date=task_date,
+        quota_map=quota_map,
+        backlog_ids=backlog_ids,
+        released_ids=released_ids,
+    )
+    _materialize_daily_picks(conn, student_id, task_date, picks)
+    conn.commit()
+    return _enrich_daily(conn, student_id, task_date)
+
+
+def build_daily_tasks(
+    conn: sqlite3.Connection,
+    student_id: str,
+    task_date: Optional[str] = None,
+) -> list[dict[str, Any]]:
+    task_date = task_date or china_ymd()
+    maybe_apply_pending_for_today(conn, student_id, task_date)
+    expire_plan_pause_if_due(conn, student_id, on_date=task_date)
+    if is_plan_schedule_paused(conn, student_id, task_date):
+        existing = conn.execute(
+            "SELECT 1 FROM daily_tasks WHERE student_id=? AND task_date=? LIMIT 1",
+            (student_id, task_date),
+        ).fetchone()
+        if existing:
+            return _enrich_daily(conn, student_id, task_date)
+        return []
+    return _build_daily_tasks_units(conn, student_id, task_date)
+
+
+def _utc_to_shanghai_ymd(raw: Any) -> Optional[str]:
+    """把 UTC ISO 时间戳（``...Z``）转成上海日期；解析失败时退化为前 10 位。"""
+    if not raw:
+        return None
+    text = str(raw)
+    try:
+        dt = datetime.fromisoformat(text.replace("Z", "+00:00"))
+    except ValueError:
+        ymd = text[:10]
+        return ymd if re.fullmatch(r"\d{4}-\d{2}-\d{2}", ymd) else None
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    return dt.astimezone(SHANGHAI).strftime("%Y-%m-%d")
+
+
+def _item_created_ymd(item: dict[str, Any]) -> Optional[str]:
+    return _utc_to_shanghai_ymd(item.get("created_at"))
+
+
+def _item_available_on(item: dict[str, Any], task_date: str) -> bool:
+    """计划条目在该任务日是否已经存在。
+
+    给「条目还没创建」的历史日期补任务＝幽灵任务：学生当天根本没这批作业，
+    却会被记成「昨日任务未完成 / 积压」并标红。计划改动（新增单元、跟读换课）
+    后回填昨日都会踩到，所以补任务前必须先过这道闸。
+    """
+    created = _item_created_ymd(item)
+    return not created or created <= task_date
+
+
+def _plan_effective_start(
+    conn: sqlite3.Connection,
+    student_id: str,
+) -> Optional[str]:
+    """上海日期的「计划生效日」：plan_items 最早 created_at 对应的一天。
+
+    用于限制每日任务回填范围——早于计划生效日的过去日期不该被补任务，
+    否则会给刚上线计划的学生制造虚假的「昨日任务 / backlog」。
+    ``created_at`` 是 UTC ISO 带 Z；找不到时为 None（不限制）。
+    """
+    row = conn.execute(
+        """
+        SELECT MIN(created_at) AS first_created
+        FROM plan_items
+        WHERE student_id=?
+        """,
+        (student_id,),
+    ).fetchone()
+    if not row or not row["first_created"]:
+        return None
+    return _utc_to_shanghai_ymd(row["first_created"])
+
+
+def ensure_active_plan_daily_tasks(
+    conn: sqlite3.Connection,
+    student_id: str,
+    as_of: Optional[str] = None,
+    *,
+    lookback_days: int = 1,
+) -> None:
+    """Materialize daily packs for as_of and previous days while a live plan exists.
+
+    Daily tasks used to be created only when the student opened「今日任务」. That
+    left empty calendar days on the teacher board. Product rule: no empty days
+    while the student has pending plan items (unless that day is schedule-paused).
+    """
+    ensure_task_tables(conn)
+    sid = str(student_id or "").strip()
+    if not sid:
+        return
+    has_live = conn.execute(
+        """
+        SELECT 1 FROM plan_items
+        WHERE student_id=? AND status='pending'
+        LIMIT 1
+        """,
+        (sid,),
+    ).fetchone()
+    if not has_live:
+        return
+    as_of = as_of or china_ymd()
+    try:
+        base = datetime.strptime(as_of, "%Y-%m-%d").date()
+    except ValueError:
+        return
+    lookback_days = max(0, min(int(lookback_days or 0), 14))
+    # 只回填「计划生效日」及之后的日期。若学生计划是最近才上线，
+    # 早于计划创建日的「昨日」并没有真实的待办，补进去只会制造虚假 backlog。
+    plan_start = _plan_effective_start(conn, sid)
+    for i in range(lookback_days + 1):
+        day = (base - timedelta(days=i)).strftime("%Y-%m-%d")
+        if plan_start and day < plan_start:
+            continue
+        build_daily_tasks(conn, sid, day)
+
+
+def clear_daily_schedule(conn: sqlite3.Connection, student_id: str) -> dict[str, Any]:
+    """Clear locked daily tasks and the student's live/draft plan queue."""
+    daily_n = conn.execute(
+        "SELECT COUNT(*) AS c FROM daily_tasks WHERE student_id=?",
+        (student_id,),
+    ).fetchone()["c"]
+    plan_n = conn.execute(
+        "SELECT COUNT(*) AS c FROM plan_items WHERE student_id=? AND status!='removed'",
+        (student_id,),
+    ).fetchone()["c"]
+    draft_n = conn.execute(
+        "SELECT COUNT(*) AS c FROM plan_items_draft WHERE student_id=?",
+        (student_id,),
+    ).fetchone()["c"]
+    conn.execute("DELETE FROM daily_tasks WHERE student_id=?", (student_id,))
+    conn.execute(
+        """
+        UPDATE plan_items SET status='removed',
+            updated_at=strftime('%Y-%m-%dT%H:%M:%fZ','now')
+        WHERE student_id=? AND status!='removed'
+        """,
+        (student_id,),
+    )
+    conn.execute("DELETE FROM plan_items_draft WHERE student_id=?", (student_id,))
+    conn.execute("DELETE FROM plan_draft_meta WHERE student_id=?", (student_id,))
+    conn.execute("DELETE FROM student_plan_pause WHERE student_id=?", (student_id,))
+    conn.execute(
+        "DELETE FROM student_gendu_assignment WHERE student_id=?", (student_id,)
+    )
+    conn.commit()
+    return {
+        "student_id": student_id,
+        "deleted": int(daily_n),
+        "cleared_plan_items": int(plan_n),
+        "cleared_draft_items": int(draft_n),
+    }
+
+
+# --- Class overview (teacher board) ------------------------------------------
+
+_MODULE_BRIEF_LABELS = {
+    "reading_synonym": "阅",
+    "dictation": "听",
+    "listening_basic": "听基",
+    "listening_synonym": "听替",
+    "sentence": "长难",
+    "writing_phrase": "词伙",
+    "writing_translate": "翻译",
+    "listening_p4_speed": "跟读",
+}
+
+_SPEAKING_PREFIX = "speaking_"
+
+# Wireframe defaults (§5.1)
+# 红黄灯已简化为「只看昨天任务完成情况」（2026-09-20）。原先的时段阈值、完成率比例、
+# 积压阈值、反复考不过阈值、连续零完成天数等常量随旧规则一并删除，
+# 避免以后有人照着它们把旧判定加回来。
+
+
+def _is_speaking_module(mt: str) -> bool:
+    return str(mt or "").startswith(_SPEAKING_PREFIX) or str(mt or "") == "speaking"
+
+
+def _plan_progress_brief(progress: dict[str, dict[str, int]]) -> list[dict[str, Any]]:
+    """List all plan-track study X/Y abbrevs (no +N truncation).
+
+    「需重学」的单元用 `·重N` 后缀标出来：它把 study_x 往回压了一格，
+    不标的话老师只会看到进度倒退、不知道该学生正在补测覆盖过的内容。
+    """
+    buckets: list[tuple[str, str, int, int, int]] = []
+    speak_x = 0
+    speak_y = 0
+    speak_re = 0
+    for mt, p in (progress or {}).items():
+        sx = int(p.get("study_x") or 0)
+        sy = int(p.get("study_y") or 0)
+        if sy <= 0:
+            continue
+        re_n = int(p.get("restudy_n") or 0)
+        if _is_speaking_module(mt):
+            speak_x += sx
+            speak_y += sy
+            speak_re += re_n
+            continue
+        label = _MODULE_BRIEF_LABELS.get(mt, mt[:2] if mt else "?")
+        buckets.append((mt, label, sx, sy, re_n))
+    if speak_y > 0:
+        buckets.append(("speaking", "口", speak_x, speak_y, speak_re))
+    # Prefer modules with incomplete work, then higher remaining
+    buckets.sort(key=lambda b: (0 if b[2] < b[3] else 1, -(b[3] - b[2]), b[1]))
+    return [
+        {
+            "module_type": mt,
+            "label": label,
+            "study_x": sx,
+            "study_y": sy,
+            "restudy_n": re_n,
+            "text": f"{label}{sx}/{sy}" + (f"·重{re_n}" if re_n else ""),
+        }
+        for mt, label, sx, sy, re_n in buckets
+    ]
+
+
+def _today_task_counts(
+    conn: sqlite3.Connection, student_id: str, task_date: str
+) -> tuple[int, int, int]:
+    """Return (done, total, done_fail). Read-only; empty if not materialized.
+
+    **不含阶段测**（2026-09-20 第四次修订）：测不算任务量，既不进分子也不进分母，
+    与 ``day_task_progress`` 同口径。测的进度看「待通过阶段测」那一列。
+
+    早于「计划生效日」的日期视为没有任务：那是旧版回填逻辑留下的幽灵行，
+    否则新学生的看板会凭空出现「昨日任务 0/N」并标红。
+    """
+    plan_start = _plan_effective_start(conn, student_id)
+    if plan_start and task_date < plan_start:
+        return 0, 0, 0
+    rows = conn.execute(
+        """
+        SELECT d.state, p.module_type FROM daily_tasks d
+        JOIN plan_items p ON p.id = d.plan_item_id
+        WHERE d.student_id=? AND d.task_date=? AND p.item_type != 'test'
+        """,
+        (student_id, task_date),
+    ).fetchall()
+    total = len(rows)
+    done = 0
+    fail = 0
+    gendu_done: Optional[bool] = None
+    for r in rows:
+        st = r["state"] or ""
+        if str(r["module_type"] or "") == GENDU_MODULE:
+            if gendu_done is None:
+                gendu_done = sync_gendu_day_done(conn, student_id, task_date)
+            if st in ("done_study", "done_pass") or gendu_done:
+                done += 1
+            elif st == "done_fail":
+                fail += 1
+            continue
+        if st in ("done_study", "done_pass"):
+            done += 1
+        elif st == "done_fail":
+            fail += 1
+    return done, total, fail
+
+
+def _content_refresh_count(conn: sqlite3.Connection, student_id: str) -> int:
+    row = conn.execute(
+        """
+        SELECT COUNT(*) AS c FROM plan_items
+        WHERE student_id=? AND status='pending' AND item_type='study'
+          AND need_refresh=1 AND study_completed=0
+        """,
+        (student_id,),
+    ).fetchone()
+    return int(row["c"] or 0)
+
+
+def _test_fail_count(conn: sqlite3.Connection, student_id: str, task_date: str) -> int:
+    """Unpassed stage tests still on plan (+ today done_fail plan items counted once)."""
+    row = conn.execute(
+        """
+        SELECT COUNT(*) AS c FROM plan_items
+        WHERE student_id=? AND status='pending' AND item_type='test' AND test_passed=0
+        """,
+        (student_id,),
+    ).fetchone()
+    return int(row["c"] or 0)
+
+
+def _stage_needs_attention_count(
+    conn: sqlite3.Connection, student_id: str, task_date: str
+) -> int:
+    """今天「累计考了 ≥ ``STAGE_TEST_ATTENTION_FAILS`` 次还没过」的阶段测条数。
+
+    **不限重测次数**之后，不存在「今天考不动了」这回事，但「同一个测反复考很多次
+    还过不了」对学生是纯粹的消耗（线上实测：翻译题 11 次全 0 分），老师需要看得见。
+
+    它**不参与红黄灯**（2026-09-20 决议：灯只看昨天任务完成情况），只做列上徽章。
+
+    口径说明：这里数的是 ``test_records`` 的**累计提交次数**，不是
+    ``test_attempt_count_today``（那个跨天归零，看不出反复考）。``task_date``
+    只用于与看板调用签名保持一致，实际不参与筛选。
+    """
+    del task_date  # 累计次数与具体哪一天无关
+    rows = conn.execute(
+        """
+        SELECT p.test_title, p.module_type FROM plan_items p
+        WHERE p.student_id=? AND p.item_type='test' AND p.status='pending'
+          AND COALESCE(p.test_passed,0)=0
+        """,
+        (student_id,),
+    ).fetchall()
+    n = 0
+    for r in rows:
+        title = str(r["test_title"] or "") or "阶段测"
+        module_type = str(r["module_type"] or "") or "reading_synonym"
+        rec = conn.execute(
+            """
+            SELECT COUNT(*) AS attempts FROM test_records
+            WHERE student_id=? AND test_type='stage_test'
+              AND module_type=? AND module_name=?
+            """,
+            (student_id, module_type, title),
+        ).fetchone()
+        if int((rec["attempts"] if rec else 0) or 0) >= STAGE_TEST_ATTENTION_FAILS:
+            n += 1
+    return n
+
+
+def day_task_progress(
+    conn: sqlite3.Connection, student_id: str, task_date: str
+) -> tuple[int, int]:
+    """某一天派下去的任务完成情况 ``(done, total)``，**阶段测按普通任务一样计**。
+
+    「完成」的判定：
+
+    1. daily 行 ``state`` 是 ``done_study`` / ``done_pass``；
+    2. 非跟读的学习条目：``study_completed=1`` 也算做完（单元已达标，但那天的
+       daily 行可能还残留 ``todo``）。
+    3. 跟读（``listening_p4_speed``）**只认当天练习次数 ≥ 3**。识别率 ≥70% 和
+       ``study_completed`` 只表示这篇可以次日换掉，不能代替「练满 3 次」。
+       次数够了会把当天跟读行补写成 ``done_study``。
+
+    阶段测（2026-09-20 第四次修订）：**不算任务量，直接跳过**——既不进分母也不进分子。
+    决议原文：「任务阶段测试不算任务量」。理由和「免额」是同一套：测过不了就会一直
+    挂在任务列表里，如果还算完成率，学生的「昨日任务」就永远是 N-1/N，天天黄灯、
+    甚至 0/N 红灯，比不显示还糟。测的进度改由「待通过阶段测」那一列单独呈现。
+
+    早于「计划生效日」的日期返回 ``(0, 0)``：那是旧版回填的幽灵行，不是真任务。
+    """
+    plan_start = _plan_effective_start(conn, student_id)
+    if plan_start and task_date < plan_start:
+        return 0, 0
+    rows = conn.execute(
+        """
+        SELECT d.state, p.item_type, p.module_type, p.study_completed, p.test_passed
+        FROM daily_tasks d
+        JOIN plan_items p ON p.id = d.plan_item_id
+        WHERE d.student_id=? AND d.task_date=?
+        """,
+        (student_id, task_date),
+    ).fetchall()
+    done = 0
+    total = 0
+    gendu_done: Optional[bool] = None
+    for r in rows:
+        item_type = str(r["item_type"] or "")
+        if item_type == "test":
+            continue  # 阶段测不算任务量（见 docstring）
+        total += 1
+        state = str(r["state"] or "")
+        if str(r["module_type"] or "") == GENDU_MODULE:
+            if gendu_done is None:
+                gendu_done = sync_gendu_day_done(conn, student_id, task_date)
+            if state in ("done_study", "done_pass") or gendu_done:
+                done += 1
+            continue
+        if state in ("done_study", "done_pass"):
+            done += 1
+        elif int(r["study_completed"] or 0):
+            done += 1
+    return done, total
+
+
+def day_unfinished_count(
+    conn: sqlite3.Connection, student_id: str, task_date: str
+) -> int:
+    """看板「积压」数字：``task_date`` 这一天派下去、还没做完的条数。
+
+    口径（2026-09-20 第三次修订）：积压 = **昨天**那批任务里没做完的。
+    昨天派的任务本来就含「前天积压过来的 carry_over」，所以这些也一并算数；
+    只要昨天那批都做完了，积压就是 0——**今天还没做完是正常的，不算积压**。
+
+    **不含阶段测**（2026-09-20 第四次修订）：测不算任务量，所以既不进分子也不进分母
+    （见 ``day_task_progress``）。测欠着不放在这里显示，改由「待通过阶段测」列呈现。
+
+    调用方传昨天（``_prev_ymd(task_date)``），不要传今天。
+    「做完」的判定见 ``day_task_progress``（plan 已达标也算做完）。
+
+    与 ``backlog_plan_item_ids`` 的分工：
+      - ``backlog_plan_item_ids`` 给**打包器**用（决定今天优先补做谁），口径是
+        「今天以前派过、仍未完成」，保持历史语义不变；
+      - 本函数给**看板展示**用，只回看一天。两者刻意不同，不要互相替换。
+    """
+    done, total = day_task_progress(conn, student_id, task_date)
+    return max(0, total - done)
+
+
+def stage_tests_pending(
+    conn: sqlite3.Connection, student_id: str, *, limit: int = 300
+) -> list[dict[str, Any]]:
+    """清单里还没通过的阶段测明细，供教师端「待通过阶段测」展开查看。
+
+    ``test_records`` 没有 plan_item_id，但阶段测写入时会把 ``test_title``
+    存进 ``module_name``，这里按 (module_type, module_name) 关联出已考次数与最高分。
+    """
+    rows = conn.execute(
+        """
+        SELECT id, module_type, test_title, unit_id, sort_order,
+               test_unit_ids, test_attempt_count_today, test_attempt_ymd
+        FROM plan_items
+        WHERE student_id=? AND status='pending'
+          AND item_type='test' AND COALESCE(test_passed,0)=0
+        ORDER BY sort_order
+        LIMIT ?
+        """,
+        (student_id, int(limit)),
+    ).fetchall()
+    today = china_ymd()
+    out: list[dict[str, Any]] = []
+    for r in rows:
+        title = str(r["test_title"] or "") or "阶段测"
+        # 与 submit_stage_test 的写入保持同一 fallback，否则关联不上。
+        module_type = str(r["module_type"] or "") or "reading_synonym"
+        rec = conn.execute(
+            """
+            SELECT COUNT(*) AS attempts, MAX(score) AS best, MAX(created_at) AS last_at
+            FROM test_records
+            WHERE student_id=? AND test_type='stage_test'
+              AND module_type=? AND module_name=?
+            """,
+            (student_id, module_type, title),
+        ).fetchone()
+        attempts = int((rec["attempts"] if rec else 0) or 0)
+        best = rec["best"] if rec else None
+        attempted_today = (
+            int(r["test_attempt_count_today"] or 0)
+            if r["test_attempt_ymd"] == today
+            else 0
+        )
+        out.append(
+            {
+                "plan_item_id": int(r["id"]),
+                "module_type": str(r["module_type"] or ""),
+                "title": title,
+                "unit_ids": _parse_json_list(r["test_unit_ids"]),
+                "attempts": attempts,
+                "best_score": float(best) if best is not None else None,
+                "last_attempt_at": (rec["last_at"] if rec else None),
+                "attempted_today": attempted_today,
+                # 不限重测次数：不再有「今天还能考几次」的概念，随时可再考。
+                # 「累计考了很多次还没过」——请助教介入的提示。不参与红黄灯，
+                # 但要在「待通过阶段测」列上看得见，否则老师只能逐条点开才发现。
+                "needs_attention": attempts >= STAGE_TEST_ATTENTION_FAILS,
+                "never_attempted": attempts == 0,
+            }
+        )
+    return out
+
+
+def _row_status_for_overview(
+    *,
+    plan_status: str,
+    yesterday_done: int,
+    yesterday_total: int,
+    schedule_paused: bool = False,
+    schedule_pause_upcoming: bool = False,
+) -> str:
+    """看板红黄灯：**只看昨天那批任务的完成情况**（2026-09-20 决议）。
+
+    规则只有两条，别的判定（时段、完成率、积压条数、时长比例、换题重学、
+    反复考不过、连续零完成、待生效排程）全部取消：
+
+      - 昨天有任务、且**一条都没做**  → 红（掉队）
+      - 昨天有任务、**做了一部分没做完** → 黄（需提醒）
+      - 昨天任务全做完 / 昨天没排任务 → 绿
+
+    为什么改用「昨天」：今天的任务还在进行中，上午没做完是正常的，用它判红会
+    整天误报；而昨天已经结束，做没做完是一锤定音的事实，不会随时间漂移。
+
+    阶段测**不算任务量，不参与红黄灯**（2026-09-20 第四次修订）：测既不进
+    ``yesterday_total`` 也不进 ``yesterday_done``，口径与 ``day_task_progress``
+    完全一致，也就是看板「昨日任务 N/M」那一列——老师看到 0/3 就是红灯，不打架。
+    为什么反过来：测过不了会一直挂在任务列表里，若还算完成率，这部分学生的
+    「昨日任务」就永远是 N-1/N，天天黄灯、甚至 0/N 红灯，学生怎么做都翻不了身。
+    测的进度改由「待通过阶段测」列单独呈现（含 `多次未过` 徽章）。
+    """
+    if schedule_paused or schedule_pause_upcoming:
+        # 已标明暂停原因，不占用「建议跟进」黄灯
+        return "none"
+    if plan_status in ("none", "all_paused"):
+        return "none"
+    if yesterday_total <= 0:
+        # 昨天没排任务（如新学生、计划暂停中）——没有可比事实，不判红黄。
+        return "green"
+    if yesterday_done <= 0:
+        return "red"
+    if yesterday_done < yesterday_total:
+        return "yellow"
+    return "green"
+
+
+def _student_overview_row(
+    conn: sqlite3.Connection,
+    student_id: str,
+    name: str,
+    task_date: str,
+    *,
+    # 保留 hour 只为兼容调用方/测试签名：红黄灯自 2026-09-20 起只看昨天任务，
+    # 与当前时刻无关（不再有时段阈值），这里已不再使用。
+    hour: int,
+) -> dict[str, Any]:
+    plan_status = effective_plan_status(conn, student_id)
+    progress = _plan_progress(conn, student_id)
+    today_done, today_total, _today_fail = _today_task_counts(conn, student_id, task_date)
+    yday = _prev_ymd(task_date)
+    # 「昨日任务」与「积压」「红黄灯」共用同一套数字（day_task_progress），
+    # 这样老师看到 `0/3` 就一定对应红灯，不会出现灯和数字互相打架。
+    # 跟读两边都只认「当天满 3 次」；非跟读的昨日口径还会把已达标但 daily
+    # 行残留 todo 的单元算进去。
+    yesterday_done, yesterday_total = day_task_progress(conn, student_id, yday)
+    profile = ensure_time_profile(conn, student_id)
+    budget = _budget_minutes(profile, task_date)
+    secs = sum_today_study_seconds(conn, student_id, task_date)
+    today_minutes = int(round(secs / 60.0)) if secs else 0
+    y_secs = sum_today_study_seconds(conn, student_id, yday)
+    yesterday_minutes = int(round(y_secs / 60.0)) if y_secs else 0
+    total_secs = sum_total_study_seconds(conn, student_id)
+    total_minutes = int(round(total_secs / 60.0)) if total_secs else 0
+    # 看板「积压」= **昨天**那批任务里还没做完的（不含阶段测，测不算任务量），
+    # 见 day_unfinished_count。
+    # 昨天派的任务本身含「前天积压过来的 carry_over」，所以只要昨天都做完了就是 0；
+    # 今天还没做完不算积压。与打包器用的 backlog_plan_item_ids 口径不同，别互相替换。
+    backlog = day_unfinished_count(conn, student_id, yday)
+    content_refresh = _content_refresh_count(conn, student_id)
+    # 待通过的阶段测（单独一列展示，见 stage_tests_pending）
+    stage_pending = _test_fail_count(conn, student_id, task_date)
+    # 其中「累计考了很多次还没过」的条数：只在那一列做标记，不进红黄灯。
+    stage_needs_attention = _stage_needs_attention_count(conn, student_id, task_date)
+    draft_n = conn.execute(
+        "SELECT COUNT(*) AS c FROM plan_items_draft WHERE student_id=? AND status!='removed'",
+        (student_id,),
+    ).fetchone()["c"]
+    tp = profile
+    pending_change = bool(draft_n) or _profile_has_real_pending(tp)
+    pending_from = (
+        _pending_effective_from_summary(conn, student_id, pending_plan_change=pending_change)
+        if pending_change
+        else None
+    )
+    pause = get_plan_pause(conn, student_id, on_date=task_date)
+    schedule_paused = bool(pause and pause.get("active"))
+    schedule_pause_upcoming = bool(pause and pause.get("upcoming"))
+    row_status = _row_status_for_overview(
+        plan_status=plan_status,
+        yesterday_done=yesterday_done,
+        yesterday_total=yesterday_total,
+        schedule_paused=schedule_paused,
+        schedule_pause_upcoming=schedule_pause_upcoming,
+    )
+    brief = _plan_progress_brief(progress)
+    return {
+        "student_id": student_id,
+        "name": name,
+        "plan_status": plan_status,
+        "today_done": today_done,
+        "today_total": today_total,
+        "yesterday_done": yesterday_done,
+        "yesterday_total": yesterday_total,
+        "yesterday_incomplete": bool(
+            yesterday_total > 0 and yesterday_done < yesterday_total
+        ),
+        "today_minutes": today_minutes,
+        "yesterday_minutes": yesterday_minutes,
+        "total_minutes": total_minutes,
+        "budget_minutes": budget,
+        "backlog": backlog,
+        "content_refresh": content_refresh,
+        "test_fail": stage_pending,
+        # 阶段测按普通任务一样计（昨日完成/积压都含它），但「待通过阶段测」仍单独成列，
+        # 供老师看明细；needs_attention 只驱动该列上的小标记（不限重测次数之后，
+        # 「今天考不动了」这个概念已不存在，剩下的是「反复考不过」）。
+        "stage_test_pending": stage_pending,
+        "stage_test_needs_attention": stage_needs_attention,
+        "plan_progress_brief": brief,
+        "progress": progress,
+        "pending_plan_change": pending_change,
+        "pending_effective_from": pending_from,
+        "plan_pause": pause,
+        "row_status": row_status,
+    }
+
+
+def student_task_snapshot(
+    conn: sqlite3.Connection,
+    student_id: str,
+    name: str = "",
+    *,
+    task_date: Optional[str] = None,
+    now: Optional[datetime] = None,
+) -> dict[str, Any]:
+    """One student's task/plan health for teacher detail pages."""
+    ensure_task_tables(conn)
+    if task_date:
+        try:
+            datetime.strptime(task_date, "%Y-%m-%d")
+        except ValueError as exc:
+            raise ValueError("日期格式应为 YYYY-MM-DD") from exc
+    task_date = task_date or china_ymd(now)
+    dt = now or datetime.now(timezone.utc)
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    hour = dt.astimezone(SHANGHAI).hour
+    sid = str(student_id or "").strip()
+    display_name = str(name or "").strip()
+    if not display_name:
+        row = conn.execute(
+            "SELECT name FROM students WHERE student_id=?",
+            (sid,),
+        ).fetchone()
+        display_name = (row["name"] if row else "") or sid
+    snap = _student_overview_row(conn, sid, display_name, task_date, hour=hour)
+    snap["task_date"] = task_date
+    snap["module_unit_progress"] = catalog_unit_progress_for_student(conn, sid)
+    return snap
+
+
+def class_overview(
+    conn: sqlite3.Connection,
+    *,
+    task_date: Optional[str] = None,
+    now: Optional[datetime] = None,
+) -> dict[str, Any]:
+    """Class board. Materializes today + yesterday packs for students with live plans."""
+    ensure_task_tables(conn)
+    if task_date:
+        try:
+            datetime.strptime(task_date, "%Y-%m-%d")
+        except ValueError as exc:
+            raise ValueError("日期格式应为 YYYY-MM-DD") from exc
+    task_date = task_date or china_ymd(now)
+    dt = now or datetime.now(timezone.utc)
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    hour = dt.astimezone(SHANGHAI).hour
+    students = conn.execute(
+        """
+        SELECT student_id, name FROM students
+        WHERE COALESCE(status, 'active') = 'active'
+        ORDER BY student_id DESC
+        """
+    ).fetchall()
+    rows = []
+    for r in students:
+        sid = str(r["student_id"] or "")
+        # Fill missing today/yesterday packs so「昨日任务」isn't empty for lazy students.
+        ensure_active_plan_daily_tasks(conn, sid, task_date, lookback_days=1)
+        rows.append(
+            _student_overview_row(
+                conn, sid, r["name"] or "", task_date, hour=hour
+            )
+        )
+    rows.sort(key=lambda row: str(row.get("student_id") or ""), reverse=True)
+    today_all_done = sum(
+        1
+        for r in rows
+        if int(r.get("today_total") or 0) > 0
+        and int(r.get("today_done") or 0) >= int(r.get("today_total") or 0)
+    )
+    yesterday_incomplete = sum(1 for r in rows if r.get("yesterday_incomplete"))
+    need_attention = sum(1 for r in rows if r.get("row_status") == "red")
+    no_plan = sum(1 for r in rows if r.get("plan_status") == "none")
+    plan_paused = sum(
+        1
+        for r in rows
+        if (r.get("plan_pause") or {}).get("active")
+        or (r.get("plan_pause") or {}).get("upcoming")
+    )
+    return {
+        "task_date": task_date,
+        "generated_at": dt.astimezone(SHANGHAI).strftime("%Y-%m-%d %H:%M"),
+        "students": rows,
+        "stats": {
+            "total": len(rows),
+            "today_all_done": today_all_done,
+            "yesterday_incomplete": yesterday_incomplete,
+            "need_attention": need_attention,
+            "no_plan": no_plan,
+            "plan_paused": plan_paused,
+        },
+    }
+
+
+def _scope_for_unit(content_ref: Any) -> tuple[int, str]:
+    ref = content_ref
+    if isinstance(ref, str):
+        try:
+            ref = json.loads(ref)
+        except json.JSONDecodeError:
+            ref = {}
+    if not isinstance(ref, dict):
+        ref = {}
+    total = int(ref.get("scope_total") or 0)
+    if not total and "setId" in ref:
+        total = 5 if int(ref["setId"]) == 23 else 10
+    if not total and "groupIndex" in ref:
+        total = 20
+    unit = "组"
+    if "groupIndex" in ref:
+        unit = "词"
+    return total, unit
+
+
+def _enrich_daily(
+    conn: sqlite3.Connection, student_id: str, task_date: str
+) -> list[dict[str, Any]]:
+    rows = conn.execute(
+        """
+        SELECT d.*, p.item_type, p.unit_id, p.module_type, p.test_title,
+               p.test_unit_ids, p.study_completed, p.test_passed, p.need_refresh,
+               p.refresh_reason,
+               p.est_minutes AS plan_est,
+               u.title AS unit_title, u.content_ref, u.content_version, u.study_url,
+               u.est_minutes AS unit_est
+        FROM daily_tasks d
+        JOIN plan_items p ON p.id = d.plan_item_id
+        LEFT JOIN task_units u ON u.unit_id = p.unit_id
+        WHERE d.student_id=? AND d.task_date=?
+        ORDER BY d.sort_in_day
+        """,
+        (student_id, task_date),
+    ).fetchall()
+    out = []
+    for row in rows:
+        item = dict(row)
+        scope_total, scope_unit = _scope_for_unit(item.get("content_ref"))
+        prog = conn.execute(
+            """
+            SELECT scope_done, scope_total, scope_keys FROM task_unit_progress
+            WHERE student_id=? AND plan_item_id=?
+            """,
+            (student_id, item["plan_item_id"]),
+        ).fetchone()
+        scope_done = int(prog["scope_done"]) if prog else 0
+        if prog and prog["scope_total"]:
+            scope_total = int(prog["scope_total"])
+        scope_keys = _parse_scope_keys(prog["scope_keys"]) if prog else []
+        if not scope_keys and scope_done > 0:
+            ids = _unit_scope_ids(item.get("content_ref"))
+            if ids:
+                scope_keys = ids[: min(scope_done, len(ids))]
+        study_url = item.get("study_url") or ""
+        if study_url and item.get("id"):
+            sep = "&" if "?" in study_url else "?"
+            study_url = (
+                f"{study_url}{sep}task_id={item['id']}"
+                f"&plan_item_id={item['plan_item_id']}"
+            )
+        if (
+            study_url
+            and scope_keys
+            and str(item.get("module_type") or "") == "sentence"
+        ):
+            study_url += "&done=" + ",".join(scope_keys)
+        title = item.get("unit_title") or item.get("test_title") or "任务"
+        if item.get("need_refresh"):
+            # need_refresh 现在只有一种来源：助教换题 / 内容版本更新，要用新题重学。
+            title = f"{title}（内容已更新）"
+        gendu_count = int(item.get("gendu_practice_count") or 0)
+        entry = {
+                "daily_task_id": item["id"],
+                "plan_item_id": item["plan_item_id"],
+                "task_date": task_date,
+                "item_type": item["item_type"],
+                "unit_id": item.get("unit_id"),
+                "module_type": item.get("module_type"),
+                "title": title,
+                "state": item["state"],
+                "priority_class": item["priority_class"],
+                "forced": bool(item["forced"]),
+                "content_version": item.get("content_version") or "1",
+                "content_ref": (
+                    json.loads(item["content_ref"])
+                    if isinstance(item.get("content_ref"), str) and item.get("content_ref")
+                    else item.get("content_ref")
+                ),
+                "scope_label": "本单元",
+                "scope_done": scope_done,
+                "scope_total": scope_total,
+                "scope_keys": scope_keys,
+                "scope_unit": scope_unit,
+                "study_url": study_url,
+                "est_minutes": item.get("plan_est") or item.get("unit_est") or 15,
+            }
+        if str(item.get("module_type") or "") == GENDU_MODULE:
+            day_total = _gendu_day_practice_count(conn, student_id, task_date)
+            entry["gendu_practice_count"] = gendu_count
+            entry["gendu_day_count"] = day_total
+            entry["gendu_required"] = GENDU_DAILY_PRACTICES
+            entry["gendu_best_score"] = item.get("gendu_best_score")
+            entry["scope_done"] = min(
+                max(day_total, gendu_count), GENDU_DAILY_PRACTICES
+            )
+            entry["scope_total"] = GENDU_DAILY_PRACTICES
+            entry["scope_unit"] = "次"
+            entry["scope_label"] = "今日跟读"
+            # 自愈：当天已满 3 次，但行还没置完成（历史重建留下的不一致）。
+            if sync_gendu_day_done(conn, student_id, task_date):
+                if str(item["state"]) not in ("done_study", "done_pass"):
+                    entry["state"] = "done_study"
+        out.append(entry)
+    return out
+
+
+def get_today(conn: sqlite3.Connection, student_id: str) -> dict[str, Any]:
+    task_date = china_ymd()
+    # Also materialize yesterday so carry-over / 昨日看板 stay consistent.
+    ensure_active_plan_daily_tasks(conn, student_id, task_date, lookback_days=1)
+    items = build_daily_tasks(conn, student_id, task_date)
+    profile = ensure_time_profile(conn, student_id)
+    budget = (
+        int(profile["weekend_minutes"])
+        if is_weekend(task_date)
+        else int(profile["weekday_minutes"])
+    )
+    plan = get_plan(conn, student_id)
+    status = plan["plan_status"]
+    actual_seconds = sum_today_study_seconds(conn, student_id, task_date)
+    by_item_seconds = sum_today_study_by_plan_item(conn, student_id, task_date)
+    for item in items:
+        pid = item.get("plan_item_id")
+        if pid is not None:
+            item["actual_minutes"] = _minutes_from_seconds(by_item_seconds.get(int(pid), 0))
+        else:
+            item["actual_minutes"] = 0.0
+    empty_msg = None
+    if not items:
+        if status == "none":
+            empty_msg = "今日暂无任务，请联系助教"
+        elif status == "all_paused":
+            empty_msg = "计划已暂停，请联系助教"
+        else:
+            empty_msg = "今日暂无任务，请联系助教"
+    upcoming = _student_upcoming_bundle(conn, student_id, task_date=task_date)
+    pause = get_plan_pause(conn, student_id, on_date=task_date)
+    if pause and pause.get("active"):
+        empty_msg = "计划已暂停，请联系助教"
+    return {
+        "task_date": task_date,
+        "pack_mode": PACK_MODE_UNITS_PER_DAY,
+        "budget_minutes": budget,
+        "est_total_minutes": sum(i.get("est_minutes") or 0 for i in items),
+        "actual_total_minutes": _minutes_from_seconds(actual_seconds),
+        "units_total": len(items),
+        "items": items,
+        "progress": plan["progress"],
+        "plan_status": status,
+        "plan_pause": pause,
+        "gendu_assignment": get_gendu_assignment(conn, student_id, on_date=task_date),
+        "pending_plan_change": plan["pending_plan_change"],
+        "pending_effective_from": plan.get("pending_effective_from"),
+        "empty_message": empty_msg,
+        "upcoming_schedule": upcoming["upcoming_schedule"],
+        "remaining_plan": upcoming["remaining_plan"],
+    }
+
+
+def _plan_item_preview_title(conn: sqlite3.Connection, item: dict[str, Any]) -> str:
+    title = item.get("unit_title") or item.get("test_title") or item.get("unit_id") or "任务"
+    if item.get("item_type") == "test":
+        title = item.get("test_title") or title
+    if not item.get("unit_title") and item.get("unit_id"):
+        u = conn.execute(
+            "SELECT title FROM task_units WHERE unit_id=?", (item["unit_id"],)
+        ).fetchone()
+        if u and u["title"]:
+            title = u["title"]
+    return str(title)
+
+
+def _remaining_plan_items(
+    conn: sqlite3.Connection, plan_items: list[dict[str, Any]]
+) -> list[dict[str, Any]]:
+    out: list[dict[str, Any]] = []
+    for it in plan_items:
+        if it.get("status") not in (None, "pending"):
+            continue
+        if _item_done(it):
+            continue
+        out.append(
+            {
+                "plan_item_id": int(it["id"]),
+                "item_type": it.get("item_type"),
+                "module_type": it.get("module_type"),
+                "unit_id": it.get("unit_id"),
+                "title": _plan_item_preview_title(conn, it),
+                "sort_order": int(it.get("sort_order") or 0),
+            }
+        )
+    return out
+
+
+def _student_upcoming_bundle(
+    conn: sqlite3.Connection,
+    student_id: str,
+    *,
+    task_date: Optional[str] = None,
+    days: int = UNITS_PREVIEW_DAYS,
+) -> dict[str, Any]:
+    """Read-only future schedule + remaining plan queue (does not write daily_tasks)."""
+    task_date = task_date or china_ymd()
+    tomorrow = (
+        datetime.strptime(task_date, "%Y-%m-%d").date() + timedelta(days=1)
+    ).strftime("%Y-%m-%d")
+    plan_items = [
+        dict(r)
+        for r in conn.execute(
+            """
+            SELECT p.*, u.title AS unit_title
+            FROM plan_items p
+            LEFT JOIN task_units u ON u.unit_id = p.unit_id
+            WHERE p.student_id=? AND p.status='pending'
+            ORDER BY p.sort_order
+            """,
+            (student_id,),
+        ).fetchall()
+    ]
+    for it in plan_items:
+        it["test_unit_ids"] = _parse_json_list(it.get("test_unit_ids"))
+    remaining = _remaining_plan_items(conn, plan_items)
+    # Align with teacher: simulate from today (locked daily if any), then drop today.
+    schedule = _aligned_units_schedule(
+        conn,
+        student_id,
+        plan_items,
+        start_date=task_date,
+        quota_resolver=lambda day: _resolve_units_quota_map(
+            conn, student_id, day, plan_items
+        ),
+        days=days + 1,
+    )
+    schedule = [d for d in schedule if (d.get("task_date") or "") >= tomorrow]
+    while schedule and not schedule[-1].get("items"):
+        schedule.pop()
+    return {
+        "upcoming_schedule": schedule,
+        "remaining_plan": remaining,
+    }
+
+def _parse_scope_keys(raw: Any) -> list[str]:
+    if isinstance(raw, list):
+        data = raw
+    elif isinstance(raw, str) and raw.strip():
+        try:
+            data = json.loads(raw)
+        except json.JSONDecodeError:
+            data = []
+    else:
+        data = []
+    if not isinstance(data, list):
+        return []
+    out: list[str] = []
+    seen: set[str] = set()
+    for item in data:
+        key = str(item).strip()
+        if not key or key in seen:
+            continue
+        seen.add(key)
+        out.append(key)
+    return out
+
+
+def _unit_scope_ids(content_ref: Any) -> list[str]:
+    """单元里可逐项打点的编号（长难句句号、同义替换题号等）。"""
+    ref = content_ref
+    if isinstance(ref, str):
+        try:
+            ref = json.loads(ref)
+        except json.JSONDecodeError:
+            ref = {}
+    if not isinstance(ref, dict):
+        return []
+    for name in ("sentenceNums", "questionIds", "questionKeys", "questionIndexes"):
+        vals = ref.get(name)
+        if isinstance(vals, list) and vals:
+            return [str(v).strip() for v in vals if str(v).strip()]
+    return []
+
+
+def update_scope_progress(
+    conn: sqlite3.Connection,
+    student_id: str,
+    plan_item_id: int,
+    *,
+    scope_done: Optional[int] = None,
+    delta: Optional[int] = None,
+    scope_key: Optional[str] = None,
+) -> dict[str, Any]:
+    item = conn.execute(
+        "SELECT * FROM plan_items WHERE id=? AND student_id=?",
+        (plan_item_id, student_id),
+    ).fetchone()
+    if not item:
+        raise ValueError("计划条目不存在")
+    unit = None
+    if item["unit_id"]:
+        unit = conn.execute(
+            "SELECT * FROM task_units WHERE unit_id=?", (item["unit_id"],)
+        ).fetchone()
+    content_ref = unit["content_ref"] if unit else {}
+    scope_total, _ = _scope_for_unit(content_ref)
+    existing = conn.execute(
+        "SELECT * FROM task_unit_progress WHERE student_id=? AND plan_item_id=?",
+        (student_id, plan_item_id),
+    ).fetchone()
+    current = int(existing["scope_done"]) if existing else 0
+    keys = _parse_scope_keys(existing["scope_keys"]) if existing else []
+    allowed = _unit_scope_ids(content_ref)
+    key = str(scope_key).strip() if scope_key not in (None, "") else ""
+    if key and allowed and key not in allowed:
+        key = ""
+    if key:
+        # 只有一个数字、还没有句号清单时，先按单元顺序补上已计入的前 N 项，
+        # 避免这一次上报把旧进度清零。之后以具体编号为准。
+        if not keys and current > 0 and allowed:
+            keys = allowed[: min(current, len(allowed))]
+        if key not in keys:
+            keys.append(key)
+        current = max(current, len(keys))
+    elif scope_done is not None:
+        # 绝对进度只升不降。重进页面会从 0 重报「这次做了几项」，
+        # 直接覆盖会把已经做过的句数盖小，单元再也凑不满。
+        current = max(current, max(0, int(scope_done)))
+    elif delta is not None:
+        current = max(0, current + int(delta))
+    if keys:
+        current = max(current, len(keys))
+    if scope_total:
+        current = min(current, scope_total)
+        if allowed:
+            keys = [k for k in keys if k in allowed]
+        if len(keys) > scope_total:
+            keys = keys[:scope_total]
+    conn.execute(
+        """
+        INSERT INTO task_unit_progress (
+            student_id, plan_item_id, unit_id, scope_done, scope_total, scope_keys
+        )
+        VALUES (?, ?, ?, ?, ?, ?)
+        ON CONFLICT(student_id, plan_item_id) DO UPDATE SET
+            scope_done=excluded.scope_done,
+            scope_total=excluded.scope_total,
+            scope_keys=excluded.scope_keys,
+            updated_at=strftime('%Y-%m-%dT%H:%M:%fZ','now')
+        """,
+        (
+            student_id,
+            plan_item_id,
+            item["unit_id"] or "",
+            current,
+            scope_total,
+            json.dumps(keys, ensure_ascii=False),
+        ),
+    )
+    conn.commit()
+    return {"scope_done": current, "scope_total": scope_total, "scope_keys": keys}
+
+
+def replace_scope_keys(
+    conn: sqlite3.Connection,
+    student_id: str,
+    plan_item_id: int,
+    keys: list[str],
+) -> dict[str, Any]:
+    """用明确的项目编号覆盖进度（补历史记录时用，不按顺序猜测前 N 项）。"""
+    item = conn.execute(
+        "SELECT * FROM plan_items WHERE id=? AND student_id=?",
+        (plan_item_id, student_id),
+    ).fetchone()
+    if not item:
+        raise ValueError("计划条目不存在")
+    unit = None
+    if item["unit_id"]:
+        unit = conn.execute(
+            "SELECT * FROM task_units WHERE unit_id=?", (item["unit_id"],)
+        ).fetchone()
+    content_ref = unit["content_ref"] if unit else {}
+    scope_total, _ = _scope_for_unit(content_ref)
+    allowed = _unit_scope_ids(content_ref)
+    wanted = []
+    seen: set[str] = set()
+    for raw in keys:
+        key = str(raw).strip()
+        if not key or key in seen:
+            continue
+        if allowed and key not in allowed:
+            continue
+        seen.add(key)
+        wanted.append(key)
+    if allowed:
+        wanted = [k for k in allowed if k in seen]
+    current = len(wanted)
+    if scope_total:
+        current = min(current, scope_total)
+    conn.execute(
+        """
+        INSERT INTO task_unit_progress (
+            student_id, plan_item_id, unit_id, scope_done, scope_total, scope_keys
+        )
+        VALUES (?, ?, ?, ?, ?, ?)
+        ON CONFLICT(student_id, plan_item_id) DO UPDATE SET
+            scope_done=excluded.scope_done,
+            scope_total=excluded.scope_total,
+            scope_keys=excluded.scope_keys,
+            updated_at=strftime('%Y-%m-%dT%H:%M:%fZ','now')
+        """,
+        (
+            student_id,
+            plan_item_id,
+            item["unit_id"] or "",
+            current,
+            scope_total,
+            json.dumps(wanted, ensure_ascii=False),
+        ),
+    )
+    conn.commit()
+    return {"scope_done": current, "scope_total": scope_total, "scope_keys": wanted}
+
+
+def complete_study(
+    conn: sqlite3.Connection,
+    student_id: str,
+    plan_item_id: int,
+    content_version: str,
+    *,
+    scope_done: Optional[int] = None,
+) -> dict[str, Any]:
+    item = conn.execute(
+        "SELECT * FROM plan_items WHERE id=? AND student_id=?",
+        (plan_item_id, student_id),
+    ).fetchone()
+    if not item:
+        raise ValueError("计划条目不存在")
+    if item["item_type"] != "study":
+        raise ValueError("非学习条目")
+    unit = conn.execute(
+        "SELECT * FROM task_units WHERE unit_id=?", (item["unit_id"],)
+    ).fetchone()
+    if unit and str(unit["content_version"]) != str(content_version):
+        raise ValueError("内容版本已更新，请刷新后重学")
+
+    # 打勾请求可顺带带上最终进度，避免「进度上报未落库就打勾」的竞态
+    if scope_done is not None:
+        update_scope_progress(
+            conn, student_id, plan_item_id, scope_done=int(scope_done)
+        )
+
+    scope_total = 0
+    if unit:
+        scope_total, _ = _scope_for_unit(unit["content_ref"])
+    # 跟读另有「当日次数」规则；其余有 scope 的单元必须做满才能打勾
+    if (
+        scope_total
+        and unit
+        and str(unit["module_type"]) != GENDU_MODULE
+    ):
+        prog = conn.execute(
+            "SELECT scope_done FROM task_unit_progress WHERE student_id=? AND plan_item_id=?",
+            (student_id, plan_item_id),
+        ).fetchone()
+        done = int(prog["scope_done"]) if prog else 0
+        if done < scope_total:
+            raise ValueError(
+                f"请先完成本单元全部 {scope_total} 项练习（当前 {done}/{scope_total}）"
+            )
+
+    # Gendu: day complete needs 3 practices; never mark plan study_completed here
+    # (lesson advance is driven by ≥70% + next-day pointer).
+    if unit and str(unit["module_type"]) == GENDU_MODULE:
+        today = china_ymd()
+        count = _gendu_day_practice_count(conn, student_id, today)
+        if count < GENDU_DAILY_PRACTICES:
+            raise ValueError(
+                f"听力跟读当日需有效完成 {GENDU_DAILY_PRACTICES} 次"
+                f"（识别率≥{GENDU_COUNT_MIN_SCORE}% 才计次；"
+                f"当前 {count}/{GENDU_DAILY_PRACTICES}）"
+            )
+        # 跟读是「每日打卡」型任务，完成只对当天有意义：不回写历史未打卡日
+        # （那些行是诚实的「那天没练」记录，回写会把它们误报成已完成）。
+        # 换课时 advance_gendu_if_needed 会连带删掉当天行，不留下「做完还挂着」。
+        sync_gendu_day_done(conn, student_id, today)
+        conn.commit()
+        return get_today(conn, student_id)
+
+    conn.execute(
+        """
+        UPDATE plan_items SET
+            study_completed=1,
+            study_completed_version=?,
+            need_refresh=0,
+            refresh_reason=NULL,
+            last_completed_at=strftime('%Y-%m-%dT%H:%M:%fZ','now'),
+            updated_at=strftime('%Y-%m-%dT%H:%M:%fZ','now')
+        WHERE id=?
+        """,
+        (content_version, plan_item_id),
+    )
+    # 回写窗口只到「昨天」为止，不能是全部历史：
+    # - 今天  —— 正常打勾；
+    # - 昨天  —— 跨零点补做 / 昨天派下的积压今天补上。
+    # 更早的日期必须留在 todo：学生那天确实没打开 App，把那些行改成 done 等于
+    # 把断更洗白，教师看板的完成度与连续性会系统性虚高（线上 2025046 于 09-06
+    # 即此例：看板 3/3，真实 0/3；李哲模拟 30 天里 9 个断更日被洗白）。
+    conn.execute(
+        """
+        UPDATE daily_tasks SET state='done_study'
+        WHERE student_id=? AND plan_item_id=?
+          AND state IN ('todo', 'in_progress')
+          AND task_date IN (?, ?)
+        """,
+        (
+            student_id,
+            plan_item_id,
+            china_ymd(),
+            _ymd_plus_days(china_ymd(), -1),
+        ),
+    )
+    if unit:
+        scope_total, _ = _scope_for_unit(unit["content_ref"])
+        update_scope_progress(
+            conn, student_id, plan_item_id, scope_done=scope_total or 1
+        )
+    conn.commit()
+    return get_today(conn, student_id)
+
+
+def submit_stage_test(
+    conn: sqlite3.Connection,
+    student_id: str,
+    plan_item_id: int,
+    score: float,
+    *,
+    threshold: float,
+    details: Any = None,
+    correct_count: int = 0,
+    total_count: int = 0,
+    duration_seconds: int = 0,
+) -> dict[str, Any]:
+    item = conn.execute(
+        "SELECT * FROM plan_items WHERE id=? AND student_id=?",
+        (plan_item_id, student_id),
+    ).fetchone()
+    if not item:
+        raise ValueError("计划条目不存在")
+    if item["item_type"] != "test":
+        raise ValueError("非测试条目")
+
+    today = china_ymd()
+    attempts = int(item["test_attempt_count_today"] or 0)
+    if item["test_attempt_ymd"] != today:
+        attempts = 0
+    # 阶段测**不限重测次数**（2026-09-20 决议）：这里刻意不做任何拦截。
+    # 原来的「每天 2 次」上限会把考不过的学生锁死——既过不去、又不让再考，
+    # 当天任务永远完不成。「考太多次」只作为助教提示（STAGE_TEST_ATTENTION_FAILS），
+    # 由 stage_tests_pending 展示，不影响提交。
+    #
+    # attempts 仍然逐日累计（跨天归零），只用于展示「今日已考 N 次」。
+
+    # 「一旦通过不可降级」：过了之后再考砸，不能把 test_passed 打回 0。
+    # 否则该条目会从「已完成」变回未完成，任务复活、重新计入积压，教师看板的
+    # 完成度还会倒退。注意这个场景是可达的：换天后 test_attempt_count_today
+    # 归零，学生可以再提交一次。
+    already_passed = bool(item["test_passed"])
+    attempt_passed = score >= threshold      # 这一次的真实结果（写进 test_records）
+    passed = already_passed or attempt_passed  # 对计划生效的结果（只升不降）
+    attempts += 1
+    conn.execute(
+        """
+        UPDATE plan_items SET
+            test_passed=?,
+            test_attempt_count_today=?,
+            test_attempt_ymd=?,
+            last_completed_at=strftime('%Y-%m-%dT%H:%M:%fZ','now'),
+            updated_at=strftime('%Y-%m-%dT%H:%M:%fZ','now')
+        WHERE id=?
+        """,
+        (1 if passed else 0, attempts, today, plan_item_id),
+    )
+    state = "done_pass" if passed else "done_fail"
+    if passed:
+        # 与 complete_study 同口径：通过后回写未完成日任务，但窗口只到「昨天」。
+        # 只改当天会让「昨天没做、今天补过」的行永远停在 todo，教师看板的
+        # 「昨日完成度」当天就误报未完成；而回写全部历史则会把断更日洗白
+        # （学生那天根本没开 App，却显示已完成）。
+        conn.execute(
+            """
+            UPDATE daily_tasks SET state='done_pass'
+            WHERE student_id=? AND plan_item_id=?
+              AND state IN ('todo', 'in_progress')
+              AND task_date IN (?, ?)
+            """,
+            (
+                student_id,
+                plan_item_id,
+                today,
+                _ymd_plus_days(today, -1),
+            ),
+        )
+    else:
+        # 没过：只标记当天这一次尝试，历史未完成日不动（那天学生确实没做）
+        conn.execute(
+            """
+            UPDATE daily_tasks SET state=?
+            WHERE student_id=? AND task_date=? AND plan_item_id=?
+            """,
+            (state, student_id, today, plan_item_id),
+        )
+        # 2026-09-20 决议：考挂**只留这条阶段测挂着**，不重排科目任务。
+        # 试过「考挂 → 把覆盖单元打回未完成强制重学」，模拟里学生反而被钉在
+        # 同一批单元上（dictation_u01~u03 各重学 3 轮到顶），一天还被十几条
+        # 考挂的测占满时间。学生想再学，从「学习进度」里点对应模块的学习按钮
+        # 就能进去，不需要系统替他重排。
+    # 阶段测的明细（对/总题数、用时）由测试页真实判分后回传，前端一并带上。
+    # 之前这两个字段写死 0，导致阶段测记录看不出做了多少题、用时多久。
+    conn.execute(
+        """
+        INSERT INTO test_records (
+            student_id, module_type, module_name, test_type,
+            score, correct_count, total_count, is_passed, pass_threshold,
+            duration_seconds, details
+        ) VALUES (?, ?, ?, 'stage_test', ?, ?, ?, ?, ?, ?, ?)
+        """,
+        (
+            student_id,
+            item["module_type"] or "reading_synonym",
+            item["test_title"] or "阶段测",
+            float(score),
+            max(0, int(correct_count or 0)),
+            max(0, int(total_count or 0)),
+            # test_records 记「这一次」的真实成败，供分析用；
+            # plan_items.test_passed 才是只升不降的计划状态。
+            1 if attempt_passed else 0,
+            float(threshold),
+            max(0, int(duration_seconds or 0)),
+            json.dumps(details if details is not None else {}, ensure_ascii=False),
+        ),
+    )
+    conn.commit()
+    return {
+        "passed": passed,
+        "score": score,
+        "threshold": threshold,
+        "attempts_today": attempts,
+        "already_passed": already_passed,
+        # 考挂只留这条测算「待通过」，系统不重排科目任务（2026-09-20 决议）。
+        "restudy_units": [],
+        "today": get_today(conn, student_id),
+    }
+
+
+def insert_stage_test(
+    conn: sqlite3.Connection,
+    student_id: str,
+    *,
+    unit_ids: list[str],
+    after_sort_order: Optional[int] = None,
+    test_title: str = "",
+) -> dict[str, Any]:
+    """Insert a stage test into draft, immediately after the last covered study unit."""
+    if not unit_ids:
+        raise ValueError("unit_ids 不能为空")
+    units = []
+    for uid in unit_ids:
+        u = conn.execute("SELECT * FROM task_units WHERE unit_id=?", (uid,)).fetchone()
+        if not u:
+            raise ValueError(f"未知单元: {uid}")
+        units.append(dict(u))
+    module_types = {u["module_type"] for u in units}
+    if len(module_types) > 1:
+        raise ValueError("阶段测只能覆盖同一科目，请勿跨科勾选")
+    module_type = units[0]["module_type"]
+    title = test_title or (
+        f"{units[0]['title']}–{units[-1]['title']} 阶段测"
+        if len(units) > 1
+        else f"{units[0]['title']} 阶段测"
+    )
+
+    plan = get_plan(conn, student_id)
+    source = plan["draft"] if plan["draft"] else plan["live"]
+    items = []
+    for it in source:
+        items.append(
+            {
+                "item_type": it["item_type"],
+                "unit_id": it.get("unit_id"),
+                "module_type": it.get("module_type"),
+                "test_unit_ids": it.get("test_unit_ids") or [],
+                "test_title": it.get("test_title") or "",
+                "est_minutes": it.get("est_minutes"),
+                "status": it.get("status") or "pending",
+            }
+        )
+
+    unit_id_set = set(unit_ids)
+    last_idx = -1
+    found: set[str] = set()
+    for i, it in enumerate(items):
+        if it.get("item_type") == "study" and it.get("unit_id") in unit_id_set:
+            last_idx = i
+            found.add(it["unit_id"])
+    missing = unit_id_set - found
+    if missing:
+        raise ValueError("请先将所有覆盖单元加入清单后再插测")
+
+    # Reject duplicate test covering exact same units
+    for it in items:
+        if it.get("item_type") != "test":
+            continue
+        existing = set(_parse_json_list(it.get("test_unit_ids")) or [])
+        if existing == unit_id_set:
+            raise ValueError("已有相同范围的阶段测，请勿重复插入")
+
+    insert_at = last_idx + 1
+    if after_sort_order is not None:
+        insert_at = min(int(after_sort_order) + 1, len(items))
+
+    items.insert(
+        insert_at,
+        {
+            "item_type": "test",
+            "unit_id": None,
+            "module_type": module_type,
+            "test_unit_ids": unit_ids,
+            "test_title": title,
+            "est_minutes": 20,
+            "status": "pending",
+        },
+    )
+    items = normalize_stage_test_positions(items)
+    return put_plan_draft(conn, student_id, items)
+
+
+def plan_status_for_parent(conn: sqlite3.Connection, student_id: str, parent_module: str) -> str:
+    rows = conn.execute(
+        """
+        SELECT p.id, u.parent_module, p.module_type
+        FROM plan_items p
+        LEFT JOIN task_units u ON u.unit_id = p.unit_id
+        WHERE p.student_id=? AND p.status!='removed'
+        """,
+        (student_id,),
+    ).fetchall()
+    for r in rows:
+        pm = r["parent_module"] or r["module_type"]
+        if r["module_type"] and r["module_type"].startswith("speaking"):
+            pm = "speaking"
+        if pm == parent_module:
+            return "in_plan"
+    return "not_in_plan"

@@ -1,0 +1,150 @@
+# 污染答案可恢复性
+
+- 可从首字母恢复（有选项）: 12
+- 无法自动恢复: 126
+- Listening Q40 types: {'gap_fill': 59}
+- Reading Q40 types: {'single_choice': 30, 'gap_fill': 30}
+
+## 可恢复（取首字母）
+
+- academic11/reading/sId=758 Q40 -> `A` (single_choice) _C11 Test 2 Part 3_
+- academic14/reading/sId=605 Q40 -> `A` (single_choice) _C14 Test 4 Part 3_
+- academic15/reading/sId=565 Q40 -> `D` (single_choice) _C15 Test 4 Part 3_
+- academic15/reading/sId=569 Q40 -> `A` (single_choice) _C15 Test 3 Part 3_
+- academic17/reading/sId=1545 Q40 -> `D` (single_choice) _C17 Test 1 Part 3_
+- academic18/reading/sId=2287 Q40 -> `C` (single_choice) _C18 Test 4 Part 3_
+- academic4/reading/sId=1444 Q40 -> `B` (single_choice) _C4 Test 1 Part 3_
+- academic5/reading/sId=1376 Q40 -> `D` (single_choice) _C5 Test 3 Part 3_
+- academic6/reading/sId=1323 Q40 -> `D` (single_choice) _C6 Test 4 Part 3_
+- academic7/reading/sId=1238 Q40 -> `B` (single_choice) _C7 Test 2 Part 3_
+- academic7/reading/sId=1244 Q40 -> `B` (single_choice) _C7 Test 3 Part 3_
+- academic9/reading/sId=1089 Q40 -> `D` (single_choice) _C9 Test 1 Part 3_
+
+## 无法自动恢复
+
+- academic10/listening/sId=771 Q40 type=gap_fill opts=False head=`'expansion '` _C10 Test 1 Part 4_
+- academic10/listening/sId=775 Q40 type=gap_fill opts=False head=`'self-employed '` _C10 Test 2 Part 4_
+- academic10/listening/sId=780 Q40 type=gap_fill opts=False head=`'innovations '` _C10 Test 3 Part 4_
+- academic10/listening/sId=783 Q40 type=gap_fill opts=False head=`'tests '` _C10 Test 4 Part 4_
+- academic10/reading/sId=786 Q40 type=single_choice opts=True head=`'no '` _C10 Test 1 Part 3_
+- academic10/reading/sId=787 Q2 type=gap_fill opts=False head=`'png","contentUrl":"https://simplyielts.com/wp-content/uploads/2022/06/Simply-IEL'` _C10 Test 2 Part 1_
+- academic10/reading/sId=789 Q40 type=single_choice opts=True head=`'no '` _C10 Test 2 Part 3_
+- academic10/reading/sId=790 Q1 type=gap_fill opts=False head=`'1.16"},writable:false,configurable:false}); Cambridge IELTS 10 Academic Reading '` _C10 Test 3 Part 1_
+- academic10/reading/sId=792 Q40 type=single_choice opts=True head=`'not given '` _C10 Test 3 Part 3_
+- academic10/reading/sId=793 Q2 type=gap_fill opts=False head=`'png","contentUrl":"https://simplyielts.com/wp-content/uploads/2022/06/Simply-IEL'` _C10 Test 4 Part 1_
+- academic10/reading/sId=796 Q40 type=single_choice opts=True head=`'yes '` _C10 Test 4 Part 3_
+- academic11/listening/sId=643 Q40 type=gap_fill opts=False head=`'payment/ money '` _C11 Test 1 Part 4_
+- academic11/listening/sId=744 Q40 type=gap_fill opts=False head=`'consumption '` _C11 Test 2 Part 4_
+- academic11/listening/sId=748 Q40 type=gap_fill opts=False head=`'international '` _C11 Test 3 Part 4_
+- academic11/listening/sId=752 Q40 type=gap_fill opts=False head=`'identification) label '` _C11 Test 4 Part 4_
+- academic11/reading/sId=755 Q40 type=gap_fill opts=False head=`'A '` _C11 Test 1 Part 3_
+- academic11/reading/sId=761 Q40 type=gap_fill opts=False head=`'theorems '` _C11 Test 3 Part 3_
+- academic11/reading/sId=764 Q40 type=single_choice opts=True head=`'yes '` _C11 Test 4 Part 3_
+- academic12/listening/sId=724 Q40 type=gap_fill opts=False head=`'market share '` _C12 Test 1 Part 4_
+- academic12/listening/sId=728 Q40 type=gap_fill opts=False head=`'mediator '` _C12 Test 2 Part 4_
+- academic12/listening/sId=732 Q40 type=gap_fill opts=False head=`'cost/ price '` _C12 Test 3 Part 4_
+- academic12/listening/sId=736 Q40 type=gap_fill opts=False head=`'silent '` _C12 Test 4 Part 4_
+- academic12/reading/sId=639 Q40 type=gap_fill opts=False head=`'C '` _C12 Test 2 Part 3_
+- academic12/reading/sId=714 Q40 type=single_choice opts=True head=`'no '` _C12 Test 1 Part 3_
+- academic12/reading/sId=717 Q40 type=gap_fill opts=False head=`'C '` _C12 Test 3 Part 3_
+- academic12/reading/sId=720 Q40 type=gap_fill opts=False head=`'shareholders/ investors '` _C12 Test 4 Part 3_
+- academic13/listening/sId=609 Q40 type=gap_fill opts=False head=`'permanent '` _C13 Test 1 Part 4_
+- academic13/listening/sId=613 Q40 type=gap_fill opts=False head=`'self '` _C13 Test 2 Part 4_
+- academic13/listening/sId=617 Q40 type=gap_fill opts=False head=`'injury/ injuries '` _C13 Test 3 Part 4_
+- academic13/listening/sId=621 Q40 type=gap_fill opts=False head=`'night '` _C13 Test 4 Part 4_
+- academic13/reading/sId=624 Q40 type=single_choice opts=True head=`'no '` _C13 Test 1 Part 3_
+- academic13/reading/sId=627 Q40 type=gap_fill opts=False head=`'D '` _C13 Test 2 Part 3_
+- academic13/reading/sId=630 Q40 type=gap_fill opts=False head=`'A '` _C13 Test 3 Part 3_
+- academic13/reading/sId=633 Q40 type=single_choice opts=True head=`'no '` _C13 Test 4 Part 3_
+- academic14/listening/sId=552 Q40 type=gap_fill opts=False head=`'wine '` _C14 Test 4 Part 4_
+- academic14/listening/sId=555 Q40 type=gap_fill opts=False head=`'Olympics '` _C14 Test 3 Part 4_
+- academic14/listening/sId=558 Q40 type=gap_fill opts=False head=`'telegraph '` _C14 Test 2 Part 4_
+- academic14/listening/sId=561 Q40 type=gap_fill opts=False head=`'migration '` _C14 Test 1 Part 4_
+- academic14/reading/sId=596 Q40 type=gap_fill opts=False head=`'characteristics '` _C14 Test 1 Part 3_
+- academic14/reading/sId=599 Q40 type=single_choice opts=True head=`'Not given '` _C14 Test 2 Part 3_
+- academic14/reading/sId=602 Q40 type=gap_fill opts=False head=`'targeted '` _C14 Test 3 Part 3_
+- academic15/listening/sId=581 Q40 type=gap_fill opts=False head=`'Nests '` _C15 Test 1 Part 4_
+- academic15/listening/sId=585 Q40 type=gap_fill opts=False head=`'design '` _C15 Test 2 Part 4_
+- academic15/listening/sId=589 Q40 type=gap_fill opts=False head=`'Tax '` _C15 Test 3 Part 4_
+- academic15/listening/sId=593 Q40 type=gap_fill opts=False head=`'Advertising '` _C15 Test 4 Part 4_
+- academic15/reading/sId=572 Q40 type=single_choice opts=True head=`'No '` _C15 Test 2 Part 3_
+- academic15/reading/sId=575 Q40 type=gap_fill opts=False head=`'land) surface '` _C15 Test 1 Part 3_
+- academic16/listening/sId=650 Q40 type=gap_fill opts=False head=`'Practice/ practise '` _C16 Test 1 Part 4_
+- academic16/listening/sId=654 Q40 type=gap_fill opts=False head=`'Habit '` _C16 Test 2 Part 4_
+- academic16/listening/sId=655 Q1 type=gap_fill opts=False head=`'1.16"},writable:false,configurable:false}); Cambridge IELTS 16 Listening Test 3 '` _C16 Test 3 Part 1_
+- academic16/listening/sId=655 Q2 type=gap_fill opts=False head=`'png","contentUrl":"https://simplyielts.com/wp-content/uploads/2022/06/Simply-IEL'` _C16 Test 3 Part 1_
+- academic16/listening/sId=655 Q3 type=gap_fill opts=False head=`'","name":"Cambridge IELTS 16 Listening Test 3 Answers with Explanation","@id":"h'` _C16 Test 3 Part 1_
+- academic16/listening/sId=655 Q4 type=gap_fill opts=False head=`'21.3. */ outline-color: #ff703d; } .learndash-wrapper .ld-button:hover:not(.ld-b'` _C16 Test 3 Part 1_
+- academic16/listening/sId=655 Q5 type=gap_fill opts=False head=`'06rem;--wp--preset--shadow--natural: 6px 6px 9px rgba(0, 0, 0, 0.2);--wp--preset'` _C16 Test 3 Part 1_
+- academic16/listening/sId=655 Q6 type=gap_fill opts=False head=`'webp","url":"https://simplyielts.com/wp-content/uploads/2026/08/simplyielts-5227'` _C16 Test 3 Part 1_
+- academic16/listening/sId=655 Q8 type=gap_fill opts=False head=`'662,0.000%2023.035,12.002%2018.660,12.002%20C14.285,12.002%208.594,0.000%202.658'` _C16 Test 3 Part 1_
+- academic16/listening/sId=655 Q9 type=gap_fill opts=False head=`'png) ; background-position: 50% 90%; background-size:100px ; background-repeat: '` _C16 Test 3 Part 1_
+- academic16/listening/sId=656 Q12 type=gap_fill opts=False head=`'002%2018.660,12.002%20C14.285,12.002%208.594,0.000%202.658,0.000%20Z%22/%3E%3C/s'` _C16 Test 3 Part 2_
+- academic16/listening/sId=656 Q13 type=gap_fill opts=False head=`'615,0.000%2050.938,0.000%2034.662,0.000%20C28.662,0.000%2023.035,12.002%2018.660'` _C16 Test 3 Part 2_
+- academic16/listening/sId=656 Q14 type=gap_fill opts=False head=`'0.0/72x72/","ext":".png","svgUrl":"https://s.w.org/images/core/emoji/14.0.0/svg/'` _C16 Test 3 Part 2_
+- academic16/listening/sId=656 Q18 type=gap_fill opts=False head=`'660,12.002%20C14.285,12.002%208.594,0.000%202.658,0.000%20Z%22/%3E%3C/svg%3E");b'` _C16 Test 3 Part 2_
+- academic16/listening/sId=657 Q21 type=gap_fill opts=False head=`'3. */ outline-color: #ff703d; } .learndash-wrapper .ld-button:hover:not(.ld-butt'` _C16 Test 3 Part 3_
+- academic16/listening/sId=657 Q23 type=gap_fill opts=False head=`'035,12.002%2018.660,12.002%20C14.285,12.002%208.594,0.000%202.658,0.000%20Z%22/%'` _C16 Test 3 Part 3_
+- academic16/listening/sId=657 Q28 type=gap_fill opts=False head=`'662,0.000%2023.035,12.002%2018.660,12.002%20C14.285,12.002%208.594,0.000%202.658'` _C16 Test 3 Part 3_
+- academic16/listening/sId=658 Q34 type=gap_fill opts=False head=`'293% );max-width:34.293%;--container-widget-width:34.293%;--container-widget-fle'` _C16 Test 3 Part 4_
+- academic16/listening/sId=658 Q40 type=gap_fill opts=False head=`'sheep — looking after …… paraphrases watching over, and the lecture lists knitti'` _C16 Test 3 Part 4_
+- academic16/listening/sId=662 Q40 type=gap_fill opts=False head=`'Forest '` _C16 Test 4 Part 4_
+- academic16/reading/sId=646 Q40 type=gap_fill opts=False head=`'C '` _C16 Test 1 Part 3_
+- academic16/reading/sId=668 Q40 type=single_choice opts=True head=`'True '` _C16 Test 2 Part 3_
+- academic16/reading/sId=677 Q40 type=gap_fill opts=False head=`'Mustard plant(s)/ mustard '` _C16 Test 3 Part 3_
+- academic16/reading/sId=691 Q40 type=single_choice opts=True head=`'Yes '` _C16 Test 4 Part 3_
+- academic17/listening/sId=1530 Q40 type=gap_fill opts=False head=`'Anxiety '` _C17 Test 1 Part 4_
+- academic17/listening/sId=1534 Q40 type=gap_fill opts=False head=`'Fluent '` _C17 Test 2 Part 4_
+- academic17/listening/sId=1538 Q40 type=gap_fill opts=False head=`'Atlas '` _C17 Test 3 Part 4_
+- academic17/listening/sId=1542 Q40 type=gap_fill opts=False head=`'Litre/ liter '` _C17 Test 4 Part 4_
+- academic17/reading/sId=1548 Q40 type=gap_fill opts=False head=`'B '` _C17 Test 2 Part 3_
+- academic17/reading/sId=1551 Q40 type=gap_fill opts=False head=`'F '` _C17 Test 3 Part 3_
+- academic17/reading/sId=1554 Q40 type=gap_fill opts=False head=`'Visual '` _C17 Test 4 Part 3_
+- academic18/listening/sId=2247 Q40 type=gap_fill opts=False head=`'Tourism '` _C18 Test 1 Part 4_
+- academic18/listening/sId=2251 Q40 type=gap_fill opts=False head=`'Handbag '` _C18 Test 2 Part 4_
+- academic18/listening/sId=2255 Q40 type=gap_fill opts=False head=`'Trust '` _C18 Test 3 Part 4_
+- academic18/listening/sId=2259 Q40 type=gap_fill opts=False head=`'Relatives '` _C18 Test 4 Part 4_
+- academic18/reading/sId=2278 Q40 type=gap_fill opts=False head=`'A '` _C18 Test 1 Part 3_
+- academic18/reading/sId=2281 Q40 type=gap_fill opts=False head=`'Outwards '` _C18 Test 2 Part 3_
+- academic18/reading/sId=2284 Q40 type=single_choice opts=True head=`'Not given '` _C18 Test 3 Part 3_
+- academic4/listening/sId=1429 Q40 type=gap_fill opts=False head=`'space '` _C4 Test 1 Part 4_
+- academic4/listening/sId=1433 Q40 type=gap_fill opts=False head=`'E '` _C4 Test 2 Part 4_
+- academic4/listening/sId=1437 Q40 type=gap_fill opts=False head=`'A and C '` _C4 Test 3 Part 4_
+- academic4/listening/sId=1441 Q40 type=gap_fill opts=False head=`'E '` _C4 Test 4 Part 4_
+- academic4/reading/sId=1447 Q40 type=gap_fill opts=False head=`'A '` _C4 Test 2 Part 3_
+- academic4/reading/sId=1450 Q40 type=gap_fill opts=False head=`'intuitions '` _C4 Test 3 Part 3_
+- academic4/reading/sId=1453 Q40 type=single_choice opts=True head=`'not given '` _C4 Test 4 Part 3_
+- academic5/listening/sId=1354 Q40 type=gap_fill opts=False head=`'low-risk investments '` _C5 Test 1 Part 4_
+- academic5/listening/sId=1358 Q40 type=gap_fill opts=False head=`'young '` _C5 Test 2 Part 4_
+- academic5/listening/sId=1362 Q40 type=gap_fill opts=False head=`'business cards '` _C5 Test 3 Part 4_
+- academic5/listening/sId=1366 Q40 type=gap_fill opts=False head=`'C '` _C5 Test 4 Part 4_
+- academic5/reading/sId=1369 Q40 type=gap_fill opts=False head=`'I '` _C5 Test 1 Part 3_
+- academic5/reading/sId=1372 Q40 type=gap_fill opts=False head=`'local audience '` _C5 Test 2 Part 3_
+- academic5/reading/sId=1379 Q40 type=gap_fill opts=False head=`'classification '` _C5 Test 4 Part 3_
+- academic6/listening/sId=1298 Q40 type=gap_fill opts=False head=`'F '` _C6 Test 1 Part 4_
+- academic6/listening/sId=1302 Q40 type=gap_fill opts=False head=`'poor sound quality '` _C6 Test 2 Part 4_
+- academic6/listening/sId=1306 Q40 type=gap_fill opts=False head=`'tops '` _C6 Test 3 Part 4_
+- academic6/listening/sId=1310 Q40 type=gap_fill opts=False head=`'leadership '` _C6 Test 4 Part 4_
+- academic6/reading/sId=1314 Q40 type=gap_fill opts=False head=`'imported '` _C6 Test 1 Part 3_
+- academic6/reading/sId=1317 Q40 type=single_choice opts=True head=`'not given '` _C6 Test 2 Part 3_
+- academic6/reading/sId=1320 Q40 type=gap_fill opts=False head=`'preservation '` _C6 Test 3 Part 3_
+- academic7/listening/sId=1194 Q40 type=gap_fill opts=False head=`'intact '` _C7 Test 1 Part 4_
+- academic7/listening/sId=1202 Q40 type=gap_fill opts=False head=`'balance '` _C7 Test 2 Part 4_
+- academic7/listening/sId=1218 Q40 type=gap_fill opts=False head=`'chocolate '` _C7 Test 3 Part 4_
+- academic7/listening/sId=1222 Q40 type=gap_fill opts=False head=`'minerals '` _C7 Test 4 Part 4_
+- academic7/reading/sId=1234 Q40 type=gap_fill opts=False head=`'G '` _C7 Test 1 Part 3_
+- academic7/reading/sId=1247 Q40 type=gap_fill opts=False head=`'C '` _C7 Test 4 Part 3_
+- academic8/listening/sId=1105 Q40 type=gap_fill opts=False head=`'weather '` _C8 Test 1 Part 4_
+- academic8/listening/sId=1116 Q40 type=gap_fill opts=False head=`'skills '` _C8 Test 3 Part 4_
+- academic8/listening/sId=1164 Q40 type=gap_fill opts=False head=`'creation '` _C8 Test 4 Part 4_
+- academic8/reading/sId=1169 Q40 type=gap_fill opts=False head=`'big/ large enough '` _C8 Test 1 Part 3_
+- academic8/reading/sId=1175 Q40 type=gap_fill opts=False head=`'cultures '` _C8 Test 2 Part 3_
+- academic8/reading/sId=1186 Q40 type=single_choice opts=True head=`'yes '` _C8 Test 3 Part 3_
+- academic8/reading/sId=1189 Q40 type=gap_fill opts=False head=`'alcohol '` _C8 Test 4 Part 3_
+- academic9/listening/sId=1069 Q40 type=gap_fill opts=False head=`'networks '` _C9 Test 1 Part 4_
+- academic9/listening/sId=1073 Q40 type=gap_fill opts=False head=`'flexible '` _C9 Test 2 Part 4_
+- academic9/listening/sId=1079 Q40 type=gap_fill opts=False head=`'15 years '` _C9 Test 3 Part 4_
+- academic9/listening/sId=1086 Q40 type=gap_fill opts=False head=`'seeds '` _C9 Test 4 Part 4_
+- academic9/reading/sId=1092 Q40 type=gap_fill opts=False head=`'C '` _C9 Test 2 Part 3_
+- academic9/reading/sId=1095 Q40 type=single_choice opts=True head=`'false '` _C9 Test 3 Part 3_
+- academic9/reading/sId=1098 Q40 type=single_choice opts=True head=`'true '` _C9 Test 4 Part 3_

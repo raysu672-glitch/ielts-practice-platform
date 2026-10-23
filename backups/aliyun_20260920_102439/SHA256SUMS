@@ -1,0 +1,5 @@
+﻿# 阿里云线上数据库备份
+# 来源: root@47.103.199.114:/var/www/ielts/data/ielts_local.db
+# 方式: SQLite online backup API 一致性快照，再 scp 下载
+# 时间: 2026-09-20 10:29:51
+f7825738e8891771e08de0800533f1146d56142f2aa36c9486685f45bca0a0ec  ielts_local.db

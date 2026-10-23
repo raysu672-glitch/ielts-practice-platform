@@ -1,0 +1,23 @@
+wrote D:\ielts-practice-platform\sources\kouyulianxi\p1-data.js
+total=231 sources={'explicit': 119, 'clue-alias': 30, 'clue': 82}
+sampleLogicFail=0
+shishi: 75
+  #1 Watch (39172)
+  #2 Work or studies (8666)
+  #3 Websites (8064)
+xihao: 69
+  #1 Cars (12327)
+  #2 Work or studies (8666)
+  #3 Websites (8064)
+xingwei: 30
+  #1 Watch (39172)
+  #2 Cars (12327)
+  #3 Work or studies (8666)
+guandian: 31
+  #1 Watch (39172)
+  #2 Cars (12327)
+  #3 Work or studies (8666)
+duibi: 26
+  #1 Cars (12327)
+  #2 Work or studies (8666)
+  #3 Websites (8064)

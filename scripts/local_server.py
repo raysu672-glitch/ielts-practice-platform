@@ -77,7 +77,9 @@ except ImportError:  # Recorded-course modules are optional; homework deploy mus
     def list_object_keys(*_a, **_k):
         return []
 from activity_log import (  # noqa: E402
+    build_activity_summary_for_ai,
     ensure_activity_tables,
+    format_activity_summary_prompt,
     list_student_activity,
     log_activity,
     log_student_client_events,
@@ -180,9 +182,11 @@ from trial_api import (  # noqa: E402
 DEFAULT_STATIC_DIR = ROOT / "sources"
 
 from teacher_api import (  # noqa: E402
+    build_student_checkup_digest,
     create_student,
     create_students_batch,
     create_teacher,
+    format_student_checkup_prompt,
     list_standards as list_teacher_standards,
     list_students,
     list_teachers,
@@ -2213,6 +2217,212 @@ class LocalHandler(SimpleHTTPRequestHandler):
                 return
             self.send_json({"data": row, "error": None})
 
+    def handle_admin_analyze_activity(self) -> None:
+        """Summarize recent activity and ask AI for conclusions (no login required)."""
+        settings = ai_settings()
+        if not settings["api_key"]:
+            self.send_json(
+                {
+                    "data": None,
+                    "error": {"message": "AI 未配置，请在 config/ai.env 设置 AI_API_KEY"},
+                },
+                status=503,
+            )
+            return
+        payload = self.read_json_body() or {}
+        question = str(payload.get("question") or "").strip()
+        if not question:
+            question = (
+                "请综合分析近期学生与教师行为，指出活跃度异常、学习投入不足、"
+                "以及教师操作上值得关注的点，给出可执行建议。"
+            )
+        if len(question) > 2000:
+            question = question[:2000]
+        try:
+            days = int(payload.get("days") or 7)
+        except (TypeError, ValueError):
+            days = 7
+        with closing(connect(self.db_path)) as conn:
+            summary = build_activity_summary_for_ai(conn, days=days)
+        digest = format_activity_summary_prompt(summary)
+        upstream_body: dict[str, Any] = {
+            "model": settings["model"],
+            "max_tokens": min(int(payload.get("max_tokens") or 2000), 4000),
+            "temperature": 0.2,
+            "system": (
+                "你是雅思练习平台的运营分析助手。根据提供的行为摘要回答管理员问题。"
+                "只依据摘要中的数据下结论，不要编造未出现的账号或事件。"
+                "用简洁中文输出：先给要点结论，再给建议。"
+            ),
+            "messages": [
+                {
+                    "role": "user",
+                    "content": f"管理员问题：{question}\n\n行为摘要：\n{digest}",
+                }
+            ],
+        }
+        body_bytes = json.dumps(upstream_body, ensure_ascii=False).encode("utf-8")
+        target = settings["base_url"].rstrip("/") + "/anthropic/v1/messages"
+        headers = {
+            "Content-Type": "application/json",
+            "Accept": "application/json",
+            "x-api-key": settings["api_key"],
+            "anthropic-version": "2023-06-01",
+        }
+        try:
+            req = urllib.request.Request(
+                target, data=body_bytes, headers=headers, method="POST"
+            )
+            with urllib.request.urlopen(req, timeout=300) as resp:
+                raw = resp.read()
+            upstream = json.loads(raw.decode("utf-8"))
+        except urllib.error.HTTPError as exc:
+            err_body = exc.read().decode("utf-8", errors="replace")[:500]
+            self.send_json(
+                {
+                    "data": None,
+                    "error": {"message": f"AI 调用失败（{exc.code}）：{err_body}"},
+                },
+                status=502,
+            )
+            return
+        except Exception as exc:
+            self.send_json(
+                {"data": None, "error": {"message": f"AI 服务不可用：{exc}"}},
+                status=502,
+            )
+            return
+        analysis_parts: list[str] = []
+        content = upstream.get("content")
+        if isinstance(content, list):
+            for block in content:
+                if isinstance(block, dict) and block.get("type") == "text":
+                    analysis_parts.append(str(block.get("text") or ""))
+        analysis = "\n".join(p for p in analysis_parts if p).strip()
+        if not analysis:
+            analysis = str(upstream.get("content") or upstream)[:4000]
+        self.send_json(
+            {
+                "data": {
+                    "analysis": analysis,
+                    "days": summary["days"],
+                    "total_events": summary["total_events"],
+                },
+                "error": None,
+            }
+        )
+
+    def handle_teacher_student_checkup(self) -> None:
+        """Teacher-only: per-student learning checkup via AI (report text only)."""
+        if not self.require_teacher_session():
+            return
+        settings = ai_settings()
+        if not settings["api_key"]:
+            self.send_json(
+                {
+                    "data": None,
+                    "error": {"message": "AI 未配置，请在 config/ai.env 设置 AI_API_KEY"},
+                },
+                status=503,
+            )
+            return
+        payload = self.read_json_body() or {}
+        student_id = str(payload.get("student_id") or "").strip()
+        if not student_id:
+            self.send_json(
+                {"data": None, "error": {"message": "缺少 student_id"}},
+                status=400,
+            )
+            return
+        question = str(payload.get("question") or "").strip()
+        if not question:
+            question = (
+                "请给该生做全面学习体检：当前学习状态、进度、学习态度（仅基于行为推断），"
+                "薄弱点，以及接下来 7 天可执行方案。证据不足请标明。"
+            )
+        if len(question) > 2000:
+            question = question[:2000]
+        try:
+            days = int(payload.get("days") or 14)
+        except (TypeError, ValueError):
+            days = 14
+        with closing(connect(self.db_path)) as conn:
+            digest, err = build_student_checkup_digest(conn, student_id, days=days)
+        if err:
+            self.send_json({"data": None, "error": {"message": err}}, status=400)
+            return
+        assert digest is not None
+        prompt = format_student_checkup_prompt(digest)
+        upstream_body: dict[str, Any] = {
+            "model": settings["model"],
+            "max_tokens": min(int(payload.get("max_tokens") or 2500), 4000),
+            "temperature": 0.2,
+            # deepseek-flash 默认 thinking 会吃光 max_tokens，正文为空
+            "thinking": {"type": "disabled"},
+            "system": (
+                "你是雅思练习平台的教师助教。根据提供的学生数据摘要写学习体检报告。"
+                "只依据摘要中的数据下结论，不要编造未出现的事实。"
+                "态度只能做行为推断，不做心理诊断。"
+                "方案只给老师参考，不要声称已自动改计划。"
+                "用简洁中文：先结论（状态/进度/态度），再薄弱点，再接下来7天建议。"
+            ),
+            "messages": [
+                {
+                    "role": "user",
+                    "content": f"教师问题：{question}\n\n学生数据摘要：\n{prompt}",
+                }
+            ],
+        }
+        body_bytes = json.dumps(upstream_body, ensure_ascii=False).encode("utf-8")
+        target = settings["base_url"].rstrip("/") + "/anthropic/v1/messages"
+        headers = {
+            "Content-Type": "application/json",
+            "Accept": "application/json",
+            "x-api-key": settings["api_key"],
+            "anthropic-version": "2023-06-01",
+        }
+        try:
+            req = urllib.request.Request(
+                target, data=body_bytes, headers=headers, method="POST"
+            )
+            with urllib.request.urlopen(req, timeout=300) as resp:
+                raw = resp.read()
+            upstream = json.loads(raw.decode("utf-8"))
+        except urllib.error.HTTPError as exc:
+            err_body = exc.read().decode("utf-8", errors="replace")[:500]
+            self.send_json(
+                {
+                    "data": None,
+                    "error": {"message": f"AI 调用失败（{exc.code}）：{err_body}"},
+                },
+                status=502,
+            )
+            return
+        except Exception as exc:
+            self.send_json(
+                {"data": None, "error": {"message": f"AI 服务不可用：{exc}"}},
+                status=502,
+            )
+            return
+        analysis_parts: list[str] = []
+        content = upstream.get("content")
+        if isinstance(content, list):
+            for block in content:
+                if isinstance(block, dict) and block.get("type") == "text":
+                    analysis_parts.append(str(block.get("text") or ""))
+        analysis = "\n".join(p for p in analysis_parts if p).strip()
+        if not analysis:
+            analysis = str(upstream.get("content") or upstream)[:4000]
+        self.send_json(
+            {
+                "data": {
+                    "student_id": student_id,
+                    "days": digest["days"],
+                    "analysis": analysis,
+                },
+                "error": None,
+            }
+        )
 
     def require_student_session(self) -> Optional[dict[str, Any]]:
         session = self.current_session("student")
@@ -3685,6 +3895,9 @@ class LocalHandler(SimpleHTTPRequestHandler):
         if path == "/api/ai/messages":
             self.handle_ai_messages()
             return
+        if path == "/api/admin/analyze-activity":
+            self.handle_admin_analyze_activity()
+            return
         if path == "/api/mock/speaking/start":
             self.handle_mock_speaking_start()
             return
@@ -3811,6 +4024,9 @@ class LocalHandler(SimpleHTTPRequestHandler):
             return
         if path == "/api/teacher/students/update":
             self.handle_teacher_students_update()
+            return
+        if path == "/api/teacher/student-checkup":
+            self.handle_teacher_student_checkup()
             return
         if path == "/api/teacher/standards/update":
             self.handle_teacher_standards_update()

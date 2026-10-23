@@ -1,0 +1,3351 @@
+{
+  "stats": [
+    [
+      "shishi",
+      "事实陈述类",
+      77,
+      [
+        "正面回答",
+        "来源或举例",
+        "频次",
+        "感受"
+      ]
+    ],
+    [
+      "xihao",
+      "喜好类",
+      52,
+      [
+        "正面回答",
+        "原因或时间",
+        "频次",
+        "感受"
+      ]
+    ],
+    [
+      "xingwei",
+      "行为习惯类",
+      40,
+      [
+        "正面回答",
+        "原因",
+        "时间线+行为描述",
+        "影响"
+      ]
+    ],
+    [
+      "guandian",
+      "观点类",
+      42,
+      [
+        "正面回答",
+        "举例或原因",
+        "作用或影响",
+        "感受"
+      ]
+    ],
+    [
+      "duibi",
+      "对比类",
+      24,
+      [
+        "正面回答",
+        "选项1的特点与作用",
+        "选项2的特点与作用",
+        "个人感受"
+      ]
+    ]
+  ],
+  "questions": [
+    {
+      "cat": "shishi",
+      "id": 1,
+      "title": "Have you ever had a pet before",
+      "q": "Have you ever had a pet before?",
+      "clueId": "1",
+      "word_keys": [
+        "正面回答",
+        "来源或举例",
+        "频次",
+        "感受"
+      ],
+      "word_count": 10
+    },
+    {
+      "cat": "shishi",
+      "id": 2,
+      "title": "Have you ever been part of a sports team",
+      "q": "Have you ever been part of a sports team?",
+      "clueId": "2",
+      "word_keys": [
+        "正面回答",
+        "来源或举例",
+        "频次",
+        "感受"
+      ],
+      "word_count": 7
+    },
+    {
+      "cat": "shishi",
+      "id": 3,
+      "title": "Have you ever sent handmade gifts to others",
+      "q": "Have you ever sent handmade gifts to others?",
+      "clueId": "3",
+      "word_keys": [
+        "正面回答",
+        "来源或举例",
+        "频次",
+        "感受"
+      ],
+      "word_count": 5
+    },
+    {
+      "cat": "shishi",
+      "id": 4,
+      "title": "Have you ever received a great gift",
+      "q": "Have you ever received a great gift?",
+      "clueId": "3",
+      "word_keys": [
+        "正面回答",
+        "来源或举例",
+        "频次",
+        "感受"
+      ],
+      "word_count": 6
+    },
+    {
+      "cat": "shishi",
+      "id": 5,
+      "title": "What gift have you received recently",
+      "q": "What gift have you received recently?",
+      "clueId": "3",
+      "word_keys": [
+        "正面回答",
+        "来源或举例",
+        "频次",
+        "感受"
+      ],
+      "word_count": 5
+    },
+    {
+      "cat": "shishi",
+      "id": 6,
+      "title": "Where did you go for a walk lately",
+      "q": "Where did you go for a walk lately?",
+      "clueId": "4",
+      "word_keys": [
+        "正面回答",
+        "来源或举例",
+        "频次",
+        "感受"
+      ],
+      "word_count": 8
+    },
+    {
+      "cat": "shishi",
+      "id": 7,
+      "title": "When did you learn how to type on a keyboard",
+      "q": "When did you learn how to type on a keyboard?",
+      "clueId": "5",
+      "word_keys": [
+        "正面回答",
+        "来源或举例",
+        "频次",
+        "感受"
+      ],
+      "word_count": 8
+    },
+    {
+      "cat": "shishi",
+      "id": 8,
+      "title": "How do you improve your typing",
+      "q": "How do you improve your typing?",
+      "clueId": "5",
+      "word_keys": [
+        "正面回答",
+        "来源或举例",
+        "频次",
+        "感受"
+      ],
+      "word_count": 6
+    },
+    {
+      "cat": "shishi",
+      "id": 9,
+      "title": "What are the most beautiful sights you have seen while traveling",
+      "q": "What are the most beautiful sights you have seen while traveling?",
+      "clueId": "6",
+      "word_keys": [
+        "正面回答",
+        "来源或举例",
+        "频次",
+        "感受"
+      ],
+      "word_count": 6
+    },
+    {
+      "cat": "shishi",
+      "id": 10,
+      "title": "Are there tall buildings near your home",
+      "q": "Are there tall buildings near your home?",
+      "clueId": "7",
+      "word_keys": [
+        "正面回答",
+        "来源或举例",
+        "频次",
+        "感受"
+      ],
+      "word_count": 7
+    },
+    {
+      "cat": "shishi",
+      "id": 11,
+      "title": "What plant did you grow when you were young",
+      "q": "What plant did you grow when you were young?",
+      "clueId": "8",
+      "word_keys": [
+        "正面回答",
+        "来源或举例",
+        "频次",
+        "感受"
+      ],
+      "word_count": 5
+    },
+    {
+      "cat": "shishi",
+      "id": 12,
+      "title": "Do you know anything about growing a plant",
+      "q": "Do you know anything about growing a plant?",
+      "clueId": "8",
+      "word_keys": [
+        "正面回答",
+        "来源或举例",
+        "频次",
+        "感受"
+      ],
+      "word_count": 4
+    },
+    {
+      "cat": "shishi",
+      "id": 13,
+      "title": "Have you ever talked with someone you don't know in public places",
+      "q": "Have you ever talked with someone you don't know in public places?",
+      "clueId": "9",
+      "word_keys": [
+        "正面回答",
+        "来源或举例",
+        "频次",
+        "感受"
+      ],
+      "word_count": 8
+    },
+    {
+      "cat": "shishi",
+      "id": 14,
+      "title": "Are there any rules for students at your school",
+      "q": "Are there any rules for students at your school?",
+      "clueId": "10",
+      "word_keys": [
+        "正面回答",
+        "来源或举例",
+        "频次",
+        "感受"
+      ],
+      "word_count": 5
+    },
+    {
+      "cat": "shishi",
+      "id": 15,
+      "title": "Have you ever had a really dedicated teacher",
+      "q": "Have you ever had a really dedicated teacher?",
+      "clueId": "10",
+      "word_keys": [
+        "正面回答",
+        "来源或举例",
+        "频次",
+        "感受"
+      ],
+      "word_count": 4
+    },
+    {
+      "cat": "shishi",
+      "id": 16,
+      "title": "Have you ever had a really strict teacher",
+      "q": "Have you ever had a really strict teacher?",
+      "clueId": "10",
+      "word_keys": [
+        "正面回答",
+        "来源或举例",
+        "频次",
+        "感受"
+      ],
+      "word_count": 4
+    },
+    {
+      "cat": "shishi",
+      "id": 17,
+      "title": "Have you ever bought shoes online",
+      "q": "Have you ever bought shoes online?",
+      "clueId": "11",
+      "word_keys": [
+        "正面回答",
+        "来源或举例",
+        "频次",
+        "感受"
+      ],
+      "word_count": 7
+    },
+    {
+      "cat": "shishi",
+      "id": 18,
+      "title": "Do you have an experience when you did something well",
+      "q": "Do you have an experience when you did something well?",
+      "clueId": "12",
+      "word_keys": [
+        "正面回答",
+        "来源或举例",
+        "频次",
+        "感受"
+      ],
+      "word_count": 7
+    },
+    {
+      "cat": "shishi",
+      "id": 19,
+      "title": "Do you have an experience when your teacher thought you did a good job",
+      "q": "Do you have an experience when your teacher thought you did a good job?",
+      "clueId": "12",
+      "word_keys": [
+        "正面回答",
+        "来源或举例",
+        "频次",
+        "感受"
+      ],
+      "word_count": 7
+    },
+    {
+      "cat": "shishi",
+      "id": 20,
+      "title": "Is the city where you live crowded",
+      "q": "Is the city where you live crowded?",
+      "clueId": "13",
+      "word_keys": [
+        "正面回答",
+        "来源或举例",
+        "频次",
+        "感受"
+      ],
+      "word_count": 7
+    },
+    {
+      "cat": "shishi",
+      "id": 21,
+      "title": "Is there a crowded place near where you live",
+      "q": "Is there a crowded place near where you live?",
+      "clueId": "13",
+      "word_keys": [
+        "正面回答",
+        "来源或举例",
+        "频次",
+        "感受"
+      ],
+      "word_count": 7
+    },
+    {
+      "cat": "shishi",
+      "id": 22,
+      "title": "When was the last time you were in a crowded place",
+      "q": "When was the last time you were in a crowded place?",
+      "clueId": "13",
+      "word_keys": [
+        "正面回答",
+        "来源或举例",
+        "频次",
+        "感受"
+      ],
+      "word_count": 5
+    },
+    {
+      "cat": "shishi",
+      "id": 23,
+      "title": "Have you ever worked with old people",
+      "q": "Have you ever worked with old people?",
+      "clueId": "14",
+      "word_keys": [
+        "正面回答",
+        "来源或举例",
+        "频次",
+        "感受"
+      ],
+      "word_count": 7
+    },
+    {
+      "cat": "shishi",
+      "id": 24,
+      "title": "Do many people grow vegetables in your city",
+      "q": "Do many people grow vegetables in your city?",
+      "clueId": "15",
+      "word_keys": [
+        "正面回答",
+        "来源或举例",
+        "频次",
+        "感受"
+      ],
+      "word_count": 6
+    },
+    {
+      "cat": "shishi",
+      "id": 25,
+      "title": "Have you borrowed books from others",
+      "q": "Have you borrowed books from others?",
+      "clueId": "16",
+      "word_keys": [
+        "正面回答",
+        "来源或举例",
+        "频次",
+        "感受"
+      ],
+      "word_count": 6
+    },
+    {
+      "cat": "shishi",
+      "id": 26,
+      "title": "Have you borrowed money from others",
+      "q": "Have you borrowed money from others?",
+      "clueId": "16",
+      "word_keys": [
+        "正面回答",
+        "来源或举例",
+        "频次",
+        "感受"
+      ],
+      "word_count": 6
+    },
+    {
+      "cat": "shishi",
+      "id": 27,
+      "title": "Is there an advertisement that made an impression on you when you were a child",
+      "q": "Is there an advertisement that made an impression on you when you were a child?",
+      "clueId": "17",
+      "word_keys": [
+        "正面回答",
+        "来源或举例",
+        "频次",
+        "感受"
+      ],
+      "word_count": 7
+    },
+    {
+      "cat": "shishi",
+      "id": 28,
+      "title": "Are there many museums in your hometown",
+      "q": "Are there many museums in your hometown?",
+      "clueId": "18",
+      "word_keys": [
+        "正面回答",
+        "来源或举例",
+        "频次",
+        "感受"
+      ],
+      "word_count": 5
+    },
+    {
+      "cat": "shishi",
+      "id": 29,
+      "title": "When was the last time you visited a museum",
+      "q": "When was the last time you visited a museum?",
+      "clueId": "18",
+      "word_keys": [
+        "正面回答",
+        "来源或举例",
+        "频次",
+        "感受"
+      ],
+      "word_count": 4
+    },
+    {
+      "cat": "shishi",
+      "id": 30,
+      "title": "Did your parents teach you to share when you were a child",
+      "q": "Did your parents teach you to share when you were a child?",
+      "clueId": "19",
+      "word_keys": [
+        "正面回答",
+        "来源或举例",
+        "频次",
+        "感受"
+      ],
+      "word_count": 6
+    },
+    {
+      "cat": "shishi",
+      "id": 31,
+      "title": "Do you have anything to share with others recently",
+      "q": "Do you have anything to share with others recently?",
+      "clueId": "19",
+      "word_keys": [
+        "正面回答",
+        "来源或举例",
+        "频次",
+        "感受"
+      ],
+      "word_count": 5
+    },
+    {
+      "cat": "shishi",
+      "id": 32,
+      "title": "What subjects are you studying",
+      "q": "What subjects are you studying?",
+      "clueId": "20",
+      "word_keys": [
+        "正面回答",
+        "来源或举例",
+        "频次",
+        "感受"
+      ],
+      "word_count": 6
+    },
+    {
+      "cat": "shishi",
+      "id": 33,
+      "title": "What work do you do",
+      "q": "What work do you do?",
+      "clueId": "20",
+      "word_keys": [
+        "正面回答",
+        "来源或举例",
+        "频次",
+        "感受"
+      ],
+      "word_count": 2
+    },
+    {
+      "cat": "shishi",
+      "id": 34,
+      "title": "What requirements did you need to meet to get your current job",
+      "q": "What requirements did you need to meet to get your current job?",
+      "clueId": "20",
+      "word_keys": [
+        "正面回答",
+        "来源或举例",
+        "频次",
+        "感受"
+      ],
+      "word_count": 2
+    },
+    {
+      "cat": "shishi",
+      "id": 35,
+      "title": "Why did you choose to study that subject",
+      "q": "Why did you choose to study that subject?",
+      "clueId": "20",
+      "word_keys": [
+        "正面回答",
+        "来源或举例",
+        "频次",
+        "感受"
+      ],
+      "word_count": 6
+    },
+    {
+      "cat": "shishi",
+      "id": 36,
+      "title": "Why did you choose to do that type of work",
+      "q": "Why did you choose to do that type of work?",
+      "clueId": "20",
+      "word_keys": [
+        "正面回答",
+        "来源或举例",
+        "频次",
+        "感受"
+      ],
+      "word_count": 2
+    },
+    {
+      "cat": "shishi",
+      "id": 37,
+      "title": "Do you have any plans for your studies in the next five years",
+      "q": "Do you have any plans for your studies in the next five years?",
+      "clueId": "20",
+      "word_keys": [
+        "正面回答",
+        "来源或举例",
+        "频次",
+        "感受"
+      ],
+      "word_count": 6
+    },
+    {
+      "cat": "shishi",
+      "id": 38,
+      "title": "Do you have any plans for your work in the next five years",
+      "q": "Do you have any plans for your work in the next five years?",
+      "clueId": "20",
+      "word_keys": [
+        "正面回答",
+        "来源或举例",
+        "频次",
+        "感受"
+      ],
+      "word_count": 2
+    },
+    {
+      "cat": "shishi",
+      "id": 39,
+      "title": "Who helps you the most? And how",
+      "q": "Who helps you the most? And how?",
+      "clueId": "20",
+      "word_keys": [
+        "正面回答",
+        "来源或举例",
+        "频次",
+        "感受"
+      ],
+      "word_count": 0
+    },
+    {
+      "cat": "shishi",
+      "id": 40,
+      "title": "Are the transport facilities to your home very good",
+      "q": "Are the transport facilities to your home very good?",
+      "clueId": "21",
+      "word_keys": [
+        "正面回答",
+        "来源或举例",
+        "频次",
+        "感受"
+      ],
+      "word_count": 7
+    },
+    {
+      "cat": "shishi",
+      "id": 41,
+      "title": "Please describe the room you live in.",
+      "q": "Please describe the room you live in.",
+      "clueId": "21",
+      "word_keys": [
+        "正面回答",
+        "来源或举例",
+        "频次",
+        "感受"
+      ],
+      "word_count": 3
+    },
+    {
+      "cat": "shishi",
+      "id": 42,
+      "title": "Can you describe the place where you live",
+      "q": "Can you describe the place where you live?",
+      "clueId": "21",
+      "word_keys": [
+        "正面回答",
+        "来源或举例",
+        "频次",
+        "感受"
+      ],
+      "word_count": 8
+    },
+    {
+      "cat": "shishi",
+      "id": 43,
+      "title": "How long have you lived there",
+      "q": "How long have you lived there?",
+      "clueId": "21",
+      "word_keys": [
+        "正面回答",
+        "来源或举例",
+        "频次",
+        "感受"
+      ],
+      "word_count": 7
+    },
+    {
+      "cat": "shishi",
+      "id": 44,
+      "title": "Who do you live with",
+      "q": "Who do you live with?",
+      "clueId": "21",
+      "word_keys": [
+        "正面回答",
+        "来源或举例",
+        "频次",
+        "感受"
+      ],
+      "word_count": 2
+    },
+    {
+      "cat": "shishi",
+      "id": 45,
+      "title": "What kinds of accommodation do you live in",
+      "q": "What kinds of accommodation do you live in?",
+      "clueId": "21",
+      "word_keys": [
+        "正面回答",
+        "来源或举例",
+        "频次",
+        "感受"
+      ],
+      "word_count": 8
+    },
+    {
+      "cat": "shishi",
+      "id": 46,
+      "title": "Where is your hometown",
+      "q": "Where is your hometown?",
+      "clueId": "21",
+      "word_keys": [
+        "正面回答",
+        "来源或举例",
+        "频次",
+        "感受"
+      ],
+      "word_count": 8
+    },
+    {
+      "cat": "shishi",
+      "id": 47,
+      "title": "Is that a big city or a small place",
+      "q": "Is that a big city or a small place?",
+      "clueId": "21",
+      "word_keys": [
+        "正面回答",
+        "来源或举例",
+        "频次",
+        "感受"
+      ],
+      "word_count": 8
+    },
+    {
+      "cat": "shishi",
+      "id": 48,
+      "title": "Please describe your hometown a little.",
+      "q": "Please describe your hometown a little.",
+      "clueId": "21",
+      "word_keys": [
+        "正面回答",
+        "来源或举例",
+        "频次",
+        "感受"
+      ],
+      "word_count": 8
+    },
+    {
+      "cat": "shishi",
+      "id": 49,
+      "title": "How long have you been living there",
+      "q": "How long have you been living there?",
+      "clueId": "21",
+      "word_keys": [
+        "正面回答",
+        "来源或举例",
+        "频次",
+        "感受"
+      ],
+      "word_count": 7
+    },
+    {
+      "cat": "shishi",
+      "id": 50,
+      "title": "What's your hometown famous for",
+      "q": "What's your hometown famous for?",
+      "clueId": "21",
+      "word_keys": [
+        "正面回答",
+        "来源或举例",
+        "频次",
+        "感受"
+      ],
+      "word_count": 5
+    },
+    {
+      "cat": "shishi",
+      "id": 51,
+      "title": "Did you learn about the history of your hometown at school",
+      "q": "Did you learn about the history of your hometown at school?",
+      "clueId": "21",
+      "word_keys": [
+        "正面回答",
+        "来源或举例",
+        "频次",
+        "感受"
+      ],
+      "word_count": 3
+    },
+    {
+      "cat": "shishi",
+      "id": 52,
+      "title": "Did you learn about the culture of your hometown at school",
+      "q": "Did you learn about the culture of your hometown at school?",
+      "clueId": "21",
+      "word_keys": [
+        "正面回答",
+        "来源或举例",
+        "频次",
+        "感受"
+      ],
+      "word_count": 3
+    },
+    {
+      "cat": "shishi",
+      "id": 53,
+      "title": "Did you learn about the history of your hometown in childhood",
+      "q": "Did you learn about the history of your hometown in childhood?",
+      "clueId": "21",
+      "word_keys": [
+        "正面回答",
+        "来源或举例",
+        "频次",
+        "感受"
+      ],
+      "word_count": 3
+    },
+    {
+      "cat": "shishi",
+      "id": 54,
+      "title": "Did you learn about the culture of your hometown in childhood",
+      "q": "Did you learn about the culture of your hometown in childhood?",
+      "clueId": "21",
+      "word_keys": [
+        "正面回答",
+        "来源或举例",
+        "频次",
+        "感受"
+      ],
+      "word_count": 3
+    },
+    {
+      "cat": "shishi",
+      "id": 55,
+      "title": "Are there many young people in your hometown",
+      "q": "Are there many young people in your hometown?",
+      "clueId": "21",
+      "word_keys": [
+        "正面回答",
+        "来源或举例",
+        "频次",
+        "感受"
+      ],
+      "word_count": 5
+    },
+    {
+      "cat": "shishi",
+      "id": 56,
+      "title": "Do you know any famous people in your area",
+      "q": "Do you know any famous people in your area?",
+      "clueId": "21",
+      "word_keys": [
+        "正面回答",
+        "来源或举例",
+        "频次",
+        "感受"
+      ],
+      "word_count": 2
+    },
+    {
+      "cat": "shishi",
+      "id": 57,
+      "title": "What are some changes in the area recently",
+      "q": "What are some changes in the area recently?",
+      "clueId": "21",
+      "word_keys": [
+        "正面回答",
+        "来源或举例",
+        "频次",
+        "感受"
+      ],
+      "word_count": 8
+    },
+    {
+      "cat": "shishi",
+      "id": 58,
+      "title": "Do you know any of your neighbors",
+      "q": "Do you know any of your neighbors?",
+      "clueId": "21",
+      "word_keys": [
+        "正面回答",
+        "来源或举例",
+        "频次",
+        "感受"
+      ],
+      "word_count": 4
+    },
+    {
+      "cat": "shishi",
+      "id": 59,
+      "title": "Are the people in your neighborhood nice and friendly",
+      "q": "Are the people in your neighborhood nice and friendly?",
+      "clueId": "21",
+      "word_keys": [
+        "正面回答",
+        "来源或举例",
+        "频次",
+        "感受"
+      ],
+      "word_count": 4
+    },
+    {
+      "cat": "shishi",
+      "id": 60,
+      "title": "Do you live in a noisy or a quiet area",
+      "q": "Do you live in a noisy or a quiet area?",
+      "clueId": "21",
+      "word_keys": [
+        "正面回答",
+        "来源或举例",
+        "频次",
+        "感受"
+      ],
+      "word_count": 4
+    },
+    {
+      "cat": "shishi",
+      "id": 61,
+      "title": "What city do you live in",
+      "q": "What city do you live in?",
+      "clueId": "21",
+      "word_keys": [
+        "正面回答",
+        "来源或举例",
+        "频次",
+        "感受"
+      ],
+      "word_count": 8
+    },
+    {
+      "cat": "shishi",
+      "id": 62,
+      "title": "How long have you lived in this city",
+      "q": "How long have you lived in this city?",
+      "clueId": "21",
+      "word_keys": [
+        "正面回答",
+        "来源或举例",
+        "频次",
+        "感受"
+      ],
+      "word_count": 7
+    },
+    {
+      "cat": "shishi",
+      "id": 63,
+      "title": "Is this city your permanent residence",
+      "q": "Is this city your permanent residence?",
+      "clueId": "21",
+      "word_keys": [
+        "正面回答",
+        "来源或举例",
+        "频次",
+        "感受"
+      ],
+      "word_count": 8
+    },
+    {
+      "cat": "shishi",
+      "id": 64,
+      "title": "Are there big changes in this city",
+      "q": "Are there big changes in this city?",
+      "clueId": "21",
+      "word_keys": [
+        "正面回答",
+        "来源或举例",
+        "频次",
+        "感受"
+      ],
+      "word_count": 8
+    },
+    {
+      "cat": "shishi",
+      "id": 65,
+      "title": "Are there people of different ages living in this city",
+      "q": "Are there people of different ages living in this city?",
+      "clueId": "21",
+      "word_keys": [
+        "正面回答",
+        "来源或举例",
+        "频次",
+        "感受"
+      ],
+      "word_count": 5
+    },
+    {
+      "cat": "shishi",
+      "id": 66,
+      "title": "Are the people friendly in the city",
+      "q": "Are the people friendly in the city?",
+      "clueId": "21",
+      "word_keys": [
+        "正面回答",
+        "来源或举例",
+        "频次",
+        "感受"
+      ],
+      "word_count": 5
+    },
+    {
+      "cat": "shishi",
+      "id": 67,
+      "title": "What's the weather like where you live",
+      "q": "What's the weather like where you live?",
+      "clueId": "21",
+      "word_keys": [
+        "正面回答",
+        "来源或举例",
+        "频次",
+        "感受"
+      ],
+      "word_count": 3
+    },
+    {
+      "cat": "shishi",
+      "id": 68,
+      "title": "When was the last time you had a few days off",
+      "q": "When was the last time you had a few days off?",
+      "clueId": "22",
+      "word_keys": [
+        "正面回答",
+        "来源或举例",
+        "频次",
+        "感受"
+      ],
+      "word_count": 6
+    },
+    {
+      "cat": "shishi",
+      "id": 69,
+      "title": "Can you remember the dreams you had",
+      "q": "Can you remember the dreams you had?",
+      "clueId": "23",
+      "word_keys": [
+        "正面回答",
+        "来源或举例",
+        "频次",
+        "感受"
+      ],
+      "word_count": 6
+    },
+    {
+      "cat": "shishi",
+      "id": 70,
+      "title": "Have you ever lost your keys",
+      "q": "Have you ever lost your keys?",
+      "clueId": "24",
+      "word_keys": [
+        "正面回答",
+        "来源或举例",
+        "频次",
+        "感受"
+      ],
+      "word_count": 7
+    },
+    {
+      "cat": "shishi",
+      "id": 71,
+      "title": "What did you often do with your friends in your childhood",
+      "q": "What did you often do with your friends in your childhood?",
+      "clueId": "m1",
+      "word_keys": [
+        "正面回答",
+        "来源或举例",
+        "频次",
+        "感受"
+      ],
+      "word_count": 3
+    },
+    {
+      "cat": "shishi",
+      "id": 72,
+      "title": "Do you have any plans for the next five years",
+      "q": "Do you have any plans for the next five years?",
+      "clueId": "m2",
+      "word_keys": [
+        "正面回答",
+        "来源或举例",
+        "频次",
+        "感受"
+      ],
+      "word_count": 3
+    },
+    {
+      "cat": "shishi",
+      "id": 73,
+      "title": "What are examples of good and poor phone manners",
+      "q": "What are examples of good and poor phone manners?",
+      "clueId": "m3",
+      "word_keys": [
+        "正面回答",
+        "来源或举例",
+        "频次",
+        "感受"
+      ],
+      "word_count": 3
+    },
+    {
+      "cat": "shishi",
+      "id": 74,
+      "title": "What kind of music events are there in your country",
+      "q": "What kind of music events are there in your country?",
+      "clueId": "m4",
+      "word_keys": [
+        "正面回答",
+        "来源或举例",
+        "频次",
+        "感受"
+      ],
+      "word_count": 3
+    },
+    {
+      "cat": "shishi",
+      "id": 75,
+      "title": "What short-term jobs do young people do in other countries",
+      "q": "What short-term jobs do young people do in other countries?",
+      "clueId": "m5",
+      "word_keys": [
+        "正面回答",
+        "来源或举例",
+        "频次",
+        "感受"
+      ],
+      "word_count": 3
+    },
+    {
+      "cat": "shishi",
+      "id": 76,
+      "title": "What kind of things are people happy to pay a high price for",
+      "q": "What kind of things are people happy to pay a high price for?",
+      "clueId": "m6",
+      "word_keys": [
+        "正面回答",
+        "来源或举例",
+        "频次",
+        "感受"
+      ],
+      "word_count": 4
+    },
+    {
+      "cat": "shishi",
+      "id": 77,
+      "title": "What challenges do young people face when working abroad",
+      "q": "What challenges do young people face when working abroad?",
+      "clueId": "m7",
+      "word_keys": [
+        "正面回答",
+        "来源或举例",
+        "频次",
+        "感受"
+      ],
+      "word_count": 4
+    },
+    {
+      "cat": "xihao",
+      "id": 1,
+      "title": "What is your favourite food",
+      "q": "What is your favourite food?",
+      "clueId": null,
+      "word_keys": [
+        "正面回答",
+        "原因或时间",
+        "频次",
+        "感受"
+      ],
+      "word_count": 5
+    },
+    {
+      "cat": "xihao",
+      "id": 2,
+      "title": "What kind of food did you like when you were young",
+      "q": "What kind of food did you like when you were young?",
+      "clueId": null,
+      "word_keys": [
+        "正面回答",
+        "原因或时间",
+        "频次",
+        "感受"
+      ],
+      "word_count": 6
+    },
+    {
+      "cat": "xihao",
+      "id": 3,
+      "title": "What's your favourite animal? Why",
+      "q": "What's your favourite animal? Why?",
+      "clueId": null,
+      "word_keys": [
+        "正面回答",
+        "原因或时间",
+        "频次",
+        "感受"
+      ],
+      "word_count": 5
+    },
+    {
+      "cat": "xihao",
+      "id": 4,
+      "title": "Do you like watching team games? Why",
+      "q": "Do you like watching team games? Why?",
+      "clueId": null,
+      "word_keys": [
+        "正面回答",
+        "原因或时间",
+        "频次",
+        "感受"
+      ],
+      "word_count": 6
+    },
+    {
+      "cat": "xihao",
+      "id": 5,
+      "title": "Do you have any hobbies",
+      "q": "Do you have any hobbies?",
+      "clueId": null,
+      "word_keys": [
+        "正面回答",
+        "原因或时间",
+        "频次",
+        "感受"
+      ],
+      "word_count": 4
+    },
+    {
+      "cat": "xihao",
+      "id": 6,
+      "title": "Did you have any hobbies when you were a child",
+      "q": "Did you have any hobbies when you were a child?",
+      "clueId": null,
+      "word_keys": [
+        "正面回答",
+        "原因或时间",
+        "频次",
+        "感受"
+      ],
+      "word_count": 5
+    },
+    {
+      "cat": "xihao",
+      "id": 7,
+      "title": "Do you have a hobby that you've had since childhood",
+      "q": "Do you have a hobby that you've had since childhood?",
+      "clueId": null,
+      "word_keys": [
+        "正面回答",
+        "原因或时间",
+        "频次",
+        "感受"
+      ],
+      "word_count": 4
+    },
+    {
+      "cat": "xihao",
+      "id": 8,
+      "title": "Do you have the same hobbies as your family members",
+      "q": "Do you have the same hobbies as your family members?",
+      "clueId": null,
+      "word_keys": [
+        "正面回答",
+        "原因或时间",
+        "频次",
+        "感受"
+      ],
+      "word_count": 5
+    },
+    {
+      "cat": "xihao",
+      "id": 9,
+      "title": "Do you like getting up early in the morning",
+      "q": "Do you like getting up early in the morning?",
+      "clueId": null,
+      "word_keys": [
+        "正面回答",
+        "原因或时间",
+        "频次",
+        "感受"
+      ],
+      "word_count": 6
+    },
+    {
+      "cat": "xihao",
+      "id": 10,
+      "title": "Do you like reading",
+      "q": "Do you like reading?",
+      "clueId": null,
+      "word_keys": [
+        "正面回答",
+        "原因或时间",
+        "频次",
+        "感受"
+      ],
+      "word_count": 5
+    },
+    {
+      "cat": "xihao",
+      "id": 11,
+      "title": "Where would you like to take a long walk if you had the chance",
+      "q": "Where would you like to take a long walk if you had the chance?",
+      "clueId": null,
+      "word_keys": [
+        "正面回答",
+        "原因或时间",
+        "频次",
+        "感受"
+      ],
+      "word_count": 4
+    },
+    {
+      "cat": "xihao",
+      "id": 12,
+      "title": "Do you like to take scenery pictures",
+      "q": "Do you like to take scenery pictures?",
+      "clueId": null,
+      "word_keys": [
+        "正面回答",
+        "原因或时间",
+        "频次",
+        "感受"
+      ],
+      "word_count": 4
+    },
+    {
+      "cat": "xihao",
+      "id": 13,
+      "title": "Do you like taking pictures of different views",
+      "q": "Do you like taking pictures of different views?",
+      "clueId": null,
+      "word_keys": [
+        "正面回答",
+        "原因或时间",
+        "频次",
+        "感受"
+      ],
+      "word_count": 5
+    },
+    {
+      "cat": "xihao",
+      "id": 14,
+      "title": "Is there a building that you would like to visit",
+      "q": "Is there a building that you would like to visit?",
+      "clueId": null,
+      "word_keys": [
+        "正面回答",
+        "原因或时间",
+        "频次",
+        "感受"
+      ],
+      "word_count": 5
+    },
+    {
+      "cat": "xihao",
+      "id": 15,
+      "title": "What were your favourite activities when you were a child",
+      "q": "What were your favourite activities when you were a child?",
+      "clueId": null,
+      "word_keys": [
+        "正面回答",
+        "原因或时间",
+        "频次",
+        "感受"
+      ],
+      "word_count": 4
+    },
+    {
+      "cat": "xihao",
+      "id": 16,
+      "title": "Would you like to see more public places near where you live",
+      "q": "Would you like to see more public places near where you live?",
+      "clueId": null,
+      "word_keys": [
+        "正面回答",
+        "原因或时间",
+        "频次",
+        "感受"
+      ],
+      "word_count": 5
+    },
+    {
+      "cat": "xihao",
+      "id": 17,
+      "title": "Would you like to work as a teacher in a rule-free school",
+      "q": "Would you like to work as a teacher in a rule-free school?",
+      "clueId": null,
+      "word_keys": [
+        "正面回答",
+        "原因或时间",
+        "频次",
+        "感受"
+      ],
+      "word_count": 4
+    },
+    {
+      "cat": "xihao",
+      "id": 18,
+      "title": "Do you like buying shoes? How often",
+      "q": "Do you like buying shoes? How often?",
+      "clueId": null,
+      "word_keys": [
+        "正面回答",
+        "原因或时间",
+        "频次",
+        "感受"
+      ],
+      "word_count": 5
+    },
+    {
+      "cat": "xihao",
+      "id": 19,
+      "title": "Do you like crowded places",
+      "q": "Do you like crowded places?",
+      "clueId": null,
+      "word_keys": [
+        "正面回答",
+        "原因或时间",
+        "频次",
+        "感受"
+      ],
+      "word_count": 5
+    },
+    {
+      "cat": "xihao",
+      "id": 20,
+      "title": "Are you happy to work with people who are older than you",
+      "q": "Are you happy to work with people who are older than you?",
+      "clueId": null,
+      "word_keys": [
+        "正面回答",
+        "原因或时间",
+        "频次",
+        "感受"
+      ],
+      "word_count": 5
+    },
+    {
+      "cat": "xihao",
+      "id": 21,
+      "title": "Do you enjoy spending time with old people",
+      "q": "Do you enjoy spending time with old people?",
+      "clueId": null,
+      "word_keys": [
+        "正面回答",
+        "原因或时间",
+        "频次",
+        "感受"
+      ],
+      "word_count": 4
+    },
+    {
+      "cat": "xihao",
+      "id": 22,
+      "title": "Are you interested in growing vegetables and fruits",
+      "q": "Are you interested in growing vegetables and fruits?",
+      "clueId": null,
+      "word_keys": [
+        "正面回答",
+        "原因或时间",
+        "频次",
+        "感受"
+      ],
+      "word_count": 5
+    },
+    {
+      "cat": "xihao",
+      "id": 23,
+      "title": "Do you like chatting with friends",
+      "q": "Do you like chatting with friends?",
+      "clueId": null,
+      "word_keys": [
+        "正面回答",
+        "原因或时间",
+        "频次",
+        "感受"
+      ],
+      "word_count": 4
+    },
+    {
+      "cat": "xihao",
+      "id": 24,
+      "title": "Do you like to lend things to others",
+      "q": "Do you like to lend things to others?",
+      "clueId": null,
+      "word_keys": [
+        "正面回答",
+        "原因或时间",
+        "频次",
+        "感受"
+      ],
+      "word_count": 4
+    },
+    {
+      "cat": "xihao",
+      "id": 25,
+      "title": "Do you mind if others borrow money from you",
+      "q": "Do you mind if others borrow money from you?",
+      "clueId": null,
+      "word_keys": [
+        "正面回答",
+        "原因或时间",
+        "频次",
+        "感受"
+      ],
+      "word_count": 5
+    },
+    {
+      "cat": "xihao",
+      "id": 26,
+      "title": "Do you like advertisements",
+      "q": "Do you like advertisements?",
+      "clueId": null,
+      "word_keys": [
+        "正面回答",
+        "原因或时间",
+        "频次",
+        "感受"
+      ],
+      "word_count": 4
+    },
+    {
+      "cat": "xihao",
+      "id": 27,
+      "title": "What kind of advertising do you like",
+      "q": "What kind of advertising do you like?",
+      "clueId": null,
+      "word_keys": [
+        "正面回答",
+        "原因或时间",
+        "频次",
+        "感受"
+      ],
+      "word_count": 4
+    },
+    {
+      "cat": "xihao",
+      "id": 28,
+      "title": "What kind of things do you like to share with others",
+      "q": "What kind of things do you like to share with others?",
+      "clueId": null,
+      "word_keys": [
+        "正面回答",
+        "原因或时间",
+        "频次",
+        "感受"
+      ],
+      "word_count": 4
+    },
+    {
+      "cat": "xihao",
+      "id": 29,
+      "title": "Who is the first person you would like to share good news with",
+      "q": "Who is the first person you would like to share good news with?",
+      "clueId": null,
+      "word_keys": [
+        "正面回答",
+        "原因或时间",
+        "频次",
+        "感受"
+      ],
+      "word_count": 5
+    },
+    {
+      "cat": "xihao",
+      "id": 30,
+      "title": "Do you like your subject",
+      "q": "Do you like your subject?",
+      "clueId": null,
+      "word_keys": [
+        "正面回答",
+        "原因或时间",
+        "频次",
+        "感受"
+      ],
+      "word_count": 6
+    },
+    {
+      "cat": "xihao",
+      "id": 31,
+      "title": "Do you want to change your major",
+      "q": "Do you want to change your major?",
+      "clueId": null,
+      "word_keys": [
+        "正面回答",
+        "原因或时间",
+        "频次",
+        "感受"
+      ],
+      "word_count": 3
+    },
+    {
+      "cat": "xihao",
+      "id": 32,
+      "title": "Are you looking forward to working",
+      "q": "Are you looking forward to working?",
+      "clueId": null,
+      "word_keys": [
+        "正面回答",
+        "原因或时间",
+        "频次",
+        "感受"
+      ],
+      "word_count": 4
+    },
+    {
+      "cat": "xihao",
+      "id": 33,
+      "title": "Do you like your job",
+      "q": "Do you like your job?",
+      "clueId": null,
+      "word_keys": [
+        "正面回答",
+        "原因或时间",
+        "频次",
+        "感受"
+      ],
+      "word_count": 5
+    },
+    {
+      "cat": "xihao",
+      "id": 34,
+      "title": "Do you want to change to another job",
+      "q": "Do you want to change to another job?",
+      "clueId": null,
+      "word_keys": [
+        "正面回答",
+        "原因或时间",
+        "频次",
+        "感受"
+      ],
+      "word_count": 4
+    },
+    {
+      "cat": "xihao",
+      "id": 35,
+      "title": "Do you miss being a student",
+      "q": "Do you miss being a student?",
+      "clueId": null,
+      "word_keys": [
+        "正面回答",
+        "原因或时间",
+        "频次",
+        "感受"
+      ],
+      "word_count": 4
+    },
+    {
+      "cat": "xihao",
+      "id": 36,
+      "title": "What kind of house or apartment do you want to live in in the future",
+      "q": "What kind of house or apartment do you want to live in in the future?",
+      "clueId": null,
+      "word_keys": [
+        "正面回答",
+        "原因或时间",
+        "频次",
+        "感受"
+      ],
+      "word_count": 5
+    },
+    {
+      "cat": "xihao",
+      "id": 37,
+      "title": "What part of your home do you like the most",
+      "q": "What part of your home do you like the most?",
+      "clueId": null,
+      "word_keys": [
+        "正面回答",
+        "原因或时间",
+        "频次",
+        "感受"
+      ],
+      "word_count": 5
+    },
+    {
+      "cat": "xihao",
+      "id": 38,
+      "title": "What's your favorite room in your apartment or house",
+      "q": "What's your favorite room in your apartment or house?",
+      "clueId": null,
+      "word_keys": [
+        "正面回答",
+        "原因或时间",
+        "频次",
+        "感受"
+      ],
+      "word_count": 4
+    },
+    {
+      "cat": "xihao",
+      "id": 39,
+      "title": "Do you plan to live there for a long time",
+      "q": "Do you plan to live there for a long time?",
+      "clueId": null,
+      "word_keys": [
+        "正面回答",
+        "原因或时间",
+        "频次",
+        "感受"
+      ],
+      "word_count": 5
+    },
+    {
+      "cat": "xihao",
+      "id": 40,
+      "title": "Do you like your hometown",
+      "q": "Do you like your hometown?",
+      "clueId": null,
+      "word_keys": [
+        "正面回答",
+        "原因或时间",
+        "频次",
+        "感受"
+      ],
+      "word_count": 5
+    },
+    {
+      "cat": "xihao",
+      "id": 41,
+      "title": "Do you like living there",
+      "q": "Do you like living there?",
+      "clueId": null,
+      "word_keys": [
+        "正面回答",
+        "原因或时间",
+        "频次",
+        "感受"
+      ],
+      "word_count": 5
+    },
+    {
+      "cat": "xihao",
+      "id": 42,
+      "title": "What do you like (most) about your hometown",
+      "q": "What do you like (most) about your hometown?",
+      "clueId": null,
+      "word_keys": [
+        "正面回答",
+        "原因或时间",
+        "频次",
+        "感受"
+      ],
+      "word_count": 4
+    },
+    {
+      "cat": "xihao",
+      "id": 43,
+      "title": "Is there anything you dislike about it",
+      "q": "Is there anything you dislike about it?",
+      "clueId": null,
+      "word_keys": [
+        "正面回答",
+        "原因或时间",
+        "频次",
+        "感受"
+      ],
+      "word_count": 4
+    },
+    {
+      "cat": "xihao",
+      "id": 44,
+      "title": "Do you like the area that you live in",
+      "q": "Do you like the area that you live in?",
+      "clueId": null,
+      "word_keys": [
+        "正面回答",
+        "原因或时间",
+        "频次",
+        "感受"
+      ],
+      "word_count": 4
+    },
+    {
+      "cat": "xihao",
+      "id": 45,
+      "title": "Where do you like to go in that area",
+      "q": "Where do you like to go in that area?",
+      "clueId": null,
+      "word_keys": [
+        "正面回答",
+        "原因或时间",
+        "频次",
+        "感受"
+      ],
+      "word_count": 4
+    },
+    {
+      "cat": "xihao",
+      "id": 46,
+      "title": "Do you like this city? Why",
+      "q": "Do you like this city? Why?",
+      "clueId": null,
+      "word_keys": [
+        "正面回答",
+        "原因或时间",
+        "频次",
+        "感受"
+      ],
+      "word_count": 4
+    },
+    {
+      "cat": "xihao",
+      "id": 47,
+      "title": "What would you like to do if you had a day off tomorrow",
+      "q": "What would you like to do if you had a day off tomorrow?",
+      "clueId": null,
+      "word_keys": [
+        "正面回答",
+        "原因或时间",
+        "频次",
+        "感受"
+      ],
+      "word_count": 4
+    },
+    {
+      "cat": "xihao",
+      "id": 48,
+      "title": "Do you want to make your dreams come true",
+      "q": "Do you want to make your dreams come true?",
+      "clueId": null,
+      "word_keys": [
+        "正面回答",
+        "原因或时间",
+        "频次",
+        "感受"
+      ],
+      "word_count": 5
+    },
+    {
+      "cat": "xihao",
+      "id": 49,
+      "title": "Do you want to live in a tall building",
+      "q": "Do you want to live in a tall building?",
+      "clueId": null,
+      "word_keys": [
+        "正面回答",
+        "原因或时间",
+        "频次",
+        "感受"
+      ],
+      "word_count": 3
+    },
+    {
+      "cat": "xihao",
+      "id": 50,
+      "title": "What are your favourite activities",
+      "q": "What are your favourite activities?",
+      "clueId": null,
+      "word_keys": [
+        "正面回答",
+        "原因或时间",
+        "频次",
+        "感受"
+      ],
+      "word_count": 3
+    },
+    {
+      "cat": "xihao",
+      "id": 51,
+      "title": "Do you enjoy being the age you are now",
+      "q": "Do you enjoy being the age you are now?",
+      "clueId": null,
+      "word_keys": [
+        "正面回答",
+        "原因或时间",
+        "频次",
+        "感受"
+      ],
+      "word_count": 2
+    },
+    {
+      "cat": "xihao",
+      "id": 52,
+      "title": "Do you want to be a famous person",
+      "q": "Do you want to be a famous person?",
+      "clueId": null,
+      "word_keys": [
+        "正面回答",
+        "原因或时间",
+        "频次",
+        "感受"
+      ],
+      "word_count": 2
+    },
+    {
+      "cat": "xingwei",
+      "id": 1,
+      "title": "Do you eat different foods at different times of the year",
+      "q": "Do you eat different foods at different times of the year?",
+      "clueId": null,
+      "word_keys": [
+        "正面回答",
+        "原因",
+        "时间线+行为描述",
+        "影响"
+      ],
+      "word_count": 5
+    },
+    {
+      "cat": "xingwei",
+      "id": 2,
+      "title": "What do you usually do in the morning",
+      "q": "What do you usually do in the morning?",
+      "clueId": null,
+      "word_keys": [
+        "正面回答",
+        "原因",
+        "时间线+行为描述",
+        "影响"
+      ],
+      "word_count": 6
+    },
+    {
+      "cat": "xingwei",
+      "id": 3,
+      "title": "What did you do in the morning when you were little",
+      "q": "What did you do in the morning when you were little?",
+      "clueId": null,
+      "word_keys": [
+        "正面回答",
+        "原因",
+        "时间线+行为描述",
+        "影响"
+      ],
+      "word_count": 5
+    },
+    {
+      "cat": "xingwei",
+      "id": 4,
+      "title": "Do you walk a lot",
+      "q": "Do you walk a lot?",
+      "clueId": null,
+      "word_keys": [
+        "正面回答",
+        "原因",
+        "时间线+行为描述",
+        "影响"
+      ],
+      "word_count": 5
+    },
+    {
+      "cat": "xingwei",
+      "id": 5,
+      "title": "Did you often go outside to have a walk when you were a child",
+      "q": "Did you often go outside to have a walk when you were a child?",
+      "clueId": null,
+      "word_keys": [
+        "正面回答",
+        "原因",
+        "时间线+行为描述",
+        "影响"
+      ],
+      "word_count": 5
+    },
+    {
+      "cat": "xingwei",
+      "id": 6,
+      "title": "Do you look out the window at the scenery when travelling by bus or car",
+      "q": "Do you look out the window at the scenery when travelling by bus or car?",
+      "clueId": null,
+      "word_keys": [
+        "正面回答",
+        "原因",
+        "时间线+行为描述",
+        "影响"
+      ],
+      "word_count": 5
+    },
+    {
+      "cat": "xingwei",
+      "id": 7,
+      "title": "Do you take photos of buildings",
+      "q": "Do you take photos of buildings?",
+      "clueId": null,
+      "word_keys": [
+        "正面回答",
+        "原因",
+        "时间线+行为描述",
+        "影响"
+      ],
+      "word_count": 5
+    },
+    {
+      "cat": "xingwei",
+      "id": 8,
+      "title": "Do you keep plants at home",
+      "q": "Do you keep plants at home?",
+      "clueId": null,
+      "word_keys": [
+        "正面回答",
+        "原因",
+        "时间线+行为描述",
+        "影响"
+      ],
+      "word_count": 6
+    },
+    {
+      "cat": "xingwei",
+      "id": 9,
+      "title": "Do you wear headphones in public places",
+      "q": "Do you wear headphones in public places?",
+      "clueId": null,
+      "word_keys": [
+        "正面回答",
+        "原因",
+        "时间线+行为描述",
+        "影响"
+      ],
+      "word_count": 4
+    },
+    {
+      "cat": "xingwei",
+      "id": 10,
+      "title": "Do you often go to public places with your friends",
+      "q": "Do you often go to public places with your friends?",
+      "clueId": null,
+      "word_keys": [
+        "正面回答",
+        "原因",
+        "时间线+行为描述",
+        "影响"
+      ],
+      "word_count": 4
+    },
+    {
+      "cat": "xingwei",
+      "id": 11,
+      "title": "How much money do you usually spend on shoes",
+      "q": "How much money do you usually spend on shoes?",
+      "clueId": null,
+      "word_keys": [
+        "正面回答",
+        "原因",
+        "时间线+行为描述",
+        "影响"
+      ],
+      "word_count": 4
+    },
+    {
+      "cat": "xingwei",
+      "id": 12,
+      "title": "Do you often tell your friends when they do something well",
+      "q": "Do you often tell your friends when they do something well?",
+      "clueId": null,
+      "word_keys": [
+        "正面回答",
+        "原因",
+        "时间线+行为描述",
+        "影响"
+      ],
+      "word_count": 5
+    },
+    {
+      "cat": "xingwei",
+      "id": 13,
+      "title": "Do you bring food or snacks with you when going out",
+      "q": "Do you bring food or snacks with you when going out?",
+      "clueId": null,
+      "word_keys": [
+        "正面回答",
+        "原因",
+        "时间线+行为描述",
+        "影响"
+      ],
+      "word_count": 4
+    },
+    {
+      "cat": "xingwei",
+      "id": 14,
+      "title": "Do you always take your mobile phone with you when going out",
+      "q": "Do you always take your mobile phone with you when going out?",
+      "clueId": null,
+      "word_keys": [
+        "正面回答",
+        "原因",
+        "时间线+行为描述",
+        "影响"
+      ],
+      "word_count": 5
+    },
+    {
+      "cat": "xingwei",
+      "id": 15,
+      "title": "Do you often bring cash with you",
+      "q": "Do you often bring cash with you?",
+      "clueId": null,
+      "word_keys": [
+        "正面回答",
+        "原因",
+        "时间线+行为描述",
+        "影响"
+      ],
+      "word_count": 4
+    },
+    {
+      "cat": "xingwei",
+      "id": 16,
+      "title": "How often do you use cash",
+      "q": "How often do you use cash?",
+      "clueId": null,
+      "word_keys": [
+        "正面回答",
+        "原因",
+        "时间线+行为描述",
+        "影响"
+      ],
+      "word_count": 4
+    },
+    {
+      "cat": "xingwei",
+      "id": 17,
+      "title": "What do you usually chat about with friends",
+      "q": "What do you usually chat about with friends?",
+      "clueId": null,
+      "word_keys": [
+        "正面回答",
+        "原因",
+        "时间线+行为描述",
+        "影响"
+      ],
+      "word_count": 5
+    },
+    {
+      "cat": "xingwei",
+      "id": 18,
+      "title": "Do you argue with friends",
+      "q": "Do you argue with friends?",
+      "clueId": null,
+      "word_keys": [
+        "正面回答",
+        "原因",
+        "时间线+行为描述",
+        "影响"
+      ],
+      "word_count": 4
+    },
+    {
+      "cat": "xingwei",
+      "id": 19,
+      "title": "Do you often see advertisements when you are on your phone or computer",
+      "q": "Do you often see advertisements when you are on your phone or computer?",
+      "clueId": null,
+      "word_keys": [
+        "正面回答",
+        "原因",
+        "时间线+行为描述",
+        "影响"
+      ],
+      "word_count": 4
+    },
+    {
+      "cat": "xingwei",
+      "id": 20,
+      "title": "Do you often visit a museum",
+      "q": "Do you often visit a museum?",
+      "clueId": null,
+      "word_keys": [
+        "正面回答",
+        "原因",
+        "时间线+行为描述",
+        "影响"
+      ],
+      "word_count": 4
+    },
+    {
+      "cat": "xingwei",
+      "id": 21,
+      "title": "How often do you take a rest or a break",
+      "q": "How often do you take a rest or a break?",
+      "clueId": null,
+      "word_keys": [
+        "正面回答",
+        "原因",
+        "时间线+行为描述",
+        "影响"
+      ],
+      "word_count": 4
+    },
+    {
+      "cat": "xingwei",
+      "id": 22,
+      "title": "What do you usually do when you are resting",
+      "q": "What do you usually do when you are resting?",
+      "clueId": null,
+      "word_keys": [
+        "正面回答",
+        "原因",
+        "时间线+行为描述",
+        "影响"
+      ],
+      "word_count": 5
+    },
+    {
+      "cat": "xingwei",
+      "id": 23,
+      "title": "Do you take a nap when you are taking your rest",
+      "q": "Do you take a nap when you are taking your rest?",
+      "clueId": null,
+      "word_keys": [
+        "正面回答",
+        "原因",
+        "时间线+行为描述",
+        "影响"
+      ],
+      "word_count": 5
+    },
+    {
+      "cat": "xingwei",
+      "id": 24,
+      "title": "How much time do you spend on your studies each week",
+      "q": "How much time do you spend on your studies each week?",
+      "clueId": null,
+      "word_keys": [
+        "正面回答",
+        "原因",
+        "时间线+行为描述",
+        "影响"
+      ],
+      "word_count": 5
+    },
+    {
+      "cat": "xingwei",
+      "id": 25,
+      "title": "What technology do you use when you study",
+      "q": "What technology do you use when you study?",
+      "clueId": null,
+      "word_keys": [
+        "正面回答",
+        "原因",
+        "时间线+行为描述",
+        "影响"
+      ],
+      "word_count": 5
+    },
+    {
+      "cat": "xingwei",
+      "id": 26,
+      "title": "What technology do you use at work",
+      "q": "What technology do you use at work?",
+      "clueId": null,
+      "word_keys": [
+        "正面回答",
+        "原因",
+        "时间线+行为描述",
+        "影响"
+      ],
+      "word_count": 3
+    },
+    {
+      "cat": "xingwei",
+      "id": 27,
+      "title": "What room does your family spend most of the time in",
+      "q": "What room does your family spend most of the time in?",
+      "clueId": null,
+      "word_keys": [
+        "正面回答",
+        "原因",
+        "时间线+行为描述",
+        "影响"
+      ],
+      "word_count": 4
+    },
+    {
+      "cat": "xingwei",
+      "id": 28,
+      "title": "What do you usually do in your apartment",
+      "q": "What do you usually do in your apartment?",
+      "clueId": null,
+      "word_keys": [
+        "正面回答",
+        "原因",
+        "时间线+行为描述",
+        "影响"
+      ],
+      "word_count": 5
+    },
+    {
+      "cat": "xingwei",
+      "id": 29,
+      "title": "Do you often see your neighbors",
+      "q": "Do you often see your neighbors?",
+      "clueId": null,
+      "word_keys": [
+        "正面回答",
+        "原因",
+        "时间线+行为描述",
+        "影响"
+      ],
+      "word_count": 5
+    },
+    {
+      "cat": "xingwei",
+      "id": 30,
+      "title": "What do you usually do when you have days off",
+      "q": "What do you usually do when you have days off?",
+      "clueId": null,
+      "word_keys": [
+        "正面回答",
+        "原因",
+        "时间线+行为描述",
+        "影响"
+      ],
+      "word_count": 5
+    },
+    {
+      "cat": "xingwei",
+      "id": 31,
+      "title": "Do you usually spend your days off with your parents or with your friends",
+      "q": "Do you usually spend your days off with your parents or with your friends?",
+      "clueId": null,
+      "word_keys": [
+        "正面回答",
+        "原因",
+        "时间线+行为描述",
+        "影响"
+      ],
+      "word_count": 5
+    },
+    {
+      "cat": "xingwei",
+      "id": 32,
+      "title": "Do you share your dreams with others",
+      "q": "Do you share your dreams with others?",
+      "clueId": null,
+      "word_keys": [
+        "正面回答",
+        "原因",
+        "时间线+行为描述",
+        "影响"
+      ],
+      "word_count": 5
+    },
+    {
+      "cat": "xingwei",
+      "id": 33,
+      "title": "Do you always bring a lot of keys with you",
+      "q": "Do you always bring a lot of keys with you?",
+      "clueId": null,
+      "word_keys": [
+        "正面回答",
+        "原因",
+        "时间线+行为描述",
+        "影响"
+      ],
+      "word_count": 5
+    },
+    {
+      "cat": "xingwei",
+      "id": 34,
+      "title": "Do you often forget the keys and lock yourself out",
+      "q": "Do you often forget the keys and lock yourself out?",
+      "clueId": null,
+      "word_keys": [
+        "正面回答",
+        "原因",
+        "时间线+行为描述",
+        "影响"
+      ],
+      "word_count": 5
+    },
+    {
+      "cat": "xingwei",
+      "id": 35,
+      "title": "When would old people ask young people for advice",
+      "q": "When would old people ask young people for advice?",
+      "clueId": null,
+      "word_keys": [
+        "正面回答",
+        "原因",
+        "时间线+行为描述",
+        "影响"
+      ],
+      "word_count": 2
+    },
+    {
+      "cat": "xingwei",
+      "id": 36,
+      "title": "Are there any occasions when people need to pretend to smile",
+      "q": "Are there any occasions when people need to pretend to smile?",
+      "clueId": null,
+      "word_keys": [
+        "正面回答",
+        "原因",
+        "时间线+行为描述",
+        "影响"
+      ],
+      "word_count": 1
+    },
+    {
+      "cat": "xingwei",
+      "id": 37,
+      "title": "Why do more people own and drive private vehicles now",
+      "q": "Why do more people own and drive private vehicles now?",
+      "clueId": null,
+      "word_keys": [
+        "正面回答",
+        "原因",
+        "时间线+行为描述",
+        "影响"
+      ],
+      "word_count": 3
+    },
+    {
+      "cat": "xingwei",
+      "id": 38,
+      "title": "What can children do to help their parents",
+      "q": "What can children do to help their parents?",
+      "clueId": null,
+      "word_keys": [
+        "正面回答",
+        "原因",
+        "时间线+行为描述",
+        "影响"
+      ],
+      "word_count": 2
+    },
+    {
+      "cat": "xingwei",
+      "id": 39,
+      "title": "Why do many people like listening to music while doing sports",
+      "q": "Why do many people like listening to music while doing sports?",
+      "clueId": null,
+      "word_keys": [
+        "正面回答",
+        "原因",
+        "时间线+行为描述",
+        "影响"
+      ],
+      "word_count": 2
+    },
+    {
+      "cat": "xingwei",
+      "id": 40,
+      "title": "Why are employees reluctant to ask their managers for help",
+      "q": "Why are employees reluctant to ask their managers for help?",
+      "clueId": null,
+      "word_keys": [
+        "正面回答",
+        "原因",
+        "时间线+行为描述",
+        "影响"
+      ],
+      "word_count": 2
+    },
+    {
+      "cat": "guandian",
+      "id": 1,
+      "title": "What is the most popular animal in China",
+      "q": "What is the most popular animal in China?",
+      "clueId": null,
+      "word_keys": [
+        "正面回答",
+        "举例或原因",
+        "作用或影响",
+        "感受"
+      ],
+      "word_count": 4
+    },
+    {
+      "cat": "guandian",
+      "id": 2,
+      "title": "Is team sports popular in your culture",
+      "q": "Is team sports popular in your culture?",
+      "clueId": null,
+      "word_keys": [
+        "正面回答",
+        "举例或原因",
+        "作用或影响",
+        "感受"
+      ],
+      "word_count": 5
+    },
+    {
+      "cat": "guandian",
+      "id": 3,
+      "title": "What do you consider when choosing a gift",
+      "q": "What do you consider when choosing a gift?",
+      "clueId": null,
+      "word_keys": [
+        "正面回答",
+        "举例或原因",
+        "作用或影响",
+        "感受"
+      ],
+      "word_count": 5
+    },
+    {
+      "cat": "guandian",
+      "id": 4,
+      "title": "Do you think you are good at choosing gifts",
+      "q": "Do you think you are good at choosing gifts?",
+      "clueId": null,
+      "word_keys": [
+        "正面回答",
+        "举例或原因",
+        "作用或影响",
+        "感受"
+      ],
+      "word_count": 4
+    },
+    {
+      "cat": "guandian",
+      "id": 5,
+      "title": "Why do people like to walk in parks",
+      "q": "Why do people like to walk in parks?",
+      "clueId": null,
+      "word_keys": [
+        "正面回答",
+        "举例或原因",
+        "作用或影响",
+        "感受"
+      ],
+      "word_count": 5
+    },
+    {
+      "cat": "guandian",
+      "id": 6,
+      "title": "Do Chinese people send plants as gifts",
+      "q": "Do Chinese people send plants as gifts?",
+      "clueId": null,
+      "word_keys": [
+        "正面回答",
+        "举例或原因",
+        "作用或影响",
+        "感受"
+      ],
+      "word_count": 5
+    },
+    {
+      "cat": "guandian",
+      "id": 7,
+      "title": "Do you think students would benefit more from more rules",
+      "q": "Do you think students would benefit more from more rules?",
+      "clueId": null,
+      "word_keys": [
+        "正面回答",
+        "举例或原因",
+        "作用或影响",
+        "感受"
+      ],
+      "word_count": 4
+    },
+    {
+      "cat": "guandian",
+      "id": 8,
+      "title": "Do most people like crowded places",
+      "q": "Do most people like crowded places?",
+      "clueId": null,
+      "word_keys": [
+        "正面回答",
+        "举例或原因",
+        "作用或影响",
+        "感受"
+      ],
+      "word_count": 5
+    },
+    {
+      "cat": "guandian",
+      "id": 9,
+      "title": "What are the benefits of being friends with or working with old people",
+      "q": "What are the benefits of being friends with or working with old people?",
+      "clueId": null,
+      "word_keys": [
+        "正面回答",
+        "举例或原因",
+        "作用或影响",
+        "感受"
+      ],
+      "word_count": 4
+    },
+    {
+      "cat": "guandian",
+      "id": 10,
+      "title": "Is growing vegetables popular in your country",
+      "q": "Is growing vegetables popular in your country?",
+      "clueId": null,
+      "word_keys": [
+        "正面回答",
+        "举例或原因",
+        "作用或影响",
+        "感受"
+      ],
+      "word_count": 5
+    },
+    {
+      "cat": "guandian",
+      "id": 11,
+      "title": "Do you think it's easy to grow vegetables",
+      "q": "Do you think it's easy to grow vegetables?",
+      "clueId": null,
+      "word_keys": [
+        "正面回答",
+        "举例或原因",
+        "作用或影响",
+        "感受"
+      ],
+      "word_count": 4
+    },
+    {
+      "cat": "guandian",
+      "id": 12,
+      "title": "Should schools teach students how to grow vegetables",
+      "q": "Should schools teach students how to grow vegetables?",
+      "clueId": null,
+      "word_keys": [
+        "正面回答",
+        "举例或原因",
+        "作用或影响",
+        "感受"
+      ],
+      "word_count": 4
+    },
+    {
+      "cat": "guandian",
+      "id": 13,
+      "title": "How do you feel when people dont return things they borrowed from you",
+      "q": "How do you feel when people dont return things they borrowed from you?",
+      "clueId": null,
+      "word_keys": [
+        "正面回答",
+        "举例或原因",
+        "作用或影响",
+        "感受"
+      ],
+      "word_count": 4
+    },
+    {
+      "cat": "guandian",
+      "id": 14,
+      "title": "Do you mind if others borrow money from you",
+      "q": "Do you mind if others borrow money from you?",
+      "clueId": null,
+      "word_keys": [
+        "正面回答",
+        "举例或原因",
+        "作用或影响",
+        "感受"
+      ],
+      "word_count": 5
+    },
+    {
+      "cat": "guandian",
+      "id": 15,
+      "title": "Do you think museums are important",
+      "q": "Do you think museums are important?",
+      "clueId": null,
+      "word_keys": [
+        "正面回答",
+        "举例或原因",
+        "作用或影响",
+        "感受"
+      ],
+      "word_count": 4
+    },
+    {
+      "cat": "guandian",
+      "id": 16,
+      "title": "How do you feel after taking a nap",
+      "q": "How do you feel after taking a nap?",
+      "clueId": null,
+      "word_keys": [
+        "正面回答",
+        "举例或原因",
+        "作用或影响",
+        "感受"
+      ],
+      "word_count": 4
+    },
+    {
+      "cat": "guandian",
+      "id": 17,
+      "title": "What kind of things are not suitable for sharing",
+      "q": "What kind of things are not suitable for sharing?",
+      "clueId": null,
+      "word_keys": [
+        "正面回答",
+        "举例或原因",
+        "作用或影响",
+        "感受"
+      ],
+      "word_count": 4
+    },
+    {
+      "cat": "guandian",
+      "id": 18,
+      "title": "Do you think that your subject is popular in your country",
+      "q": "Do you think that your subject is popular in your country?",
+      "clueId": null,
+      "word_keys": [
+        "正面回答",
+        "举例或原因",
+        "作用或影响",
+        "感受"
+      ],
+      "word_count": 4
+    },
+    {
+      "cat": "guandian",
+      "id": 19,
+      "title": "What are the benefits of being your age",
+      "q": "What are the benefits of being your age?",
+      "clueId": null,
+      "word_keys": [
+        "正面回答",
+        "举例或原因",
+        "作用或影响",
+        "感受"
+      ],
+      "word_count": 4
+    },
+    {
+      "cat": "guandian",
+      "id": 20,
+      "title": "What changes would you like to see in your school",
+      "q": "What changes would you like to see in your school?",
+      "clueId": null,
+      "word_keys": [
+        "正面回答",
+        "举例或原因",
+        "作用或影响",
+        "感受"
+      ],
+      "word_count": 4
+    },
+    {
+      "cat": "guandian",
+      "id": 21,
+      "title": "What do you think is the most important at the moment",
+      "q": "What do you think is the most important at the moment?",
+      "clueId": null,
+      "word_keys": [
+        "正面回答",
+        "举例或原因",
+        "作用或影响",
+        "感受"
+      ],
+      "word_count": 4
+    },
+    {
+      "cat": "guandian",
+      "id": 22,
+      "title": "What makes you feel pleasant in your home",
+      "q": "What makes you feel pleasant in your home?",
+      "clueId": null,
+      "word_keys": [
+        "正面回答",
+        "举例或原因",
+        "作用或影响",
+        "感受"
+      ],
+      "word_count": 5
+    },
+    {
+      "cat": "guandian",
+      "id": 23,
+      "title": "Do you think it is important to live in a comfortable environment",
+      "q": "Do you think it is important to live in a comfortable environment?",
+      "clueId": null,
+      "word_keys": [
+        "正面回答",
+        "举例或原因",
+        "作用或影响",
+        "感受"
+      ],
+      "word_count": 4
+    },
+    {
+      "cat": "guandian",
+      "id": 24,
+      "title": "Do you think you will continue living there for a long time",
+      "q": "Do you think you will continue living there for a long time?",
+      "clueId": null,
+      "word_keys": [
+        "正面回答",
+        "举例或原因",
+        "作用或影响",
+        "感受"
+      ],
+      "word_count": 5
+    },
+    {
+      "cat": "guandian",
+      "id": 25,
+      "title": "Is your hometown a good place for young people to pursue their careers",
+      "q": "Is your hometown a good place for young people to pursue their careers?",
+      "clueId": null,
+      "word_keys": [
+        "正面回答",
+        "举例或原因",
+        "作用或影响",
+        "感受"
+      ],
+      "word_count": 4
+    },
+    {
+      "cat": "guandian",
+      "id": 26,
+      "title": "Is the city friendly to children and old people",
+      "q": "Is the city friendly to children and old people?",
+      "clueId": null,
+      "word_keys": [
+        "正面回答",
+        "举例或原因",
+        "作用或影响",
+        "感受"
+      ],
+      "word_count": 4
+    },
+    {
+      "cat": "guandian",
+      "id": 27,
+      "title": "Would you recommend your city to others",
+      "q": "Would you recommend your city to others?",
+      "clueId": null,
+      "word_keys": [
+        "正面回答",
+        "举例或原因",
+        "作用或影响",
+        "感受"
+      ],
+      "word_count": 4
+    },
+    {
+      "cat": "guandian",
+      "id": 28,
+      "title": "Do you share your dreams with others",
+      "q": "Do you share your dreams with others?",
+      "clueId": null,
+      "word_keys": [
+        "正面回答",
+        "举例或原因",
+        "作用或影响",
+        "感受"
+      ],
+      "word_count": 5
+    },
+    {
+      "cat": "guandian",
+      "id": 29,
+      "title": "Do you think dreams have special meanings",
+      "q": "Do you think dreams have special meanings?",
+      "clueId": null,
+      "word_keys": [
+        "正面回答",
+        "举例或原因",
+        "作用或影响",
+        "感受"
+      ],
+      "word_count": 4
+    },
+    {
+      "cat": "guandian",
+      "id": 30,
+      "title": "Do you think its a good idea to leave your keys with a neighbour",
+      "q": "Do you think its a good idea to leave your keys with a neighbour?",
+      "clueId": null,
+      "word_keys": [
+        "正面回答",
+        "举例或原因",
+        "作用或影响",
+        "感受"
+      ],
+      "word_count": 5
+    },
+    {
+      "cat": "guandian",
+      "id": 31,
+      "title": "At what age do you think people are the happiest",
+      "q": "At what age do you think people are the happiest?",
+      "clueId": null,
+      "word_keys": [
+        "正面回答",
+        "举例或原因",
+        "作用或影响",
+        "感受"
+      ],
+      "word_count": 3
+    },
+    {
+      "cat": "guandian",
+      "id": 32,
+      "title": "What kind of jobs are the most popular in your country",
+      "q": "What kind of jobs are the most popular in your country?",
+      "clueId": null,
+      "word_keys": [
+        "正面回答",
+        "举例或原因",
+        "作用或影响",
+        "感受"
+      ],
+      "word_count": 3
+    },
+    {
+      "cat": "guandian",
+      "id": 33,
+      "title": "Is it easy to become famous in your country",
+      "q": "Is it easy to become famous in your country?",
+      "clueId": null,
+      "word_keys": [
+        "正面回答",
+        "举例或原因",
+        "作用或影响",
+        "感受"
+      ],
+      "word_count": 1
+    },
+    {
+      "cat": "guandian",
+      "id": 34,
+      "title": "How does the internet benefit people",
+      "q": "How does the internet benefit people?",
+      "clueId": null,
+      "word_keys": [
+        "正面回答",
+        "举例或原因",
+        "作用或影响",
+        "感受"
+      ],
+      "word_count": 2
+    },
+    {
+      "cat": "guandian",
+      "id": 35,
+      "title": "Is smiling important in your culture",
+      "q": "Is smiling important in your culture?",
+      "clueId": null,
+      "word_keys": [
+        "正面回答",
+        "举例或原因",
+        "作用或影响",
+        "感受"
+      ],
+      "word_count": 2
+    },
+    {
+      "cat": "guandian",
+      "id": 36,
+      "title": "What do you think of the future of electric cars",
+      "q": "What do you think of the future of electric cars?",
+      "clueId": null,
+      "word_keys": [
+        "正面回答",
+        "举例或原因",
+        "作用或影响",
+        "感受"
+      ],
+      "word_count": 1
+    },
+    {
+      "cat": "guandian",
+      "id": 37,
+      "title": "Do you think smart children are happier than other children",
+      "q": "Do you think smart children are happier than other children?",
+      "clueId": null,
+      "word_keys": [
+        "正面回答",
+        "举例或原因",
+        "作用或影响",
+        "感受"
+      ],
+      "word_count": 2
+    },
+    {
+      "cat": "guandian",
+      "id": 38,
+      "title": "Is it important for schools to identify and develop each student's talents",
+      "q": "Is it important for schools to identify and develop each student's talents?",
+      "clueId": null,
+      "word_keys": [
+        "正面回答",
+        "举例或原因",
+        "作用或影响",
+        "感受"
+      ],
+      "word_count": 2
+    },
+    {
+      "cat": "guandian",
+      "id": 39,
+      "title": "Do you think children should receive some musical education",
+      "q": "Do you think children should receive some musical education?",
+      "clueId": null,
+      "word_keys": [
+        "正面回答",
+        "举例或原因",
+        "作用或影响",
+        "感受"
+      ],
+      "word_count": 3
+    },
+    {
+      "cat": "guandian",
+      "id": 40,
+      "title": "Do you think schools should teach children to do household chores",
+      "q": "Do you think schools should teach children to do household chores?",
+      "clueId": null,
+      "word_keys": [
+        "正面回答",
+        "举例或原因",
+        "作用或影响",
+        "感受"
+      ],
+      "word_count": 2
+    },
+    {
+      "cat": "guandian",
+      "id": 41,
+      "title": "Should children do everything their parents ask them to do",
+      "q": "Should children do everything their parents ask them to do?",
+      "clueId": null,
+      "word_keys": [
+        "正面回答",
+        "举例或原因",
+        "作用或影响",
+        "感受"
+      ],
+      "word_count": 2
+    },
+    {
+      "cat": "guandian",
+      "id": 42,
+      "title": "How can employers encourage their staff",
+      "q": "How can employers encourage their staff?",
+      "clueId": null,
+      "word_keys": [
+        "正面回答",
+        "举例或原因",
+        "作用或影响",
+        "感受"
+      ],
+      "word_count": 2
+    },
+    {
+      "cat": "duibi",
+      "id": 1,
+      "title": "Where do you prefer to keep your pet, indoors or outdoors",
+      "q": "Where do you prefer to keep your pet, indoors or outdoors?",
+      "clueId": null,
+      "word_keys": [
+        "正面回答",
+        "选项1的特点与作用",
+        "选项2的特点与作用",
+        "个人感受"
+      ],
+      "word_count": 5
+    },
+    {
+      "cat": "duibi",
+      "id": 2,
+      "title": "What are the differences between team sports and individual sports",
+      "q": "What are the differences between team sports and individual sports?",
+      "clueId": null,
+      "word_keys": [
+        "正面回答",
+        "选项1的特点与作用",
+        "选项2的特点与作用",
+        "个人感受"
+      ],
+      "word_count": 5
+    },
+    {
+      "cat": "duibi",
+      "id": 3,
+      "title": "Are there any differences between what you do in the morning now and what you did in the past",
+      "q": "Are there any differences between what you do in the morning now and what you did in the past?",
+      "clueId": null,
+      "word_keys": [
+        "正面回答",
+        "选项1的特点与作用",
+        "选项2的特点与作用",
+        "个人感受"
+      ],
+      "word_count": 4
+    },
+    {
+      "cat": "duibi",
+      "id": 4,
+      "title": "Do you spend your mornings doing the same things on both weekends and weekdays? Why",
+      "q": "Do you spend your mornings doing the same things on both weekends and weekdays? Why?",
+      "clueId": null,
+      "word_keys": [
+        "正面回答",
+        "选项1的特点与作用",
+        "选项2的特点与作用",
+        "个人感受"
+      ],
+      "word_count": 5
+    },
+    {
+      "cat": "duibi",
+      "id": 5,
+      "title": "Do you prefer to read on paper or on a screen",
+      "q": "Do you prefer to read on paper or on a screen?",
+      "clueId": null,
+      "word_keys": [
+        "正面回答",
+        "选项1的特点与作用",
+        "选项2的特点与作用",
+        "个人感受"
+      ],
+      "word_count": 4
+    },
+    {
+      "cat": "duibi",
+      "id": 6,
+      "title": "When do you need to read carefully, and when not",
+      "q": "When do you need to read carefully, and when not?",
+      "clueId": null,
+      "word_keys": [
+        "正面回答",
+        "选项1的特点与作用",
+        "选项2的特点与作用",
+        "个人感受"
+      ],
+      "word_count": 6
+    },
+    {
+      "cat": "duibi",
+      "id": 7,
+      "title": "Do you prefer scanning or detailed reading",
+      "q": "Do you prefer scanning or detailed reading?",
+      "clueId": null,
+      "word_keys": [
+        "正面回答",
+        "选项1的特点与作用",
+        "选项2的特点与作用",
+        "个人感受"
+      ],
+      "word_count": 4
+    },
+    {
+      "cat": "duibi",
+      "id": 8,
+      "title": "Do you prefer typing or handwriting",
+      "q": "Do you prefer typing or handwriting?",
+      "clueId": null,
+      "word_keys": [
+        "正面回答",
+        "选项1的特点与作用",
+        "选项2的特点与作用",
+        "个人感受"
+      ],
+      "word_count": 5
+    },
+    {
+      "cat": "duibi",
+      "id": 9,
+      "title": "Do you type on a desktop or laptop keyboard every day",
+      "q": "Do you type on a desktop or laptop keyboard every day?",
+      "clueId": null,
+      "word_keys": [
+        "正面回答",
+        "选项1的特点与作用",
+        "选项2的特点与作用",
+        "个人感受"
+      ],
+      "word_count": 4
+    },
+    {
+      "cat": "duibi",
+      "id": 10,
+      "title": "Do you prefer the mountains or the sea",
+      "q": "Do you prefer the mountains or the sea?",
+      "clueId": null,
+      "word_keys": [
+        "正面回答",
+        "选项1的特点与作用",
+        "选项2的特点与作用",
+        "个人感受"
+      ],
+      "word_count": 4
+    },
+    {
+      "cat": "duibi",
+      "id": 11,
+      "title": "Did you prefer to do activities alone or with a group of people when you were a child",
+      "q": "Did you prefer to do activities alone or with a group of people when you were a child?",
+      "clueId": null,
+      "word_keys": [
+        "正面回答",
+        "选项1的特点与作用",
+        "选项2的特点与作用",
+        "个人感受"
+      ],
+      "word_count": 4
+    },
+    {
+      "cat": "duibi",
+      "id": 12,
+      "title": "Do you prefer views in urban areas or rural areas",
+      "q": "Do you prefer views in urban areas or rural areas?",
+      "clueId": null,
+      "word_keys": [
+        "正面回答",
+        "选项1的特点与作用",
+        "选项2的特点与作用",
+        "个人感受"
+      ],
+      "word_count": 5
+    },
+    {
+      "cat": "duibi",
+      "id": 13,
+      "title": "Do you prefer views in your own country or in other countries",
+      "q": "Do you prefer views in your own country or in other countries?",
+      "clueId": null,
+      "word_keys": [
+        "正面回答",
+        "选项1的特点与作用",
+        "选项2的特点与作用",
+        "个人感受"
+      ],
+      "word_count": 5
+    },
+    {
+      "cat": "duibi",
+      "id": 14,
+      "title": "Do you prefer to have more or fewer rules at school",
+      "q": "Do you prefer to have more or fewer rules at school?",
+      "clueId": null,
+      "word_keys": [
+        "正面回答",
+        "选项1的特点与作用",
+        "选项2的特点与作用",
+        "个人感受"
+      ],
+      "word_count": 4
+    },
+    {
+      "cat": "duibi",
+      "id": 15,
+      "title": "Which do you prefer, fashionable shoes or comfortable shoes",
+      "q": "Which do you prefer, fashionable shoes or comfortable shoes?",
+      "clueId": null,
+      "word_keys": [
+        "正面回答",
+        "选项1的特点与作用",
+        "选项2的特点与作用",
+        "个人感受"
+      ],
+      "word_count": 5
+    },
+    {
+      "cat": "duibi",
+      "id": 16,
+      "title": "Do you prefer to chat with a group of people or with only one friend",
+      "q": "Do you prefer to chat with a group of people or with only one friend?",
+      "clueId": null,
+      "word_keys": [
+        "正面回答",
+        "选项1的特点与作用",
+        "选项2的特点与作用",
+        "个人感受"
+      ],
+      "word_count": 4
+    },
+    {
+      "cat": "duibi",
+      "id": 17,
+      "title": "Do you prefer to communicate face-to-face or via social media",
+      "q": "Do you prefer to communicate face-to-face or via social media?",
+      "clueId": null,
+      "word_keys": [
+        "正面回答",
+        "选项1的特点与作用",
+        "选项2的特点与作用",
+        "个人感受"
+      ],
+      "word_count": 4
+    },
+    {
+      "cat": "duibi",
+      "id": 18,
+      "title": "Do you prefer to share news with your friends or your parents",
+      "q": "Do you prefer to share news with your friends or your parents?",
+      "clueId": null,
+      "word_keys": [
+        "正面回答",
+        "选项1的特点与作用",
+        "选项2的特点与作用",
+        "个人感受"
+      ],
+      "word_count": 4
+    },
+    {
+      "cat": "duibi",
+      "id": 19,
+      "title": "Do you prefer to study in the mornings or in the afternoons",
+      "q": "Do you prefer to study in the mornings or in the afternoons?",
+      "clueId": null,
+      "word_keys": [
+        "正面回答",
+        "选项1的特点与作用",
+        "选项2的特点与作用",
+        "个人感受"
+      ],
+      "word_count": 4
+    },
+    {
+      "cat": "duibi",
+      "id": 20,
+      "title": "Do you prefer living in a house or an apartment",
+      "q": "Do you prefer living in a house or an apartment?",
+      "clueId": null,
+      "word_keys": [
+        "正面回答",
+        "选项1的特点与作用",
+        "选项2的特点与作用",
+        "个人感受"
+      ],
+      "word_count": 5
+    },
+    {
+      "cat": "duibi",
+      "id": 21,
+      "title": "What's the difference between where you are living now and where you have lived in the past",
+      "q": "What's the difference between where you are living now and where you have lived in the past?",
+      "clueId": null,
+      "word_keys": [
+        "正面回答",
+        "选项1的特点与作用",
+        "选项2的特点与作用",
+        "个人感受"
+      ],
+      "word_count": 5
+    },
+    {
+      "cat": "duibi",
+      "id": 22,
+      "title": "Do you usually spend your days off with your parents or with your friends",
+      "q": "Do you usually spend your days off with your parents or with your friends?",
+      "clueId": null,
+      "word_keys": [
+        "正面回答",
+        "选项1的特点与作用",
+        "选项2的特点与作用",
+        "个人感受"
+      ],
+      "word_count": 4
+    },
+    {
+      "cat": "duibi",
+      "id": 23,
+      "title": "Is it better to live in a new building or an old one",
+      "q": "Is it better to live in a new building or an old one?",
+      "clueId": null,
+      "word_keys": [
+        "正面回答",
+        "选项1的特点与作用",
+        "选项2的特点与作用",
+        "个人感受"
+      ],
+      "word_count": 3
+    },
+    {
+      "cat": "duibi",
+      "id": 24,
+      "title": "What are the differences between old and young people's music preferences",
+      "q": "What are the differences between old and young people's music preferences?",
+      "clueId": null,
+      "word_keys": [
+        "正面回答",
+        "选项1的特点与作用",
+        "选项2的特点与作用",
+        "个人感受"
+      ],
+      "word_count": 4
+    }
+  ]
+}

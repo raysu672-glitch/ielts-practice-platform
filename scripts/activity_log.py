@@ -326,3 +326,230 @@ def _to_china_display(iso: str) -> str:
         return dt.astimezone(SHANGHAI).strftime("%Y-%m-%d %H:%M:%S")
     except ValueError:
         return iso
+
+
+def build_activity_summary_for_ai(
+    conn: sqlite3.Connection,
+    *,
+    days: int = 7,
+    max_sample: int = 120,
+) -> dict[str, Any]:
+    """Compact activity digest for AI analysis (not for direct client display)."""
+    ensure_activity_tables(conn)
+    days = max(1, min(int(days or 7), 30))
+    max_sample = max(10, min(int(max_sample or 120), 300))
+    cutoff = datetime.now(timezone.utc) - timedelta(days=days)
+    cutoff_iso = cutoff.strftime("%Y-%m-%dT%H:%M:%S.000Z")
+
+    total = int(
+        conn.execute(
+            "SELECT COUNT(*) AS c FROM activity_events WHERE created_at >= ?",
+            (cutoff_iso,),
+        ).fetchone()["c"]
+    )
+    by_role_rows = conn.execute(
+        """
+        SELECT actor_role, COUNT(*) AS c
+        FROM activity_events
+        WHERE created_at >= ?
+        GROUP BY actor_role
+        ORDER BY c DESC
+        """,
+        (cutoff_iso,),
+    ).fetchall()
+    top_actors = [
+        {
+            "actor_role": r["actor_role"],
+            "actor_id": r["actor_id"],
+            "actor_name": r["actor_name"] or "",
+            "count": int(r["c"]),
+        }
+        for r in conn.execute(
+            """
+            SELECT actor_role, actor_id, actor_name, COUNT(*) AS c
+            FROM activity_events
+            WHERE created_at >= ?
+            GROUP BY actor_role, actor_id, actor_name
+            ORDER BY c DESC
+            LIMIT 30
+            """,
+            (cutoff_iso,),
+        ).fetchall()
+    ]
+    top_actions = [
+        {"action": r["action"], "count": int(r["c"])}
+        for r in conn.execute(
+            """
+            SELECT action, COUNT(*) AS c
+            FROM activity_events
+            WHERE created_at >= ?
+            GROUP BY action
+            ORDER BY c DESC
+            LIMIT 40
+            """,
+            (cutoff_iso,),
+        ).fetchall()
+    ]
+    top_modules = [
+        {"module_type": r["module_type"] or "(empty)", "count": int(r["c"])}
+        for r in conn.execute(
+            """
+            SELECT module_type, COUNT(*) AS c
+            FROM activity_events
+            WHERE created_at >= ?
+            GROUP BY module_type
+            ORDER BY c DESC
+            LIMIT 20
+            """,
+            (cutoff_iso,),
+        ).fetchall()
+    ]
+    sample_rows = conn.execute(
+        """
+        SELECT created_at, actor_role, actor_id, actor_name, action,
+               module_type, summary
+        FROM activity_events
+        WHERE created_at >= ?
+        ORDER BY id DESC
+        LIMIT ?
+        """,
+        (cutoff_iso, max_sample),
+    ).fetchall()
+    sample_lines = [
+        (
+            f"{_to_china_display(r['created_at'])} | {r['actor_role']} "
+            f"{r['actor_id']} {r['actor_name'] or ''} | {r['action']} | "
+            f"{r['module_type'] or '-'} | {r['summary'] or ''}"
+        ).strip()
+        for r in sample_rows
+    ]
+    return {
+        "days": days,
+        "cutoff_iso": cutoff_iso,
+        "total_events": total,
+        "by_role": {str(r["actor_role"]): int(r["c"]) for r in by_role_rows},
+        "top_actors": top_actors,
+        "top_actions": top_actions,
+        "top_modules": top_modules,
+        "sample_lines": sample_lines,
+    }
+
+
+def format_activity_summary_prompt(summary: dict[str, Any]) -> str:
+    """Turn build_activity_summary_for_ai() output into a compact AI prompt block."""
+    lines = [
+        f"统计窗口：近 {summary.get('days')} 天",
+        f"事件总数：{summary.get('total_events')}",
+        f"按角色：{json.dumps(summary.get('by_role') or {}, ensure_ascii=False)}",
+        "活跃账号 Top：",
+    ]
+    for row in summary.get("top_actors") or []:
+        lines.append(
+            f"- {row.get('actor_role')} {row.get('actor_id')} "
+            f"{row.get('actor_name') or ''} ×{row.get('count')}"
+        )
+    lines.append("动作 Top：")
+    for row in summary.get("top_actions") or []:
+        lines.append(f"- {row.get('action')} ×{row.get('count')}")
+    lines.append("模块 Top：")
+    for row in summary.get("top_modules") or []:
+        lines.append(f"- {row.get('module_type')} ×{row.get('count')}")
+    lines.append("近期样本（新→旧）：")
+    lines.extend(summary.get("sample_lines") or [])
+    text = "\n".join(lines)
+    if len(text) > 12000:
+        return text[:11900] + "\n…(截断)"
+    return text
+
+
+def build_student_activity_summary_for_ai(
+    conn: sqlite3.Connection,
+    student_id: str,
+    *,
+    days: int = 14,
+    max_sample: int = 80,
+) -> dict[str, Any]:
+    """Per-student activity digest for AI checkup (not for direct client display)."""
+    ensure_activity_tables(conn)
+    sid = str(student_id or "").strip()
+    days = max(1, min(int(days or 14), 30))
+    max_sample = max(10, min(int(max_sample or 80), 200))
+    empty = {
+        "student_id": sid,
+        "days": days,
+        "cutoff_iso": "",
+        "total_events": 0,
+        "top_actions": [],
+        "top_modules": [],
+        "sample_lines": [],
+    }
+    if not sid:
+        return empty
+    cutoff = datetime.now(timezone.utc) - timedelta(days=days)
+    cutoff_iso = cutoff.strftime("%Y-%m-%dT%H:%M:%S.000Z")
+    where = (
+        "created_at >= ? AND "
+        "(target_student_id = ? OR (actor_role = 'student' AND actor_id = ?))"
+    )
+    params: list[Any] = [cutoff_iso, sid, sid]
+    total = int(
+        conn.execute(
+            f"SELECT COUNT(*) AS c FROM activity_events WHERE {where}",
+            params,
+        ).fetchone()["c"]
+    )
+    top_actions = [
+        {"action": r["action"], "count": int(r["c"])}
+        for r in conn.execute(
+            f"""
+            SELECT action, COUNT(*) AS c
+            FROM activity_events
+            WHERE {where}
+            GROUP BY action
+            ORDER BY c DESC
+            LIMIT 30
+            """,
+            params,
+        ).fetchall()
+    ]
+    top_modules = [
+        {"module_type": r["module_type"] or "(empty)", "count": int(r["c"])}
+        for r in conn.execute(
+            f"""
+            SELECT module_type, COUNT(*) AS c
+            FROM activity_events
+            WHERE {where}
+            GROUP BY module_type
+            ORDER BY c DESC
+            LIMIT 15
+            """,
+            params,
+        ).fetchall()
+    ]
+    sample_rows = conn.execute(
+        f"""
+        SELECT created_at, actor_role, actor_id, action, module_type, summary
+        FROM activity_events
+        WHERE {where}
+        ORDER BY id DESC
+        LIMIT ?
+        """,
+        params + [max_sample],
+    ).fetchall()
+    sample_lines = [
+        (
+            f"{_to_china_display(r['created_at'])} | {r['actor_role']} "
+            f"{r['actor_id']} | {r['action']} | {r['module_type'] or '-'} | "
+            f"{r['summary'] or ''}"
+        ).strip()
+        for r in sample_rows
+    ]
+    return {
+        "student_id": sid,
+        "days": days,
+        "cutoff_iso": cutoff_iso,
+        "total_events": total,
+        "top_actions": top_actions,
+        "top_modules": top_modules,
+        "sample_lines": sample_lines,
+    }

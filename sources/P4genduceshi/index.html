@@ -497,6 +497,7 @@
 
     <script src="../P4gendu/lessons-data.js?v=20260904g"></script>
     <script src="config.js"></script>
+    <script src="upload-error.js?v=20261022a"></script>
     <script>
         // ==================== 配置 ====================
         const API_BASE = (window.API_CONFIG && window.API_CONFIG.API_BASE) || '/api/p4';
@@ -975,7 +976,14 @@
         async function startRecording() {
             try {
                 await ensureMicStream();
-                state.mediaRecorder = new MediaRecorder(state.recordingStream);
+                // 语音 64kbps 足够识别。浏览器默认码率会把 4～6 分钟跟读压成数 MB。
+                try {
+                    state.mediaRecorder = new MediaRecorder(state.recordingStream, {
+                        audioBitsPerSecond: 64000
+                    });
+                } catch (e) {
+                    state.mediaRecorder = new MediaRecorder(state.recordingStream);
+                }
                 state.recordedChunks = [];
 
                 state.mediaRecorder.ondataavailable = (e) => {
@@ -1075,14 +1083,21 @@
 
                 if (!res.ok) {
                     const errText = await res.text();
-                    throw new Error(`后端返回错误 ${res.status}: ${errText}`);
+                    throw Object.assign(new Error(uploadFailureMessage(res.status, errText, size)), {
+                        uploadStatus: res.status
+                    });
                 }
 
                 const data = await res.json();
                 displayResult(data);
             } catch (err) {
                 console.error('上传/识别失败:', err);
-                showError(`识别失败：${err.message}，请检查后端是否已启动（${API_BASE}）`);
+                const message = (err && err.message) ? err.message : String(err);
+                if (err && err.uploadStatus === 413) {
+                    showError('识别失败：' + message);
+                } else {
+                    showError(`识别失败：${message}，请检查后端是否已启动（${API_BASE}）`);
+                }
                 state.isScoring = false;
                 updateTestButton('ready');
                 elements.statusText.textContent = '识别失败，请重试';

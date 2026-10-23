@@ -1,0 +1,441 @@
+{
+  "window": {
+    "from": "2026-09-29",
+    "to": "2026-10-08"
+  },
+  "active": 93,
+  "flagged": 10,
+  "cases": [
+    {
+      "student_id": "2025050",
+      "name": "王若溪",
+      "status": "active",
+      "severity_sum": 12,
+      "high_count": 2,
+      "active_days": [
+        "2026-09-28",
+        "2026-09-29",
+        "2026-09-30",
+        "2026-10-01",
+        "2026-10-02",
+        "2026-10-03",
+        "2026-10-04",
+        "2026-10-05",
+        "2026-10-07"
+      ],
+      "total_session_s": 29408,
+      "findings": [
+        {
+          "type": "sentence_rush",
+          "day": "2026-09-28",
+          "detail": "长难句拖拽连刷：9次在9秒内，平均间隔1.1秒",
+          "severity": 3,
+          "evidence": {
+            "n": 9,
+            "span_s": 9.166,
+            "per_s": 1.14575,
+            "action": "sentence.drag_result"
+          }
+        },
+        {
+          "type": "synonym_rush",
+          "day": "2026-10-07",
+          "detail": "同义替换连刷：5组在29秒内完成，平均组间隔7.3秒（正常认真做通常远高于此）",
+          "severity": 3,
+          "evidence": {
+            "n": 5,
+            "span_s": 29.051,
+            "per_s": 7.26275
+          }
+        },
+        {
+          "type": "sentence_rush",
+          "day": "2026-10-01",
+          "detail": "长难句ABC题连刷：5次在15秒内，平均间隔3.8秒",
+          "severity": 2,
+          "evidence": {
+            "n": 5,
+            "span_s": 15.294,
+            "per_s": 3.8235,
+            "action": "sentence.abc_submit"
+          }
+        },
+        {
+          "type": "translate_rush",
+          "day": "2026-10-05",
+          "detail": "句子翻译步骤连点：5次提交间隔共14秒，平均3.6秒/步（像连点而不是翻译）",
+          "severity": 2,
+          "evidence": {
+            "span_s": 14.338,
+            "per_s": 3.5845
+          }
+        },
+        {
+          "type": "translate_sentence_rush",
+          "day": "2026-10-05",
+          "detail": "翻译整句连刷：连续3句在85秒内完成（正常翻译+核对通常更久）",
+          "severity": 2,
+          "evidence": {
+            "span_s": 85.539,
+            "summaries": [
+              "完成翻译句 #68",
+              "完成翻译句 #68",
+              "完成翻译句 #72"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "student_id": "2025066",
+      "name": "曹雅淇",
+      "status": "active",
+      "severity_sum": 5,
+      "high_count": 1,
+      "active_days": [
+        "2026-09-28",
+        "2026-09-29",
+        "2026-09-30",
+        "2026-10-01",
+        "2026-10-02",
+        "2026-10-03",
+        "2026-10-04",
+        "2026-10-05",
+        "2026-10-06"
+      ],
+      "total_session_s": 12346,
+      "findings": [
+        {
+          "type": "translate_rush",
+          "day": "2026-10-01",
+          "detail": "句子翻译步骤连点：5次提交间隔共7秒，平均1.9秒/步（像连点而不是翻译）",
+          "severity": 3,
+          "evidence": {
+            "span_s": 7.725,
+            "per_s": 1.93125
+          }
+        },
+        {
+          "type": "translate_sentence_rush",
+          "day": "2026-09-28",
+          "detail": "翻译整句连刷：连续3句在80秒内完成（正常翻译+核对通常更久）",
+          "severity": 2,
+          "evidence": {
+            "span_s": 80.591,
+            "summaries": [
+              "完成翻译句 #22",
+              "完成翻译句 #23",
+              "完成翻译句 #24"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "student_id": "2025047",
+      "name": "王伊泽",
+      "status": "active",
+      "severity_sum": 3,
+      "high_count": 1,
+      "active_days": [
+        "2026-10-06",
+        "2026-10-07"
+      ],
+      "total_session_s": 11841,
+      "findings": [
+        {
+          "type": "translate_rush",
+          "day": "2026-10-06",
+          "detail": "句子翻译步骤连点：5次提交间隔共1秒，平均0.3秒/步（像连点而不是翻译）",
+          "severity": 3,
+          "evidence": {
+            "span_s": 1.303,
+            "per_s": 0.32575
+          }
+        }
+      ]
+    },
+    {
+      "student_id": "2025065",
+      "name": "王国瑞",
+      "status": "active",
+      "severity_sum": 3,
+      "high_count": 1,
+      "active_days": [
+        "2026-10-01",
+        "2026-10-02",
+        "2026-10-03",
+        "2026-10-04",
+        "2026-10-05",
+        "2026-10-07"
+      ],
+      "total_session_s": 11734,
+      "findings": [
+        {
+          "type": "translate_rush",
+          "day": "2026-10-05",
+          "detail": "句子翻译步骤连点：5次提交间隔共1秒，平均0.5秒/步（像连点而不是翻译）",
+          "severity": 3,
+          "evidence": {
+            "span_s": 1.913,
+            "per_s": 0.47825
+          }
+        }
+      ]
+    },
+    {
+      "student_id": "2025082",
+      "name": "王志睿",
+      "status": "active",
+      "severity_sum": 3,
+      "high_count": 1,
+      "active_days": [
+        "2026-09-28",
+        "2026-09-29",
+        "2026-09-30",
+        "2026-10-02",
+        "2026-10-03",
+        "2026-10-04",
+        "2026-10-06"
+      ],
+      "total_session_s": 7180,
+      "findings": [
+        {
+          "type": "sentence_rush",
+          "day": "2026-10-06",
+          "detail": "长难句拖拽连刷：10次在23秒内，平均间隔2.7秒",
+          "severity": 3,
+          "evidence": {
+            "n": 10,
+            "span_s": 23.928,
+            "per_s": 2.658666666666667,
+            "action": "sentence.drag_result"
+          }
+        }
+      ]
+    },
+    {
+      "student_id": "2025117",
+      "name": "庞哲文",
+      "status": "active",
+      "severity_sum": 3,
+      "high_count": 1,
+      "active_days": [
+        "2026-09-28"
+      ],
+      "total_session_s": 2662,
+      "findings": [
+        {
+          "type": "translate_rush",
+          "day": "2026-09-28",
+          "detail": "句子翻译步骤连点：5次提交间隔共2秒，平均0.7秒/步（像连点而不是翻译）",
+          "severity": 3,
+          "evidence": {
+            "span_s": 2.823,
+            "per_s": 0.70575
+          }
+        }
+      ]
+    },
+    {
+      "student_id": "2025169",
+      "name": "刘怡辰",
+      "status": "active",
+      "severity_sum": 3,
+      "high_count": 1,
+      "active_days": [
+        "2026-09-30",
+        "2026-10-01",
+        "2026-10-02",
+        "2026-10-03",
+        "2026-10-04",
+        "2026-10-05",
+        "2026-10-06",
+        "2026-10-07"
+      ],
+      "total_session_s": 48112,
+      "findings": [
+        {
+          "type": "synonym_rush",
+          "day": "2026-09-30",
+          "detail": "同义替换连刷：23组在170秒内完成，平均组间隔7.8秒（正常认真做通常远高于此）",
+          "severity": 3,
+          "evidence": {
+            "n": 23,
+            "span_s": 170.803,
+            "per_s": 7.763772727272727
+          }
+        }
+      ]
+    },
+    {
+      "student_id": "2025093",
+      "name": "岳浩杰",
+      "status": "active",
+      "severity_sum": 8,
+      "high_count": 0,
+      "active_days": [
+        "2026-09-28",
+        "2026-09-29",
+        "2026-09-30",
+        "2026-10-01",
+        "2026-10-02",
+        "2026-10-03",
+        "2026-10-04",
+        "2026-10-05",
+        "2026-10-06"
+      ],
+      "total_session_s": 19231,
+      "findings": [
+        {
+          "type": "translate_rush",
+          "day": "2026-10-01",
+          "detail": "句子翻译步骤连点：5次提交间隔共15秒，平均3.9秒/步（像连点而不是翻译）",
+          "severity": 2,
+          "evidence": {
+            "span_s": 15.472,
+            "per_s": 3.868
+          }
+        },
+        {
+          "type": "translate_sentence_rush",
+          "day": "2026-10-01",
+          "detail": "翻译整句连刷：连续3句在76秒内完成（正常翻译+核对通常更久）",
+          "severity": 2,
+          "evidence": {
+            "span_s": 76.779,
+            "summaries": [
+              "完成翻译句 #3",
+              "完成翻译句 #1",
+              "完成翻译句 #2"
+            ]
+          }
+        },
+        {
+          "type": "sentence_rush",
+          "day": "2026-10-01",
+          "detail": "长难句拖拽连刷：7次在20秒内，平均间隔3.5秒",
+          "severity": 2,
+          "evidence": {
+            "n": 7,
+            "span_s": 20.958,
+            "per_s": 3.493,
+            "action": "sentence.drag_result"
+          }
+        },
+        {
+          "type": "sentence_rush",
+          "day": "2026-10-04",
+          "detail": "长难句ABC题连刷：6次在26秒内，平均间隔5.3秒",
+          "severity": 2,
+          "evidence": {
+            "n": 6,
+            "span_s": 26.611,
+            "per_s": 5.3222000000000005,
+            "action": "sentence.abc_submit"
+          }
+        }
+      ]
+    },
+    {
+      "student_id": "2025114",
+      "name": "廉昕",
+      "status": "active",
+      "severity_sum": 6,
+      "high_count": 0,
+      "active_days": [
+        "2026-09-29",
+        "2026-09-30",
+        "2026-10-01",
+        "2026-10-02",
+        "2026-10-03",
+        "2026-10-04",
+        "2026-10-05",
+        "2026-10-06"
+      ],
+      "total_session_s": 30837,
+      "findings": [
+        {
+          "type": "synonym_rush",
+          "day": "2026-09-30",
+          "detail": "同义替换连刷：5组在44秒内完成，平均组间隔11.2秒（正常认真做通常远高于此）",
+          "severity": 2,
+          "evidence": {
+            "n": 5,
+            "span_s": 44.932,
+            "per_s": 11.233
+          }
+        },
+        {
+          "type": "sentence_rush",
+          "day": "2026-09-30",
+          "detail": "长难句ABC题连刷：6次在29秒内，平均间隔5.9秒",
+          "severity": 2,
+          "evidence": {
+            "n": 6,
+            "span_s": 29.67,
+            "per_s": 5.934,
+            "action": "sentence.abc_submit"
+          }
+        },
+        {
+          "type": "sentence_rush",
+          "day": "2026-10-06",
+          "detail": "长难句拖拽连刷：7次在27秒内，平均间隔4.6秒",
+          "severity": 2,
+          "evidence": {
+            "n": 7,
+            "span_s": 27.636,
+            "per_s": 4.606,
+            "action": "sentence.drag_result"
+          }
+        }
+      ]
+    },
+    {
+      "student_id": "2025059",
+      "name": "叶梓晗",
+      "status": "active",
+      "severity_sum": 4,
+      "high_count": 0,
+      "active_days": [
+        "2026-09-28",
+        "2026-09-29",
+        "2026-09-30",
+        "2026-10-01",
+        "2026-10-02",
+        "2026-10-03",
+        "2026-10-04",
+        "2026-10-06",
+        "2026-10-07",
+        "2026-10-08"
+      ],
+      "total_session_s": 7779,
+      "findings": [
+        {
+          "type": "synonym_rush",
+          "day": "2026-10-07",
+          "detail": "同义替换连刷：6组在56秒内完成，平均组间隔11.4秒（正常认真做通常远高于此）",
+          "severity": 2,
+          "evidence": {
+            "n": 6,
+            "span_s": 56.89,
+            "per_s": 11.378
+          }
+        },
+        {
+          "type": "sentence_rush",
+          "day": "2026-10-08",
+          "detail": "长难句拖拽连刷：7次在21秒内，平均间隔3.6秒",
+          "severity": 2,
+          "evidence": {
+            "n": 7,
+            "span_s": 21.612,
+            "per_s": 3.602,
+            "action": "sentence.drag_result"
+          }
+        }
+      ]
+    }
+  ]
+}

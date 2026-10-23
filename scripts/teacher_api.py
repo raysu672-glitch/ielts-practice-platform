@@ -3,8 +3,10 @@
 from __future__ import annotations
 
 import json
+import re
 from datetime import datetime, timezone
 from typing import Any, Optional
+from zoneinfo import ZoneInfo
 
 
 from password_utils import (
@@ -348,6 +350,409 @@ def load_student_detail(
         "mock_exams": mock_exams,
         "task_overview": task_overview,
     }, None
+
+
+def build_student_checkup_digest(
+    conn: Any,
+    student_id: str,
+    *,
+    days: int = 14,
+) -> tuple[Optional[dict[str, Any]], Optional[str]]:
+    """Compact per-student digest for AI checkup (not for direct client display)."""
+    detail, err = load_student_detail(conn, student_id)
+    if err:
+        return None, err
+    assert detail is not None
+    days = max(1, min(int(days or 14), 30))
+    student = detail.get("student") or {}
+    records = detail.get("test_records") or []
+    sessions = detail.get("study_sessions") or []
+    wrong_words = detail.get("wrong_words") or []
+    wrong_book_counts = detail.get("wrong_book_counts") or {}
+    mock_exams = detail.get("mock_exams") or []
+    task = detail.get("task_overview") or {}
+
+    total_seconds = 0
+    for s in sessions:
+        try:
+            total_seconds += int(s.get("duration_seconds") or 0)
+        except (TypeError, ValueError):
+            pass
+    passed = sum(1 for r in records if r.get("is_passed"))
+    module_pass: dict[str, dict[str, int]] = {}
+    for r in records:
+        mt = str(r.get("module_type") or "(empty)")
+        bucket = module_pass.setdefault(mt, {"total": 0, "passed": 0})
+        bucket["total"] += 1
+        if r.get("is_passed"):
+            bucket["passed"] += 1
+
+    recent_records = []
+    for r in records[:20]:
+        recent_records.append(
+            {
+                "module_type": r.get("module_type"),
+                "test_type": r.get("test_type"),
+                "score": r.get("score"),
+                "is_passed": bool(r.get("is_passed")),
+                "created_at": r.get("created_at"),
+            }
+        )
+
+    from activity_log import build_student_activity_summary_for_ai
+
+    activity = build_student_activity_summary_for_ai(
+        conn, str(student.get("student_id") or student_id), days=days
+    )
+
+    digest = {
+        "days": days,
+        "student": {
+            "student_id": student.get("student_id"),
+            "name": student.get("name"),
+            "target_score": student.get("target_score"),
+            "status": student.get("status"),
+        },
+        "study": {
+            "session_count": len(sessions),
+            "total_minutes": int(round(total_seconds / 60.0)) if total_seconds else 0,
+            "test_count": len(records),
+            "pass_count": passed,
+            "mock_exam_count": len(mock_exams),
+            "unmastered_wrong_words": len(wrong_words),
+            "wrong_book_counts": wrong_book_counts,
+        },
+        "module_pass_rates": module_pass,
+        "recent_tests": recent_records,
+        "task_overview": {
+            "plan_status": task.get("plan_status"),
+            "row_status": task.get("row_status"),
+            "today_done": task.get("today_done"),
+            "today_total": task.get("today_total"),
+            "yesterday_done": task.get("yesterday_done"),
+            "yesterday_total": task.get("yesterday_total"),
+            "yesterday_incomplete": task.get("yesterday_incomplete"),
+            "today_minutes": task.get("today_minutes"),
+            "yesterday_minutes": task.get("yesterday_minutes"),
+            "total_minutes": task.get("total_minutes"),
+            "budget_minutes": task.get("budget_minutes"),
+            "backlog": task.get("backlog"),
+            "content_refresh": task.get("content_refresh"),
+            "stage_test_pending": task.get("stage_test_pending"),
+            "stage_test_needs_attention": task.get("stage_test_needs_attention"),
+            "plan_progress_brief": task.get("plan_progress_brief"),
+            "pending_plan_change": task.get("pending_plan_change"),
+            "schedule_paused": bool((task.get("plan_pause") or {}).get("active")),
+        },
+        "activity": activity,
+        "thicker": build_thicker_platform_metrics(conn, student_id, days=max(days, 30)),
+    }
+    return digest, None
+
+
+def build_thicker_platform_metrics(
+    conn: Any,
+    student_id: str,
+    *,
+    days: int = 30,
+) -> dict[str, Any]:
+    """Extra platform metrics for full checkup (30d tasks, hours, budget)."""
+    sid = str(student_id or "").strip()
+    days = max(7, min(int(days or 30), 60))
+    out: dict[str, Any] = {
+        "days": days,
+        "task_days_with_items": 0,
+        "task_days_all_done": 0,
+        "task_completion_rate": None,
+        "red_light_proxy_days": 0,
+        "done_items": 0,
+        "total_items": 0,
+        "hour_buckets": {},
+        "budget_minutes": None,
+        "actual_minutes_window": 0,
+        "budget_vs_actual": None,
+        "stage_test_pending": None,
+    }
+    if not sid:
+        return out
+
+    # daily_tasks window
+    try:
+        rows = conn.execute(
+            """
+            SELECT task_date, state
+            FROM daily_tasks
+            WHERE student_id = ?
+              AND task_date >= date('now', ?)
+            """,
+            (sid, f"-{days} day"),
+        ).fetchall()
+    except Exception:
+        rows = []
+
+    by_day: dict[str, dict[str, int]] = {}
+    for r in rows:
+        d = str(r["task_date"] if hasattr(r, "keys") else r[0])
+        state = str(r["state"] if hasattr(r, "keys") else r[1] or "")
+        bucket = by_day.setdefault(d, {"total": 0, "done": 0})
+        bucket["total"] += 1
+        if state in ("done_study", "done_pass"):
+            bucket["done"] += 1
+            out["done_items"] += 1
+        out["total_items"] += 1
+    out["task_days_with_items"] = len(by_day)
+    out["task_days_all_done"] = sum(
+        1 for v in by_day.values() if v["total"] > 0 and v["done"] >= v["total"]
+    )
+    # Proxy "red": day had tasks and done==0
+    out["red_light_proxy_days"] = sum(
+        1 for v in by_day.values() if v["total"] > 0 and v["done"] == 0
+    )
+    if out["total_items"]:
+        out["task_completion_rate"] = round(out["done_items"] / out["total_items"], 3)
+    # Day calendar (newest first, cap 30)
+    calendar = [
+        {
+            "date": d,
+            "done": v["done"],
+            "total": v["total"],
+            "leftover": max(0, v["total"] - v["done"]),
+            "all_done": v["total"] > 0 and v["done"] >= v["total"],
+        }
+        for d, v in sorted(by_day.items(), reverse=True)
+    ]
+    out["daily_calendar"] = calendar[:30]
+    out["platform_done_days"] = [x["date"] for x in calendar if x["done"] > 0]
+
+    # study hour distribution + module breakdown + short sessions
+    hour_buckets = {f"{h:02d}": 0 for h in range(24)}
+    actual_secs = 0
+    module_stats: dict[str, dict[str, int]] = {}
+    short_lt_60 = 0
+    short_lt_180 = 0
+    session_n = 0
+    try:
+        sessions = conn.execute(
+            """
+            SELECT created_at, duration_seconds, module_type, session_kind
+            FROM study_sessions
+            WHERE student_id = ?
+              AND created_at >= datetime('now', ?)
+            """,
+            (sid, f"-{days} day"),
+        ).fetchall()
+    except Exception:
+        sessions = []
+    for s in sessions:
+        session_n += 1
+        try:
+            dur = int(
+                (s["duration_seconds"] if hasattr(s, "keys") else s[1]) or 0
+            )
+        except (TypeError, ValueError):
+            dur = 0
+        actual_secs += dur
+        if dur < 60:
+            short_lt_60 += 1
+        if dur < 180:
+            short_lt_180 += 1
+        mt = str(
+            (s["module_type"] if hasattr(s, "keys") else (s[2] if len(s) > 2 else ""))
+            or "(empty)"
+        )
+        bucket = module_stats.setdefault(mt, {"sessions": 0, "seconds": 0})
+        bucket["sessions"] += 1
+        bucket["seconds"] += dur
+        created = str((s["created_at"] if hasattr(s, "keys") else s[0]) or "")
+        hour = None
+        try:
+            text = created.replace("Z", "+00:00")
+            dt = datetime.fromisoformat(text)
+            if dt.tzinfo is None:
+                dt = dt.replace(tzinfo=timezone.utc)
+            hour = dt.astimezone(timezone.utc).astimezone(ZoneInfo("Asia/Shanghai")).hour
+        except ValueError:
+            m = re.search(r"T(\d{2})", created)
+            if m:
+                hour = int(m.group(1))
+        if hour is not None:
+            hour_buckets[f"{hour:02d}"] = hour_buckets.get(f"{hour:02d}", 0) + 1
+    out["hour_buckets"] = {k: v for k, v in hour_buckets.items() if v}
+    out["actual_minutes_window"] = int(round(actual_secs / 60.0)) if actual_secs else 0
+    out["module_sessions"] = [
+        {
+            "module_type": k,
+            "sessions": v["sessions"],
+            "minutes": int(round(v["seconds"] / 60.0)),
+        }
+        for k, v in sorted(
+            module_stats.items(), key=lambda kv: kv[1]["seconds"], reverse=True
+        )
+    ]
+    out["quality_proxies"] = {
+        "sessions": session_n,
+        "short_lt_60s": short_lt_60,
+        "short_lt_180s": short_lt_180,
+        "short_lt_60s_ratio": round(short_lt_60 / session_n, 3) if session_n else None,
+        "short_lt_180s_ratio": round(short_lt_180 / session_n, 3) if session_n else None,
+    }
+
+    # plan inventory
+    try:
+        plan_rows = conn.execute(
+            """
+            SELECT status, COUNT(*) AS c
+            FROM plan_items
+            WHERE student_id = ?
+            GROUP BY status
+            """,
+            (sid,),
+        ).fetchall()
+        out["plan_inventory"] = {
+            str(r["status"] if hasattr(r, "keys") else r[0]): int(
+                r["c"] if hasattr(r, "keys") else r[1]
+            )
+            for r in plan_rows
+        }
+    except Exception:
+        out["plan_inventory"] = {}
+
+    # activity open/exit
+    try:
+        act = conn.execute(
+            """
+            SELECT action, COUNT(*) AS c
+            FROM activity_events
+            WHERE created_at >= datetime('now', ?)
+              AND (
+                target_student_id = ?
+                OR (actor_role = 'student' AND actor_id = ?)
+              )
+              AND (action LIKE 'task.%' OR action LIKE 'module.%')
+            GROUP BY action
+            ORDER BY c DESC
+            LIMIT 30
+            """,
+            (f"-{days} day", sid, sid),
+        ).fetchall()
+        action_counts = {
+            str(r["action"] if hasattr(r, "keys") else r[0]): int(
+                r["c"] if hasattr(r, "keys") else r[1]
+            )
+            for r in act
+        }
+        opens = sum(v for k, v in action_counts.items() if k.endswith(".open") or k == "task.open")
+        exits = sum(v for k, v in action_counts.items() if k.endswith(".exit") or k == "task.exit")
+        completes = sum(
+            v
+            for k, v in action_counts.items()
+            if "complete" in k or k.endswith(".done")
+        )
+        out["activity_task_mix"] = {
+            "top_actions": action_counts,
+            "open_like": opens,
+            "exit_like": exits,
+            "complete_like": completes,
+            "exit_per_open": round(exits / opens, 3) if opens else None,
+        }
+    except Exception:
+        out["activity_task_mix"] = {}
+
+    try:
+        from task_api import _budget_minutes, china_ymd, ensure_time_profile
+
+        profile = ensure_time_profile(conn, sid)
+        budget = _budget_minutes(profile, china_ymd())
+        out["budget_minutes"] = budget
+        if budget:
+            # Compare window actual vs budget * active task days (rough)
+            denom_days = max(1, out["task_days_with_items"] or days)
+            expected = int(budget) * denom_days
+            out["budget_vs_actual"] = {
+                "expected_minutes_proxy": expected,
+                "actual_minutes": out["actual_minutes_window"],
+                "ratio": round(out["actual_minutes_window"] / expected, 3)
+                if expected
+                else None,
+            }
+    except Exception:
+        pass
+
+    try:
+        from task_api import student_task_snapshot
+
+        name_row = conn.execute(
+            "SELECT name FROM students WHERE student_id=?", (sid,)
+        ).fetchone()
+        name = ""
+        if name_row:
+            name = str(
+                name_row["name"] if hasattr(name_row, "keys") else name_row[0] or ""
+            )
+        snap = student_task_snapshot(conn, sid, name)
+        out["stage_test_pending"] = snap.get("stage_test_pending")
+        out["plan_progress_brief"] = snap.get("plan_progress_brief")
+    except Exception:
+        pass
+
+    return out
+
+
+def format_student_checkup_prompt(digest: dict[str, Any]) -> str:
+    """Turn build_student_checkup_digest() output into a compact AI prompt block."""
+    student = digest.get("student") or {}
+    study = digest.get("study") or {}
+    task = digest.get("task_overview") or {}
+    activity = digest.get("activity") or {}
+    lines = [
+        f"学号：{student.get('student_id')} 姓名：{student.get('name')}",
+        f"目标分：{student.get('target_score')} 状态：{student.get('status')}",
+        f"统计窗口：近 {digest.get('days')} 天",
+        "—— 学习投入 ——",
+        (
+            f"练习场次 {study.get('session_count')} · 总时长约 "
+            f"{study.get('total_minutes')} 分钟 · 测试 {study.get('test_count')} 次"
+            f"（达标 {study.get('pass_count')}）· 模拟考 {study.get('mock_exam_count')} · "
+            f"未掌握错词 {study.get('unmastered_wrong_words')}"
+        ),
+        f"错题本计数：{json.dumps(study.get('wrong_book_counts') or {}, ensure_ascii=False)}",
+        "分科测试粗览：",
+        json.dumps(digest.get("module_pass_rates") or {}, ensure_ascii=False),
+        "近期测试（最多20条）：",
+        json.dumps(digest.get("recent_tests") or [], ensure_ascii=False),
+        "—— 任务看板 ——",
+        (
+            f"计划状态 {task.get('plan_status')} · 行状态/灯 {task.get('row_status')} · "
+            f"今日 {task.get('today_done')}/{task.get('today_total')} · "
+            f"昨日 {task.get('yesterday_done')}/{task.get('yesterday_total')} · "
+            f"积压 {task.get('backlog')} · 内容刷新 {task.get('content_refresh')}"
+        ),
+        (
+            f"今日学习 {task.get('today_minutes')} 分 / 预算 {task.get('budget_minutes')} 分 · "
+            f"昨日 {task.get('yesterday_minutes')} 分 · 累计任务侧 "
+            f"{task.get('total_minutes')} 分"
+        ),
+        (
+            f"待过阶段测 {task.get('stage_test_pending')} · 反复不过关注 "
+            f"{task.get('stage_test_needs_attention')} · 计划暂停 "
+            f"{task.get('schedule_paused')} · 待生效改动 {task.get('pending_plan_change')}"
+        ),
+        f"进度摘要：{task.get('plan_progress_brief')}",
+        "—— 加厚指标 ——",
+        json.dumps(digest.get("thicker") or {}, ensure_ascii=False),
+        "—— 行为事件 ——",
+        f"近窗事件数：{activity.get('total_events')}",
+        "动作 Top：",
+        json.dumps(activity.get("top_actions") or [], ensure_ascii=False),
+        "模块 Top：",
+        json.dumps(activity.get("top_modules") or [], ensure_ascii=False),
+        "近期样本（新→旧）：",
+    ]
+    lines.extend(activity.get("sample_lines") or [])
+    text = "\n".join(str(x) for x in lines)
+    if len(text) > 18000:
+        return text[:17900] + "\n…(截断)"
+    return text
 
 
 def list_standards(conn: Any) -> list[dict[str, Any]]:

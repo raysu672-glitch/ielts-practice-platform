@@ -1,0 +1,290 @@
+{
+  "id": 24,
+  "category": "媒体商业类",
+  "fullChinese": "以印度电影为例，它让人们深刻体会到歌唱和舞蹈对印度文化的重要性。",
+  "finalEnglish": "Indian movies, for example, let people know how important singing and dancing is to the Indians.",
+  "logicExplanation": "主谓宾结构，宾语是how引导的宾语从句。",
+  "steps": [
+    {
+      "label": "纯净主干",
+      "chinese": "印度电影让人们知道歌唱和舞蹈的重要性。",
+      "hint": "Indian movies let people know how important singing and dancing is",
+      "correctAnswer": "Indian movies let people know how important singing and dancing is.",
+      "keywords": [
+        "let people know (让人们知道)",
+        "how important (多么重要)",
+        "singing and dancing (歌唱和舞蹈)"
+      ]
+    },
+    {
+      "label": "添加插入语和宾语从句补充",
+      "chinese": "印度电影，【例如】，让人们深刻体会到歌唱和舞蹈【对印度文化的】重要性。",
+      "hint": "for example是插入语；to the Indians补充说明对象",
+      "correctAnswer": "Indian movies, for example, let people know how important singing and dancing is to the Indians.",
+      "keywords": [
+        "for example (例如)",
+        "to the Indians (对印度人/印度文化)"
+      ]
+    }
+  ]
+},
+{
+  "id": 38,
+  "category": "政府社会类",
+  "fullChinese": "将传统文化作为营利性旅游景点可能会破坏其原真性。",
+  "finalEnglish": "Using traditional cultures as money-making tourist attractions may destroy them.",
+  "logicExplanation": "动名词作主语，简单主谓宾结构。",
+  "steps": [
+    {
+      "label": "纯净主干",
+      "chinese": "将传统文化作为旅游景点可能会破坏它。",
+      "hint": "Using traditional cultures as tourist attractions may destroy them",
+      "correctAnswer": "Using traditional cultures as tourist attractions may destroy them.",
+      "keywords": [
+        "Using...as... (将…作为…)",
+        "traditional cultures (传统文化)",
+        "tourist attractions (旅游景点)",
+        "may destroy (可能会破坏)",
+        "them (指代原真性)"
+      ]
+    },
+    {
+      "label": "添加宾语修饰",
+      "chinese": "将传统文化作为【营利性】旅游景点可能会破坏其原真性。",
+      "hint": "money-making修饰tourist attractions",
+      "correctAnswer": "Using traditional cultures as money-making tourist attractions may destroy them.",
+      "keywords": [
+        "money-making (营利性的)",
+        "destroy them (破坏其原真性)"
+      ]
+    }
+  ]
+},
+{
+  "id": 43,
+  "category": "政府社会类",
+  "fullChinese": "据信，实现财务目标最有效的方法之一就是频繁更换雇主。",
+  "finalEnglish": "One of the most effective ways to achieve their financial ambition is believed to hop from one company to another.",
+  "logicExplanation": "主系表结构，主语含不定式后置修饰，谓语用被动语态 is believed to。",
+  "steps": [
+    {
+      "label": "纯净主干",
+      "chinese": "最有效的方法之一就是频繁更换雇主。",
+      "hint": "One of the most effective ways is believed to hop from one company to another",
+      "correctAnswer": "One of the most effective ways is believed to hop from one company to another.",
+      "keywords": [
+        "effective (有效的)",
+        "hop from one company to another (频繁更换雇主)",
+        "is believed to (据信)"
+      ]
+    },
+    {
+      "label": "添加不定式修饰",
+      "chinese": "【实现财务目标的】最有效的方法之一就是频繁更换雇主。",
+      "hint": "to achieve their financial ambition修饰ways",
+      "correctAnswer": "One of the most effective ways to achieve their financial ambition is believed to hop from one company to another.",
+      "keywords": [
+        "achieve (实现)",
+        "financial ambition (财务目标)"
+      ]
+    }
+  ]
+},
+{
+  "id": 70,
+  "category": "政府社会类",
+  "fullChinese": "房价已达到历史最高水平，若完全依赖父母，许多年轻人将无力支付首付款和房贷。",
+  "finalEnglish": "Housing prices are higher than ever, and if relying on it would be impossible for many young people to pay a deposit and mortgage.",
+  "logicExplanation": "并列句：前句陈述事实 + and连接后句（含if条件状语从句）。",
+  "steps": [
+    {
+      "label": "纯净主干",
+      "chinese": "房价已达到历史最高水平。",
+      "hint": "Housing prices are higher than ever",
+      "correctAnswer": "Housing prices are higher than ever.",
+      "keywords": [
+        "Housing prices (房价)",
+        "higher than ever (历史最高水平)"
+      ]
+    },
+    {
+      "label": "添加并列句和条件从句",
+      "chinese": "房价已达到历史最高水平，【若完全依赖父母，许多年轻人将无力支付首付款和房贷】。",
+      "hint": "and连接并列句，if条件从句",
+      "correctAnswer": "Housing prices are higher than ever, and if relying on it would be impossible for many young people to pay a deposit and mortgage.",
+      "keywords": [
+        "deposit (首付款)",
+        "mortgage (房贷)",
+        "impossible (无力)"
+      ]
+    }
+  ]
+},
+{
+  "id": 98,
+  "category": "教育学习类",
+  "fullChinese": "我们必须认识到，儿童需要培养的不仅是智力技能，而最佳途径正是通过体育运动、游戏以及与其他孩子一起玩耍等方式。",
+  "finalEnglish": "It is important to remember that children need to develop skills other than intellectual ones, and the best way to do this is through activities such as sports, games and playing with other kids.",
+  "logicExplanation": "形式主语+宾语从句+并列句，such as举例。",
+  "steps": [
+    {
+      "label": "纯净主干",
+      "chinese": "儿童需要培养技能，最佳途径是通过活动。",
+      "hint": "Children need to develop skills, and the best way is through activities",
+      "correctAnswer": "Children need to develop skills, and the best way is through activities.",
+      "keywords": [
+        "develop skills (培养技能)",
+        "the best way (最佳途径)",
+        "through activities (通过活动)"
+      ]
+    },
+    {
+      "label": "添加修饰语",
+      "chinese": "儿童需要培养的【不仅是智力】技能，【最佳途径正是】【通过体育运动、游戏以及与其他孩子一起玩耍等】活动。",
+      "hint": "other than表除了…之外的，such as表例如",
+      "correctAnswer": "Children need to develop skills other than intellectual ones, and the best way to do this is through activities such as sports, games and playing with other kids.",
+      "keywords": [
+        "other than (除了…之外)",
+        "intellectual ones (智力技能)",
+        "such as (例如)"
+      ]
+    },
+    {
+      "label": "添加过渡词",
+      "chinese": "【我们必须认识到】，儿童需要培养的不仅是智力技能，而最佳途径正是通过体育运动、游戏以及与其他孩子一起玩耍等方式。",
+      "hint": "It is important to remember that...形式主语结构",
+      "correctAnswer": "It is important to remember that children need to develop skills other than intellectual ones, and the best way to do this is through activities such as sports, games and playing with other kids.",
+      "keywords": [
+        "It is important to remember (必须认识到)"
+      ]
+    }
+  ]
+},
+{
+  "id": 104,
+  "category": "教育学习类",
+  "fullChinese": "当班级所有学生穿着统一的制服时，他们就不太可能讨论衣服的价格和款式。",
+  "finalEnglish": "When everyone in the class is dressed in the same way, they are not likely to talk about the price and taste of clothes.",
+  "logicExplanation": "时间状语从句+主句，dressed in the same way表穿着统一。",
+  "steps": [
+    {
+      "label": "纯净主干",
+      "chinese": "他们不太可能讨论价格和款式。",
+      "hint": "They are not likely to talk about the price and taste",
+      "correctAnswer": "They are not likely to talk about the price and taste.",
+      "keywords": [
+        "not likely to (不太可能)",
+        "talk about (讨论)",
+        "price and taste (价格和款式)"
+      ]
+    },
+    {
+      "label": "添加修饰语",
+      "chinese": "他们不太可能讨论【衣服的】价格和【款式】。",
+      "hint": "of clothes表衣服的",
+      "correctAnswer": "They are not likely to talk about the price and taste of clothes.",
+      "keywords": [
+        "of clothes (衣服的)"
+      ]
+    },
+    {
+      "label": "添加时间状语从句",
+      "chinese": "【当班级所有学生穿着统一的制服时】，他们就不太可能讨论衣服的价格和款式。",
+      "hint": "When引导时间状语从句",
+      "correctAnswer": "When everyone in the class is dressed in the same way, they are not likely to talk about the price and taste of clothes.",
+      "keywords": [
+        "When (当…时)",
+        "dressed in the same way (穿着统一)",
+        "everyone (所有人)"
+      ]
+    }
+  ]
+},
+{
+  "id": 109,
+  "category": "教育学习类",
+  "fullChinese": "他们可以随心所欲地获取任何东西，且不受任何约束。",
+  "finalEnglish": "They are allowed to have whatever they want regardless of price and to behave as they please.",
+  "logicExplanation": "并列结构（allowed to...and to...），whatever引导宾语从句。",
+  "steps": [
+    {
+      "label": "纯净主干",
+      "chinese": "他们可以获取任何东西。",
+      "hint": "They are allowed to have whatever they want",
+      "correctAnswer": "They are allowed to have whatever they want.",
+      "keywords": [
+        "are allowed to (可以/被允许)",
+        "whatever (任何东西)"
+      ]
+    },
+    {
+      "label": "添加修饰语",
+      "chinese": "他们可以【随心所欲地】获取任何东西，【且不受任何约束】。",
+      "hint": "regardless of price表不管价格，behave as they please表随心所欲",
+      "correctAnswer": "They are allowed to have whatever they want regardless of price and to behave as they please.",
+      "keywords": [
+        "regardless of (不管/不顾)",
+        "behave as they please (随心所欲)"
+      ]
+    }
+  ]
+},
+{
+  "id": 110,
+  "category": "教育学习类",
+  "fullChinese": "他们的行为也完全按照个人意愿进行。",
+  "finalEnglish": "This means that the children grow up without consideration for others.",
+  "logicExplanation": "主谓宾结构，含宾语从句，without表缺乏。",
+  "steps": [
+    {
+      "label": "纯净主干",
+      "chinese": "这意味着孩子们成长。",
+      "hint": "This means that the children grow up",
+      "correctAnswer": "This means that the children grow up.",
+      "keywords": [
+        "This means that (这意味着)",
+        "grow up (成长)"
+      ]
+    },
+    {
+      "label": "添加修饰语",
+      "chinese": "这意味着孩子们成长时【缺乏对他人的考虑】。",
+      "hint": "without consideration for others表不考虑他人",
+      "correctAnswer": "This means that the children grow up without consideration for others.",
+      "keywords": [
+        "without (缺乏/没有)",
+        "consideration for others (对他人的考虑)"
+      ]
+    }
+  ]
+},
+{
+  "id": 111,
+  "category": "教育学习类",
+  "fullChinese": "因此，这些孩子在成长过程中缺乏对他人的考虑。当他们开始上学时，尚未学会尊重他人或遵守规则。",
+  "finalEnglish": "When they begin to go to school, they have not learned to respect others and obey rules.",
+  "logicExplanation": "时间状语从句+主句，and连接并列不定式。",
+  "steps": [
+    {
+      "label": "纯净主干",
+      "chinese": "他们尚未学会尊重他人或遵守规则。",
+      "hint": "They have not learned to respect others and obey rules",
+      "correctAnswer": "They have not learned to respect others and obey rules.",
+      "keywords": [
+        "have not learned (尚未学会)",
+        "respect others (尊重他人)",
+        "obey rules (遵守规则)"
+      ]
+    },
+    {
+      "label": "添加时间状语从句",
+      "chinese": "【当他们开始上学时】，他们尚未学会尊重他人或遵守规则。",
+      "hint": "When引导时间状语从句",
+      "correctAnswer": "When they begin to go to school, they have not learned to respect others and obey rules.",
+      "keywords": [
+        "When (当…时)",
+        "begin to go to school (开始上学)"
+      ]
+    }
+  ]
+}
