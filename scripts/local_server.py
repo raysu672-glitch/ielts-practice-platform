@@ -223,6 +223,7 @@ from task_api import (  # noqa: E402
     submit_stage_test as task_submit_stage_test,
     update_scope_progress as task_update_scope_progress,
 )
+from v2_progress_api import build_route_facts as v2_build_route_facts  # noqa: E402
 from jianya_api import (  # noqa: E402
     add_recipients as jianya_add_recipients,
     create_assignment as jianya_create_assignment,
@@ -2956,6 +2957,15 @@ class LocalHandler(SimpleHTTPRequestHandler):
             seed_mvp_units(conn)
             self.send_json({"data": task_get_today(conn, session["id"]), "error": None})
 
+    def handle_v2_progress_me(self) -> None:
+        session = self.require_student_session()
+        if not session:
+            return
+        with closing(connect(self.db_path)) as conn:
+            ensure_task_tables(conn)
+            seed_mvp_units(conn)
+            self.send_json({"data": v2_build_route_facts(conn, session["id"]), "error": None})
+
     def handle_task_me_complete_study(self) -> None:
         session = self.require_student_session()
         if not session:
@@ -3522,6 +3532,9 @@ class LocalHandler(SimpleHTTPRequestHandler):
             return
         if parsed.path.rstrip("/") == "/api/task/me/today":
             self.handle_task_me_today()
+            return
+        if parsed.path.rstrip("/") == "/api/v2/progress/me":
+            self.handle_v2_progress_me()
             return
         if parsed.path.startswith("/api/task/students/") and parsed.path.rstrip("/").endswith(
             "/stage-tests"
