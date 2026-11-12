@@ -146,20 +146,25 @@
       return v.length > 1 ? v.join(' 或 ') : String(answer || '');
     }
 
-    /** 主答案（第一个写法）：选词题的词块只按它出，避免出现 `steadily/solidly` 这种块。 */
+    /** 主答案（第一个写法）：选词题的词块只按它出，避免出现 `steadily/solidly` 这种块。
+     * 必须走 phraseVariants：`dip/drop to only 2.5%` 应得到 `dip to only 2.5%`，
+     * 不能整串按 `/` 切开只剩 `dip`（否则词块丢了 to/only/2.5%）。 */
     function phrasePrimaryAnswer(answer) {
-      var parts = String(answer || '').split('/')
-        .map(function (s) { return s.trim(); })
-        .filter(Boolean);
-      return parts.length ? parts[0] : String(answer || '');
+      var v = phraseVariants(answer);
+      return v.length ? v[0] : String(answer || '');
     }
 
-    /** 每个写法拆词后排序去重的词集合（选词题按「词多集相等」判定）。 */
+    /** 每个写法拆词后排序去重的词集合（选词题按「词多集相等」判定）。
+     * 必须走 phraseVariants：不能整串按 `/` 切开，否则
+     * `dip/drop to only 2.5%` 会变成 {dip} 与 {drop,to,only,2.5%}，
+     * 学生按主答案点出 `dip to only 2.5%` 反而判错。
+     * 词级仍对每个 token 做 phraseNormalize（与学生侧选词判分一致；
+     * 不要先整句 normalize 再拆词，否则 `well-known` 会拆成两个词对不上芯片）。 */
     function phraseAcceptedWordSets(answer) {
       var out = [];
       var seen = {};
-      String(answer || '').split('/').forEach(function (part) {
-        var ws = part.trim().split(/\s+/).map(phraseNormalize).filter(Boolean).sort();
+      phraseVariants(answer).forEach(function (form) {
+        var ws = String(form || '').trim().split(/\s+/).map(phraseNormalize).filter(Boolean).sort();
         if (!ws.length) return;
         var key = ws.join(' ');
         if (seen[key]) return;

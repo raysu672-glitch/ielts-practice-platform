@@ -13,6 +13,8 @@
 const assert = require('node:assert/strict');
 
 const {
+  phraseNormalize,
+  phraseVariants,
   phraseAcceptList,
   phraseMatchesAny,
   phraseIsCorrect,
@@ -70,14 +72,44 @@ assert.equal(
 
 // ── 主答案 / 展示 / 词集合 ──────────────────────────────
 assert.equal(phrasePrimaryAnswer('climb steadily/solidly'), 'climb steadily');
+assert.equal(phrasePrimaryAnswer('dip/drop to only 2.5%'), 'dip to only 2.5%');
+assert.equal(phrasePrimaryAnswer('a modest dip/drop over the last decade'), 'a modest dip over the last decade');
 assert.equal(phrasePrimaryAnswer('a barrage of problems'), 'a barrage of problems');
 assert.equal(phraseDisplayAnswer('climb steadily/solidly'), 'climb steadily 或 climb solidly');
 assert.equal(phraseDisplayAnswer('a barrage of problems'), 'a barrage of problems');
+assert.deepEqual(
+  phrasePrimaryAnswer('dip/drop to only 2.5%').split(/\s+/).filter(Boolean),
+  ['dip', 'to', 'only', '2.5%'],
+  '选词池应含 2.5%，不能只剩 dip'
+);
 
 const sets = phraseAcceptedWordSets('curb crime / deter crime');
 assert.equal(sets.length, 2);
 assert.deepEqual(sets[0], ['crime', 'curb']);
 assert.deepEqual(sets[1], ['crime', 'deter']);
+
+// 选词判分的词集合必须覆盖 phraseVariants 的完整写法，不能按 `/` 截断
+function wordSetKey(form) {
+  return form.split(/\s+/).map(phraseNormalize).filter(Boolean).sort().join(' ');
+}
+for (const [answer] of MULTI) {
+  const setKeys = phraseAcceptedWordSets(answer).map((ws) => ws.join(' '));
+  for (const form of phraseVariants(answer)) {
+    assert.ok(
+      setKeys.includes(wordSetKey(form)),
+      `选词集合应含完整写法「${form}」（题：${answer}），实际：${JSON.stringify(setKeys)}`
+    );
+  }
+  // 主答案芯片点全必须能命中
+  assert.ok(
+    setKeys.includes(wordSetKey(phrasePrimaryAnswer(answer))),
+    `主答案芯片应能判对：${answer}`
+  );
+}
+assert.ok(
+  phraseAcceptedWordSets('dip/drop to only 2.5%').some((ws) => ws.includes(phraseNormalize('2.5%'))),
+  '选词集合应保留 2.5%（归一化后）'
+);
 
 // 选词题的词块只按主答案出，不能出现 `/`
 for (const [answer] of MULTI) {

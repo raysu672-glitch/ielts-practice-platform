@@ -1519,9 +1519,9 @@ document.getElementById('feverInput').addEventListener('input', function() {
   var q = vocab[currentIndex];
   if (!q) return;
   var val = this.value.toLowerCase();
-  // 多写法题（`a/b`）只要前缀能对上任一可接受写法就点亮
-  var ans = phraseAcceptList(q.en).length ? q.en : phrasePrimaryAnswer(q.en);
-  var prefixes = String(ans).split('/').map(function (s) { return s.trim().toLowerCase(); }).filter(Boolean);
+  // 多写法题：用完整变体做前缀，不能整串按 `/` 切开（否则 dip/drop… 只剩 dip）
+  var prefixes = phraseVariants(q.en).map(function (s) { return String(s).trim().toLowerCase(); }).filter(Boolean);
+  if (!prefixes.length) prefixes = [phrasePrimaryAnswer(q.en).toLowerCase()];
   var ok = prefixes.some(function (p) { return p.indexOf(val) === 0; });
   this.style.borderColor = ok
     ? 'rgba(255,215,0,0.6)'
