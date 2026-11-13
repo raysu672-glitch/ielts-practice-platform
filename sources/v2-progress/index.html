@@ -3,14 +3,14 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>新版 · 学习路线（试验）</title>
-<link rel="stylesheet" href="/v2-progress/progress.css?v=20261111b">
+<title>新版 · 闯关地图（试验）</title>
+<link rel="stylesheet" href="/v2-progress/progress.css?v=20261113c">
 </head>
 <body>
-<a class="skip" href="#subjects">跳到科目与阶段</a>
+<a class="skip" href="#zones">跳到单元区</a>
 <header class="bar">
   <div class="bar-title">
-    <span class="bar-name">学习路线</span>
+    <span class="bar-name">闯关地图</span>
     <span class="bar-tag">新版 · 试验</span>
   </div>
   <div class="bar-status" id="status" aria-live="polite">正在读取…</div>
@@ -19,7 +19,7 @@
 
 <div class="notice notice-demo" id="demoNotice" hidden>
   <strong>交互演示 · 示例数据</strong>
-  这不是任何学生的真实进度。演示里假设新版已有「单元测试」，用下方按钮模拟过关、遗忘、复测和清单调整，看三层进度怎样一起变化。
+  这不是任何学生的真实进度。演示里假设新版已有「单元测试」，用页面上的演示按钮模拟过关、遗忘、复测和清单调整。
 </div>
 <div class="notice notice-plan" id="planNotice" role="status" hidden></div>
 <div class="notice notice-error" id="errorNotice" role="alert" hidden></div>
@@ -27,62 +27,86 @@
 <main id="main">
   <section class="state" id="stateView" hidden></section>
 
-  <section class="hero" id="hero" hidden aria-labelledby="heroTitle">
-    <div class="hero-top">
-      <div class="hero-count">
-        <h1 id="heroTitle" class="sr-only">总路线</h1>
-        <div class="count-line"><span class="count-big" id="countPassed">0</span><span class="count-of">/ <span id="countTotal">0</span> 关</span></div>
-        <p class="count-caption">总路线已过关 · 只认测试达标，过了不会倒退</p>
-        <p class="count-sub" id="countSub"></p>
-      </div>
-      <div class="milestone" id="milestone"></div>
+  <!-- ① 目标：这一关是什么、过了它会点亮什么、整张地图走到哪 -->
+  <section class="quest" id="quest" hidden aria-labelledby="questTitle">
+    <div class="quest-goal" id="goal">
+      <div class="trait"><span class="trait-no">1</span>目标</div>
+      <p class="goal-kind" id="goalKind">下一关</p>
+      <h1 class="goal-title" id="questTitle">—</h1>
+      <p class="goal-where" id="goalWhere"></p>
+      <div class="goal-badge" id="goalBadge"></div>
+      <p class="goal-warn" id="goalWarn" hidden></p>
+      <div class="goal-actions" id="goalActions"></div>
     </div>
-
-    <div class="route" id="route">
-      <div class="route-track-label"><span>路程</span><span>掌握度</span></div>
-      <div class="route-body">
-        <div class="route-segments" id="routeSegments" role="img"></div>
-        <div class="route-pin" id="routePin" aria-hidden="true"><span>下一关</span></div>
-      </div>
+    <div class="quest-map">
+      <div class="count-line"><span class="count-big" id="countPassed">0</span><span class="count-of">/ <span id="countTotal">0</span> 关</span></div>
+      <p class="count-caption">整张地图已过关</p>
+      <p class="count-sub" id="countSub"></p>
+      <ul class="zone-mini" id="zoneMini" aria-label="各单元区过关情况"></ul>
+      <p class="badge-total" id="badgeTotal"></p>
     </div>
-    <ul class="legend" aria-label="图例">
-      <li><i class="sw sw-passed"></i>已过关</li>
-      <li><i class="sw sw-pending"></i>旧阶段测已达标 · 折算待定</li>
-      <li><i class="sw sw-open"></i>未过关</li>
-      <li><i class="sw sw-studied"></i>已学（不计过关）</li>
-      <li class="legend-gap"><i class="sw sw-m-strong"></i>掌握牢固</li>
-      <li><i class="sw sw-m-fading"></i>开始褪色</li>
-      <li><i class="sw sw-m-review"></i>需要复测</li>
-    </ul>
   </section>
 
-  <p class="just-now" id="justNow" aria-live="polite" hidden></p>
+  <!-- ② 规则：三条，永远看得见 -->
+  <section class="rules-strip" id="rulesStrip" hidden aria-labelledby="rulesStripTitle">
+    <div class="trait" id="rulesStripTitle"><span class="trait-no">2</span>规则</div>
+    <ol>
+      <li><b>测试达标就过关</b>先学还是先测，你自己定</li>
+      <li><b>过了的关不会丢</b>点亮的格子永远亮着</li>
+      <li><b>久不复测会褪色</b>格子底下的色条变淡，复测通过就描深</li>
+    </ol>
+  </section>
 
-  <section class="subjects" id="subjects" hidden aria-labelledby="subjectsTitle">
-    <h2 id="subjectsTitle">科目与阶段</h2>
-    <p class="section-hint">点一个科目，看它的每一段和每个单元。</p>
-    <ol class="subject-list" id="subjectList"></ol>
+  <!-- ③ 反馈：刚刚发生了什么、最近一周做了什么 -->
+  <section class="feedback" id="feedback" hidden aria-labelledby="feedbackTitle">
+    <div class="trait" id="feedbackTitle"><span class="trait-no">3</span>反馈</div>
+    <p class="just-now" id="justNow" aria-live="polite">打开页面后，你每过一关，这里会马上告诉你点亮了什么。</p>
+    <dl class="week" id="week"></dl>
+  </section>
+
+  <!-- ④ 自愿参与：给选择，不给命令 -->
+  <section class="choose" id="choose" hidden aria-labelledby="chooseTitle">
+    <div class="trait" id="chooseTitle"><span class="trait-no">4</span>你来选</div>
+    <p class="section-hint">今天做什么由你决定，做多少也由你决定。</p>
+    <div class="choices" id="choices"></div>
+    <div class="review" id="review" hidden>
+      <h2 id="reviewTitle">可以描深的单元</h2>
+      <ol class="review-list" id="reviewList" aria-labelledby="reviewTitle"></ol>
+    </div>
+  </section>
+
+  <!-- 单元区仪表盘：按原系统真实的科目与单元排布 -->
+  <section class="zones" id="zones" hidden aria-labelledby="zonesTitle" tabindex="-1">
+    <div class="zones-head">
+      <h2 id="zonesTitle">单元区</h2>
+      <p class="section-hint">每一格就是计划清单里的一个真实单元。点一格看详情，也可以把它设成你的目标。</p>
+      <ul class="legend" aria-label="图例">
+        <li><i class="sw sw-passed"></i>已过关</li>
+        <li><i class="sw sw-pending"></i>旧阶段测已达标 · 折算待定</li>
+        <li><i class="sw sw-open"></i>未过关</li>
+        <li><i class="sw sw-studied"></i>已学（不计过关）</li>
+        <li><i class="sw sw-next"></i>目标</li>
+        <li class="legend-gap"><i class="sw sw-m-strong"></i>掌握牢固</li>
+        <li><i class="sw sw-m-fading"></i>开始褪色</li>
+        <li><i class="sw sw-m-review"></i>需要复测</li>
+      </ul>
+    </div>
+    <div id="zoneList"></div>
   </section>
 
   <section class="detail" id="detail" hidden aria-labelledby="detailTitle" tabindex="-1">
     <nav class="crumbs" id="crumbs" aria-label="层级"></nav>
     <h2 id="detailTitle"></h2>
-    <div id="stageList"></div>
     <div class="unit-info" id="unitInfo" aria-live="polite" hidden></div>
-  </section>
-
-  <section class="review" id="review" hidden aria-labelledby="reviewTitle">
-    <h2 id="reviewTitle">该再描一遍的单元</h2>
-    <p class="section-hint">过了的路不会消失，但久不复测，掌握度会变淡。复测通过就重新描深。</p>
-    <ol class="review-list" id="reviewList"></ol>
+    <div id="stageList"></div>
   </section>
 
   <section class="demo-controls" id="demoControls" hidden aria-labelledby="demoTitle">
     <h2 id="demoTitle">演示操作</h2>
     <p class="section-hint" id="demoClock"></p>
     <div class="demo-buttons">
-      <button type="button" class="btn-act" data-demo="pass">模拟：下一关过关</button>
-      <button type="button" class="btn-act" data-demo="fail">模拟：下一关未过</button>
+      <button type="button" class="btn-act" data-demo="pass">模拟：目标这一关过关</button>
+      <button type="button" class="btn-act" data-demo="fail">模拟：目标这一关未过</button>
       <button type="button" class="btn-act" data-demo="time">模拟：过 10 天（遗忘）</button>
       <button type="button" class="btn-act" data-demo="retest">模拟：复测通过</button>
       <button type="button" class="btn-act" data-demo="retestFail">模拟：复测未过</button>
@@ -92,19 +116,23 @@
   </section>
 
   <section class="rules" id="rules" aria-labelledby="rulesTitle">
-    <h2 id="rulesTitle">这张图怎么算</h2>
-    <dl>
-      <dt>总路线</dt><dd>就是助教在原系统里给你排的计划清单。清单调整时，这里按新清单重算，并在顶部说明变化。</dd>
-      <dt>路程</dt><dd>只有测试达标才算过关；学完打勾、学了多久都不算。过了的关不会倒退。</dd>
-      <dt>掌握度</dt><dd>按距离最近一次达标的时间估算，久不复测会变淡，低于 80% 提示复测；复测没过会下降。掌握度变化不影响路程。当前参数是暂定值，尚未经教研校准。</dd>
-      <dt>待定</dt><dd>覆盖多个单元的旧阶段测达标后，是否算作这些单元过关，还没有定，暂不计入路程。入学诊断、起步冲关等起步进度政策也未定，这张图不含任何起步折算。</dd>
-      <dt>不做的事</dt><dd>不预测雅思分数。</dd>
-    </dl>
+    <details>
+      <summary><h2 id="rulesTitle">规则全文：这张地图怎么算</h2></summary>
+      <dl>
+        <dt>整张地图</dt><dd>就是助教在原系统里给你排的计划清单。清单调整时，这里按新清单重算，并在顶部说明变化。</dd>
+        <dt>单元区</dt><dd>按科目所属技能分成听力、阅读、写作、口语四个区，只是排版分组，不影响计算。</dd>
+        <dt>过关</dt><dd>只有测试达标才算过关；学完打勾、学了多久都不算。过了的关不会倒退。</dd>
+        <dt>段徽章</dt><dd>原系统里一次阶段测覆盖的几个单元算一段；一段里每个单元都过关，就点亮这段的徽章。</dd>
+        <dt>掌握度</dt><dd>按距离最近一次达标的时间估算，久不复测会变淡，低于 80% 提示复测；复测没过会下降。掌握度变化不影响过关。当前参数是暂定值，尚未经教研校准。</dd>
+        <dt>待定</dt><dd>覆盖多个单元的旧阶段测达标后，是否算作这些单元过关，还没有定，暂不计入。入学诊断、起步冲关等起步进度政策也未定，这张图不含任何起步折算。</dd>
+        <dt>不做的事</dt><dd>不预测雅思分数，不排名，不催促。</dd>
+      </dl>
+    </details>
   </section>
 </main>
 
-<script src="/v2-progress/progress_model.js?v=20261111b"></script>
-<script src="/v2-progress/demo_data.js?v=20261111b"></script>
-<script src="/v2-progress/progress.js?v=20261111b"></script>
+<script src="/v2-progress/progress_model.js?v=20261113c"></script>
+<script src="/v2-progress/demo_data.js?v=20261113c"></script>
+<script src="/v2-progress/progress.js?v=20261113c"></script>
 </body>
 </html>

@@ -145,6 +145,7 @@
             var u = {
                 unitId: it.unit_id,
                 title: it.unit_title || it.unit_id,
+                unitNo: it.unit_no || null,
                 moduleType: it.module_type,
                 subjectName: subj.name,
                 routeIndex: units.length,
@@ -278,9 +279,16 @@
             return u.route === 'passed' && (u.mastery.state === 'review' || u.mastery.state === 'fading');
         }).sort(function (a, b) { return a.mastery.value - b.mastery.value; });
 
+        var zones = buildZones(subjects);
+        var badges = { total: 0, earned: 0 };
+        zones.forEach(function (z) { badges.total += z.badgesTotal; badges.earned += z.badges; });
+
         return {
             now: now,
             source: raw.source || 'unknown',
+            zones: zones,
+            badges: badges,
+            activity: activity(units, raw.test_attempts || [], now, 7),
             student: raw.student || {},
             planMeta: raw.plan_meta || {},
             route: route,
@@ -293,26 +301,101 @@
         };
     }
 
-    function nextMilestone(subjects, units, unitById) {
-        var best = null;
-        subjects.forEach(function (subj) {
-            subj.stages.forEach(function (st) {
-                if (st.complete || !st.passed) return;
-                var remaining = st.total - st.passed;
-                if (!best || remaining < best.remaining) {
-                    best = { subject: subj, stage: st, remaining: remaining };
-                }
+    // 原系统没有「技能区」字段，这里按科目所属技能分区，仅用于版面分组。
+    var ZONES = [
+        { key: 'listening', name: '听力区', modules: ['dictation', 'listening_basic', 'listening_synonym', 'listening_p4_speed'] },
+        { key: 'reading', name: '阅读区', modules: ['reading_synonym', 'sentence'] },
+        { key: 'writing', name: '写作区', modules: ['writing_phrase', 'writing_translate', 'writing_correction'] },
+        { key: 'speaking', name: '口语区', modules: ['speaking', 'speaking_p1', 'speaking_complex', 'speaking_p2_material', 'speaking_p2_apply'] }
+    ];
+
+    function zoneKeyOf(mt) {
+        for (var i = 0; i < ZONES.length; i++) {
+            if (ZONES[i].modules.indexOf(mt) >= 0) return ZONES[i].key;
+        }
+        return 'other';
+    }
+
+    function buildZones(subjects) {
+        var defs = ZONES.concat([{ key: 'other', name: '其他', modules: [] }]);
+        return defs.map(function (d) {
+            var subs = subjects.filter(function (s) { return zoneKeyOf(s.moduleType) === d.key; });
+            var z = { key: d.key, name: d.name, subjects: subs, total: 0, passed: 0, pending: 0, badges: 0, badgesTotal: 0 };
+            subs.forEach(function (s) {
+                s.zoneKey = d.key;
+                z.total += s.total; z.passed += s.passed; z.pending += s.pending;
+                z.badgesTotal += s.stages.length;
+                z.badges += s.stages.filter(function (st) { return st.complete; }).length;
+            });
+            return z;
+        }).filter(function (z) { return z.subjects.length; });
+    }
+
+    // 近 N 天：测了几次、新过几关、复测描深几次（都来自测试记录）
+    function activity(units, attempts, now, days) {
+        var since = now - days * DAY_MS;
+        var out = { days: days, attempts: 0, newPasses: 0, retestPasses: 0 };
+        attempts.forEach(function (a) {
+            var t = parseTime(a.at);
+            if (t !== null && t >= since && t <= now) out.attempts += 1;
+        });
+        units.forEach(function (u) {
+            if (u.route !== 'passed') return;
+            var passes = u.evidence.attempts.filter(function (a) { return a.passed; })
+                .map(function (a) { return parseTime(a.at); })
+                .filter(function (t) { return t !== null && t <= now; });
+            passes.forEach(function (t, i) {
+                if (t < since) return;
+                if (i === 0) out.newPasses += 1;
+                else out.retestPasses += 1;
             });
         });
-        if (!best) {
-            var first = units.filter(function (u) { return u.route !== 'passed'; })[0];
-            if (!first) return null;
-            var subj = subjects.filter(function (s) { return s.moduleType === first.moduleType; })[0];
-            var st = subj.stages.filter(function (s) { return s.key === first.stageKey; })[0];
-            best = { subject: subj, stage: st, remaining: st.total - st.passed };
+        return out;
+    }
+
+    function stageByUnit(subjects, u) {
+        var subj = null;
+        var st = null;
+        subjects.forEach(function (s) {
+            if (s.moduleType !== u.moduleType) return;
+            subj = s;
+            s.stages.forEach(function (x) { if (x.key === u.stageKey) st = x; });
+        });
+        return { subject: subj, stage: st };
+    }
+
+    function openIn(stage, unitById) {
+        return stage.unitIds.map(function (id) { return unitById[id]; })
+            .filter(function (u) { return u.route === 'open'; });
+    }
+
+    // 目标只指向学生还能动手的格子（open）。待定格已经测过，等的是折算政策，不拿来当目标。
+    // 优先：所在段已经有进度、并且这一格能单独测过（再过几关就点亮徽章）。
+    function nextMilestone(subjects, units, unitById) {
+        var best = null;
+        function consider(u, rank) {
+            var ctx = stageByUnit(subjects, u);
+            if (!ctx.stage) return;
+            var remaining = openIn(ctx.stage, unitById).length;
+            // 只在「再过几关就点亮徽章」这一档里挑离徽章最近的；其余档按路线顺序
+            var closerBadge = best && rank === 0 && best.rank === 0 &&
+                (remaining < best.remaining || (remaining === best.remaining && u.routeIndex < best.unit.routeIndex));
+            var earlier = best && rank === best.rank && rank !== 0 && u.routeIndex < best.unit.routeIndex;
+            if (!best || rank < best.rank || closerBadge || earlier) {
+                best = { subject: ctx.subject, stage: ctx.stage, unit: u, remaining: remaining, rank: rank };
+            }
         }
-        var nextUnit = best.stage.unitIds.map(function (id) { return unitById[id]; })
-            .filter(function (u) { return u.route !== 'passed'; })[0];
+        units.forEach(function (u) {
+            if (u.route !== 'open') return;
+            var ctx = stageByUnit(subjects, u);
+            var started = ctx.stage && ctx.stage.passed > 0;
+            if (u.hasUnitTest && started) consider(u, 0);
+            else if (u.hasUnitTest) consider(u, 1);
+            else if (started) consider(u, 2);
+            else consider(u, 3);
+        });
+        if (!best) return null;
+        var nextUnit = best.unit;
         return {
             moduleType: best.subject.moduleType,
             subjectName: best.subject.name,
@@ -367,6 +450,7 @@
     return {
         MASTERY: MASTERY,
         DAY_MS: DAY_MS,
+        ZONES: ZONES,
         build: build,
         diff: diff,
         planChange: planChange,

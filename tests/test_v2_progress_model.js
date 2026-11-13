@@ -99,12 +99,27 @@ const resetRaw = rawFacts(passes);
 resetRaw.plan_items.forEach((it) => { it.test_passed = false; });
 assert.equal(Model.build(resetRaw, T0).route.passed, 1);
 
-// 新过关在 diff 中被识别；下一里程碑指向待过关单元
+// 新过关在 diff 中被识别；下一关指向还能动手、且能单独测过的单元
 const before = Model.build(rawFacts([]), T0);
 const after = Model.build(rawFacts([attempt(1, 'U1 单元测试', true, T0)]), T0);
 assert.deepEqual(Model.diff(before, after).passed, ['d1']);
 assert.equal(after.nextMilestone.nextUnitId, 'd2');
 assert.equal(after.nextMilestone.multiUnitTest, true);
+
+// 旧阶段测已达标的格子是待定，不再拿来当目标
+const pendingRaw = rawFacts([
+    attempt(1, 'U1 单元测试', true, T0),
+    attempt(2, 'U2–U3 阶段测', true, T0 - DAY),
+]);
+const pendingView = Model.build(pendingRaw, T0);
+assert.equal(pendingView.unitById.d2.route, 'pending');
+assert.equal(pendingView.nextMilestone.nextUnitId, 's1');
+
+// 能单独测过的格子优先于更靠前、但只有阶段测的格子
+const withLater = rawFacts([attempt(1, 'U1 单元测试', true, T0)]);
+withLater.plan_items.push(item(9, 'study', { unit_id: 'd4', unit_title: '第4组' }));
+withLater.plan_items.push(item(10, 'test', { test_unit_ids: ['d4'], test_title: 'U4 单元测试' }));
+assert.equal(Model.build(withLater, T0).nextMilestone.nextUnitId, 'd4');
 
 // 清单变更：新增单元 → 重算并报告变化
 const grown = rawFacts(passes);
@@ -127,5 +142,36 @@ assert.equal(d1.unitById[target].route, 'passed');
 assert.equal(subj1.passed, subj0.passed + 1);
 assert.equal(d1.route.passed, d0.route.passed + 1);
 assert.deepEqual(Model.diff(d0, d1).passed, [target]);
+
+// 单元区：按技能分区，区内科目顺序与清单一致；关数、徽章与科目汇总一致
+assert.deepEqual(d0.zones.map((z) => z.key), ['listening', 'reading', 'writing', 'speaking']);
+assert.deepEqual(d0.zones[0].subjects.map((s) => s.moduleType), ['dictation', 'listening_synonym']);
+assert.deepEqual(d0.zones[1].subjects.map((s) => s.moduleType), ['reading_synonym', 'sentence']);
+assert.equal(d0.zones.reduce((n, z) => n + z.total, 0), d0.route.total);
+assert.equal(d0.zones.reduce((n, z) => n + z.passed, 0), d0.route.passed);
+const stageCount = d0.subjects.reduce((n, s) => n + s.stages.length, 0);
+const stageDone = d0.subjects.reduce((n, s) => n + s.stages.filter((st) => st.complete).length, 0);
+assert.equal(d0.badges.total, stageCount);
+assert.equal(d0.badges.earned, stageDone);
+assert.ok(d0.badges.earned >= 2);
+assert.equal(d0.units[0].unitNo, 1);
+
+// 近 7 天：只数窗口内的测试；首次达标算新过关，之后的达标算复测描深
+let a7 = Model.build(rawFacts([
+    attempt(1, 'U1 单元测试', true, T0 - 20 * DAY),
+    attempt(2, 'U1 单元测试', true, T0 - 3 * DAY),
+    attempt(3, 'U2–U3 阶段测', false, T0 - 2 * DAY),
+    attempt(4, 'U2–U3 阶段测', true, T0 - 1 * DAY)
+]), T0).activity;
+assert.equal(a7.days, 7);
+assert.equal(a7.attempts, 3);
+assert.equal(a7.newPasses, 0, '待定的阶段测不算新过关');
+assert.equal(a7.retestPasses, 1);
+a7 = Model.build(rawFacts([
+    attempt(1, 'U1 单元测试', true, T0 - 5 * DAY),
+    attempt(2, 'U1 单元测试', true, T0 - 3 * DAY)
+]), T0).activity;
+assert.equal(a7.newPasses, 1);
+assert.equal(a7.retestPasses, 1);
 
 console.log('test_v2_progress_model.js ok');
