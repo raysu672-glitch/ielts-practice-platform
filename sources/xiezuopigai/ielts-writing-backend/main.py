@@ -61,6 +61,14 @@ def init_db():
     for col, sql in migrations.items():
         if col not in cols:
             c.execute(sql)
+    c.execute("""
+        CREATE TABLE IF NOT EXISTS practice_drafts (
+            student_id TEXT PRIMARY KEY,
+            student_name TEXT DEFAULT '',
+            payload TEXT NOT NULL,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
     conn.commit()
     conn.close()
     logger.info("数据库初始化完成: %s", DB_PATH)
@@ -222,6 +230,47 @@ class GrammarCheckResponse(BaseModel):
     success: bool
     data: List[dict]
     meta: dict
+
+
+class VerifyAnswerRequest(BaseModel):
+    originalSentence: str = ""
+    highlight: str = ""
+    expectedLocal: str = ""
+    expectedFull: str = ""
+    studentAnswer: str
+    category: str = ""
+    explanation: str = ""
+
+
+def parse_verify_answer_content(content: str) -> Optional[dict]:
+    """解析 AI 复核 JSON，返回 {correct: bool, reason: str} 或 None。"""
+    raw = (content or "").strip()
+    if not raw:
+        return None
+    if raw.startswith("```"):
+        raw = re.sub(r"^```(?:json)?\s*", "", raw, flags=re.I)
+        raw = re.sub(r"\s*```$", "", raw)
+    try:
+        data = json.loads(raw)
+    except json.JSONDecodeError:
+        m = re.search(r"\{[^{}]*\}", raw, flags=re.S)
+        if not m:
+            return None
+        try:
+            data = json.loads(m.group(0))
+        except json.JSONDecodeError:
+            return None
+    if not isinstance(data, dict):
+        return None
+    correct = data.get("correct")
+    if isinstance(correct, str):
+        correct = correct.strip().lower() in ("1", "true", "yes", "y", "correct", "ok")
+    elif not isinstance(correct, bool):
+        correct = bool(correct)
+    reason = str(data.get("reason") or "").strip()
+    if len(reason) > 80:
+        reason = reason[:80]
+    return {"correct": bool(correct), "reason": reason}
 
 
 # ===== 服务层 =====
@@ -509,6 +558,84 @@ class SiliconFlowClient:
             logger.debug(traceback.format_exc())
             return None
 
+    async def verify_student_answer(self, payload: VerifyAnswerRequest) -> tuple:
+        """本地规则未判对时，请 AI 宽松复核。返回 (result_dict|None, failed, message)。"""
+        if not self.api_key or self.api_key in (
+            "your_siliconflow_api_key_here",
+            "your_deepseek_api_key_here",
+        ):
+            return None, True, "未配置 AI API Key"
+
+        student = (payload.studentAnswer or "").strip()
+        if not student:
+            return {"correct": False, "reason": "答案为空"}, False, ""
+
+        prompt = f"""你是 IELTS 写作改错判分助手。学生只需改正句中这一处错误。
+
+原句：{payload.originalSentence or "（无）"}
+错误片段：{payload.highlight or "（无）"}
+参考局部改正：{payload.expectedLocal or "（无）"}
+参考整句：{payload.expectedFull or "（无）"}
+错误类型：{payload.category or "（无）"}
+说明：{payload.explanation or "（无）"}
+学生提交：{student}
+
+判断学生提交是否已正确修正该处错误。宽松标准：
+1. 只写改正后的词/短语即可，不必写整句；
+2. 允许少写冠词 a/an/the、虚词 it 等；
+3. 允许意思等价的正确改法（如 at low prices / at a low price）；
+4. 若仍保留原错误，或改正方向明显错误，判 incorrect。
+
+只返回 JSON：{{"correct": true或false, "reason": "不超过30字"}}"""
+
+        try:
+            body = {
+                "model": self.model,
+                "messages": [
+                    {
+                        "role": "system",
+                        "content": "你是严格但公平的 IELTS 改错判分助手。只返回 JSON，不要 markdown。",
+                    },
+                    {"role": "user", "content": prompt},
+                ],
+                "temperature": 0.1,
+                "max_tokens": 200,
+                "response_format": {"type": "json_object"},
+            }
+            if AI_THINKING in ("0", "false", "off", "disabled", "no"):
+                body["thinking"] = {"type": "disabled"}
+            elif AI_THINKING in ("1", "true", "on", "enabled", "yes"):
+                body["thinking"] = {"type": "enabled"}
+
+            response = await self.client.post(
+                f"{self.base_url}/chat/completions",
+                headers={
+                    "Content-Type": "application/json",
+                    "Authorization": f"Bearer {self.api_key}",
+                },
+                json=body,
+                timeout=8.0,
+            )
+            response.raise_for_status()
+            data = response.json()
+            choice = (data.get("choices") or [{}])[0]
+            message = choice.get("message") or {}
+            content = (message.get("content") or "").strip()
+            parsed = parse_verify_answer_content(content)
+            if not parsed:
+                logger.warning("verify-answer 解析失败: %s", content[:200])
+                return None, True, "AI 复核返回格式异常"
+            logger.info(
+                "verify-answer correct=%s reason=%s",
+                parsed.get("correct"),
+                (parsed.get("reason") or "")[:40],
+            )
+            return parsed, False, ""
+        except Exception as exc:
+            logger.warning("verify-answer 异常: %s: %s", type(exc).__name__, exc)
+            logger.debug(traceback.format_exc())
+            return None, True, "AI 复核超时或调用失败"
+
 
 siliconflow_client = SiliconFlowClient()
 
@@ -667,6 +794,34 @@ async def grammar_check(payload: GrammarCheckRequest):
     }
 
 
+@app.post("/api/verify-answer")
+async def verify_answer(payload: VerifyAnswerRequest):
+    """本地规则判错后的 AI 宽松复核，用于减少误杀。"""
+    student = (payload.studentAnswer or "").strip()
+    if not student:
+        return JSONResponse(
+            status_code=400,
+            content={"success": False, "message": "缺少 studentAnswer"},
+        )
+
+    result, failed, message = await siliconflow_client.verify_student_answer(payload)
+    if failed or result is None:
+        return {
+            "success": True,
+            "data": {"correct": False, "reason": "", "skipped": True},
+            "meta": {"aiFailed": True, "aiMessage": message or "AI 复核不可用"},
+        }
+    return {
+        "success": True,
+        "data": {
+            "correct": bool(result.get("correct")),
+            "reason": str(result.get("reason") or ""),
+            "skipped": False,
+        },
+        "meta": {"aiFailed": False, "aiMessage": ""},
+    }
+
+
 # ===== 练习题生成 =====
 class ExerciseRequest(BaseModel):
     category: str
@@ -796,6 +951,12 @@ class PracticeRecord(BaseModel):
     topic: Optional[str] = ""
 
 
+class PracticeDraftRequest(BaseModel):
+    studentId: str
+    studentName: Optional[str] = ""
+    payload: dict
+
+
 RECORD_SELECT_SQL = """
     SELECT id, student_name, student_id, essay, topic, checkpoints, total_stats, created_at,
            teacher_revision, teacher_comment, teacher_updated_at, student_feedback_seen_at
@@ -902,6 +1063,118 @@ def fetch_topic_attempts(conn: sqlite3.Connection, student_id: str, topic_key: s
     return rows
 
 
+@app.post("/api/save-draft")
+async def save_draft(payload: PracticeDraftRequest):
+    """保存未完成的改错进度，供下次继续。"""
+    student_id = (payload.studentId or "").strip()
+    if not student_id:
+        return JSONResponse(
+            status_code=400,
+            content={"success": False, "message": "缺少 studentId"},
+        )
+    if not isinstance(payload.payload, dict) or not payload.payload:
+        return JSONResponse(
+            status_code=400,
+            content={"success": False, "message": "缺少 payload"},
+        )
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        c = conn.cursor()
+        c.execute(
+            """
+            INSERT INTO practice_drafts (student_id, student_name, payload, updated_at)
+            VALUES (?, ?, ?, CURRENT_TIMESTAMP)
+            ON CONFLICT(student_id) DO UPDATE SET
+                student_name = excluded.student_name,
+                payload = excluded.payload,
+                updated_at = CURRENT_TIMESTAMP
+            """,
+            (
+                student_id,
+                (payload.studentName or "").strip(),
+                json.dumps(payload.payload, ensure_ascii=False),
+            ),
+        )
+        conn.commit()
+        conn.close()
+        return {"success": True, "studentId": student_id}
+    except Exception as exc:
+        logger.error("保存草稿失败: %s", exc)
+        return JSONResponse(
+            status_code=500,
+            content={"success": False, "message": f"保存草稿失败: {type(exc).__name__}"},
+        )
+
+
+@app.get("/api/student/draft")
+async def get_student_draft(studentId: str = ""):
+    """读取学生未完成的改错进度。"""
+    student_id = (studentId or "").strip()
+    if not student_id:
+        return JSONResponse(
+            status_code=400,
+            content={"success": False, "message": "缺少 studentId"},
+        )
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        conn.row_factory = sqlite3.Row
+        c = conn.cursor()
+        c.execute(
+            "SELECT student_id, student_name, payload, updated_at FROM practice_drafts WHERE student_id = ?",
+            (student_id,),
+        )
+        row = c.fetchone()
+        conn.close()
+        if not row:
+            return {"success": True, "data": None}
+        try:
+            body = json.loads(row["payload"] or "{}")
+        except Exception:
+            body = None
+        if not isinstance(body, dict):
+            return {"success": True, "data": None}
+        return {
+            "success": True,
+            "data": {
+                "studentId": row["student_id"],
+                "studentName": row["student_name"] or "",
+                "payload": body,
+                "updatedAt": row["updated_at"],
+            },
+        }
+    except Exception as exc:
+        logger.error("读取草稿失败: %s", exc)
+        return JSONResponse(
+            status_code=500,
+            content={"success": False, "message": f"读取草稿失败: {type(exc).__name__}"},
+        )
+
+
+@app.delete("/api/student/draft")
+async def delete_student_draft(studentId: str = ""):
+    """清除未完成进度（完成训练或主动放弃时）。"""
+    student_id = (studentId or "").strip()
+    if not student_id:
+        return JSONResponse(
+            status_code=400,
+            content={"success": False, "message": "缺少 studentId"},
+        )
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        c = conn.cursor()
+        c.execute("DELETE FROM practice_drafts WHERE student_id = ?", (student_id,))
+        conn.commit()
+        deleted = c.rowcount
+        conn.close()
+        return {"success": True, "deleted": deleted}
+    except Exception as exc:
+        logger.error("删除草稿失败: %s", exc)
+        return JSONResponse(
+            status_code=500,
+            content={"success": False, "message": f"删除草稿失败: {type(exc).__name__}"},
+        )
+
+
 @app.post("/api/save-practice")
 async def save_practice(record: PracticeRecord):
     """保存学生的练习记录到数据库"""
@@ -965,6 +1238,9 @@ async def save_practice(record: PracticeRecord):
         conn.commit()
         record_id = c.lastrowid
         attempt = (len(same_topic) + 1) if (topic_key and student_id) else 1
+        if student_id:
+            c.execute("DELETE FROM practice_drafts WHERE student_id = ?", (student_id,))
+            conn.commit()
         conn.close()
         logger.info(
             "保存练习记录成功: 学生=%s, 学号=%s, 记录ID=%s, attempt=%s",
@@ -1175,6 +1451,7 @@ if __name__ == "__main__":
     服务启动于: http://localhost:{port}
     健康检查:  http://localhost:{port}/api/health
     语法检查:  POST http://localhost:{port}/api/grammar-check
+    答案复核:  POST http://localhost:{port}/api/verify-answer
     ========================================
     """.format(port=PORT)
     )

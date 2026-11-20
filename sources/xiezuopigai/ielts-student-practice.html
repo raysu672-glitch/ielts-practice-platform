@@ -488,6 +488,22 @@
       color: var(--ink);
     }
 
+    .resume-banner {
+      display: none;
+      margin: 0 0 16px;
+      padding: 14px 16px;
+      border: 1px solid #b7d4ef;
+      border-radius: 10px;
+      background: #f3f8fd;
+    }
+    .resume-banner.show { display: block; }
+    .resume-banner p { margin: 0 0 10px; color: var(--ink); font-size: 14px; }
+    .resume-banner .resume-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
     .report-grid {
       display: grid;
       grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -601,6 +617,7 @@
   </style>
 </head>
 <body><script src="/shared/debug_trace.js?v=20260924trace"></script>
+<script src="practice_score.js?v=20261120resume"></script>
   <div class="app">
     <header class="topbar">
       <div class="brand">
@@ -620,6 +637,7 @@
       <div class="toolbar" id="topToolbar" style="display:none;">
         <button class="icon-btn" id="prevSentence" title="上一句" aria-label="上一句">‹</button>
         <button class="icon-btn" id="nextSentence" title="下一句" aria-label="下一句">›</button>
+        <button class="btn" id="saveAndLeaveBtn" title="保存已改内容，下次可继续">暂存离开</button>
         <button class="btn primary" id="finishAll">完成训练</button>
       </div>
     </header>
@@ -630,6 +648,13 @@
         <div class="start-card">
           <h2 id="startTitle">开始改错训练</h2>
           <div id="rewriteBanner" class="rewrite-banner">请根据同一题目重新写作；本页不显示上次内容与老师批改。</div>
+          <div id="resumeBanner" class="resume-banner" aria-live="polite">
+            <p id="resumeSummary">你有未完成的改错练习，可继续上次进度。</p>
+            <div class="resume-actions">
+              <button type="button" class="btn primary" id="resumeBtn">继续修改</button>
+              <button type="button" class="btn" id="discardResumeBtn">放弃并重新开始</button>
+            </div>
+          </div>
           <p id="startHint">先粘贴作文题目，再粘贴或上传作文正文，系统会自动找出常见语法错误。</p>
 
           <div class="field" id="studentNameField">
@@ -2073,7 +2098,10 @@ Nowadays, many people choose to live in big cities because they can find better 
       // 新增：学生行为记录
       behaviors: {},  // { checkpointId: { hintLevelUsed, timeSpent, studentAnswer, firstOpenTime, submitTime } }
       essayStartTime: null,
-      aiSupplementDone: false
+      aiSupplementDone: false,
+      // 每个检查点最多 AI 复核一次；同答案结果可复用
+      aiVerifyTried: {}, // { checkpointId: true }
+      aiVerifyCache: {}  // { "id::normAnswer": { ok, reason, timedOut } }
     };
 
     // ===== DOM 元素 =====
@@ -2384,74 +2412,281 @@ Nowadays, many people choose to live in big cities because they can find better 
       }
     }
 
+    const LEGACY_PROGRESS_KEY = "ielts_practice_state";
+    let saveProgressTimer = null;
+    let syncDraftTimer = null;
+
+    function progressStorageKey(studentId) {
+      const sid = String(studentId || state.studentId || getPlatformStudent().studentId || "").trim();
+      return sid ? `${LEGACY_PROGRESS_KEY}_${sid}` : LEGACY_PROGRESS_KEY;
+    }
+
+    function captureDraftAnswersFromDom() {
+      document.querySelectorAll("textarea[data-answer-for]").forEach((el) => {
+        const id = el.getAttribute("data-answer-for");
+        if (!id || state.done.has(id)) return;
+        state.answers[id] = el.value;
+      });
+    }
+
+    function buildProgressPayload() {
+      captureDraftAnswersFromDom();
+      return {
+        studentName: state.studentName,
+        studentId: state.studentId || "",
+        topic: state.topic || "",
+        essay: state.essay || "",
+        sentences: state.sentences,
+        currentSentence: state.currentSentence,
+        done: Array.from(state.done),
+        hintLevels: state.hintLevels,
+        answers: state.answers,
+        verdicts: state.verdicts || {},
+        submitted: Array.from(state.submitted),
+        behaviors: state.behaviors,
+        essayStartTime: state.essayStartTime,
+        aiSupplementDone: !!state.aiSupplementDone,
+        aiVerifyTried: state.aiVerifyTried || {},
+        aiVerifyCache: state.aiVerifyCache || {},
+        savedAt: new Date().toISOString()
+      };
+    }
+
+    function isResumableProgress(data) {
+      return !!(
+        data &&
+        Array.isArray(data.sentences) &&
+        data.sentences.length > 0 &&
+        data.aiSupplementDone
+      );
+    }
+
+    function progressStats(data) {
+      const sentences = (data && data.sentences) || [];
+      let total = 0;
+      sentences.forEach((s) => {
+        total += (s.checkpoints || []).length;
+      });
+      const doneIds = Array.isArray(data && data.done) ? data.done : [];
+      const verdicts = (data && data.verdicts) || {};
+      const doneCount = doneIds.filter((id) => verdicts[id] === "correct").length;
+      return { total, doneCount };
+    }
+
+    function clearLocalProgress(studentId) {
+      const key = progressStorageKey(studentId);
+      try {
+        localStorage.removeItem(key);
+        localStorage.removeItem(LEGACY_PROGRESS_KEY);
+      } catch (e) {}
+    }
+
     function saveProgress() {
       try {
-        localStorage.setItem("ielts_practice_state", JSON.stringify({
-          studentName: state.studentName,
-          studentId: state.studentId || "",
-          topic: state.topic || "",
-          essay: state.essay || "",
-          sentences: state.sentences,
-          currentSentence: state.currentSentence,
-          done: Array.from(state.done),
-          hintLevels: state.hintLevels,
-          answers: state.answers,
-          verdicts: state.verdicts || {},
-          submitted: Array.from(state.submitted),
-          behaviors: state.behaviors,
-          essayStartTime: state.essayStartTime,
-          aiSupplementDone: !!state.aiSupplementDone
-        }));
+        if (!state.sentences || state.sentences.length === 0) return;
+        const payload = buildProgressPayload();
+        localStorage.setItem(progressStorageKey(payload.studentId), JSON.stringify(payload));
+        scheduleSyncDraft(payload);
       } catch (e) {
         console.error("保存进度失败:", e);
       }
     }
 
+    function scheduleSaveProgress() {
+      clearTimeout(saveProgressTimer);
+      saveProgressTimer = setTimeout(() => saveProgress(), 400);
+    }
+
+    function scheduleSyncDraft(payload) {
+      const sid = String((payload && payload.studentId) || state.studentId || "").trim();
+      if (!sid || !isResumableProgress(payload || buildProgressPayload())) return;
+      clearTimeout(syncDraftTimer);
+      syncDraftTimer = setTimeout(() => {
+        syncDraftToServer(payload || buildProgressPayload()).catch(() => {});
+      }, 1200);
+    }
+
+    async function syncDraftToServer(payload) {
+      const sid = String((payload && payload.studentId) || "").trim();
+      if (!sid) return false;
+      try {
+        const resp = await fetch(writingApi("save-draft"), {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            studentId: sid,
+            studentName: (payload && payload.studentName) || state.studentName || "",
+            payload
+          })
+        });
+        const result = await resp.json().catch(() => null);
+        return !!(resp.ok && result && result.success);
+      } catch (e) {
+        console.warn("同步草稿到服务器失败:", e);
+        return false;
+      }
+    }
+
+    async function clearServerDraft(studentId) {
+      const sid = String(studentId || state.studentId || "").trim();
+      if (!sid) return;
+      try {
+        await fetch(writingApi(`student/draft?studentId=${encodeURIComponent(sid)}`), {
+          method: "DELETE"
+        });
+      } catch (e) {
+        console.warn("清除服务器草稿失败:", e);
+      }
+    }
+
+    async function fetchServerDraft(studentId) {
+      const sid = String(studentId || state.studentId || getPlatformStudent().studentId || "").trim();
+      if (!sid) return null;
+      try {
+        const resp = await fetch(writingApi(`student/draft?studentId=${encodeURIComponent(sid)}`));
+        const result = await resp.json().catch(() => null);
+        if (!resp.ok || !result || !result.success || !result.data) return null;
+        return result.data.payload || null;
+      } catch (e) {
+        console.warn("读取服务器草稿失败:", e);
+        return null;
+      }
+    }
+
+    function readLocalProgressRaw(studentId) {
+      const key = progressStorageKey(studentId);
+      try {
+        let raw = localStorage.getItem(key);
+        if (!raw) {
+          const legacy = localStorage.getItem(LEGACY_PROGRESS_KEY);
+          if (legacy) {
+            const parsed = JSON.parse(legacy);
+            const sid = String(studentId || state.studentId || getPlatformStudent().studentId || "").trim();
+            const legacySid = String((parsed && parsed.studentId) || "").trim();
+            if (!sid || !legacySid || sid === legacySid) {
+              raw = legacy;
+            }
+          }
+        }
+        return raw ? JSON.parse(raw) : null;
+      } catch (e) {
+        return null;
+      }
+    }
+
+    function applyProgressData(data) {
+      if (!isResumableProgress(data)) return false;
+      // 学号不一致时不覆盖当前登录身份
+      const currentSid = String(state.studentId || getPlatformStudent().studentId || "").trim();
+      const dataSid = String(data.studentId || "").trim();
+      if (currentSid && dataSid && currentSid !== dataSid) return false;
+
+      state.studentName = data.studentName || state.studentName || "";
+      state.studentId = dataSid || state.studentId || "";
+      state.topic = data.topic || "";
+      state.essay = data.essay || "";
+      state.sentences = data.sentences || [];
+      state.currentSentence = data.currentSentence || 0;
+      state.done = new Set(data.done || []);
+      state.hintLevels = data.hintLevels || {};
+      state.answers = data.answers || {};
+      state.verdicts = data.verdicts || {};
+      state.submitted = new Set(data.submitted || []);
+      Array.from(state.done).forEach((id) => {
+        if (state.verdicts[id] !== "correct") state.done.delete(id);
+      });
+      state.behaviors = data.behaviors || {};
+      state.essayStartTime = data.essayStartTime || null;
+      state.aiSupplementDone = !!data.aiSupplementDone;
+      state.aiVerifyTried = data.aiVerifyTried || {};
+      state.aiVerifyCache = data.aiVerifyCache || {};
+      state.sentences = (state.sentences || []).map((s) => ({
+        ...s,
+        checkpoints: withProgressiveAnswers(s.text, s.checkpoints || [])
+      }));
+      return true;
+    }
+
     function loadProgress() {
       try {
-        const data = JSON.parse(localStorage.getItem("ielts_practice_state") || "null");
-        if (data) {
-          // 旧会话若 AI 未完成就中断，避免一直停留在「仅规则检查点」
-          if (data.sentences && data.sentences.length > 0 && !data.aiSupplementDone) {
-            localStorage.removeItem("ielts_practice_state");
-            const essayInput = document.querySelector("#essayInput");
-            const topicInput = document.querySelector("#topicInput");
-            if (essayInput && data.essay) essayInput.value = data.essay;
-            if (topicInput && data.topic) topicInput.value = data.topic;
-            if (data.studentName) state.studentName = data.studentName;
-            if (data.studentId) state.studentId = data.studentId;
-            if (data.topic) state.topic = data.topic;
-            return false;
-          }
-          state.studentName = data.studentName || "";
-          state.studentId = data.studentId || state.studentId || "";
-          state.topic = data.topic || "";
-          state.essay = data.essay || "";
-          state.sentences = data.sentences || [];
-          state.currentSentence = data.currentSentence || 0;
-          state.done = new Set(data.done || []);
-          state.hintLevels = data.hintLevels || {};
-          state.answers = data.answers || {};
-          state.verdicts = data.verdicts || {};
-          state.submitted = new Set(data.submitted || []);
-          // 旧进度可能把「答错」也标成完成：只保留真正答对的
-          Array.from(state.done).forEach((id) => {
-            if (state.verdicts[id] !== "correct") state.done.delete(id);
-          });
-          state.behaviors = data.behaviors || {};
-          state.essayStartTime = data.essayStartTime || null;
-          state.aiSupplementDone = !!data.aiSupplementDone;
-          // 旧进度可能未递进修正答案，加载时统一重建
-          state.sentences = (state.sentences || []).map((s) => ({
-            ...s,
-            checkpoints: withProgressiveAnswers(s.text, s.checkpoints || [])
-          }));
-          return true;
+        const data = readLocalProgressRaw();
+        if (!data) return false;
+        if (data.sentences && data.sentences.length > 0 && !data.aiSupplementDone) {
+          // AI 补充未完成：保留题目/正文到开始页，不直接进训练
+          clearLocalProgress(data.studentId);
+          const essayInput = document.querySelector("#essayInput");
+          const topicInput = document.querySelector("#topicInput");
+          if (essayInput && data.essay) essayInput.value = data.essay;
+          if (topicInput && data.topic) topicInput.value = data.topic;
+          if (data.studentName) state.studentName = data.studentName;
+          if (data.studentId) state.studentId = data.studentId;
+          if (data.topic) state.topic = data.topic;
+          return false;
         }
+        return applyProgressData(data);
       } catch (e) {
         console.error("读取进度失败:", e);
       }
       return false;
+    }
+
+    function updateResumeBanner(data) {
+      const banner = document.querySelector("#resumeBanner");
+      const summary = document.querySelector("#resumeSummary");
+      if (!banner || !summary) return;
+      if (!isResumableProgress(data)) {
+        banner.classList.remove("show");
+        return;
+      }
+      const stats = progressStats(data);
+      const topicBit = data.topic ? `「${String(data.topic).slice(0, 36)}${data.topic.length > 36 ? "…" : ""}」` : "上次作文";
+      summary.textContent = `你有未完成的改错：${topicBit}，已完成 ${stats.doneCount}/${stats.total} 处。可继续修改。`;
+      banner.classList.add("show");
+    }
+
+    function resumeSavedPractice() {
+      if (!state.sentences.length && !loadProgress()) {
+        showToast("没有可继续的进度");
+        return;
+      }
+      const nameInput = document.querySelector("#studentName");
+      if (nameInput) nameInput.value = state.studentName;
+      showStage("training");
+      render();
+      showToast(`已恢复进度（${state.done.size}/${getTotalCheckpointCount()}）`);
+    }
+
+    async function discardSavedPractice() {
+      clearLocalProgress(state.studentId);
+      await clearServerDraft(state.studentId);
+      state.sentences = [];
+      state.done = new Set();
+      state.answers = {};
+      state.verdicts = {};
+      state.submitted = new Set();
+      state.behaviors = {};
+      state.aiVerifyTried = {};
+      state.aiVerifyCache = {};
+      state.aiSupplementDone = false;
+      updateResumeBanner(null);
+      showToast("已放弃上次进度，可以开始新的改错");
+    }
+
+    async function saveAndLeave() {
+      if (!state.sentences.length) {
+        showToast("当前没有进行中的练习");
+        return;
+      }
+      saveProgress();
+      await syncDraftToServer(buildProgressPayload());
+      showToast("进度已暂存，下次打开可继续修改");
+      try {
+        if (window.parent && window.parent !== window) {
+          window.parent.postMessage({ type: "writingPracticePaused" }, window.location.origin);
+        }
+      } catch (e) {}
+      updateResumeBanner(buildProgressPayload());
+      showStage("start");
     }
 
     // ===== 渲染函数 =====
@@ -2556,7 +2791,7 @@ Nowadays, many people choose to live in big cities because they can find better 
             ? `<div class="submit-feedback show bad">
                 <strong>回答不正确</strong>
                 <div>请对照参考修改，在输入框中重新填写正确答案后再点「提交修改」。查看答案不能代替提交。</div>
-                <div class="ref-answer"><strong>参考修改</strong><div>${escapeHtml(checkpoint.answer || "")}</div>
+                <div class="ref-answer">${formatReferenceHtml(checkpoint)}
                 <strong style="margin-top:8px;display:block;">规则说明</strong><div>${escapeHtml(checkpoint.explanation || "")}</div></div>
               </div>`
             : "";
@@ -2596,9 +2831,8 @@ Nowadays, many people choose to live in big cities because they can find better 
             ${hintLevel >= 1 ? (checkpoint.hints || []).map((h) => `<div style="margin-top:4px;">${escapeHtml(h)}</div>`).join("") : ""}
           </div>
           <div class="answer-reveal ${showAnswer ? "show" : ""}">
-            <strong>参考修改</strong>
-            <div>${escapeHtml(checkpoint.answer || "")}</div>
-            <strong style="margin-top:8px;">规则说明</strong>
+            ${formatReferenceHtml(checkpoint)}
+            <strong style="margin-top:8px;display:block;">规则说明</strong>
             <div>${escapeHtml(checkpoint.explanation || "")}</div>
           </div>
           ${feedbackHtml}
@@ -2644,7 +2878,7 @@ Nowadays, many people choose to live in big cities because they can find better 
       });
 
       list.querySelectorAll("[data-submit]").forEach((btn) => {
-        btn.addEventListener("click", () => {
+        btn.addEventListener("click", async () => {
           const id = btn.dataset.submit;
           const textarea = list.querySelector(`textarea[data-answer-for="${id}"]`);
           const answer = textarea.value.trim();
@@ -2654,7 +2888,36 @@ Nowadays, many people choose to live in big cities because they can find better 
           }
           const [si, ci] = id.split("-").map(Number);
           const targetCheckpoint = state.sentences[si] && state.sentences[si].checkpoints[ci];
-          const correct = isAnswerCorrect(answer, targetCheckpoint);
+
+          btn.disabled = true;
+          let correct = isAnswerCorrect(answer, targetCheckpoint);
+          let viaAi = false;
+          let aiTimedOut = false;
+          if (!correct && targetCheckpoint) {
+            const cacheKey = aiVerifyCacheKey(id, answer);
+            const cached = state.aiVerifyCache[cacheKey];
+            if (cached) {
+              if (cached.ok) {
+                correct = true;
+                viaAi = true;
+              }
+            } else if (!state.aiVerifyTried[id]) {
+              showToast("本地未匹配，正在请 AI 复核…");
+              const ai = await verifyAnswerWithAi(answer, targetCheckpoint);
+              state.aiVerifyTried[id] = true;
+              state.aiVerifyCache[cacheKey] = {
+                ok: !!ai.ok,
+                reason: ai.reason || "",
+                timedOut: !!ai.timedOut
+              };
+              if (ai.ok) {
+                correct = true;
+                viaAi = true;
+              } else if (ai.timedOut) {
+                aiTimedOut = true;
+              }
+            }
+          }
 
           state.answers[id] = answer;
           state.submitted.add(id);
@@ -2686,13 +2949,29 @@ Nowadays, many people choose to live in big cities because they can find better 
           state.behaviors[id].submitTime = now.toISOString();
           state.behaviors[id].timeSpent = Math.round((now - firstOpen) / 1000);
           state.behaviors[id].isCorrect = correct;
+          state.behaviors[id].aiVerified = viaAi;
           if (!correct) {
             state.behaviors[id].hintLevelUsed = Math.max(state.behaviors[id].hintLevelUsed ?? -1, 2);
           }
 
           saveProgress();
-          showToast(correct ? "回答正确！" : "回答不正确，请对照参考后重新输入并提交");
+          showToast(
+            correct
+              ? (viaAi ? "AI 复核通过：回答正确！" : "回答正确！")
+              : (aiTimedOut
+                ? "AI 复核超时，请对照参考后重新输入并提交"
+                : "回答不正确，请对照参考后重新输入并提交")
+          );
           render();
+        });
+      });
+
+      list.querySelectorAll("textarea[data-answer-for]").forEach((ta) => {
+        ta.addEventListener("input", () => {
+          const id = ta.getAttribute("data-answer-for");
+          if (!id || state.done.has(id)) return;
+          state.answers[id] = ta.value;
+          scheduleSaveProgress();
         });
       });
     }
@@ -2711,178 +2990,88 @@ Nowadays, many people choose to live in big cities because they can find better 
         .replace(/'/g, "&#39;");
     }
 
-    /** 提交判分用：折叠空白、忽略大小写与句末标点差异 */
+    const WPS = window.WritingPracticeScore;
+    if (!WPS) {
+      console.error("practice_score.js 未加载，作文判分不可用");
+    }
+
     function normalizeForCompare(text) {
-      return String(text || "")
-        .replace(/\u00a0/g, " ")
-        .replace(/\s+/g, " ")
-        .trim()
-        .replace(/[.。!！?？…]+$/g, "")
-        .toLowerCase();
+      return WPS.normalizeForCompare(text);
     }
 
     function stripQuotes(text) {
-      return String(text || "").replace(/^["'“”‘’]+|["'“”‘’]+$/g, "");
+      return WPS.stripQuotes(text);
     }
 
     function tokenizeForCompare(text) {
-      return stripQuotes(normalizeForCompare(text))
-        .split(/[^a-z0-9'’-]+/i)
-        .filter(Boolean);
+      return WPS.tokenizeForCompare(text);
     }
 
-    function containsAsWord(haystack, word) {
-      const tokens = tokenizeForCompare(haystack);
-      const w = stripQuotes(normalizeForCompare(word));
-      if (!w) return false;
-      return tokens.includes(w) || stripQuotes(normalizeForCompare(haystack)) === w;
-    }
-
-    /**
-     * 对比错误片段与正确片段，找出「改对了的词」
-     * 例：have always been → has always been  => ["has"]
-     */
-    function getChangedCorrectTokens(errorPhrase, correctPhrase) {
-      const errTokens = tokenizeForCompare(errorPhrase);
-      const fixTokens = tokenizeForCompare(correctPhrase);
-      const changed = [];
-      const len = Math.max(errTokens.length, fixTokens.length);
-      for (let i = 0; i < len; i++) {
-        const e = errTokens[i] || "";
-        const f = fixTokens[i] || "";
-        if (f && f !== e) changed.push(f);
-      }
-      // 也收集只出现在正确侧的词
-      fixTokens.forEach((f) => {
-        if (f && !errTokens.includes(f) && !changed.includes(f)) changed.push(f);
-      });
-      return changed;
-    }
-
-    /**
-     * 从检查点推出「改正后的那个词/短语」。
-     * 优先用原句/基句与完整修正句的局部替换差。
-     */
     function getExpectedLocalFix(checkpoint) {
-      if (!checkpoint) return "";
-      const highlight = String(checkpoint.highlight || "").trim();
-      const fullAnswer = String(checkpoint.answer || checkpoint.rawCorrected || "").trim();
-      const base = String(checkpoint.baseText || checkpoint.originalSentence || "").trim();
-      const original = String(checkpoint.originalSentence || checkpoint.baseText || "").trim();
+      return WPS.getExpectedLocalFix(checkpoint);
+    }
 
-      let local = extractLocalReplacement(original, highlight, checkpoint.rawCorrected || fullAnswer);
-      if (local == null || !String(local).trim()) {
-        local = extractLocalReplacement(base, highlight, fullAnswer);
-      }
-      if (local != null && String(local).trim()) {
-        return String(local).trim();
-      }
+    function isAnswerCorrect(studentText, checkpoint) {
+      return WPS.isAnswerCorrect(studentText, checkpoint);
+    }
 
-      // 基句含错误片段时，用整句答案替换后取对应位置
-      if (highlight && base && fullAnswer) {
-        const range = findHighlightRange(base, highlight);
-        if (range) {
-          const before = base.slice(0, range.start);
-          const after = base.slice(range.end);
-          const beforeN = normalizeForCompare(before);
-          const afterN = normalizeForCompare(after);
-          const fullN = normalizeForCompare(fullAnswer);
-          if (fullN.startsWith(beforeN) && fullN.endsWith(afterN)) {
-            const startIdx = before.length;
-            const endIdx = after.length === 0
-              ? fullAnswer.length
-              : fullAnswer.length - after.length;
-            if (endIdx >= startIdx) {
-              const mid = fullAnswer.slice(startIdx, endIdx).trim();
-              if (mid) return mid;
-            }
-          }
-        }
-      }
+    function isUsableCheckpoint(cp) {
+      return WPS.isUsableCheckpoint(cp);
+    }
 
-      // 最后回退：若答案很短则整段当作局部修正
-      if (fullAnswer && fullAnswer.length <= 40 && (!base || fullAnswer.length < base.length * 0.5)) {
-        return fullAnswer;
-      }
-      return "";
+    function formatReferenceHtml(checkpoint) {
+      return WPS.formatReferenceHtml(checkpoint, escapeHtml);
+    }
+
+    const AI_VERIFY_TIMEOUT_MS = 3000;
+
+    function aiVerifyCacheKey(checkpointId, studentText) {
+      return `${checkpointId}::${normalizeForCompare(studentText)}`;
     }
 
     /**
-     * 判对规则：
-     * 1) 整句与参考答案一致；或
-     * 2) 写了完整局部修正短语；或
-     * 3) 只写了改对的那一个词（如 have→has，交 has）；或
-     * 4) 较长文本已包含正确替换且去掉了原错误。
+     * 本地规则未判对时，请后端 AI 宽松复核一次（前端最多等 3 秒）。
+     * AI 不可用/失败/超时时保持本地结果（不误放行）。
      */
-    function isAnswerCorrect(studentText, checkpoint) {
-      const studentRaw = String(studentText || "").trim();
-      if (!studentRaw || !checkpoint) return false;
-
-      const a = stripQuotes(normalizeForCompare(studentRaw));
-      const expectedFull = String(checkpoint.answer || "").trim();
-      const b = stripQuotes(normalizeForCompare(expectedFull));
-      if (a && b && a === b) return true;
-
-      const localFix = getExpectedLocalFix(checkpoint);
-      const fixN = stripQuotes(normalizeForCompare(localFix));
-      const errN = stripQuotes(normalizeForCompare(checkpoint.highlight || ""));
-
-      // 只交改正后的整段局部短语
-      if (fixN && a === fixN) return true;
-
-      // 关键：只交「改动的那个词」
-      // 例：错误 have always been，正确 has always been，学生写 has
-      if (errN && fixN) {
-        const changedTokens = getChangedCorrectTokens(errN, fixN);
-        if (changedTokens.includes(a)) return true;
-        // 学生答案是多个改动词组成的短语
-        if (changedTokens.length && a === changedTokens.join(" ")) return true;
-        // 正确短语里有该词，且错误短语里没有该词（按词匹配，避免 have 包含 has 的误判）
-        if (a && containsAsWord(fixN, a) && !containsAsWord(errN, a)) return true;
-      }
-
-      // 相对整句答案：写了对的词，且该词不在错误片段里
-      if (a && b && containsAsWord(b, a) && errN && !containsAsWord(errN, a)) {
-        // 避免过短无意义答案（单字母等）
-        if (a.length >= 2) return true;
-      }
-
-      // 学生答案包含正确替换
-      if (fixN && a.includes(fixN)) {
-        if (a.length <= fixN.length + 8) return true;
-        if (!errN) return true;
-        if (errN === fixN) return true;
-        if (!a.includes(errN)) return true;
-        if (containsAsWord(a, fixN) && !containsAsWord(a, errN)) return true;
-      }
-
-      // 把局部修正套回基句后再比整句
-      const base = String(checkpoint.baseText || checkpoint.originalSentence || "");
-      const highlight = String(checkpoint.highlight || "");
-      if (localFix && highlight && base && findHighlightRange(base, highlight)) {
-        const applied = base.replace(
-          new RegExp(escapeRegex(highlight), "i"),
-          localFix
-        );
-        if (stripQuotes(normalizeForCompare(applied)) === a) return true;
-      }
-
-      // 学生只改了关键错误词：把错误短语里的错词换成学生答案后，应等于局部正确短语
-      if (a && errN && fixN && tokenizeForCompare(errN).length >= 1) {
-        const errTokens = tokenizeForCompare(errN);
-        const fixTokens = tokenizeForCompare(fixN);
-        if (errTokens.length === fixTokens.length) {
-          for (let i = 0; i < errTokens.length; i++) {
-            if (errTokens[i] !== fixTokens[i]) {
-              const trial = errTokens.slice();
-              trial[i] = a;
-              if (trial.join(" ") === fixTokens.join(" ")) return true;
-            }
-          }
+    async function verifyAnswerWithAi(studentText, checkpoint) {
+      try {
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), AI_VERIFY_TIMEOUT_MS);
+        const response = await fetch(writingApi("verify-answer"), {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          signal: controller.signal,
+          body: JSON.stringify({
+            originalSentence: checkpoint.originalSentence || checkpoint.baseText || "",
+            highlight: checkpoint.highlight || "",
+            expectedLocal: getExpectedLocalFix(checkpoint),
+            expectedFull: checkpoint.answer || checkpoint.rawCorrected || "",
+            studentAnswer: studentText,
+            category: checkpoint.category || "",
+            explanation: checkpoint.explanation || ""
+          })
+        });
+        clearTimeout(timer);
+        const result = await response.json().catch(() => null);
+        if (!response.ok || !result || result.success === false) {
+          return { ok: false, failed: true, timedOut: false };
         }
+        if (result.meta && result.meta.aiFailed) {
+          return { ok: false, failed: true, timedOut: false };
+        }
+        const data = result.data || {};
+        if (data.skipped) return { ok: false, failed: true, timedOut: false };
+        return {
+          ok: data.correct === true,
+          reason: data.reason || "",
+          failed: false,
+          timedOut: false
+        };
+      } catch (e) {
+        const timedOut = !!(e && (e.name === "AbortError" || e.code === 20));
+        console.warn(timedOut ? "AI 答案复核超时(3s)" : "AI 答案复核失败:", e);
+        return { ok: false, failed: true, timedOut };
       }
-
-      return false;
     }
 
     function getTotalCheckpointCount() {
@@ -3084,7 +3273,10 @@ Nowadays, many people choose to live in big cities because they can find better 
       state.verdicts = {};
       state.submitted = new Set();
       state.behaviors = {};
-      localStorage.removeItem("ielts_practice_state");
+      state.aiVerifyTried = {};
+      state.aiVerifyCache = {};
+      clearLocalProgress(state.studentId);
+      clearServerDraft(state.studentId);
 
       if (rewrite) {
         clearRewriteModeFromUrl();
@@ -3175,6 +3367,7 @@ Nowadays, many people choose to live in big cities because they can find better 
         if (si < 0 || si >= state.sentences.length) si = 0;
         const sentence = state.sentences[si].text;
         const adapted = adaptAiCheckpoint(aiError, sentence);
+        if (!isUsableCheckpoint(adapted)) continue;
         const key = `${si}-${String(adapted.highlight || "").toLowerCase()}`;
         if (!seenHighlights.has(key)) {
           seenHighlights.add(key);
@@ -3349,6 +3542,7 @@ Nowadays, many people choose to live in big cities because they can find better 
         const result = await resp.json();
         if (result.success) {
           console.log("练习数据已保存到后端，记录ID:", result.recordId);
+          clearLocalProgress(state.studentId);
         } else {
           console.error("保存失败:", result.message);
           showToast(result.message || "保存失败，请稍后重试");
@@ -3458,7 +3652,8 @@ Nowadays, many people choose to live in big cities because they can find better 
     }
 
     function resetApp() {
-      localStorage.removeItem("ielts_practice_state");
+      clearLocalProgress(state.studentId);
+      clearServerDraft(state.studentId);
       const platform = getPlatformStudent();
       state.studentName = platform.studentName || "";
       state.studentId = platform.studentId || "";
@@ -3472,8 +3667,11 @@ Nowadays, many people choose to live in big cities because they can find better 
       state.verdicts = {};
       state.submitted = new Set();
       state.behaviors = {};
+      state.aiVerifyTried = {};
+      state.aiVerifyCache = {};
       state.essayStartTime = null;
       state.aiSupplementDone = false;
+      updateResumeBanner(null);
       document.querySelector("#studentName").value = state.studentName;
       const topicInput = document.querySelector("#topicInput");
       if (topicInput) topicInput.value = "";
@@ -3495,6 +3693,25 @@ Nowadays, many people choose to live in big cities because they can find better 
     });
 
     document.querySelector("#finishAll").addEventListener("click", finishPractice);
+    const saveAndLeaveBtn = document.querySelector("#saveAndLeaveBtn");
+    if (saveAndLeaveBtn) saveAndLeaveBtn.addEventListener("click", () => { saveAndLeave(); });
+    const resumeBtn = document.querySelector("#resumeBtn");
+    if (resumeBtn) resumeBtn.addEventListener("click", () => { resumeSavedPractice(); });
+    const discardResumeBtn = document.querySelector("#discardResumeBtn");
+    if (discardResumeBtn) {
+      discardResumeBtn.addEventListener("click", () => { discardSavedPractice(); });
+    }
+
+    window.addEventListener("pagehide", () => {
+      if (state.sentences && state.sentences.length > 0 && state.aiSupplementDone) {
+        saveProgress();
+      }
+    });
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "hidden" && state.sentences && state.sentences.length > 0 && state.aiSupplementDone) {
+        saveProgress();
+      }
+    });
 
     document.querySelector("#fileInput").addEventListener("change", (event) => {
       const file = event.target.files[0];
@@ -3668,7 +3885,7 @@ Nowadays, many people choose to live in big cities because they can find better 
     });
 
     // ===== 初始化 =====
-    (function bootstrapPlatformIdentity() {
+    (async function bootstrap() {
       const platform = getPlatformStudent();
       if (platform.studentId) state.studentId = platform.studentId;
       if (platform.studentName) state.studentName = platform.studentName;
@@ -3677,7 +3894,6 @@ Nowadays, many people choose to live in big cities because they can find better 
       const nameInput = document.querySelector("#studentName");
       const startHint = document.querySelector("#startHint");
 
-      // 主站已登录：不再显示姓名输入
       if (platform.studentId) {
         if (nameField) nameField.style.display = "none";
         if (nameInput) nameInput.value = platform.studentName || platform.studentId;
@@ -3690,9 +3906,8 @@ Nowadays, many people choose to live in big cities because they can find better 
         nameInput.value = platform.studentName;
       }
 
-      // 再写一遍：清进度、锁定题目，不恢复旧训练
       if (isRewriteMode()) {
-        localStorage.removeItem("ielts_practice_state");
+        clearLocalProgress(platform.studentId);
         const payload = readRewritePayload() || {
           topic: "",
           studentId: platform.studentId,
@@ -3700,28 +3915,40 @@ Nowadays, many people choose to live in big cities because they can find better 
         };
         applyRewriteStartPage(payload);
         showStage("start");
-        return true;
+        return;
       }
-      // 写作作业模式：预填题目与作文，学生改完语法错误后回写作业提交
       if (isAssignmentMode()) {
-        localStorage.removeItem("ielts_practice_state");
+        clearLocalProgress(platform.studentId);
         const payload = readAssignmentPayload();
         if (!payload || !payload.assignmentId) {
           showToast("缺少作业信息，请返回作业页重新进入");
-          return true;
+          return;
         }
         applyAssignmentStartPage(payload);
         showStage("start");
-        return true;
+        return;
       }
-      return false;
-    })() || (function () {
-      if (loadProgress() && state.sentences.length > 0) {
-        const nameInput = document.querySelector("#studentName");
+
+      let restored = loadProgress() && state.sentences.length > 0;
+      if (!restored) {
+        const serverDraft = await fetchServerDraft(platform.studentId);
+        if (isResumableProgress(serverDraft) && applyProgressData(serverDraft)) {
+          restored = true;
+          // 拉回本地，便于离线续改
+          try {
+            localStorage.setItem(progressStorageKey(state.studentId), JSON.stringify(buildProgressPayload()));
+          } catch (e) {}
+        }
+      }
+
+      if (restored) {
         if (nameInput) nameInput.value = state.studentName;
         showStage("training");
         render();
+        showToast(`已恢复上次进度（${state.done.size}/${getTotalCheckpointCount()}）`);
       } else {
+        const peek = readLocalProgressRaw(platform.studentId);
+        updateResumeBanner(isResumableProgress(peek) ? peek : null);
         showStage("start");
       }
     })();

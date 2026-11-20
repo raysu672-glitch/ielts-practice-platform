@@ -424,7 +424,7 @@ var MODULES = [
     { id: 'listening_synonym', name: '听力同义替换', target_type: 'dynamic', targets: { 6: 70, 6.5: 80, 7: 90 }, unit: '%', url: '../daanjutingxie/index.html', test_url: '../daanjutingxieceshi/index.html?v=20260827c', icon: 'headphones' },
     { id: 'writing_phrase', name: '写作词伙', target_type: 'dynamic', targets: { 6: 50, 6.5: 70, 7: 90 }, unit: '%', url: '../xiezuocihuo/index.html?v=20260920phrasealt', test_url: '../xiezuocihuoceshi/index.html?v=20260920phrasealt', icon: 'writing' },
     { id: 'writing_translate', name: '写作句子翻译', target_type: 'dynamic', targets: { 6: 50, 6.5: 70, 7: 90 }, unit: '%', url: '../juzifanyixin/index.html', test_url: '../juzifanyixinceshi/index.html?v=20260920grade', icon: 'translate' },
-    { id: 'writing_correction', name: '作文批改', target_type: 'dynamic', targets: { 6: 1, 6.5: 1, 7: 1 }, unit: '次', url: '../xiezuopigai/ielts-student-practice.html', test_url: '', icon: 'edit' },
+    { id: 'writing_correction', name: '作文批改', target_type: 'dynamic', targets: { 6: 1, 6.5: 1, 7: 1 }, unit: '次', url: '../xiezuopigai/ielts-student-practice.html?v=20261120resume', test_url: '', icon: 'edit' },
     
     // 二、听力跟读：练习含 P1/P4；测试只计 P4 讲座识别率
     { id: 'listening_p4_speed', name: '听力跟读', target_type: 'dynamic', targets: { 6: 70, 6.5: 80, 7: 90 }, unit: '%', url: '../P4gendu/index.html', test_url: '../P4genduceshi/index.html', icon: 'mic' },
