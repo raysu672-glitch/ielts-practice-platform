@@ -251,15 +251,171 @@ function judgeMicAgainstReference(reference, referenceRate, microphone, micropho
         correlation: round3(corrSum / segments),
         farCorrelation: round3(farSum / segments),
         lagMs: lags[Math.floor(lags.length / 2)],
+        lagSpread: lagSpread,
         segments: segments,
         playbackSegments: playbackSegments,
         micRms: round3(micRms)
     };
 }
 
+var CLEAN_RATE = 16000;
+
+function lagProduct(a, b, lag, stride) {
+    var start = Math.max(0, -lag);
+    var end = Math.min(a.length, b.length - lag);
+    var sum = 0;
+    var count = 0;
+    for (var i = start; i < end; i += stride) {
+        sum += a[i] * b[i + lag];
+        count++;
+    }
+    return count ? sum : 0;
+}
+
+function solveSystem(matrix, values) {
+    var n = values.length;
+    var rows = [];
+    for (var i = 0; i < n; i++) {
+        var copy = matrix[i].slice();
+        copy.push(values[i]);
+        rows.push(copy);
+    }
+    for (var col = 0; col < n; col++) {
+        var pivot = col;
+        for (var r = col + 1; r < n; r++) {
+            if (Math.abs(rows[r][col]) > Math.abs(rows[pivot][col])) pivot = r;
+        }
+        var swap = rows[col];
+        rows[col] = rows[pivot];
+        rows[pivot] = swap;
+        var div = rows[col][col];
+        if (Math.abs(div) < 1e-10) return null;
+        for (var c = col; c <= n; c++) rows[col][c] /= div;
+        for (var rr = 0; rr < n; rr++) {
+            if (rr === col) continue;
+            var factor = rows[rr][col];
+            if (factor === 0) continue;
+            for (var cc = col; cc <= n; cc++) rows[rr][cc] -= factor * rows[col][cc];
+        }
+    }
+    var solution = [];
+    for (var s = 0; s < n; s++) solution.push(rows[s][n]);
+    return solution;
+}
+
+function echoFilter(reference, microphone, lagSamples) {
+    var tapCount = 8;
+    var step = Math.max(1, Math.round(CLEAN_RATE * 0.005));
+    var delays = [];
+    for (var t = 0; t < tapCount; t++) delays.push(lagSamples + t * step);
+    var gram = [];
+    var cross = [];
+    var stride = 4;
+    for (var i = 0; i < tapCount; i++) {
+        var row = [];
+        for (var j = 0; j < tapCount; j++) {
+            row.push(lagProduct(reference, reference, delays[i] - delays[j], stride));
+        }
+        gram.push(row);
+        cross.push(lagProduct(microphone, reference, -delays[i], stride));
+    }
+    var diag = gram[0][0] * 0.02;
+    for (var d = 0; d < tapCount; d++) gram[d][d] += diag;
+    var coeffs = solveSystem(gram, cross);
+    if (!coeffs) return null;
+    return { delays: delays, coeffs: coeffs };
+}
+
+function subtractEcho(microphone, reference, filter) {
+    var out = new Float32Array(microphone.length);
+    var delays = filter.delays;
+    var coeffs = filter.coeffs;
+    for (var i = 0; i < microphone.length; i++) {
+        var echo = 0;
+        for (var t = 0; t < delays.length; t++) {
+            var j = i - delays[t];
+            if (j >= 0 && j < reference.length) echo += coeffs[t] * reference[j];
+        }
+        out[i] = microphone[i] - echo;
+    }
+    return out;
+}
+
+function separateStudentFromPlayback(reference, referenceRate, microphone, microphoneRate) {
+    var verdict = judgeMicAgainstReference(reference, referenceRate, microphone, microphoneRate);
+    verdict.cleaned = null;
+    verdict.cleanedRate = 0;
+    verdict.subtracted = false;
+    verdict.residualRatio = 1;
+    if (verdict.block || verdict.kind === 'skip' || verdict.kind === 'silence') return verdict;
+    if (verdict.correlation < 0.35 || verdict.lagSpread > 40) return verdict;
+
+    var ref = downsampleMono(reference, referenceRate, CLEAN_RATE);
+    var mic = downsampleMono(microphone, microphoneRate, CLEAN_RATE);
+    var n = Math.min(ref.length, mic.length);
+    if (n < CLEAN_RATE) return verdict;
+    ref = ref.subarray(0, n);
+    mic = mic.subarray(0, n);
+    var lagSamples = Math.round(verdict.lagMs * CLEAN_RATE / 1000);
+    var filter = echoFilter(ref, mic, lagSamples);
+    if (!filter) return verdict;
+    var cleaned = subtractEcho(mic, ref, filter);
+    var before = signalRms(mic);
+    var after = signalRms(cleaned);
+    if (!(before > 0) || after > before * 1.15) return verdict;
+    var ratio = after / before;
+    if (ratio < 0.22) {
+        verdict.block = true;
+        verdict.kind = 'playback';
+        verdict.message = playbackMessage();
+        verdict.residualRatio = round3(ratio);
+        return verdict;
+    }
+    verdict.kind = 'mixed';
+    verdict.cleaned = cleaned;
+    verdict.cleanedRate = CLEAN_RATE;
+    verdict.subtracted = true;
+    verdict.residualRatio = round3(ratio);
+    verdict.message = '';
+    return verdict;
+}
+
+function encodeWav(samples, sampleRate) {
+    var n = samples.length;
+    var buffer = new ArrayBuffer(44 + n * 2);
+    var view = new DataView(buffer);
+    function writeText(offset, text) {
+        for (var i = 0; i < text.length; i++) view.setUint8(offset + i, text.charCodeAt(i));
+    }
+    writeText(0, 'RIFF');
+    view.setUint32(4, 36 + n * 2, true);
+    writeText(8, 'WAVE');
+    writeText(12, 'fmt ');
+    view.setUint32(16, 16, true);
+    view.setUint16(20, 1, true);
+    view.setUint16(22, 1, true);
+    view.setUint32(24, sampleRate, true);
+    view.setUint32(28, sampleRate * 2, true);
+    view.setUint16(32, 2, true);
+    view.setUint16(34, 16, true);
+    writeText(36, 'data');
+    view.setUint32(40, n * 2, true);
+    var offset = 44;
+    for (var i = 0; i < n; i++) {
+        var value = samples[i];
+        if (value > 1) value = 1;
+        if (value < -1) value = -1;
+        view.setInt16(offset, value < 0 ? value * 0x8000 : value * 0x7fff, true);
+        offset += 2;
+    }
+    return new Uint8Array(buffer);
+}
+
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = {
         judgeMicAgainstReference: judgeMicAgainstReference,
+        separateStudentFromPlayback: separateStudentFromPlayback,
+        encodeWav: encodeWav,
         playbackMessage: playbackMessage,
         silenceMessage: silenceMessage
     };

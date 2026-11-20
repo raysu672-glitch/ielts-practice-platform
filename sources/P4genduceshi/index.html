@@ -501,7 +501,7 @@
                     <strong>评分方式：</strong>后端使用 Whisper 模型将录音转成文字，再与原文进行逐词比对，使用最长公共子序列（LCS）算法计算匹配度。<br>
                     <strong>任务计次：</strong>识别率 ≥30% 才计入当日练习次数；需有效完成 3 次才算当天任务完成。≥70% 可用于次日换篇。<br>
                     <strong>得分公式：</strong>得分 = 匹配单词数 ÷ 原文总单词数 × 100<br>
-                    <strong>请戴耳机：</strong>外放时原声会从喇叭进麦克风，识别会把原声当成你的跟读来算分。录音如果和原文几乎重合，或里面几乎没有声音，这次不计入成绩。没有耳机时可以选择把原文放轻后再录。识别需要一些时间，请耐心等待。
+                    <strong>请戴耳机：</strong>外放时原声会从喇叭进麦克风。录音里如果能对上原文，会先把这段原声减掉，再用剩下的声音打分。减完几乎没剩下你的声音，或录音本身几乎没声音，这次不计入成绩。没有耳机时可以选择把原文放轻后再录。识别需要一些时间，请耐心等待。
                 </div>
             </section>
 
@@ -578,7 +578,7 @@
     <script src="config.js"></script>
     <script src="upload-error.js?v=20261022a"></script>
     <script src="mic-constraints.js?v=20261120a"></script>
-    <script src="playback-only.js?v=20261120b"></script>
+    <script src="playback-only.js?v=20261120c"></script>
     <script>
         // ==================== 配置 ====================
         const API_BASE = (window.API_CONFIG && window.API_CONFIG.API_BASE) || '/api/p4';
@@ -1187,6 +1187,9 @@
                 if (!refRes.ok) return null;
                 const mic = await decodeMonoBuffer(ctx, await blob.arrayBuffer());
                 const ref = await decodeMonoBuffer(ctx, await refRes.arrayBuffer());
+                if (typeof separateStudentFromPlayback === 'function') {
+                    return separateStudentFromPlayback(ref.samples, ref.sampleRate, mic.samples, mic.sampleRate);
+                }
                 return judgeMicAgainstReference(ref.samples, ref.sampleRate, mic.samples, mic.sampleRate);
             } finally {
                 try { ctx.close(); } catch (e) {}
@@ -1199,7 +1202,8 @@
                     window.__ieltsDebugTracePush('gendu_playback_only', {
                         kind: verdict.kind,
                         correlation: verdict.correlation,
-                        lagMs: verdict.lagMs
+                        lagMs: verdict.lagMs,
+                        residualRatio: verdict.residualRatio
                     });
                 }
             } catch (e) {}
@@ -1225,7 +1229,7 @@
 
             let verdict = null;
             try {
-                elements.statusText.textContent = '正在确认录音里是不是只有播放的原声...';
+                elements.statusText.textContent = '正在把录音里的原声和学生的声音分开...';
                 verdict = await judgeAgainstLesson(
                     state.userRecordingBlob,
                     currentLesson && currentLesson.audioUrl
@@ -1238,9 +1242,20 @@
                 return;
             }
 
+            var uploadBlob = state.userRecordingBlob;
+            var uploadName = 'recording.webm';
+            if (verdict && verdict.cleaned && typeof encodeWav === 'function') {
+                uploadBlob = new Blob(
+                    [encodeWav(verdict.cleaned, verdict.cleanedRate)],
+                    { type: 'audio/wav' }
+                );
+                uploadName = 'recording.wav';
+                elements.statusText.textContent = '已减弱录音里的原声，正在上传识别...';
+            }
+
             try {
                 const form = new FormData();
-                form.append('file', state.userRecordingBlob, 'recording.webm');
+                form.append('file', uploadBlob, uploadName);
                 // 上传当前课的原文，让评分后端按本课文本逐词比对（否则后端
                 // 会 fallback 到默认篇目，导致任务里跟读其它课文得分个位数）
                 if (currentLesson && currentLesson.text) {

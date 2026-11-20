@@ -1,5 +1,9 @@
 const assert = require('node:assert/strict');
-const { judgeMicAgainstReference } = require('../sources/P4genduceshi/playback-only.js');
+const {
+    judgeMicAgainstReference,
+    separateStudentFromPlayback,
+    encodeWav
+} = require('../sources/P4genduceshi/playback-only.js');
 
 const SR = 8000;
 
@@ -84,3 +88,26 @@ assert.equal(mixed.kind, 'ok');
 assert.equal(silent.block, true);
 assert.equal(silent.kind, 'silence');
 assert.match(silent.message, /几乎没有声音/);
+
+const studentOnly = separateStudentFromPlayback(lesson, SR, student, SR);
+assert.equal(studentOnly.block, false);
+assert.equal(studentOnly.subtracted, false);
+assert.equal(studentOnly.cleaned, null);
+
+const playbackOnly = separateStudentFromPlayback(lesson, SR, played, SR);
+assert.equal(playbackOnly.block, true);
+assert.equal(playbackOnly.cleaned, null);
+
+const separated = separateStudentFromPlayback(lesson, SR, both, SR);
+assert.equal(separated.block, false);
+assert.equal(separated.subtracted, true);
+assert.equal(separated.kind, 'mixed');
+assert.ok(separated.residualRatio < 0.9);
+const leftover = judgeMicAgainstReference(lesson, SR, separated.cleaned, separated.cleanedRate);
+const kept = judgeMicAgainstReference(student, SR, separated.cleaned, separated.cleanedRate);
+assert.ok(leftover.correlation < mixed.correlation);
+assert.ok(kept.correlation > 0.55);
+
+const wav = encodeWav(separated.cleaned.subarray(0, 160), separated.cleanedRate);
+assert.equal(String.fromCharCode(wav[0], wav[1], wav[2], wav[3]), 'RIFF');
+assert.equal(wav.length, 44 + 160 * 2);
