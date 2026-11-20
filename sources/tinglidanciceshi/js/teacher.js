@@ -2382,7 +2382,38 @@ async function toggleStatus(studentId, currentStatus) {
     showToast('学生已' + (newStatus === 'active' ? '启用' : '禁用'), 'success');
 }
 
+// SheetJS 仅教师导出 Excel 时按需加载，避免登录页同步拉 ~900KB CDN。
+var _xlsxLoadPromise = null;
+function ensureXlsxLoaded() {
+    if (window.XLSX) return Promise.resolve(window.XLSX);
+    if (_xlsxLoadPromise) return _xlsxLoadPromise;
+    _xlsxLoadPromise = new Promise(function(resolve, reject) {
+        var s = document.createElement('script');
+        s.src = '/tinglidanciceshi/js/xlsx.full.min.js?v=0.18.5';
+        s.async = true;
+        s.onload = function() {
+            if (window.XLSX) resolve(window.XLSX);
+            else {
+                _xlsxLoadPromise = null;
+                reject(new Error('XLSX missing after load'));
+            }
+        };
+        s.onerror = function() {
+            _xlsxLoadPromise = null;
+            reject(new Error('xlsx script load failed'));
+        };
+        document.head.appendChild(s);
+    });
+    return _xlsxLoadPromise;
+}
+
 async function exportStudentsExcel() {
+    try {
+        await ensureXlsxLoaded();
+    } catch (e) {
+        showToast('导出组件加载失败，请稍后重试', 'error');
+        return;
+    }
     const result = await teacherApiGet('/api/teacher/students');
     if (!result.data) return;
     const data = result.data.map(function(s) {
@@ -2402,6 +2433,12 @@ async function exportStudentsExcel() {
 }
 
 async function exportRecordsExcel() {
+    try {
+        await ensureXlsxLoaded();
+    } catch (e) {
+        showToast('导出组件加载失败，请稍后重试', 'error');
+        return;
+    }
     const result = await teacherApiGet('/api/teacher/test-records?limit=5000');
     if (!result.data) return;
     const data = result.data.map(function(r) {

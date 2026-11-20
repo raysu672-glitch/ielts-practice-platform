@@ -1,5 +1,13 @@
 # 版本记录
 
+## 登录页首开加速：去掉同步 CDN，SheetJS 按需加载（2026-11-20）
+
+登录页 `<head>` 原先同步拉 Supabase（~220KB）和 SheetJS（~900KB）两个海外 CDN，
+国内首开常卡 3s+；生产实际走同域 SQLite，Supabase 脚本是空转；SheetJS 只给教师「导出 Excel」用。
+
+改法：入口去掉两处同步 `<script>`；`teacher.js` 在导出前按需加载本站
+`/tinglidanciceshi/js/xlsx.full.min.js`（xlsx@0.18.5），失败 toast 提示。登录/学习/任务链路不变。
+
 ## 听力1000词「空单元」修复：单元数跟词库实际组数走（2026-10-15）
 
 导出听力词表时对账发现：**任务系统给「听力1000词」建了 50 个单元，词库却只有 48 组**，
