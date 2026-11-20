@@ -121,7 +121,8 @@
       flex: 1;
       min-height: 420px;
       display: grid !important;
-      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr) !important;
+      /* 左：老师修正（宽）· 中：学生作文 · 右：错误统计（约半宽） */
+      grid-template-columns: minmax(0, 2.2fr) minmax(0, 1.5fr) minmax(200px, 0.55fr) !important;
       gap: 12px;
       width: 100%;
     }
@@ -135,6 +136,9 @@
       min-height: 0;
       overflow: hidden;
     }
+    .pane-teacher { min-width: 0; }
+    .pane-essay { min-width: 0; }
+    .pane-stats { min-width: 0; }
     .pane-head {
       padding: 12px 14px;
       border-bottom: 1px solid #eef1f4;
@@ -150,8 +154,10 @@
     .pane-body {
       padding: 12px 14px;
       overflow: auto;
+      overflow-x: hidden;
       flex: 1;
       min-height: 0;
+      -webkit-overflow-scrolling: touch;
     }
     .essay-text {
       white-space: pre-wrap;
@@ -195,18 +201,27 @@
     }
     .stats-grid {
       display: grid;
-      grid-template-columns: repeat(2, 1fr);
+      grid-template-columns: 1fr;
       gap: 8px;
       margin-bottom: 12px;
     }
     .stat-item {
       background: #e8f4f8;
-      padding: 10px;
+      padding: 8px 10px;
       border-radius: 8px;
       text-align: center;
     }
-    .stat-value { font-size: 20px; font-weight: 700; color: #2980b9; }
+    .stat-value { font-size: 18px; font-weight: 700; color: #2980b9; }
     .stat-label { font-size: 12px; color: #7f8c8d; }
+    .pane-stats .checkpoint-item {
+      padding: 8px 10px;
+      margin-bottom: 8px;
+    }
+    .pane-stats .corrected-text,
+    .pane-stats .error-text {
+      word-break: break-word;
+      overflow-wrap: anywhere;
+    }
     .type-stats {
       display: flex;
       flex-wrap: wrap;
@@ -250,13 +265,17 @@
       display: flex;
       flex-direction: column;
       gap: 10px;
-      height: 100%;
       min-height: 0;
+      /* 不设 height:100%，避免把长评语裁切在 pane 内显示不全 */
+    }
+    .teacher-form.edit-mode {
+      height: 100%;
     }
     .teacher-form label {
       font-size: 13px;
       font-weight: 600;
       color: #5f6b7a;
+      flex-shrink: 0;
     }
     .teacher-form textarea {
       width: 100%;
@@ -269,25 +288,31 @@
       font-family: inherit;
       color: #2c3e50;
       background: #fff;
+      min-height: 0;
     }
     .teacher-form textarea:focus {
       outline: none;
       border-color: #3498db;
       box-shadow: 0 0 0 3px rgba(52,152,219,0.15);
     }
-    #teacherRevision { flex: 1.4; min-height: 180px; }
-    #teacherComment { flex: 0.8; min-height: 120px; }
+    .teacher-form.edit-mode #teacherRevision {
+      flex: 1;
+      min-height: 280px;
+      overflow: auto;
+    }
     .teacher-actions {
       display: flex;
       gap: 8px;
       align-items: center;
       flex-wrap: wrap;
       margin-top: 4px;
+      flex-shrink: 0;
     }
     .save-hint { font-size: 12px; color: #95a5a6; }
     .badge.new { background: #fdecea; color: #c0392b; margin-left: 6px; }
     .teacher-readonly {
       white-space: pre-wrap;
+      overflow-wrap: anywhere;
       word-break: break-word;
       font-size: 14px;
       line-height: 1.7;
@@ -297,6 +322,9 @@
       border-radius: 8px;
       padding: 12px;
       min-height: 80px;
+      max-width: 100%;
+      /* 内容完整展示，由外层 pane-body 滚动 */
+      overflow: visible;
     }
     .teacher-readonly.empty { color: #95a5a6; }
     .unseen-banner {
@@ -403,12 +431,18 @@
     }
     .topic-group .list-table { box-shadow: none; border-radius: 0; }
 
+    @media (max-width: 1100px) {
+      .split-board {
+        grid-template-columns: minmax(0, 1.8fr) minmax(0, 1.3fr) minmax(180px, 0.6fr) !important;
+      }
+    }
     @media (max-width: 720px) {
       .split-board {
         grid-template-columns: 1fr !important;
         overflow: auto;
       }
       .pane { min-height: 280px; }
+      .pane-stats .stats-grid { grid-template-columns: repeat(2, 1fr); }
       .container.detail-mode { height: auto; }
     }
   </style>
@@ -768,7 +802,7 @@
         : `共 ${records.length} 条提交`;
 
       const banner = (isStudentMode && unseen > 0)
-        ? `<div class="unseen-banner">老师已批改 ${unseen} 篇作文，点击记录查看评语</div>`
+        ? `<div class="unseen-banner">老师已批改 ${unseen} 篇作文，点击记录查看修正</div>`
         : '';
 
       if (isStudentMode) {
@@ -826,7 +860,7 @@
         if (resp.ok && result.success) {
           record.hasUnseenFeedback = false;
           record.studentFeedbackSeenAt = result.studentFeedbackSeenAt || '';
-          showToast('老师已批改，请查看右侧评语', 'ok');
+          showToast('老师已批改，请查看左侧修正', 'ok');
         }
       } catch (e) {
         console.warn('ack feedback failed', e);
@@ -847,8 +881,8 @@
       document.getElementById('detailView').classList.remove('hidden');
       document.getElementById('detailView').style.display = 'flex';
       document.getElementById('pageSubtitle').textContent = isStudentMode
-        ? '左：原文 · 中：错误统计与改错记录 · 右：老师修正与评语'
-        : '左：学生原文 · 中：错误统计与改错记录 · 右：老师修正与评语';
+        ? '左：老师修正 · 中：原文 · 右：错误统计与改错记录'
+        : '左：老师修正 · 中：学生原文 · 右：错误统计与改错记录';
       document.getElementById('detailView').innerHTML = renderRecord(record);
       ackFeedbackIfNeeded(record);
     }
@@ -989,7 +1023,6 @@
 
       const essay = record.essay || '';
       const revision = record.teacherRevision || '';
-      const comment = record.teacherComment || '';
       const updatedAt = record.teacherUpdatedAt ? formatDate(record.teacherUpdatedAt) : '';
       const located = locateErrorRanges(essay, checkpoints);
       const reviewed = !!record.teacherReviewed;
@@ -997,34 +1030,29 @@
 
       const teacherPane = isStudentMode
         ? `
-          <section class="pane">
+          <section class="pane pane-teacher">
             <div class="pane-head">
-              <span>老师修正与评语</span>
+              <span>老师修正</span>
               <span class="meta">${reviewed ? (updatedAt ? '批改于 ' + escapeHtml(updatedAt) : '已批改') : '尚未批改'}</span>
             </div>
             <div class="pane-body">
               <div class="teacher-form">
-                <label>老师进一步修正</label>
                 <div class="teacher-readonly ${revision.trim() ? '' : 'empty'}">${revision.trim() ? escapeHtml(revision) : '老师尚未填写修正稿'}</div>
-                <label>老师评语</label>
-                <div class="teacher-readonly ${comment.trim() ? '' : 'empty'}">${comment.trim() ? escapeHtml(comment) : '老师尚未填写评语'}</div>
                 ${!reviewed ? '<p class="meta" style="margin-top:8px;">提交后请耐心等待老师批改；批改完成后会在历史列表中提示「新批改」。</p>' : ''}
               </div>
             </div>
           </section>
         `
         : `
-          <section class="pane">
+          <section class="pane pane-teacher">
             <div class="pane-head">
-              <span>老师修正与评语</span>
+              <span>老师修正</span>
               <span class="meta" id="teacherSaveMeta">${updatedAt ? '上次保存 ' + escapeHtml(updatedAt) : '尚未保存'}</span>
             </div>
             <div class="pane-body">
-              <div class="teacher-form">
+              <div class="teacher-form edit-mode">
                 <label for="teacherRevision">进一步修正（可直接改写学生作文）</label>
                 <textarea id="teacherRevision" placeholder="在此粘贴或编写老师修正后的作文...">${escapeHtml(revision)}</textarea>
-                <label for="teacherComment">评语</label>
-                <textarea id="teacherComment" placeholder="对学生作文的整体评语、亮点与建议...">${escapeHtml(comment)}</textarea>
                 <div class="teacher-actions">
                   <button class="btn success" id="saveTeacherFeedbackBtn" onclick="saveTeacherFeedback(${Number(record.id)})">保存</button>
                   <button class="btn secondary" type="button" onclick="fillRevisionFromEssay(${Number(record.id)})">用原文填充修正区</button>
@@ -1064,20 +1092,22 @@
         <div class="detail-head">
           <div>
             <div class="detail-title">${identity} ${attemptLabel}</div>
-            <div class="meta">提交于 ${escapeHtml(formatDate(record.createdAt))} · 点击红色错误可定位到左侧作文</div>
+            <div class="meta">提交于 ${escapeHtml(formatDate(record.createdAt))} · 点击红色错误可定位到中间作文</div>
             <div class="detail-topic"><strong>题目：</strong>${topicFull ? escapeHtml(topicFull) : '（未填写题目）'}</div>
           </div>
           ${rewriteAction}
         </div>
         <div class="split-board">
-          <section class="pane">
+          ${teacherPane}
+
+          <section class="pane pane-essay">
             <div class="pane-head">学生作文<span class="meta">红色标注为错误位置</span></div>
             <div class="pane-body" id="essayPaneBody">
               <div class="essay-text" id="essayTextPanel">${renderEssayWithMarks(essay, checkpoints)}</div>
             </div>
           </section>
 
-          <section class="pane">
+          <section class="pane pane-stats">
             <div class="pane-head">错误统计与改错记录</div>
             <div class="pane-body">
               <div class="stats-grid">
@@ -1139,8 +1169,6 @@
               </div>
             </div>
           </section>
-
-          ${teacherPane}
         </div>
       `;
     }
@@ -1160,12 +1188,13 @@
         return;
       }
       const revisionEl = document.getElementById('teacherRevision');
-      const commentEl = document.getElementById('teacherComment');
       const btn = document.getElementById('saveTeacherFeedbackBtn');
-      if (!revisionEl || !commentEl) return;
+      if (!revisionEl) return;
 
       const teacherRevision = revisionEl.value;
-      const teacherComment = commentEl.value;
+      // 评语入口已去掉：保存时保留原有评语，避免误清空
+      const existing = allRecords.find(r => String(r.id) === String(recordId));
+      const teacherComment = existing && existing.teacherComment ? String(existing.teacherComment) : '';
       if (btn) btn.disabled = true;
 
       try {
@@ -1191,7 +1220,7 @@
         if (meta) {
           meta.textContent = '上次保存 ' + formatDate(result.teacherUpdatedAt || new Date().toISOString());
         }
-        showToast('已保存老师修正与评语', 'ok');
+        showToast('已保存老师修正', 'ok');
       } catch (e) {
         showToast(e.message || '保存失败', 'err');
       } finally {

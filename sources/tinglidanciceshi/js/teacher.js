@@ -70,7 +70,7 @@ function openWritingTeacherDashboard() {
     showScreen('writingTeacherDashboard');
     var frame = document.getElementById('writingOnlyIframe');
     if (frame) {
-        frame.src = '../xiezuopigai/ielts-writing-backend/teacher.html?v=13&entry=writing-teacher&_=' + Date.now();
+        frame.src = '../xiezuopigai/ielts-writing-backend/teacher.html?v=15&entry=writing-teacher&_=' + Date.now();
     }
 }
 
@@ -1977,7 +1977,7 @@ function switchTeacherTab(tab, evt, options) {
     if (tab === 'writing') {
         var frame = document.getElementById('writingReportsIframe');
         if (frame) {
-            frame.src = '../xiezuopigai/ielts-writing-backend/teacher.html?v=12&_=' + Date.now();
+            frame.src = '../xiezuopigai/ielts-writing-backend/teacher.html?v=15&_=' + Date.now();
             frame.setAttribute('data-loaded', '1');
         }
     }

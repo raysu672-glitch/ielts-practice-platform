@@ -820,7 +820,7 @@ function openWritingCorrectionHistory() {
     openGenericIframe(
         'writing_correction',
         '作文批改历史',
-        '../xiezuopigai/ielts-writing-backend/teacher.html?role=student&v=12',
+        '../xiezuopigai/ielts-writing-backend/teacher.html?role=student&v=15',
         'history'
     );
 }
