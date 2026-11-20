@@ -617,7 +617,7 @@
   </style>
 </head>
 <body><script src="/shared/debug_trace.js?v=20260924trace"></script>
-<script src="practice_score.js?v=20261120punct"></script>
+<script src="practice_score.js?v=20261120fresh"></script>
   <div class="app">
     <header class="topbar">
       <div class="brand">
@@ -2099,6 +2099,8 @@ Nowadays, many people choose to live in big cities because they can find better 
       behaviors: {},  // { checkpointId: { hintLevelUsed, timeSpent, studentAnswer, firstOpenTime, submitTime } }
       essayStartTime: null,
       aiSupplementDone: false,
+      // 完成训练后禁止再自动续改 / pagehide 回写进度
+      practiceCompleted: false,
       // 每个检查点最多 AI 复核一次；同答案结果可复用
       aiVerifyTried: {}, // { checkpointId: true }
       aiVerifyCache: {}  // { "id::normAnswer": { ok, reason, timedOut } }
@@ -2456,15 +2458,6 @@ Nowadays, many people choose to live in big cities because they can find better 
       };
     }
 
-    function isResumableProgress(data) {
-      return !!(
-        data &&
-        Array.isArray(data.sentences) &&
-        data.sentences.length > 0 &&
-        data.aiSupplementDone
-      );
-    }
-
     function progressStats(data) {
       const sentences = (data && data.sentences) || [];
       let total = 0;
@@ -2477,6 +2470,23 @@ Nowadays, many people choose to live in big cities because they can find better 
       return { total, doneCount };
     }
 
+    function isProgressFullyCompleted(data) {
+      if (!data) return false;
+      if (data.practiceCompleted) return true;
+      const stats = progressStats(data);
+      return stats.total > 0 && stats.doneCount >= stats.total;
+    }
+
+    function isResumableProgress(data) {
+      return !!(
+        data &&
+        Array.isArray(data.sentences) &&
+        data.sentences.length > 0 &&
+        data.aiSupplementDone &&
+        !isProgressFullyCompleted(data)
+      );
+    }
+
     function clearLocalProgress(studentId) {
       const key = progressStorageKey(studentId);
       try {
@@ -2487,8 +2497,10 @@ Nowadays, many people choose to live in big cities because they can find better 
 
     function saveProgress() {
       try {
+        if (state.practiceCompleted) return;
         if (!state.sentences || state.sentences.length === 0) return;
         const payload = buildProgressPayload();
+        if (isProgressFullyCompleted(payload)) return;
         localStorage.setItem(progressStorageKey(payload.studentId), JSON.stringify(payload));
         scheduleSyncDraft(payload);
       } catch (e) {
@@ -2502,6 +2514,7 @@ Nowadays, many people choose to live in big cities because they can find better 
     }
 
     function scheduleSyncDraft(payload) {
+      if (state.practiceCompleted) return;
       const sid = String((payload && payload.studentId) || state.studentId || "").trim();
       if (!sid || !isResumableProgress(payload || buildProgressPayload())) return;
       clearTimeout(syncDraftTimer);
@@ -3266,6 +3279,7 @@ Nowadays, many people choose to live in big cities because they can find better 
       state.topic = topic;
       state.essay = text;
       state.aiSupplementDone = false;
+      state.practiceCompleted = false;
       state.sentences = rawSentences.map((sentence) => ({
         text: sentence,
         checkpoints: generateCheckpoints(sentence)
@@ -3504,7 +3518,13 @@ Nowadays, many people choose to live in big cities because they can find better 
         updateFinishButton();
         return;
       }
-      saveProgress();
+
+      // 完成后不再续改：先打标并清草稿，避免 pagehide 又写回进度
+      state.practiceCompleted = true;
+      clearTimeout(saveProgressTimer);
+      clearTimeout(syncDraftTimer);
+      clearLocalProgress(state.studentId);
+      clearServerDraft(state.studentId);
 
       const checkpoints = [];
       state.sentences.forEach((sentence, si) => {
@@ -3524,7 +3544,7 @@ Nowadays, many people choose to live in big cities because they can find better 
         });
       });
 
-      // 保存数据到后端
+      // 保存数据到后端（正式记录；草稿已清）
       try {
         const totalStats = {};
         checkpoints.forEach(cp => {
@@ -3547,6 +3567,7 @@ Nowadays, many people choose to live in big cities because they can find better 
         if (result.success) {
           console.log("练习数据已保存到后端，记录ID:", result.recordId);
           clearLocalProgress(state.studentId);
+          clearServerDraft(state.studentId);
         } else {
           console.error("保存失败:", result.message);
           showToast(result.message || "保存失败，请稍后重试");
@@ -3675,6 +3696,7 @@ Nowadays, many people choose to live in big cities because they can find better 
       state.aiVerifyCache = {};
       state.essayStartTime = null;
       state.aiSupplementDone = false;
+      state.practiceCompleted = false;
       updateResumeBanner(null);
       document.querySelector("#studentName").value = state.studentName;
       const topicInput = document.querySelector("#topicInput");
@@ -3707,11 +3729,13 @@ Nowadays, many people choose to live in big cities because they can find better 
     }
 
     window.addEventListener("pagehide", () => {
+      if (state.practiceCompleted) return;
       if (state.sentences && state.sentences.length > 0 && state.aiSupplementDone) {
         saveProgress();
       }
     });
     document.addEventListener("visibilitychange", () => {
+      if (state.practiceCompleted) return;
       if (document.visibilityState === "hidden" && state.sentences && state.sentences.length > 0 && state.aiSupplementDone) {
         saveProgress();
       }
@@ -3933,12 +3957,27 @@ Nowadays, many people choose to live in big cities because they can find better 
         return;
       }
 
-      let restored = loadProgress() && state.sentences.length > 0;
+      // 已完成的进度不当续改：清掉后进初始上传页
+      const localPeek = readLocalProgressRaw(platform.studentId);
+      if (localPeek && isProgressFullyCompleted(localPeek)) {
+        clearLocalProgress(platform.studentId);
+        clearServerDraft(platform.studentId);
+      }
+
+      let restored = loadProgress() && state.sentences.length > 0 && isResumableProgress({
+        sentences: state.sentences,
+        done: Array.from(state.done),
+        verdicts: state.verdicts,
+        aiSupplementDone: state.aiSupplementDone,
+        practiceCompleted: state.practiceCompleted
+      });
       if (!restored) {
         const serverDraft = await fetchServerDraft(platform.studentId);
-        if (isResumableProgress(serverDraft) && applyProgressData(serverDraft)) {
+        if (serverDraft && isProgressFullyCompleted(serverDraft)) {
+          clearLocalProgress(platform.studentId);
+          await clearServerDraft(platform.studentId);
+        } else if (isResumableProgress(serverDraft) && applyProgressData(serverDraft)) {
           restored = true;
-          // 拉回本地，便于离线续改
           try {
             localStorage.setItem(progressStorageKey(state.studentId), JSON.stringify(buildProgressPayload()));
           } catch (e) {}
@@ -3951,8 +3990,19 @@ Nowadays, many people choose to live in big cities because they can find better 
         render();
         showToast(`已恢复上次进度（${state.done.size}/${getTotalCheckpointCount()}）`);
       } else {
-        const peek = readLocalProgressRaw(platform.studentId);
-        updateResumeBanner(isResumableProgress(peek) ? peek : null);
+        // 确保内存态也是干净的初始页
+        state.sentences = [];
+        state.done = new Set();
+        state.answers = {};
+        state.verdicts = {};
+        state.submitted = new Set();
+        state.practiceCompleted = false;
+        state.aiSupplementDone = false;
+        updateResumeBanner(null);
+        const topicInput = document.querySelector("#topicInput");
+        const essayInput = document.querySelector("#essayInput");
+        if (topicInput && !isRewriteMode() && !isAssignmentMode()) topicInput.value = "";
+        if (essayInput && !isRewriteMode() && !isAssignmentMode()) essayInput.value = "";
         showStage("start");
       }
     })();
