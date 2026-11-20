@@ -982,3 +982,9 @@
                 width: 100%;
             }
         }
+
+/* auth login hints */
+.auth-hint{min-height:1.2em;margin-top:6px;font-size:0.85rem;color:#2563eb;}
+.auth-hint.is-error{color:#b91c1c;}
+.auth-hint.is-muted{color:#6b7280;}
+.auth-help{margin:4px 0 12px;font-size:0.85rem;color:#6b7280;line-height:1.45;}

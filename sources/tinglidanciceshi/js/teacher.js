@@ -234,13 +234,18 @@ function renderStudentsList() {
         container.innerHTML = '<p style="text-align:center;color:#666;padding:20px;">无匹配学生</p>';
         return;
     }
-    let html = '<table><thead><tr><th>学号</th><th>姓名</th><th>目标</th><th>状态</th><th>录入时间</th><th>操作</th></tr></thead><tbody>';
+    let html = '<table><thead><tr><th>学号</th><th>姓名</th><th>目标</th><th>状态</th><th>近7天重置</th><th>录入时间</th><th>操作</th></tr></thead><tbody>';
     for (let i = 0; i < filtered.length; i++) {
         const s = filtered[i];
         const statusBadge = s.status === 'active' ? 'badge-success">正常' : 'badge-danger">禁用';
         const toggleLabel = s.status === 'active' ? '禁用' : '启用';
         const toggleClass = s.status === 'active' ? 'btn-danger' : 'btn-success';
+        const resets7d = Number(s.resets_7d) || 0;
+        const resetsCell = resets7d > 0
+            ? ('<span style="color:#b45309;font-weight:600;">' + resets7d + '</span>')
+            : '0';
         html += '<tr><td>' + escapeHtml(s.student_id) + '</td><td>' + studentNameLinkHtml(s.student_id, s.name, 'students') + '</td><td>' + s.target_score + '分</td><td><span class="badge ' + statusBadge + '</span></td>';
+        html += '<td>' + resetsCell + '</td>';
         html += '<td>' + escapeHtml(formatChinaDateTime(s.created_at)) + '</td>';
         html += '<td><div class="student-actions">';
         html += '<button class="btn btn-sm" onclick="openStudentLearningProgress(\'' + escapeJsString(s.student_id) + '\',\'' + escapeJsString(s.name) + '\',\'students\')">查看情况</button>';
@@ -2286,6 +2291,87 @@ async function resetPassword(studentId) {
     if (result.error) { showToast((result.error && result.error.message) || '重置失败', 'error'); return; }
     var pwd = (result.data && result.data.password) || '';
     showToast('密码已重置为 ' + pwd + '，请告知学生用此密码登录并修改密码', 'success');
+    loadStudents();
+}
+
+async function showDuplicateStudentsModal() {
+    showModal('duplicateStudentsModal');
+    var box = document.getElementById('duplicateStudentsList');
+    if (box) box.innerHTML = '<p style="color:#666;padding:12px;">加载中…</p>';
+    var result = await teacherApiGet('/api/teacher/students/duplicates');
+    if (!box) return;
+    if (result.error) {
+        box.innerHTML = '<p style="color:#b91c1c;">' + escapeHtml((result.error && result.error.message) || '加载失败') + '</p>';
+        return;
+    }
+    var groups = result.data || [];
+    if (!groups.length) {
+        box.innerHTML = '<p style="color:#666;padding:12px;">当前没有同名重复账号</p>';
+        return;
+    }
+    var html = '';
+    for (var g = 0; g < groups.length; g++) {
+        var group = groups[g];
+        var gid = 'dupGroup_' + g;
+        html += '<div style="border:1px solid #e5e7eb;border-radius:8px;padding:12px;margin-bottom:12px;">';
+        html += '<div style="font-weight:600;margin-bottom:8px;">' + escapeHtml(group.name) +
+            ' <span style="color:#888;font-weight:400;">（' + group.count + ' 个账号）</span></div>';
+        html += '<table style="width:100%;font-size:0.9rem;"><thead><tr>' +
+            '<th>保留</th><th>合并</th><th>学号</th><th>状态</th><th>测试</th><th>学习</th><th>最近登录</th></tr></thead><tbody>';
+        var students = group.students || [];
+        var preferIdx = 0;
+        var bestScore = -1;
+        for (var i = 0; i < students.length; i++) {
+            var sc = (Number(students[i].test_records) || 0) + (Number(students[i].study_sessions) || 0);
+            if (students[i].status === 'active') sc += 0.5;
+            if (sc > bestScore) { bestScore = sc; preferIdx = i; }
+        }
+        for (var j = 0; j < students.length; j++) {
+            var s = students[j];
+            var sid = String(s.student_id || '');
+            html += '<tr>';
+            html += '<td><input type="radio" name="' + gid + '_keep" value="' + escapeHtml(sid) + '"' +
+                (j === preferIdx ? ' checked' : '') + '></td>';
+            html += '<td><input type="checkbox" class="' + gid + '_merge" value="' + escapeHtml(sid) + '"' +
+                (j === preferIdx ? '' : ' checked') + '></td>';
+            html += '<td>' + escapeHtml(sid) + '</td>';
+            html += '<td>' + (s.status === 'active' ? '正常' : '禁用') + '</td>';
+            html += '<td>' + (Number(s.test_records) || 0) + '</td>';
+            html += '<td>' + (Number(s.study_sessions) || 0) + '</td>';
+            html += '<td>' + escapeHtml(formatChinaDateTime(s.last_login_at) || '—') + '</td>';
+            html += '</tr>';
+        }
+        html += '</tbody></table>';
+        html += '<div style="margin-top:10px;"><button class="btn btn-sm" onclick="mergeDuplicateGroup(' + g + ')">合并本组</button></div>';
+        html += '</div>';
+    }
+    box.innerHTML = html;
+}
+
+async function mergeDuplicateGroup(groupIndex) {
+    var gid = 'dupGroup_' + groupIndex;
+    var keepEl = document.querySelector('input[name="' + gid + '_keep"]:checked');
+    if (!keepEl) { showToast('请选择保留学号', 'error'); return; }
+    var keepId = keepEl.value;
+    var mergeEls = document.querySelectorAll('.' + gid + '_merge:checked');
+    var mergeIds = [];
+    for (var i = 0; i < mergeEls.length; i++) {
+        var v = mergeEls[i].value;
+        if (v && v !== keepId) mergeIds.push(v);
+    }
+    if (!mergeIds.length) { showToast('请至少勾选一个要合并的账号', 'error'); return; }
+    if (!confirm('将 ' + mergeIds.join('、') + ' 合并到 ' + keepId + '？被合并账号将禁用。')) return;
+    var result = await teacherApiPost('/api/teacher/students/merge', {
+        keep_student_id: keepId,
+        merge_student_ids: mergeIds
+    });
+    if (result.error) {
+        showToast((result.error && result.error.message) || '合并失败', 'error');
+        return;
+    }
+    showToast('已合并到 ' + keepId, 'success');
+    loadStudents();
+    showDuplicateStudentsModal();
 }
 
 async function toggleStatus(studentId, currentStatus) {

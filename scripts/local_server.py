@@ -132,7 +132,12 @@ def _activity_plan_context(conn: Any, plan_item_id: Any) -> dict[str, str]:
     out["module_name"] = TASK_MODULE_LABELS.get(mt, mt)
     return out
 from cors_utils import cors_headers_for_origin  # noqa: E402
-from password_utils import authenticate_row_password, hash_password, is_password_hashed  # noqa: E402
+from password_utils import (  # noqa: E402
+    authenticate_row_password,
+    hash_password,
+    is_password_hashed,
+    verify_password,
+)
 from session_auth import (  # noqa: E402
     SESSION_COOKIE_NAME,
     build_session_cookie,
@@ -180,15 +185,19 @@ from trial_api import (  # noqa: E402
 DEFAULT_STATIC_DIR = ROOT / "sources"
 
 from teacher_api import (  # noqa: E402
+    PASSWORD_RESET_ACTION,
     create_student,
     create_students_batch,
     create_teacher,
+    list_duplicate_name_groups,
     list_standards as list_teacher_standards,
     list_students,
     list_teachers,
     list_test_records as list_teacher_test_records,
     load_overview,
     load_student_detail,
+    lookup_student_by_id,
+    merge_students,
     reset_student_password,
     reset_teacher_password,
     toggle_student_status,
@@ -1527,6 +1536,19 @@ class LocalHandler(SimpleHTTPRequestHandler):
                 }
             )
 
+    def handle_student_lookup(self) -> None:
+        """Public: confirm student name after typing student_id (no secrets)."""
+        parsed = urllib.parse.urlparse(self.path)
+        qs = urllib.parse.parse_qs(parsed.query or "")
+        student_id = str((qs.get("student_id") or [""])[0] or "").strip()
+        with closing(connect(self.db_path)) as conn:
+            row, err = lookup_student_by_id(conn, student_id)
+            if err:
+                status = 400 if err == "请输入学号" else 404
+                self.send_json({"data": None, "error": {"message": err}}, status=status)
+                return
+            self.send_json({"data": row, "error": None})
+
     def handle_student_login(self) -> None:
         payload = self.read_json_body()
         student_id = str(payload.get("student_id") or "").strip()
@@ -1537,6 +1559,24 @@ class LocalHandler(SimpleHTTPRequestHandler):
             self.send_json({"data": None, "error": {"message": "请输入学号和密码"}}, status=400)
             return
         with closing(connect(self.db_path)) as conn:
+            raw = conn.execute(
+                "SELECT * FROM students WHERE student_id = ?",
+                (student_id,),
+            ).fetchone()
+            if not raw:
+                self._debug_student(student_id, "auth.login_fail", {"error": "学号不存在"})
+                self.send_json({"data": None, "error": {"message": "学号不存在"}}, status=401)
+                return
+            item = row_to_dict(raw)
+            if item.get("status") != "active":
+                self._debug_student(student_id, "auth.login_fail", {"error": "账号已被禁用"})
+                self.send_json({"data": None, "error": {"message": "账号已被禁用"}}, status=403)
+                return
+            if not verify_password(password, item.get("password")):
+                self._debug_student(student_id, "auth.login_fail", {"error": "密码错误"})
+                self.send_json({"data": None, "error": {"message": "密码错误"}}, status=401)
+                return
+            # Re-run through authenticate to upgrade legacy hashes when needed.
             row = authenticate_row_password(
                 conn,
                 table="students",
@@ -1544,15 +1584,8 @@ class LocalHandler(SimpleHTTPRequestHandler):
                 row_id=student_id,
                 password=password,
             )
-            if not row:
-                self._debug_student(student_id, "auth.login_fail", {"error": "学号或密码错误"})
-                self.send_json({"data": None, "error": {"message": "学号或密码错误"}}, status=401)
-                return
-            item = row_to_dict(row)
-            if item.get("status") != "active":
-                self._debug_student(student_id, "auth.login_fail", {"error": "账号已被禁用"})
-                self.send_json({"data": None, "error": {"message": "账号已被禁用"}}, status=403)
-                return
+            if row:
+                item = row_to_dict(row)
             token = issue_session_token(
                 role="student",
                 subject_id=student_id,
@@ -1720,14 +1753,112 @@ class LocalHandler(SimpleHTTPRequestHandler):
         if not session:
             return
         payload = self.read_json_body()
+        student_id = str(payload.get("student_id") or "").strip()
         with closing(connect(self.db_path)) as conn:
-            initial_password, err = reset_student_password(conn, payload.get("student_id") or "")
+            student_name = ""
+            row = conn.execute(
+                "SELECT name FROM students WHERE student_id = ?",
+                (student_id,),
+            ).fetchone()
+            if row:
+                student_name = str(row["name"] or "")
+            initial_password, err = reset_student_password(conn, student_id)
             if err:
                 self.send_json({"data": None, "error": {"message": err}}, status=400)
                 return
+            try:
+                teacher_id = str(session.get("id") or "")
+                teacher_name = ""
+                trow = conn.execute(
+                    "SELECT name FROM teachers WHERE teacher_id = ?",
+                    (teacher_id,),
+                ).fetchone()
+                if trow:
+                    teacher_name = str(trow["name"] or "")
+                log_activity(
+                    conn,
+                    actor_role="teacher",
+                    actor_id=teacher_id,
+                    actor_name=teacher_name,
+                    action=PASSWORD_RESET_ACTION,
+                    target_student_id=student_id,
+                    summary=f"重置学生密码：{student_name or student_id}",
+                    detail={
+                        "student_id": student_id,
+                        "student_name": student_name,
+                        "teacher_id": teacher_id,
+                        "teacher_name": teacher_name,
+                    },
+                    ip=self.client_ip(),
+                )
+            except Exception:
+                pass
             self.send_json(
                 {"data": {"ok": True, "password": initial_password}, "error": None}
             )
+
+    def handle_teacher_students_duplicates_get(self) -> None:
+        session = self.require_teacher_session()
+        if not session:
+            return
+        with closing(connect(self.db_path)) as conn:
+            self.send_json({"data": list_duplicate_name_groups(conn), "error": None})
+
+    def handle_teacher_students_merge(self) -> None:
+        session = self.require_teacher_session()
+        if not session:
+            return
+        payload = self.read_json_body()
+        keep_id = str(
+            payload.get("keep_student_id")
+            or payload.get("keepStudentId")
+            or ""
+        ).strip()
+        raw_merge = (
+            payload.get("merge_student_ids")
+            or payload.get("mergeStudentIds")
+            or []
+        )
+        if isinstance(raw_merge, str):
+            merge_ids = [raw_merge]
+        else:
+            merge_ids = list(raw_merge or [])
+        with closing(connect(self.db_path)) as conn:
+            result, err = merge_students(
+                conn,
+                keep_student_id=keep_id,
+                merge_student_ids=merge_ids,
+            )
+            if err:
+                self.send_json({"data": None, "error": {"message": err}}, status=400)
+                return
+            try:
+                teacher_id = str(session.get("id") or "")
+                teacher_name = ""
+                trow = conn.execute(
+                    "SELECT name FROM teachers WHERE teacher_id = ?",
+                    (teacher_id,),
+                ).fetchone()
+                if trow:
+                    teacher_name = str(trow["name"] or "")
+                log_activity(
+                    conn,
+                    actor_role="teacher",
+                    actor_id=teacher_id,
+                    actor_name=teacher_name,
+                    action="student.merge",
+                    target_student_id=keep_id,
+                    summary=f"合并同名账号到 {keep_id}",
+                    detail={
+                        "keep_student_id": keep_id,
+                        "merged_ids": (result or {}).get("merged_ids") or merge_ids,
+                        "teacher_id": teacher_id,
+                    },
+                    ip=self.client_ip(),
+                )
+            except Exception:
+                pass
+            self.send_json({"data": result, "error": None})
 
     def handle_teacher_students_toggle_status(self) -> None:
         session = self.require_teacher_session()
@@ -3551,6 +3682,12 @@ class LocalHandler(SimpleHTTPRequestHandler):
         if parsed.path.rstrip("/") == "/api/teacher/students":
             self.handle_teacher_students_get()
             return
+        if parsed.path.rstrip("/") == "/api/teacher/students/duplicates":
+            self.handle_teacher_students_duplicates_get()
+            return
+        if parsed.path.rstrip("/") == "/api/auth/student/lookup":
+            self.handle_student_lookup()
+            return
         if parsed.path.rstrip("/") == "/api/teacher/test-records":
             self.handle_teacher_test_records_get()
             return
@@ -3805,6 +3942,9 @@ class LocalHandler(SimpleHTTPRequestHandler):
             return
         if path == "/api/teacher/students/reset-password":
             self.handle_teacher_students_reset_password()
+            return
+        if path == "/api/teacher/students/merge":
+            self.handle_teacher_students_merge()
             return
         if path == "/api/teacher/students/toggle-status":
             self.handle_teacher_students_toggle_status()

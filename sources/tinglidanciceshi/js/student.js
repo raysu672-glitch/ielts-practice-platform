@@ -45,6 +45,51 @@ async function restoreStudentSession() {
 }
 
 // 学生登录
+function setStudentNameHint(text, kind) {
+    var el = document.getElementById('studentNameHint');
+    if (!el) return;
+    el.textContent = text || '';
+    el.classList.remove('is-error', 'is-muted');
+    if (kind === 'error') el.classList.add('is-error');
+    else if (kind === 'muted') el.classList.add('is-muted');
+}
+
+function onStudentIdInput() {
+    setStudentNameHint('', 'muted');
+}
+
+var _studentLookupSeq = 0;
+
+async function lookupStudentName() {
+    var input = document.getElementById('studentId');
+    if (!input) return;
+    var studentId = (input.value || '').trim();
+    if (!studentId) {
+        setStudentNameHint('', 'muted');
+        return;
+    }
+    var seq = ++_studentLookupSeq;
+    setStudentNameHint('核对中…', 'muted');
+    try {
+        var result = await apiFetch(
+            '/api/auth/student/lookup?student_id=' + encodeURIComponent(studentId)
+        );
+        if (seq !== _studentLookupSeq) return;
+        if (result.error || !result.data) {
+            setStudentNameHint((result.error && result.error.message) || '学号不存在', 'error');
+            return;
+        }
+        if (result.data.status && result.data.status !== 'active') {
+            setStudentNameHint('账号已禁用：' + (result.data.name || studentId), 'error');
+            return;
+        }
+        setStudentNameHint('姓名：' + (result.data.name || '（未填写）'), null);
+    } catch (e) {
+        if (seq !== _studentLookupSeq) return;
+        setStudentNameHint('无法核对学号', 'muted');
+    }
+}
+
 async function studentLogin() {
     const studentId = document.getElementById('studentId').value.trim();
     const password = document.getElementById('studentPassword').value;
@@ -55,11 +100,14 @@ async function studentLogin() {
             body: JSON.stringify({ student_id: studentId, password: password })
         });
         if (result.error || !result.data || !result.data.student) {
-            showToast((result.error && result.error.message) || '学号或密码错误', 'error');
+            var msg = (result.error && result.error.message) || '登录失败';
+            if (msg === '学号不存在') setStudentNameHint('学号不存在', 'error');
+            showToast(msg, 'error');
             return;
         }
         currentStudent = result.data.student;
         rememberStudentSession(result.data.student);
+        setStudentNameHint('姓名：' + (currentStudent.name || ''), null);
         if (!result.data.student.is_password_changed) {
             showChangePasswordModal(true);
         } else {
