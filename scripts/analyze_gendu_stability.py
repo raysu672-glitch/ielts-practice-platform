@@ -154,6 +154,30 @@ def load_records(conn: sqlite3.Connection, since: str) -> list[dict]:
     return out
 
 
+def same_unit_swings(attempts: list[dict], gap: float = 25) -> list[dict]:
+    """Adjacent attempts on the same passage whose scores jump by `gap` or more."""
+    found = []
+    by_unit: dict[str, list[dict]] = defaultdict(list)
+    for attempt in attempts:
+        by_unit[attempt["unit_id"]].append(attempt)
+    for unit_id, rows in by_unit.items():
+        rows.sort(key=lambda item: item["created_at"])
+        for prev, cur in zip(rows, rows[1:]):
+            delta = cur["score"] - prev["score"]
+            if abs(delta) >= gap:
+                found.append(
+                    {
+                        "unit_id": unit_id,
+                        "from_date": prev["task_date"],
+                        "to_date": cur["task_date"],
+                        "from_score": round(prev["score"], 1),
+                        "to_score": round(cur["score"], 1),
+                        "delta": round(delta, 1),
+                    }
+                )
+    return found
+
+
 def load_error_counts(conn: sqlite3.Connection) -> dict:
     if not _table_exists(conn, "student_debug_events"):
         return {"available": False, "rows": 0, "by_action": {}}
@@ -171,11 +195,108 @@ def load_error_counts(conn: sqlite3.Connection) -> dict:
         LIMIT 20
         """
     ).fetchall()
+    samples = []
+    if _table_exists(conn, "student_debug_events"):
+        sample_rows = conn.execute(
+            """
+            SELECT created_at, student_id, action, substr(page, 1, 80), substr(detail_json, 1, 240)
+            FROM student_debug_events
+            WHERE detail_json LIKE '%413%'
+               OR detail_json LIKE '%识别失败%'
+               OR detail_json LIKE '%Request Entity Too Large%'
+               OR detail_json LIKE '%transcribe%'
+               OR action = 'js_error'
+            ORDER BY id DESC
+            LIMIT 12
+            """
+        ).fetchall()
+        samples = [
+            {
+                "at": r[0],
+                "student_id": r[1],
+                "action": r[2],
+                "page": r[3],
+                "detail": r[4],
+            }
+            for r in sample_rows
+        ]
     return {
         "available": True,
         "rows": sum(r[1] for r in rows),
         "by_action": {r[0]: r[1] for r in rows},
+        "samples": samples,
     }
+
+
+def _same_unit_swing_rows(attempts: list[dict]) -> list[dict]:
+    grouped: dict[str, list[dict]] = defaultdict(list)
+    for attempt in attempts:
+        grouped[attempt["student_id"]].append(attempt)
+    rows = []
+    for student_id, items in grouped.items():
+        swings = same_unit_swings(items, gap=25)
+        if len(swings) < 2:
+            continue
+        rows.append(
+            {
+                "student_id": student_id,
+                "name": items[0]["name"],
+                "swings": len(swings),
+                "examples": swings[:4],
+            }
+        )
+    rows.sort(key=lambda item: (-item["swings"], item["student_id"]))
+    return rows[:12]
+
+
+def _floor_students(attempts: list[dict]) -> list[dict]:
+    grouped: dict[str, list[dict]] = defaultdict(list)
+    for attempt in attempts:
+        grouped[attempt["student_id"]].append(attempt)
+    rows = []
+    for student_id, items in grouped.items():
+        low = [item for item in items if item["score"] < 15]
+        if len(low) < 2:
+            continue
+        ordered = sorted(items, key=lambda item: item["created_at"])
+        rows.append(
+            {
+                "student_id": student_id,
+                "name": ordered[0]["name"],
+                "n": len(ordered),
+                "below15": len(low),
+                "sequence": [
+                    f"{item['task_date']} {item['unit_id'].replace('listening_gendu_', '')} {item['score']:.1f}"
+                    for item in ordered[-12:]
+                ],
+            }
+        )
+    rows.sort(key=lambda item: (-item["below15"], item["student_id"]))
+    return rows[:8]
+
+
+def _unit_student_rows(attempts: list[dict], unit_id: str) -> list[dict]:
+    grouped: dict[str, list[float]] = defaultdict(list)
+    names: dict[str, str] = {}
+    for attempt in attempts:
+        if attempt["unit_id"] != unit_id:
+            continue
+        grouped[attempt["student_id"]].append(attempt["score"])
+        names[attempt["student_id"]] = attempt["name"]
+    rows = []
+    for student_id, scores in grouped.items():
+        rows.append(
+            {
+                "student_id": student_id,
+                "name": names[student_id],
+                "n": len(scores),
+                "mean": round(sum(scores) / len(scores), 1),
+                "min": round(min(scores), 1),
+                "max": round(max(scores), 1),
+            }
+        )
+    rows.sort(key=lambda item: (item["mean"], item["student_id"]))
+    return rows
 
 
 def build_report(events: list[dict], records: list[dict], errors: dict) -> dict:
@@ -276,6 +397,9 @@ def build_report(events: list[dict], records: list[dict], errors: dict) -> dict:
         "text_before": text_stats(rec_before),
         "text_after": text_stats(rec_after),
         "errors": errors,
+        "same_unit_swings": _same_unit_swing_rows(after),
+        "floor_students": _floor_students(after),
+        "unit_c4t2s4": _unit_student_rows(after, "listening_gendu_c4t2s4"),
     }
 
 
@@ -317,6 +441,27 @@ def render(report: dict) -> str:
     for row in report["hard_units"]:
         lines.append(
             f"  {row['unit_id']}  n={row['n']}  均分={row['mean']}  标准差={row['std']}  <30%={row['lt30_pct']}"
+        )
+    lines.append("")
+    lines.append("同一篇课文上，相邻两次相差至少 25 分：")
+    for row in report.get("same_unit_swings") or []:
+        bits = [
+            f"{ex['unit_id'].replace('listening_gendu_', '')} {ex['from_score']}→{ex['to_score']}"
+            for ex in row["examples"]
+        ]
+        lines.append(f"  {row['student_id']} {row['name']}  大跳 {row['swings']} 次  例：{'; '.join(bits)}")
+    lines.append("")
+    lines.append("多次低于 15 分：")
+    for row in report.get("floor_students") or []:
+        lines.append(
+            f"  {row['student_id']} {row['name']}  {row['below15']}/{row['n']} 次低于 15  "
+            + " | ".join(row["sequence"])
+        )
+    lines.append("")
+    lines.append("C4T2S4 按学生：")
+    for row in report.get("unit_c4t2s4") or []:
+        lines.append(
+            f"  {row['student_id']} {row['name']}  n={row['n']}  均分={row['mean']}  {row['min']}–{row['max']}"
         )
     lines.append("")
     lines.append(f"识别文本（测试记录）上线前：{json.dumps(report['text_before'], ensure_ascii=False)}")
