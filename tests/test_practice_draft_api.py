@@ -1,8 +1,10 @@
-"""作文批改：未完成进度草稿 API。"""
+"""作文批改：未完成进度草稿 API（需 writing backend 依赖时才跑 HTTP 测）。"""
 
 from __future__ import annotations
 
+import importlib.util
 import os
+import sqlite3
 import sys
 import tempfile
 import unittest
@@ -10,14 +12,60 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 BACKEND = ROOT / "sources" / "xiezuopigai" / "ielts-writing-backend"
+_HAS_WRITING_DEPS = all(
+    importlib.util.find_spec(name) is not None for name in ("httpx", "fastapi", "dotenv")
+)
 
 
+class PracticeDraftSchemaTests(unittest.TestCase):
+    """不依赖 fastapi/httpx：校验草稿表可建、可读写。"""
+
+    def test_draft_table_crud(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            db = Path(tmp) / "draft.db"
+            conn = sqlite3.connect(db)
+            c = conn.cursor()
+            c.execute(
+                """
+                CREATE TABLE IF NOT EXISTS practice_drafts (
+                    student_id TEXT PRIMARY KEY,
+                    student_name TEXT DEFAULT '',
+                    payload TEXT NOT NULL,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+                """
+            )
+            c.execute(
+                """
+                INSERT INTO practice_drafts (student_id, student_name, payload)
+                VALUES (?, ?, ?)
+                """,
+                ("2025001", "测试生", '{"answers":{"0-0":"has"}}'),
+            )
+            conn.commit()
+            row = c.execute(
+                "SELECT payload FROM practice_drafts WHERE student_id = ?",
+                ("2025001",),
+            ).fetchone()
+            self.assertIsNotNone(row)
+            self.assertIn("has", row[0])
+            c.execute("DELETE FROM practice_drafts WHERE student_id = ?", ("2025001",))
+            conn.commit()
+            self.assertIsNone(
+                c.execute(
+                    "SELECT 1 FROM practice_drafts WHERE student_id = ?",
+                    ("2025001",),
+                ).fetchone()
+            )
+            conn.close()
+
+
+@unittest.skipUnless(_HAS_WRITING_DEPS, "writing backend deps (httpx/fastapi/dotenv) not installed")
 class PracticeDraftApiTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         cls._tmpdir = tempfile.TemporaryDirectory()
         os.environ["PORT"] = "18080"
-        # 隔离测试库，避免污染本地 ielts_data.db
         cls._db = Path(cls._tmpdir.name) / "draft_test.db"
         sys.path.insert(0, str(BACKEND))
         import main as backend_main  # noqa: E402

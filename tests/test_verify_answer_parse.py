@@ -10,7 +10,7 @@ ROOT = Path(__file__).resolve().parents[1]
 BACKEND = ROOT / "sources" / "xiezuopigai" / "ielts-writing-backend"
 sys.path.insert(0, str(BACKEND))
 
-from main import parse_verify_answer_content  # noqa: E402
+from verify_parse import parse_verify_answer_content  # noqa: E402
 
 
 class VerifyAnswerParseTests(unittest.TestCase):
