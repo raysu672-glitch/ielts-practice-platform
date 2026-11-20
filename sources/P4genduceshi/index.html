@@ -501,7 +501,7 @@
                     <strong>评分方式：</strong>后端使用 Whisper 模型将录音转成文字，再与原文进行逐词比对，使用最长公共子序列（LCS）算法计算匹配度。<br>
                     <strong>任务计次：</strong>识别率 ≥30% 才计入当日练习次数；需有效完成 3 次才算当天任务完成。≥70% 可用于次日换篇。<br>
                     <strong>得分公式：</strong>得分 = 匹配单词数 ÷ 原文总单词数 × 100<br>
-                    <strong>请戴耳机：</strong>外放时原声会从喇叭进麦克风，识别会把原声当成你的跟读来算分，同一篇会忽高忽低。没有耳机时可以选择把原文放轻后再录。识别需要一些时间，请耐心等待。
+                    <strong>请戴耳机：</strong>外放时原声会从喇叭进麦克风，识别会把原声当成你的跟读来算分。录音如果和原文几乎重合，或里面几乎没有声音，这次不计入成绩。没有耳机时可以选择把原文放轻后再录。识别需要一些时间，请耐心等待。
                 </div>
             </section>
 
@@ -578,6 +578,7 @@
     <script src="config.js"></script>
     <script src="upload-error.js?v=20261022a"></script>
     <script src="mic-constraints.js?v=20261120a"></script>
+    <script src="playback-only.js?v=20261120b"></script>
     <script>
         // ==================== 配置 ====================
         const API_BASE = (window.API_CONFIG && window.API_CONFIG.API_BASE) || '/api/p4';
@@ -1162,6 +1163,55 @@
         }
 
         // ==================== 上传后端并评分 ====================
+        async function decodeMonoBuffer(ctx, arrayBuffer) {
+            const audio = await ctx.decodeAudioData(arrayBuffer.slice(0));
+            const out = new Float32Array(audio.length);
+            const channels = audio.numberOfChannels;
+            for (let c = 0; c < channels; c++) {
+                const data = audio.getChannelData(c);
+                for (let i = 0; i < out.length; i++) out[i] += data[i];
+            }
+            if (channels > 1) {
+                for (let i = 0; i < out.length; i++) out[i] /= channels;
+            }
+            return { samples: out, sampleRate: audio.sampleRate };
+        }
+
+        async function judgeAgainstLesson(blob, audioUrl) {
+            if (!audioUrl || typeof judgeMicAgainstReference !== 'function') return null;
+            const Ctx = window.AudioContext || window.webkitAudioContext;
+            if (!Ctx) return null;
+            const ctx = new Ctx();
+            try {
+                const refRes = await fetch(audioUrl);
+                if (!refRes.ok) return null;
+                const mic = await decodeMonoBuffer(ctx, await blob.arrayBuffer());
+                const ref = await decodeMonoBuffer(ctx, await refRes.arrayBuffer());
+                return judgeMicAgainstReference(ref.samples, ref.sampleRate, mic.samples, mic.sampleRate);
+            } finally {
+                try { ctx.close(); } catch (e) {}
+            }
+        }
+
+        function rejectBeforeScore(verdict) {
+            try {
+                if (window.__ieltsDebugTracePush) {
+                    window.__ieltsDebugTracePush('gendu_playback_only', {
+                        kind: verdict.kind,
+                        correlation: verdict.correlation,
+                        lagMs: verdict.lagMs
+                    });
+                }
+            } catch (e) {}
+            showError(verdict.message);
+            state.isScoring = false;
+            updateTestButton('ready');
+            elements.statusText.textContent = verdict.kind === 'silence'
+                ? '没有检测到跟读声音，请重试'
+                : '没有检测到你的跟读，请戴耳机后重试';
+            elements.statusText.className = 'status-text';
+        }
+
         async function uploadAndScore() {
             const size = state.userRecordingBlob ? state.userRecordingBlob.size : 0;
             if (!state.userRecordingBlob || size < 1024) {
@@ -1170,6 +1220,21 @@
                 updateTestButton('ready');
                 elements.statusText.textContent = '识别失败，请重试';
                 elements.statusText.className = 'status-text';
+                return;
+            }
+
+            let verdict = null;
+            try {
+                elements.statusText.textContent = '正在确认录音里是不是只有播放的原声...';
+                verdict = await judgeAgainstLesson(
+                    state.userRecordingBlob,
+                    currentLesson && currentLesson.audioUrl
+                );
+            } catch (e) {
+                verdict = null;
+            }
+            if (verdict && verdict.block) {
+                rejectBeforeScore(verdict);
                 return;
             }
 
