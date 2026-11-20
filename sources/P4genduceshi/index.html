@@ -181,6 +181,73 @@
             box-shadow: 0 10px 30px rgba(59, 130, 246, 0.3);
         }
 
+        .headphone-gate {
+            position: fixed;
+            inset: 0;
+            z-index: 40;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            background: rgba(15, 23, 42, 0.72);
+        }
+
+        .headphone-gate[hidden] {
+            display: none !important;
+        }
+
+        .headphone-gate-card {
+            width: min(440px, 100%);
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 28px 24px;
+            text-align: center;
+        }
+
+        .headphone-gate-card h3 {
+            font-size: 1.25rem;
+            margin-bottom: 12px;
+        }
+
+        .headphone-gate-card p {
+            color: var(--text-secondary);
+            margin-bottom: 20px;
+        }
+
+        .headphone-actions {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .gate-secondary {
+            font-family: 'Noto Sans SC', sans-serif;
+            font-size: 0.95rem;
+            padding: 12px 18px;
+            border-radius: 50px;
+            cursor: pointer;
+            background: transparent;
+            color: var(--text-secondary);
+            border: 1px solid var(--border-light);
+        }
+
+        .gate-secondary:hover {
+            color: var(--text-primary);
+            border-color: var(--text-secondary);
+        }
+
+        .playback-route-hint {
+            margin-top: 8px;
+            color: var(--accent-light);
+            font-size: 0.92rem;
+            text-align: center;
+        }
+
+        .playback-route-hint[hidden] {
+            display: none !important;
+        }
+
         @keyframes pulse {
             0%, 100% { opacity: 1; }
             50% { opacity: 0.75; }
@@ -434,7 +501,7 @@
                     <strong>评分方式：</strong>后端使用 Whisper 模型将录音转成文字，再与原文进行逐词比对，使用最长公共子序列（LCS）算法计算匹配度。<br>
                     <strong>任务计次：</strong>识别率 ≥30% 才计入当日练习次数；需有效完成 3 次才算当天任务完成。≥70% 可用于次日换篇。<br>
                     <strong>得分公式：</strong>得分 = 匹配单词数 ÷ 原文总单词数 × 100<br>
-                    <strong>💡 小提示：</strong>建议佩戴耳机测试，避免原音频被麦克风收进去；后端识别需要一些时间，请耐心等待。
+                    <strong>请戴耳机：</strong>外放时原声会从喇叭进麦克风。录音里如果能对上原文，会先把这段原声减掉，再用剩下的声音打分。减完几乎没剩下你的声音，或录音本身几乎没声音，这次不计入成绩。没有耳机时可以选择把原文放轻后再录。识别需要一些时间，请耐心等待。
                 </div>
             </section>
 
@@ -447,6 +514,7 @@
                     </button>
                 </div>
                 <div class="status-text" id="statusText">准备就绪，点击按钮开始测试</div>
+                <div id="playbackRouteHint" class="playback-route-hint" hidden></div>
                 <div class="error-message" id="errorMessage"></div>
             </section>
 
@@ -495,9 +563,22 @@
         </main>
     </div>
 
+    <div id="headphoneGate" class="headphone-gate" hidden>
+        <div class="headphone-gate-card" role="dialog" aria-modal="true" aria-labelledby="headphoneGateTitle">
+            <h3 id="headphoneGateTitle">请戴耳机后再开始</h3>
+            <p>原文播放和录音是同时进行的。用喇叭外放时，原声会被麦克风录进去，识别分不清你的声音和原声，分数会不准。</p>
+            <div class="headphone-actions">
+                <button type="button" id="headphoneReadyBtn" class="test-btn">我已戴好耳机，开始</button>
+                <button type="button" id="speakerAnywayBtn" class="gate-secondary">没有耳机，原文放轻后继续</button>
+            </div>
+        </div>
+    </div>
+
     <script src="../P4gendu/lessons-data.js?v=20260904g"></script>
     <script src="config.js"></script>
     <script src="upload-error.js?v=20261022a"></script>
+    <script src="mic-constraints.js?v=20261120a"></script>
+    <script src="playback-only.js?v=20261120c"></script>
     <script>
         // ==================== 配置 ====================
         const API_BASE = (window.API_CONFIG && window.API_CONFIG.API_BASE) || '/api/p4';
@@ -599,7 +680,9 @@
             // 只有正常结束跟读时才上传；reset/取消时禁止 onstop 误传空文件
             uploadOnStop: false,
             trailTimer: null,
-            trailTick: null
+            trailTick: null,
+            routePending: false,
+            playbackRoute: 'headphones'
         };
 
         // 跟读会落后原文，原文结束后继续录几秒再收录音
@@ -821,9 +904,41 @@
         }
 
         // ==================== 音频与录音 ====================
+        function applyPlaybackVolume(audio) {
+            var settings = playbackForRoute(state.playbackRoute);
+            if (audio) audio.volume = settings.volume;
+            var hint = document.getElementById('playbackRouteHint');
+            if (hint) {
+                hint.textContent = settings.note;
+                hint.hidden = !settings.note;
+            }
+            return settings;
+        }
+
+        function askPlaybackRoute() {
+            var gate = document.getElementById('headphoneGate');
+            var readyBtn = document.getElementById('headphoneReadyBtn');
+            var speakerBtn = document.getElementById('speakerAnywayBtn');
+            return new Promise(function(resolve) {
+                function finish(route) {
+                    gate.hidden = true;
+                    readyBtn.removeEventListener('click', onReady);
+                    speakerBtn.removeEventListener('click', onSpeaker);
+                    resolve(route);
+                }
+                function onReady() { finish('headphones'); }
+                function onSpeaker() { finish('speakers'); }
+                readyBtn.addEventListener('click', onReady);
+                speakerBtn.addEventListener('click', onSpeaker);
+                gate.hidden = false;
+                readyBtn.focus();
+            });
+        }
+
         function createAudioPlayer() {
             state.audioPlayer = new Audio(currentLesson.audioUrl);
             state.audioPlayer.preload = 'auto';
+            applyPlaybackVolume(state.audioPlayer);
             state.audioPlayer.addEventListener('timeupdate', handleTimeUpdate);
             state.audioPlayer.addEventListener('ended', handleAudioEnded);
             state.audioPlayer.addEventListener('loadedmetadata', () => {
@@ -920,13 +1035,11 @@
         // ==================== 录音 ====================
         function getMicAudioConstraints() {
             // 不强制 sampleRate:16000——开麦瞬间切采样率会打断扬声器通路，导致原文开头几词放不出。
-            return {
-                audio: {
-                    echoCancellation: true,
-                    noiseSuppression: true,
-                    autoGainControl: true
-                }
-            };
+            var supported = {};
+            try {
+                supported = navigator.mediaDevices.getSupportedConstraints() || {};
+            } catch (e) {}
+            return buildMicConstraints(supported);
         }
 
         async function ensureMicStream() {
@@ -1050,6 +1163,59 @@
         }
 
         // ==================== 上传后端并评分 ====================
+        async function decodeMonoBuffer(ctx, arrayBuffer) {
+            const audio = await ctx.decodeAudioData(arrayBuffer.slice(0));
+            const out = new Float32Array(audio.length);
+            const channels = audio.numberOfChannels;
+            for (let c = 0; c < channels; c++) {
+                const data = audio.getChannelData(c);
+                for (let i = 0; i < out.length; i++) out[i] += data[i];
+            }
+            if (channels > 1) {
+                for (let i = 0; i < out.length; i++) out[i] /= channels;
+            }
+            return { samples: out, sampleRate: audio.sampleRate };
+        }
+
+        async function judgeAgainstLesson(blob, audioUrl) {
+            if (!audioUrl || typeof judgeMicAgainstReference !== 'function') return null;
+            const Ctx = window.AudioContext || window.webkitAudioContext;
+            if (!Ctx) return null;
+            const ctx = new Ctx();
+            try {
+                const refRes = await fetch(audioUrl);
+                if (!refRes.ok) return null;
+                const mic = await decodeMonoBuffer(ctx, await blob.arrayBuffer());
+                const ref = await decodeMonoBuffer(ctx, await refRes.arrayBuffer());
+                if (typeof separateStudentFromPlayback === 'function') {
+                    return separateStudentFromPlayback(ref.samples, ref.sampleRate, mic.samples, mic.sampleRate);
+                }
+                return judgeMicAgainstReference(ref.samples, ref.sampleRate, mic.samples, mic.sampleRate);
+            } finally {
+                try { ctx.close(); } catch (e) {}
+            }
+        }
+
+        function rejectBeforeScore(verdict) {
+            try {
+                if (window.__ieltsDebugTracePush) {
+                    window.__ieltsDebugTracePush('gendu_playback_only', {
+                        kind: verdict.kind,
+                        correlation: verdict.correlation,
+                        lagMs: verdict.lagMs,
+                        residualRatio: verdict.residualRatio
+                    });
+                }
+            } catch (e) {}
+            showError(verdict.message);
+            state.isScoring = false;
+            updateTestButton('ready');
+            elements.statusText.textContent = verdict.kind === 'silence'
+                ? '没有检测到跟读声音，请重试'
+                : '没有检测到你的跟读，请戴耳机后重试';
+            elements.statusText.className = 'status-text';
+        }
+
         async function uploadAndScore() {
             const size = state.userRecordingBlob ? state.userRecordingBlob.size : 0;
             if (!state.userRecordingBlob || size < 1024) {
@@ -1061,9 +1227,35 @@
                 return;
             }
 
+            let verdict = null;
+            try {
+                elements.statusText.textContent = '正在把录音里的原声和学生的声音分开...';
+                verdict = await judgeAgainstLesson(
+                    state.userRecordingBlob,
+                    currentLesson && currentLesson.audioUrl
+                );
+            } catch (e) {
+                verdict = null;
+            }
+            if (verdict && verdict.block) {
+                rejectBeforeScore(verdict);
+                return;
+            }
+
+            var uploadBlob = state.userRecordingBlob;
+            var uploadName = 'recording.webm';
+            if (verdict && verdict.cleaned && typeof encodeWav === 'function') {
+                uploadBlob = new Blob(
+                    [encodeWav(verdict.cleaned, verdict.cleanedRate)],
+                    { type: 'audio/wav' }
+                );
+                uploadName = 'recording.wav';
+                elements.statusText.textContent = '已减弱录音里的原声，正在上传识别...';
+            }
+
             try {
                 const form = new FormData();
-                form.append('file', state.userRecordingBlob, 'recording.webm');
+                form.append('file', uploadBlob, uploadName);
                 // 上传当前课的原文，让评分后端按本课文本逐词比对（否则后端
                 // 会 fallback 到默认篇目，导致任务里跟读其它课文得分个位数）
                 if (currentLesson && currentLesson.text) {
@@ -1195,13 +1387,23 @@
             state.testStartTime = Date.now();
             elements.resultSection.classList.remove('show');
 
+            state.routePending = true;
+            try {
+                state.playbackRoute = await askPlaybackRoute();
+            } finally {
+                state.routePending = false;
+            }
+
             if (!state.audioPlayer) {
                 createAudioPlayer();
             }
+            applyPlaybackVolume(state.audioPlayer);
 
             state.isTesting = true;
             updateTestButton('testing');
-            elements.statusText.textContent = '正在准备麦克风与原文...';
+            elements.statusText.textContent = state.playbackRoute === 'speakers'
+                ? '原文已放轻，正在准备麦克风...'
+                : '正在准备麦克风与原文...';
             elements.statusText.className = 'status-text testing';
 
             try {
@@ -1217,9 +1419,12 @@
                 await new Promise(function(r) { setTimeout(r, 400); });
                 await seekAudioToStart(state.audioPlayer);
 
-                elements.statusText.textContent = '正在录音，请跟读原文...';
+                elements.statusText.textContent = state.playbackRoute === 'speakers'
+                    ? '正在录音。原文已放轻，请靠近麦克风跟读'
+                    : '正在录音，请跟读原文...';
                 // 此时只是 MediaRecorder.start，不再触发 getUserMedia 设备切换
                 await startRecording();
+                applyPlaybackVolume(state.audioPlayer);
                 await state.audioPlayer.play();
 
                 // 给进度条一点时间；若 2 秒内仍无推进，判定播放失败
@@ -1266,7 +1471,7 @@
             renderHistory();
 
             elements.testBtn.addEventListener('click', () => {
-                if (state.isTesting || state.isScoring) return;
+                if (state.isTesting || state.isScoring || state.routePending) return;
                 startTest();
             });
         }
