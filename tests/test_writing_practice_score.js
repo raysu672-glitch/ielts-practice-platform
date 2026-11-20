@@ -96,6 +96,36 @@ function cp(partial) {
   assert.equal(score.isAnswerCorrect('have', checkpoint), false);
 }
 
+// 仅加逗号（Sheldon 第五句卡点）：so they → , so they
+{
+  const checkpoint = cp({
+    highlight: 'so they dare not',
+    originalSentence:
+      'Based on this situation, students lack of relevant theoretical knowledge so they dare not try managing their money.',
+    baseText:
+      'Based on this situation, students lack relevant theoretical knowledge so they dare not try managing their money.',
+    rawCorrected:
+      'Based on this situation, students lack of relevant theoretical knowledge, so they dare not try managing their money.',
+    answer:
+      'Based on this situation, students lack of relevant theoretical knowledge, so they dare not try managing their money.'
+  });
+  assert.equal(
+    score.getExpectedLocalFix(checkpoint).replace(/\s+/g, ' ').trim(),
+    ', so they dare not'
+  );
+  assert.equal(score.isAnswerCorrect(', so they dare not', checkpoint), true);
+  assert.equal(score.isAnswerCorrect(', so they dare not ', checkpoint), true);
+  const progressive = score.applyFixToBase(checkpoint.baseText, checkpoint);
+  assert.equal(
+    progressive.includes('lack relevant'),
+    true,
+    '递进叠标点时不得回退 lack→lack of'
+  );
+  assert.equal(progressive.includes(', so they dare not'), true);
+  assert.equal(progressive.includes('knowledge ,'), false, '逗号前不应残留空格');
+  assert.equal(progressive.includes('knowledge, so'), true);
+}
+
 // ── 坏 AI 检查点应过滤 ──────────────────────────────────
 assert.equal(score.isUsableCheckpoint({ highlight: ',', answer: 'x', originalSentence: 'Hi,' }), false);
 assert.equal(score.isUsableCheckpoint({ highlight: '...', answer: 'x' }), false);

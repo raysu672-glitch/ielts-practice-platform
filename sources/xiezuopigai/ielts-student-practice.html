@@ -617,7 +617,7 @@
   </style>
 </head>
 <body><script src="/shared/debug_trace.js?v=20260924trace"></script>
-<script src="practice_score.js?v=20261120resume"></script>
+<script src="practice_score.js?v=20261120punct"></script>
   <div class="app">
     <header class="topbar">
       <div class="brand">
@@ -2286,6 +2286,11 @@ Nowadays, many people choose to live in big cities because they can find better 
         return rule.getAnswer(base);
       }
 
+      // 用共享判分模块叠修正，避免 AI 整句答案回退已改好的前文
+      if (window.WritingPracticeScore && window.WritingPracticeScore.applyFixToBase) {
+        return window.WritingPracticeScore.applyFixToBase(base, checkpoint);
+      }
+
       const original = checkpoint.originalSentence || base;
       const fullCorrected = checkpoint.rawCorrected || checkpoint.answer || "";
       const replacement = extractLocalReplacement(original, checkpoint.highlight, fullCorrected);
@@ -2297,11 +2302,10 @@ Nowadays, many people choose to live in big cities because they can find better 
         return base.replace(new RegExp(escapeRegex(checkpoint.highlight), "i"), replacement);
       }
 
-      // 当前基句仍是该错误的原句时，直接用整句修正
       if (fullCorrected && base.trim().toLowerCase() === String(original).trim().toLowerCase()) {
         return fullCorrected;
       }
-      return fullCorrected || base;
+      return base;
     }
 
     /**

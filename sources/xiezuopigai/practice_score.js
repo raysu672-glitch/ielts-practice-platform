@@ -104,13 +104,93 @@
     var before = originalSentence.slice(0, idx);
     var after = originalSentence.slice(idx + highlight.length);
     var corrLower = correctedSentence.toLowerCase();
-    if (!corrLower.startsWith(before.toLowerCase()) || !corrLower.endsWith(after.toLowerCase())) {
+    if (corrLower.startsWith(before.toLowerCase()) && corrLower.endsWith(after.toLowerCase())) {
+      var startIdx = before.length;
+      var endIdx = correctedSentence.length - after.length;
+      if (endIdx >= startIdx) {
+        return correctedSentence.slice(startIdx, endIdx);
+      }
+    }
+    // 标点插入：so they → , so they（before 因逗号对不齐时）
+    return extractPunctuationLocalFix(originalSentence, highlight, correctedSentence);
+  }
+
+  /**
+   * 仅在 highlight 前插入逗号/分号等：抽出「, so they dare not」这类局部修正。
+   */
+  function extractPunctuationLocalFix(originalSentence, highlight, correctedSentence) {
+    var orig = String(originalSentence || "");
+    var corr = String(correctedSentence || "");
+    var hi = String(highlight || "");
+    if (!orig || !corr || !hi) return null;
+    var hiLower = hi.toLowerCase();
+    var oi = orig.toLowerCase().indexOf(hiLower);
+    var ci = corr.toLowerCase().indexOf(hiLower);
+    if (oi < 0 || ci < 0) return null;
+
+    var afterO = orig.slice(oi + hi.length);
+    var afterC = corr.slice(ci + hi.length);
+    if (normalizeForCompare(afterO) !== normalizeForCompare(afterC)) return null;
+
+    // 修正句中 highlight 前的标点前缀
+    var start = ci;
+    while (start > 0 && /[\s,;:，；：]/.test(corr.charAt(start - 1))) {
+      start -= 1;
+    }
+    var local = corr.slice(start, ci + hi.length);
+    if (!local || normalizeForCompare(local) === normalizeForCompare(hi)) {
+      // 可能只有空格差异
+      if (local.replace(/\s+/g, " ") === hi.replace(/\s+/g, " ")) return null;
+    }
+    // 原文同一位置前不应已有相同标点前缀
+    var origPrefixStart = oi;
+    while (origPrefixStart > 0 && /[\s,;:，；：]/.test(orig.charAt(origPrefixStart - 1))) {
+      origPrefixStart -= 1;
+    }
+    var origPrefix = orig.slice(origPrefixStart, oi + hi.length);
+    if (normalizeForCompare(origPrefix) === normalizeForCompare(local) &&
+        origPrefix.replace(/\s+/g, " ") === local.replace(/\s+/g, " ")) {
       return null;
     }
-    var startIdx = before.length;
-    var endIdx = correctedSentence.length - after.length;
-    if (endIdx < startIdx) return null;
-    return correctedSentence.slice(startIdx, endIdx);
+    // 必须真的多了标点（不能只是多空格）
+    var localPunct = local.replace(/[A-Za-z0-9'’\s\-]/g, "");
+    var hiPunct = hi.replace(/[A-Za-z0-9'’\s\-]/g, "");
+    if (!localPunct || localPunct === hiPunct) return null;
+    return local;
+  }
+
+  /**
+   * 把检查点修正叠到当前基句上；禁止用整句 rawCorrected 回退已改好的前文。
+   */
+  function applyFixToBase(baseText, checkpoint) {
+    var base = String(baseText || "");
+    if (!checkpoint) return base;
+    var highlight = String(checkpoint.highlight || "");
+    var original = String(checkpoint.originalSentence || base);
+    var fullCorrected = String(checkpoint.rawCorrected || checkpoint.answer || "");
+    var replacement = null;
+    if (highlight && fullCorrected) {
+      replacement = extractLocalReplacement(original, highlight, fullCorrected);
+    }
+    if (
+      replacement != null &&
+      String(replacement).length > 0 &&
+      highlight &&
+      new RegExp(escapeRegex(highlight), "i").test(base)
+    ) {
+      // 插入前置标点时吃掉 highlight 前多余空白，避免 "knowledge , so"
+      var pattern = /^[,;:，；：]/.test(String(replacement))
+        ? new RegExp("\\s*(" + escapeRegex(highlight) + ")", "i")
+        : new RegExp(escapeRegex(highlight), "i");
+      return base.replace(pattern, replacement);
+    }
+    if (
+      fullCorrected &&
+      normalizeForCompare(base) === normalizeForCompare(original)
+    ) {
+      return fullCorrected;
+    }
+    return base;
   }
 
   function findHighlightRange(base, highlight) {
@@ -137,6 +217,12 @@
     if (local == null || !String(local).trim()) {
       local = extractLocalReplacement(base, highlight, fullAnswer);
     }
+    if (local == null || !String(local).trim()) {
+      local = extractPunctuationLocalFix(original, highlight, checkpoint.rawCorrected || fullAnswer);
+    }
+    if (local == null || !String(local).trim()) {
+      local = extractPunctuationLocalFix(base, highlight, fullAnswer);
+    }
     if (local != null && String(local).trim()) {
       return String(local).trim();
     }
@@ -158,6 +244,12 @@
           }
         }
       }
+    }
+
+    // 基句已递进修正、整句参考仍是旧原文时：用「基句 + 标点插入」合成局部答案
+    if (highlight && base && fullAnswer) {
+      var punctOnFull = extractPunctuationLocalFix(original, highlight, fullAnswer);
+      if (punctOnFull) return String(punctOnFull).trim();
     }
 
     if (fullAnswer && fullAnswer.length <= 40 && (!base || fullAnswer.length < base.length * 0.5)) {
@@ -227,7 +319,24 @@
     var errN = stripQuotes(normalizeForCompare(checkpoint.highlight || ""));
 
     if (fixN && a === fixN) return true;
+    // 标点局部：", so they dare not" 与学生多/少空格
+    if (fixN && a.replace(/\s*,\s*/g, ", ") === fixN.replace(/\s*,\s*/g, ", ")) return true;
     if (fixN && isAcceptableLocalAnswer(a, localFix, checkpoint.highlight || "")) return true;
+
+    // 无 localFix 时：学生写了「, + highlight」且参考整句含该写法
+    if (errN && a && b) {
+      var commaPrefixed = a.replace(/\s+/g, " ");
+      if (/^[,，;；]\s*/.test(commaPrefixed)) {
+        var rest = commaPrefixed.replace(/^[,，;；]\s*/, "");
+        if (rest === errN || containsPhrase(errN, rest) || rest === errN) {
+          var hi = String(checkpoint.highlight || "");
+          if (b.indexOf(", " + errN) >= 0 || b.indexOf("," + errN) >= 0 ||
+              (expectedFull && (expectedFull.indexOf(", " + hi) >= 0 || expectedFull.indexOf("," + hi) >= 0))) {
+            return true;
+          }
+        }
+      }
+    }
 
     if (errN && fixN) {
       var changedTokens = getChangedCorrectTokens(errN, fixN);
@@ -334,6 +443,8 @@
     containsPhrase: containsPhrase,
     getChangedCorrectTokens: getChangedCorrectTokens,
     extractLocalReplacement: extractLocalReplacement,
+    extractPunctuationLocalFix: extractPunctuationLocalFix,
+    applyFixToBase: applyFixToBase,
     findHighlightRange: findHighlightRange,
     escapeRegex: escapeRegex,
     getExpectedLocalFix: getExpectedLocalFix,
