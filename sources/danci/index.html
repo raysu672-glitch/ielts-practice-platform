@@ -143,33 +143,67 @@ main{flex:1; display:flex; flex-direction:column; align-items:center; justify-co
 #keys .key.capped{opacity:.4;}
 #keys .key.capped small{text-decoration:line-through;}
 /* ---- 站立秒认模式（模块6 R2）---- */
-/* ---- 快筛（模块 1）：新词自报三态，认识休眠/模糊/不认识 ---- */
+/* ---- 快筛（模块 1）：词频序表单，每页 20 词二态勾选 ---- */
 #screen{
   position:fixed; inset:0; z-index:22; background:var(--bg);
-  display:flex; flex-direction:column; align-items:center; justify-content:center;
-  padding:20px; user-select:none; -webkit-user-select:none;
+  display:flex; flex-direction:column; align-items:stretch;
+  padding:16px 14px calc(18px + env(safe-area-inset-bottom));
+  overflow:auto; -webkit-overflow-scrolling:touch;
 }
 #screen.hidden{display:none;}
-#sctag{font-size:12px; color:var(--dim); margin-bottom:6px;}
-#scword{font-size:clamp(44px,13vw,84px); font-weight:700; letter-spacing:1px; cursor:pointer; text-align:center; line-height:1.15;}
-#scphon{font-size:15px; color:var(--dim); margin-top:8px; min-height:20px;}
-#scprog{font-size:12px; color:var(--dim); margin-top:16px;}
-#sckeys{display:flex; gap:10px; margin-top:30px; flex-wrap:wrap; justify-content:center;}
-.scbtn{min-width:104px; min-height:58px; padding:0 20px; font-size:17px; font-weight:800; border:none; border-radius:16px; cursor:pointer;}
-#sc-know{background:linear-gradient(135deg,#065f46,#10b981); color:#fff;}
-#sc-fuzzy{background:linear-gradient(135deg,#92400e,#f59e0b); color:#fff;}
-#sc-no{background:linear-gradient(135deg,#7f1d1d,#ef4444); color:#fff;}
-.scbtn:active{transform:scale(.94);}
-#scexit{margin-top:22px; background:transparent; border:none; color:var(--dim); font-size:13px; cursor:pointer; text-decoration:underline;}
-/* ---- 快筛的「后悔药」：撤销上一词 / 重新筛词 / 结束与早停面板 ----
-   用户反馈「误点了回不去」：标成「认识」的词会休眠 30~60 天、期间只有 5% 冒头复核，
-   所以必须给学生两个出口：立刻撤销（单张）、重新筛词（批量）。 */
-#scops{display:flex; gap:10px; margin-top:20px; flex-wrap:wrap; justify-content:center;}
+#sctag{font-size:12px; color:var(--dim); margin-bottom:4px; text-align:center;}
+#scprog{font-size:12px; color:var(--dim); margin-bottom:10px; text-align:center;}
+#scform{width:100%; max-width:560px; margin:0 auto; display:flex; flex-direction:column; gap:6px;}
+.scrow{
+  display:grid; grid-template-columns:28px minmax(0,1fr); gap:10px; align-items:center;
+  background:transparent; border:none; padding:0; min-height:52px;
+}
+.scrow input{width:20px; height:20px; margin:0; accent-color:#ef4444; z-index:2;}
+.scflip{
+  perspective:900px; min-height:52px; cursor:pointer;
+}
+.scflip-inner{
+  position:relative; width:100%; min-height:52px;
+  transform-style:preserve-3d;
+  transition:transform .45s cubic-bezier(.4,.05,.2,1);
+}
+.scrow.flipped .scflip-inner{transform:rotateY(180deg);}
+.scface{
+  position:absolute; inset:0;
+  display:flex; flex-direction:column; justify-content:center;
+  backface-visibility:hidden; -webkit-backface-visibility:hidden;
+  background:var(--card); border:1px solid #33415580; border-radius:12px;
+  padding:10px 14px; box-sizing:border-box;
+}
+.scfront{transform:rotateY(0deg);}
+.scback{transform:rotateY(180deg);}
+.scrow.on .scface{border-color:#ef444488; background:#7f1d1d33;}
+.scen{font-size:18px; font-weight:700; letter-spacing:.3px; line-height:1.2;}
+.scphon{font-size:11px; color:var(--dim); margin-top:2px; line-height:1.2;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+.scpair{display:flex; align-items:baseline; gap:6px; flex-wrap:wrap; line-height:1.25;}
+.scpair .scen{flex:0 0 auto;}
+.scgloss{font-size:14px; font-weight:600; color:#e2e8f0; line-height:1.3;}
+#scactions{width:100%; max-width:560px; margin:14px auto 0; display:flex; flex-direction:column; gap:8px;}
+@media (max-width:520px){
+  .scrow{grid-template-columns:24px minmax(0,1fr); gap:8px;}
+  .scen{font-size:16px;}
+  .scgloss{font-size:13px;}
+  .scface{padding:9px 12px;}
+}
+#scactions button{
+  min-height:48px; border:none; border-radius:14px; font-size:15px; font-weight:700;
+  font-family:inherit; cursor:pointer;
+}
+#scshow{background:#1e293b; color:#e2e8f0; border:1px solid #33415580 !important;}
+#scsubmit{background:linear-gradient(135deg,#4c1d95,#7c3aed); color:#fff;}
+#scsubmit:disabled{opacity:.4; cursor:default;}
+#scops{display:flex; gap:10px; margin-top:8px; flex-wrap:wrap; justify-content:center;}
 #scops button{background:transparent; border:1px solid #33415580; color:#94a3b8;
-  border-radius:999px; padding:7px 16px; font-size:13px; font-family:inherit; cursor:pointer;}
+  border-radius:999px; padding:7px 16px; font-size:13px; cursor:pointer; font-family:inherit; font-weight:400; min-height:0;}
 #scops button:disabled{opacity:.35; cursor:default;}
-#scops button:not(:disabled):active{transform:scale(.96);}
-#scnotice{margin-top:20px; width:100%; max-width:420px; background:var(--card2);
+#scexit{margin-top:10px; background:transparent; border:none; color:var(--dim); font-size:13px; cursor:pointer; text-decoration:underline; font-weight:400; min-height:0;}
+#scnotice{margin:12px auto 0; width:100%; max-width:560px; background:var(--card2);
   border:1px solid #33415580; border-radius:16px; padding:18px 16px;}
 #scnotice.hidden{display:none;}
 #scnotice h4{margin:0 0 8px; font-size:16px; color:#e2e8f0;}
@@ -178,8 +212,6 @@ main{flex:1; display:flex; flex-direction:column; align-items:center; justify-co
   border-radius:12px; font-size:15px; font-weight:700; font-family:inherit; cursor:pointer;}
 #scnotice button.pri{background:linear-gradient(135deg,#4c1d95,#7c3aed); color:#fff;}
 #scnotice button.sec{background:transparent; color:#94a3b8; border:1px solid #33415580; font-weight:400;}
-#scnotice button:disabled{opacity:.35; cursor:default;}
-#scnotice button:active:not(:disabled){transform:scale(.97);}
 #sc-intro{
   position:fixed; inset:0; z-index:24; background:#0f172add; backdrop-filter:blur(4px);
   display:flex; align-items:center; justify-content:center; padding:24px;
@@ -277,7 +309,8 @@ main{flex:1; display:flex; flex-direction:column; align-items:center; justify-co
 <div id="sc-intro" class="hidden">
   <div class="card">
     <h3>📝 你背过多少单词？</h3>
-    <p>第一次见你！先快速筛一遍——认识的词不用学，<br>直接跳过省时间。大概 5~10 分钟搞定。</p>
+    <p>按词频从易到难，每页 20 个词；只勾「不会」的，其余默认会。<br>
+    中文默认隐藏，可显示在右侧对照。本页会的不到一半就结束，其余先冻住。</p>
     <select id="sc-level">
       <option value="none">没背过，从零开始（零基础：每天 10 词往上爬，先刷高频 800）</option>
       <option value="little">背过一点（几百词）</option>
@@ -289,21 +322,19 @@ main{flex:1; display:flex; flex-direction:column; align-items:center; justify-co
   </div>
 </div>
 <div id="screen" class="hidden">
-  <div id="sctag">⚡ 快筛 · 认识的不用学</div>
-  <div id="scword"></div>
-  <div id="scphon"></div>
+  <div id="sctag">⚡ 快筛 · 只勾不会的词</div>
   <div id="scprog"></div>
-  <div id="sckeys">
-    <button id="sc-know" class="scbtn">认识 ✓</button>
-    <button id="sc-fuzzy" class="scbtn">模糊 ？</button>
-    <button id="sc-no" class="scbtn">不认识 ✗</button>
-  </div>
-  <div id="scops">
-    <button id="scundo" disabled>↩ 撤销上一词</button>
-    <button id="scredo">重新筛词…</button>
+  <div id="scform"></div>
+  <div id="scactions">
+    <button type="button" id="scshow">显示中文</button>
+    <button type="button" id="scsubmit">提交本页</button>
+    <div id="scops">
+      <button type="button" id="scundo" disabled>↩ 撤销上一页</button>
+      <button type="button" id="scredo">重新筛词…</button>
+    </div>
+    <button type="button" id="scexit">暂停快筛，去学习</button>
   </div>
   <div id="scnotice" class="hidden"></div>
-  <button id="scexit">暂停快筛，去学习</button>
 </div>
 <div id="phonics" class="hidden">
   <div id="phhead">
@@ -1182,53 +1213,36 @@ document.addEventListener('keydown', e => {
   else if (e.key === 'Escape') spExit();
 });
 
-/* ---- 快筛（模块 1）：新词自报三态。认识先 7~14 天抽查，通过后再 30~60 天长休眠 ---- */
-const sc = { active: false, card: null, busy: false, knowCount: 0, lastWord: '', knowPending: null };
-function scResetKnowBtn(){
-  const b = $('#sc-know');
-  if (b) b.textContent = '认识 ✓';
-  sc.knowPending = null;
-}
-function scKnowClick(){
-  if (sc.busy || !sc.card) return;
-  // 方案 C4：认识需二次确认，降低误点进长休眠的概率
-  if (sc.knowPending !== sc.card.word_id){
-    sc.knowPending = sc.card.word_id;
-    const b = $('#sc-know');
-    if (b) b.textContent = '再点确认 ✓';
-    toast('再点一次确认「认识」（约 7~14 天后会抽查）');
-    return;
-  }
-  scResetKnowBtn();
-  scAnswer('know');
+/* ---- 快筛（模块 1）：表单批量二态，每页 20 词，本页认识 <50% 结束 ---- */
+const sc = {
+  active: false, busy: false, words: [], showGloss: false, knowCount: 0
+};
+function scEsc(s){
+  return String(s == null ? '' : s)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;');
 }
 async function scInit(){
-  // 首进判定：新用户（无学习历史）弹"背过多少"；存量快筛显示续筛按钮
   try {
     const r = await api('/api/vocab/screen/start');
     if (r.should_start){
-      // 弹引导前必须先停卡片计时器：否则学生读这十几秒弹窗的功夫，
-      // 后台会 5s 自动翻面 + 10s 自动记 Hard，把词烧成 lapse（见 overlayOpen 注释）
       clearFrontTimer(); clearSlowTimer();
       $('#sc-intro').classList.remove('hidden');
     }
     else if (r.pending) await scRefreshBtn();
-  } catch(e) { /* 接口失败不阻塞学习 */ }
+  } catch(e) {}
 }
 async function scRefreshBtn(){
   try {
     const r = await api('/api/vocab/screen/start');
     const b = $('#btnscreen');
     b.style.display = r.pending ? 'inline' : 'none';
-    // 缺陷⑥：早停阈值放宽后，"还能继续筛"必须一眼可见，
-    // 只留一个 ⚡快筛 学生不会知道那是什么、还剩多少。
     if (r.pending){
       const p = r.progress || {};
       const left = p.left || 0;
-      // 从没自报过的学生别写「继续」（他还没开始过）；screened>0 才算"续"。
       const label = (p.screened > 0 || (p.redo_all || 0) > 0) ? '继续快筛' : '快筛';
       b.textContent = '⚡' + label + (left ? ' ' + left : '');
-      b.title = left ? ('还有 ' + left + ' 个词没自报，随时可接着筛')
+      b.title = left ? ('还有 ' + left + ' 个词未筛，随时可接着筛')
                      : '可以重新筛已经标过的词';
     }
   } catch(e) {}
@@ -1243,64 +1257,206 @@ async function scSkipIntro(){
   await api('/api/vocab/config', {method:'POST', headers:{'Content-Type':'application/json'},
     body: JSON.stringify({screened_intro: 'skipped'})});
   $('#sc-intro').classList.add('hidden');
-  // 关键：必须立刻刷新顶栏入口。少了这一句，学生点了「跳过」之后按钮仍是隐藏的，
-  // 看起来就像"再也进不去快筛了"（后端此刻已经允许，只是前端没问）。
   await scRefreshBtn();
-  resumeCardTimer();   // 引导关掉，把卡片计时还给学习流程
+  resumeCardTimer();
 }
 async function scEnter(){
   sc.active = true;
+  sc.showGloss = false;
   clearSlowTimer();
-  clearFrontTimer();   // 快筛期间也不该有卡片计时在跑
+  clearFrontTimer();
   scNoticeHide();
   $('#screen').classList.remove('hidden');
   $('#main').style.display = 'none';
   $('#helps').classList.add('hidden');
   $('#bar').style.display = 'none';
-  // 学生主动点进来 = 明确"我要接着筛"。若之前是早停状态，必须先清掉连续计数，
-  // 否则他答第一个「不认识」就又立刻被终止 —— 按钮能点、点了没用。
-  // （历史栈是另一条路：撤销会把计数一并回退，见 screen_undo。）
   try {
     const r = await api('/api/vocab/screen/start');
     if (r.progress && r.progress.terminated) await api('/api/vocab/screen/resume', {method:'POST',
       headers:{'Content-Type':'application/json'}, body: '{}'});
-  } catch(e) { /* 失败也不该挡住快筛 */ }
-  await scNext();
+  } catch(e) {}
+  await scLoadPage();
 }
-/* 快筛的收尾面板：没有任何待筛词可投时才出现。
-   这里的「重新筛词」就是用户说的"误点了回不去"的出口 —— 顶栏入口会在
-   screen_pending 为假时隐藏，所以这面板是学生唯一能自救的地方，不能省。 */
-async function scNotice(){
-  const r = await api('/api/vocab/screen/start');
-  const p = r.progress || {};
+function scRender(){
+  const box = $('#scform');
+  if (!sc.words.length){
+    box.innerHTML = '';
+    return;
+  }
+  const checked = new Set(Array.from(document.querySelectorAll('#scform .sccheck:checked'))
+    .map(el => Number(el.value)).filter(Boolean));
+  box.innerHTML = sc.words.map(w => {
+    const gloss = scEsc(w.gloss || '（暂无释义）');
+    const word = scEsc(w.word);
+    const phon = scEsc(w.p || '');
+    return '<div class="scrow" data-id="' + w.word_id + '">'
+      + '<input type="checkbox" class="sccheck" value="' + w.word_id + '" aria-label="不会" title="勾选 = 不会">'
+      + '<div class="scflip" title="点卡片翻面 / 听发音">'
+      + '<div class="scflip-inner">'
+      + '<div class="scface scfront">'
+      + '<div class="scen" data-speak="' + word + '">' + word + '</div>'
+      + '<div class="scphon">' + phon + '</div>'
+      + '</div>'
+      + '<div class="scface scback">'
+      + '<div class="scpair">'
+      + '<span class="scen" data-speak="' + word + '">' + word + '</span>'
+      + '<span class="scgloss">' + gloss + '</span>'
+      + '</div>'
+      + '<div class="scphon">' + phon + '</div>'
+      + '</div>'
+      + '</div></div></div>';
+  }).join('');
+  box.querySelectorAll('.sccheck').forEach(inp => {
+    const id = Number(inp.value);
+    if (checked.has(id)){
+      inp.checked = true;
+      const row = inp.closest('.scrow');
+      if (row) row.classList.add('on');
+    }
+    inp.addEventListener('change', () => {
+      const row = inp.closest('.scrow');
+      if (row) row.classList.toggle('on', inp.checked);
+    });
+    inp.addEventListener('click', ev => ev.stopPropagation());
+  });
+  box.querySelectorAll('.scflip').forEach(el => {
+    el.addEventListener('click', ev => {
+      const speakEl = ev.target.closest('[data-speak]');
+      if (speakEl){
+        speak(speakEl.getAttribute('data-speak') || speakEl.textContent);
+      }
+      // 点卡片：单张翻面（与「显示中文」联动感）
+      const row = el.closest('.scrow');
+      if (row) row.classList.toggle('flipped');
+    });
+  });
+  scApplyFlip(false);
+  const showBtn = $('#scshow');
+  if (showBtn) showBtn.textContent = sc.showGloss ? '隐藏中文' : '显示中文';
+}
+function scApplyFlip(animate){
+  const rows = Array.from(document.querySelectorAll('#scform .scrow'));
+  rows.forEach((row, i) => {
+    const inner = row.querySelector('.scflip-inner');
+    if (inner){
+      inner.style.transitionDelay = (animate && sc.showGloss) ? (i * 28) + 'ms' : '0ms';
+    }
+    row.classList.toggle('flipped', !!sc.showGloss);
+  });
+  // 清掉延迟，避免之后单张翻面也慢
+  if (animate && sc.showGloss){
+    setTimeout(() => {
+      rows.forEach(row => {
+        const inner = row.querySelector('.scflip-inner');
+        if (inner) inner.style.transitionDelay = '0ms';
+      });
+    }, 28 * rows.length + 480);
+  }
+}
+async function scLoadPage(){
+  if (!sc.active) return;
+  const r = await api('/api/vocab/screen/page');
+  scRefreshOps(r.progress);
+  if (r.mode === 'done' || !(r.words && r.words.length)){
+    await scNotice(r.progress, {finished: true});
+    return;
+  }
+  sc.words = r.words;
+  sc.showGloss = false;
+  $('#scprog').textContent = '已筛 ' + ((r.progress && r.progress.screened) || 0)
+    + ' / ' + ((r.progress && r.progress.total) || 0)
+    + ' · 本页 ' + sc.words.length + ' 词'
+    + (sc.knowCount ? ' · 累计认识 ' + sc.knowCount : '');
+  scRender();
+  $('#scsubmit').disabled = false;
+}
+async function scSubmitPage(){
+  if (sc.busy || !sc.words.length) return;
+  sc.busy = true;
+  $('#scsubmit').disabled = true;
+  try {
+    const pageIds = sc.words.map(w => w.word_id);
+    // 勾选 = 不会；未勾 = 会 → 传给后端的 known_ids 是未勾选的
+    const unknownSet = new Set(Array.from(document.querySelectorAll('#scform .sccheck:checked'))
+      .map(el => Number(el.value)).filter(Boolean));
+    const knownIds = pageIds.filter(id => !unknownSet.has(id));
+    const r = await api('/api/vocab/screen/batch', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({page_ids: pageIds, known_ids: knownIds})
+    });
+    if (r.error){ toast('出错: ' + r.error); $('#scsubmit').disabled = false; return; }
+    sc.knowCount += (r.know_count || 0);
+    scRefreshOps(r.progress);
+    const pct = Math.round((r.ratio || 0) * 100);
+    const unknownN = (r.page_count || 0) - (r.know_count || 0);
+    if (r.terminated){
+      toast('本页会 ' + (r.know_count||0) + '/' + (r.page_count||0)
+        + '（' + pct + '%）不到一半，快筛结束');
+      await scNotice(r.progress, {terminated: true, know: r.know_count, page: r.page_count, pct: pct, unknown: unknownN});
+      return;
+    }
+    if (r.next && r.next.mode === 'done'){
+      await scNotice(r.progress, {finished: true});
+      return;
+    }
+    if (r.next && r.next.words && r.next.words.length){
+      toast('本页不会 ' + unknownN + ' 个，继续下一页');
+      sc.words = r.next.words;
+      sc.showGloss = false;
+      $('#scprog').textContent = '已筛 ' + ((r.progress && r.progress.screened) || 0)
+        + ' / ' + ((r.progress && r.progress.total) || 0)
+        + ' · 本页 ' + sc.words.length + ' 词'
+        + (sc.knowCount ? ' · 累计认识 ' + sc.knowCount : '');
+      scRender();
+      $('#scsubmit').disabled = false;
+      window.scrollTo(0, 0);
+      return;
+    }
+    await scLoadPage();
+  } finally { sc.busy = false; }
+}
+function scToggleGloss(){
+  sc.showGloss = !sc.showGloss;
+  scApplyFlip(true);
+  const showBtn = $('#scshow');
+  if (showBtn) showBtn.textContent = sc.showGloss ? '隐藏中文' : '显示中文';
+}
+async function scNotice(progress, opts){
+  opts = opts || {};
+  const p = progress || {};
   scRefreshOps(p);
   const knowN = p.know || 0;
   const allN = p.redo_all || 0;
-  // 两种重筛口径不能混说：knowN 是"标了认识的"（最常误点、也最伤，休眠 30~60 天），
-  // allN 还包含模糊/不认识。原先只按 allN 出按钮却按 knowN 写文案，
-  // 出现过"0 个在休眠"配"重新筛这 2 个词"的自相矛盾。
   const scope = knowN > 0 ? 'know' : 'all';
   const redoN = knowN > 0 ? knowN : allN;
-  $('#scword').textContent = '✓';
-  $('#scphon').textContent = '';
-  $('#scprog').textContent = '已筛 ' + (p.screened || 0) + ' / ' + (p.total || 0);
+  const left = p.left || 0;
+  let title = '这一轮筛完了';
+  let body = '';
+  if (opts.terminated){
+    title = '快筛先告一段落';
+    body = '本页会 <b>' + (opts.know||0) + '/' + (opts.page||0) + '</b>（'
+      + (opts.pct||0) + '%）不到一半，按规则结束。<br>'
+      + (left ? ('还有 <b>' + left + '</b> 个词先冻住，不进今日新词；以后可点顶部「继续快筛」。')
+              : '没有剩余未筛词了。');
+  } else if (opts.finished){
+    body = '该筛的都筛过了。'
+      + (knowN > 0
+        ? '<b>' + knowN + '</b> 个「会」的词会先休眠，之后抽查。'
+        : '没有词被标成「会」。');
+  } else {
+    body = '可以回去学习了。';
+  }
+  if (redoN > 0){
+    body += '<br><br>若刚勾错了，可重新筛已标词（已开始学的不会被动）。';
+  }
   const n = $('#scnotice');
   n.innerHTML =
-    '<h4>这一轮筛完了</h4>' +
-    '<p>该自报的都报过了。' +
-    (knowN > 0
-      ? '<b>' + knowN + '</b> 个标成「认识」的词在休眠（30~60 天后按 5% 冒头抽查）。'
-      : '没有词被标成「认识」。') +
-    (redoN > 0
-      ? '<br><br>如果刚才<b>手滑点错了</b>，可以重新筛一遍 —— 已经真正开始学的词不会被动。'
-      : '') +
-    '</p>' +
-    (redoN > 0
-      ? '<button class="pri" id="scredoes">重新筛这 ' + redoN + ' 个词</button>'
-      : '') +
-    '<button class="sec" id="scnotback">回去学习</button>';
+    '<h4>' + title + '</h4><p>' + body + '</p>'
+    + (redoN > 0 ? '<button class="pri" id="scredoes">重新筛这 ' + redoN + ' 个词</button>' : '')
+    + '<button class="sec" id="scnotback">回去学习</button>';
   n.classList.remove('hidden');
-  document.querySelectorAll('#sckeys .scbtn').forEach(b => { b.disabled = true; });
+  $('#scform').innerHTML = '';
+  $('#scsubmit').disabled = true;
   const ok = $('#scredoes');
   if (ok) ok.onclick = async () => {
     ok.disabled = true;
@@ -1309,70 +1465,20 @@ async function scNotice(){
     toast(r2.reset ? ('已放回 ' + r2.reset + ' 个词，重新过一遍') : '没有需要重筛的词');
     sc.knowCount = 0;
     scNoticeHide();
-    await scNext();
+    await scLoadPage();
   };
   $('#scnotback').onclick = () => scExit(true);
 }
 function scNoticeHide(){
   $('#scnotice').classList.add('hidden');
-  document.querySelectorAll('#sckeys .scbtn').forEach(b => { b.disabled = false; });
 }
 function scRefreshOps(p){
   const u = $('#scundo');
   if (!u) return;
   const n = (p && p.undoable) || 0;
-  // 撤销只对「刚筛过、还没开始学」的词有意义，所以结论以服务端进度为准，
-  // 不靠前端 JS 变量（一刷新就丢的撤销等于没有）。
-  // 注意：这里绝不能再看 sc.busy —— 这个函数正是在 scAnswer 内部（busy=true）被调用的，
-  // 加上 busy 判断会让按钮被永久锁死，撤销功能直接失效。
-  // 防连点交给 scUndo 自己的 sc.busy 守卫。
   u.disabled = !n;
-  u.title = n ? ('把最近自报的「' + (sc.lastWord || '上一词') + '」放回待筛（可撤 ' + n + ' 词）')
-              : '还没有可撤销的自报';
+  u.title = n ? ('撤销上一页提交（可撤 ' + n + ' 词）') : '还没有可撤销的提交';
 }
-async function scNext(){
-  if (!sc.active) return;
-  const r = await api('/api/vocab/screen/next');
-  scRefreshOps(r.progress);
-  if (r.mode === 'done'){ await scNotice(); return; }
-  sc.card = r.card;
-  $('#scword').textContent = r.card.word;
-  $('#scphon').textContent = r.card.p || '';
-  $('#scprog').textContent = '已筛 ' + r.progress.screened + ' / ' + r.progress.total +
-    (sc.knowCount ? ' · 跳过 ' + sc.knowCount + ' 个认识的' : '');
-}
-async function scAnswer(ans){
-  if (sc.busy || !sc.card) return;
-  if (ans !== 'know') scResetKnowBtn();
-  sc.busy = true;
-  const prevWord = sc.card.word;
-  try {
-    const r = await api('/api/vocab/screen', {method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({word_id: sc.card.word_id, answer: ans})});
-    if (r.error){ toast('出错: ' + r.error); sc.busy = false; return; }
-    if (ans === 'know') sc.knowCount++;
-    sc.lastWord = prevWord;
-    if (r.progress) scRefreshOps(r.progress);
-    if (r.terminated){
-      // 早停不再把学生赶出快筛：panel 里有「重新筛词」和「回去学习」两条路。
-      // 原先是 scExit()，而顶栏入口恰好被 screen_pending 藏掉 —— 提示语让他
-      // "点顶栏继续快筛"，按钮却不存在（用户反馈的"回不去"就是这个）。
-      toast('连续 ' + r.know_streak + ' 个都不认识，先歇一下');
-      await scNotice();
-      return;
-    }
-    if (r.next && r.next.mode === 'done'){ await scNotice(); return; }
-    sc.card = r.next && r.next.card ? r.next.card : null;
-    scResetKnowBtn();
-    if (sc.card){
-      $('#scword').textContent = sc.card.word;
-      $('#scphon').textContent = sc.card.p || '';
-      $('#scprog').textContent = '已筛 ' + (r.next.progress.screened) + ' / ' + r.next.progress.total +
-        (sc.knowCount ? ' · 跳过 ' + sc.knowCount + ' 个认识的' : '');
-    }
-  } finally { sc.busy = false; }
-}
-/* 「误点了」的即时救回：把刚评的一个词放回待筛池（服务端记着历史，刷新也能撤）。 */
 async function scUndo(){
   if (sc.busy) return;
   sc.busy = true;
@@ -1380,17 +1486,9 @@ async function scUndo(){
     const r = await api('/api/vocab/screen/undo', {method:'POST',
       headers:{'Content-Type':'application/json'}, body: '{}'});
     if (r.error){ toast(r.error === 'nothing to undo' ? '没有可撤销的了' : ('出错: ' + r.error)); return; }
-    toast('已把「' + (r.word || sc.lastWord) + '」放回待筛');
+    toast(r.undone ? ('已撤销上一页 ' + r.undone + ' 个词') : ('已撤销「' + (r.word || '') + '」'));
     scNoticeHide();
-    // 服务端已把该词状态清零，直接用返回的卡片接上，不额外再取一次
-    const g = await api('/api/vocab/screen/next');
-    scRefreshOps(r.progress || g.progress);
-    if (g.mode === 'done'){ await scNotice(); return; }
-    sc.card = g.card;
-    $('#scword').textContent = g.card.word;
-    $('#scphon').textContent = g.card.p || '';
-    $('#scprog').textContent = '已筛 ' + g.progress.screened + ' / ' + g.progress.total +
-      (sc.knowCount ? ' · 跳过 ' + sc.knowCount + ' 个认识的' : '');
+    await scLoadPage();
   } finally { sc.busy = false; }
 }
 function scExit(silent){
@@ -1402,25 +1500,25 @@ function scExit(silent){
   $('#bar').style.display = '';
   clearSlowTimer();
   scRefreshBtn();
-  if (!silent) toast('快筛暂停，进度已保存，点顶部"⚡快筛"继续');
+  if (!silent) toast('快筛暂停，未筛词仍冻结；点顶部「⚡快筛」继续');
   loadNext();
 }
 $('#sc-go').onclick = scGo;
 $('#sc-skip').onclick = scSkipIntro;
 $('#btnscreen').onclick = scEnter;
-$('#sc-know').onclick = () => scKnowClick();
-$('#sc-fuzzy').onclick = () => scAnswer('fuzzy');
-$('#sc-no').onclick = () => scAnswer('no');
+$('#scshow').onclick = scToggleGloss;
+$('#scsubmit').onclick = scSubmitPage;
 $('#scundo').onclick = scUndo;
-$('#scredo').onclick = () => scNotice();
+$('#scredo').onclick = async () => {
+  try {
+    const r = await api('/api/vocab/screen/start');
+    await scNotice(r.progress || {}, {finished: true});
+  } catch(e) { toast('加载快筛状态失败'); }
+};
 $('#scexit').onclick = () => scExit(false);
-$('#scword').onclick = () => { if (sc.card) speak(sc.card.word); };
 document.addEventListener('keydown', e => {
   if (!sc.active || e.repeat) return;
-  if (e.key === '1') scKnowClick();
-  else if (e.key === '2') scAnswer('fuzzy');
-  else if (e.key === '3') scAnswer('no');
-  else if (e.key === 'Escape') scExit(false);
+  if (e.key === 'Escape') scExit(false);
 });
 
 scInit();

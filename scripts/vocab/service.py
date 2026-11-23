@@ -324,13 +324,20 @@ def _extra_left(conn) -> int:
 
 def new_pool_left(conn, track: str = 'normal') -> int:
     """还能投出去的新词数。不能只看 learned < total —— 快筛自报"认识"的词
-    不建卡、也不该被算成可学，否则学生点了「再学一组」只会拿到一张空完成页。"""
+    不建卡、也不该被算成可学，否则学生点了「再学一组」只会拿到一张空完成页。
+
+    快筛冻结(screen_freeze=1)时，未筛词(screened=0)也不算可学，避免边筛边投。
+    """
     now = now_iso()
     book_sql = ' AND (w.book = 1 OR w.book IS NULL) ' if track == 'beginner' else ''
+    if _screen_freeze_on(conn):
+        screen_sql = 'AND (w.screened IN (2, 3) OR (w.screened = 1 AND w.screen_due <= ?))'
+    else:
+        screen_sql = 'AND (w.screened != 1 OR w.screen_due <= ?)'
     return conn.execute(
         'SELECT COUNT(*) c FROM words w LEFT JOIN cards c ON c.word_id = w.id '
-        'WHERE c.word_id IS NULL AND w.is_head = 1 ' + book_sql +
-        'AND (w.screened != 1 OR w.screen_due <= ?)', (now,)).fetchone()['c']
+        'WHERE c.word_id IS NULL AND w.is_head = 1 ' + book_sql + ' '
+        + screen_sql, (now,)).fetchone()['c']
 
 
 def grant_extra_dose(conn) -> dict:
@@ -930,11 +937,16 @@ def next_card(conn, force=False) -> dict:
         # 互锁条件：命中任一已学规则，且非不规则词（irr 不参与规则互锁）
         ph_or = ' OR '.join(['w.phonics LIKE ?'] * len(prio)) or '0'
         ph_pats = ['%"' + rid + '"%' for rid in prio]
+        # 快筛冻结时：未筛(0)不投；只投不认识(3)/模糊(2)，认识冒头走 probes
+        if _screen_freeze_on(conn):
+            screen_sql = 'AND (w.screened IN (2, 3) OR w.id IN (' + marks + ')) '
+        else:
+            screen_sql = 'AND (w.screened != 1 OR w.id IN (' + marks + ')) '
         r = conn.execute(
             'SELECT w.id word_id, w.word, w.variants, w.gloss, w.teacher_note, w.p, w.is_head, w.syll, w.book FROM words w '
             'LEFT JOIN cards c ON c.word_id = w.id '
             'WHERE c.word_id IS NULL AND w.is_head = 1 ' + book_sql +
-            'AND (w.screened != 1 OR w.id IN (' + marks + ')) '
+            screen_sql +
             'ORDER BY CASE '
             '  WHEN w.id IN (' + marks + ') THEN 0 '
             '  WHEN (' + ph_or + ') AND (w.irr IS NULL OR w.irr = "" OR w.irr = "0") THEN 1 '
@@ -1014,10 +1026,14 @@ def _new_reserve_due(conn, c: dict) -> bool:
     book_sql = ''
     if c.get('track') == 'beginner':
         book_sql = ' AND (w.book = 1 OR w.book IS NULL) '
+    if _screen_freeze_on(conn):
+        screen_sql = 'AND (w.screened IN (2, 3) OR w.id IN (' + marks + ')) '
+    else:
+        screen_sql = 'AND (w.screened != 1 OR w.id IN (' + marks + ')) '
     r = conn.execute(
         'SELECT w.id FROM words w LEFT JOIN cards c2 ON c2.word_id = w.id '
         'WHERE c2.word_id IS NULL AND w.is_head = 1 ' + book_sql +
-        'AND (w.screened != 1 OR w.id IN (' + marks + ')) LIMIT 1',
+        screen_sql + 'LIMIT 1',
         probes).fetchone()
     return r is not None
 
@@ -1319,26 +1335,31 @@ def _settle(conn) -> None:
         pass
 
 
-# ---- 快筛（模块 1）：新词首次自报三态，认识休眠、模糊快班、不认识入池 ----
-SCREEN_NO_KNOW_STOP = 200   # 连续 N 词无"认识"→ 提前终止快筛。
-# 原为 130，对中等水平学生偏紧：实测高中生（词汇量约 1500）在 id=860 处就被截停，
-# 剩下的词里夹着大量"其实认识"的，全部被当全新词从零学，白费功夫（缺陷⑥）。
-# 放宽到 200，配合 screen_pending 的续筛与教师端重置，把"停下还是继续"交回学生。
+# ---- 快筛（模块 1）：词频序表单批量二态（认识/不认识）----
+# 每页 20 词；本页认识比例 < 50% 结束；未筛词可冻结不进新词池。
+SCREEN_PAGE_SIZE = 20
+SCREEN_STOP_RATIO = 0.5
 # 方案 C4：首次标「认识」→ 7~14 天全量抽查；通过后再进 30~60 天长休眠
 SCREEN_FIRST_MIN_DAYS = 7
 SCREEN_FIRST_MAX_DAYS = 14
-SCREEN_DUE_MIN_DAYS = 30    # 复核通过后的长休眠
+SCREEN_DUE_MIN_DAYS = 30
 SCREEN_DUE_MAX_DAYS = 60
-SCREEN_RESURFACE_DAY_CAP = 40  # 到期认识词单日最多冒头张数（尽量全量）
-SCREEN_HIST_MAX = 30        # 自报历史栈深度（供「撤销上一词」用）
+SCREEN_RESURFACE_DAY_CAP = 40
+SCREEN_HIST_MAX = 30
+# 旧单卡早停阈值（兼容旧客户端）；新表单走本页比例
+SCREEN_NO_KNOW_STOP = 200
+
+
+def _screen_freeze_on(conn) -> bool:
+    return get_meta(conn, 'screen_freeze', '0') == '1'
+
+
+def _set_screen_freeze(conn, on: bool) -> None:
+    _meta_set(conn, 'screen_freeze', '1' if on else '0')
 
 
 def _screen_hist(conn) -> list:
-    """最近若干次自报的记录 [{'w': word_id, 'a': answer}, ...]。
-
-    存在 meta 里而不是前端 JS 变量里：一刷新页面就丢的撤销等于没有，
-    学生"误点了"往往正是在手速快、来回翻的时候。
-    """
+    """最近若干次自报的记录 [{'w': word_id, 'a': answer}, ...]。"""
     try:
         h = json.loads(get_meta(conn, 'screen_hist', '[]'))
         return h if isinstance(h, list) else []
@@ -1352,8 +1373,138 @@ def _screen_hist_push(conn, word_id: int, answer: str) -> None:
     _meta_set(conn, 'screen_hist', json.dumps(h[-SCREEN_HIST_MAX:], ensure_ascii=False))
 
 
+def _mark_know(conn, word_id: int) -> None:
+    days = random.randint(SCREEN_FIRST_MIN_DAYS, SCREEN_FIRST_MAX_DAYS)
+    due = datetime.now(timezone.utc) + timedelta(days=days)
+    conn.execute('UPDATE words SET screened=1, screen_due=? WHERE id=?',
+                 (due.isoformat(), word_id))
+
+
+def _mark_no(conn, word_id: int) -> None:
+    conn.execute('UPDATE words SET screened=3, screen_due=NULL WHERE id=?', (word_id,))
+
+
+def screen_page(conn, limit: int = None) -> dict:
+    """取下一页待筛词（词频升序，默认 20）。进入快筛即冻结未筛词。"""
+    n = as_int(limit, SCREEN_PAGE_SIZE, 1, SCREEN_PAGE_SIZE) or SCREEN_PAGE_SIZE
+    _set_screen_freeze(conn, True)
+    _meta_set(conn, 'screened_done', 1)
+    # 主动取页 = 继续筛：清早停，避免上一轮 <50% 后卡死
+    if get_meta(conn, 'screen_terminated', '0') == '1':
+        _meta_set(conn, 'screen_terminated', 0)
+        _meta_set(conn, 'screen_no_known_streak', 0)
+    conn.commit()
+    rows = conn.execute(
+        'SELECT w.id word_id, w.word, w.variants, w.gloss, w.p FROM words w '
+        'WHERE w.screened = 0 AND w.is_head = 1' + _screen_book_cond(conn) +
+        ' ORDER BY w.id ASC LIMIT ?', (n,)).fetchall()
+    if not rows:
+        _set_screen_freeze(conn, False)
+        conn.commit()
+        return {'mode': 'done', 'screen_done': True, 'words': [],
+                'progress': screen_progress(conn)}
+    words = []
+    for r in rows:
+        words.append({
+            'word_id': r['word_id'],
+            'word': r['word'],
+            'p': r['p'],
+            'gloss': r['gloss'] or '',
+            'variants': json.loads(r['variants']) if r['variants'] else [],
+        })
+    return {
+        'mode': 'page',
+        'page_size': SCREEN_PAGE_SIZE,
+        'words': words,
+        'progress': screen_progress(conn),
+    }
+
+
+def screen_batch(conn, page_ids, known_ids) -> dict:
+    """批量二态提交：勾选=认识休眠，未勾=不认识入池。
+
+    只看本页：认识数 / 本页词数 < 50% → terminated，未筛词继续冻结。
+    """
+    if not isinstance(page_ids, list) or not page_ids:
+        return {'error': 'page_ids required'}
+    if known_ids is None:
+        known_ids = []
+    if not isinstance(known_ids, list):
+        return {'error': 'known_ids must be a list'}
+
+    ids = []
+    for x in page_ids:
+        wid = as_int(x, None, 1, SQLITE_MAX_INT)
+        if wid is None:
+            return {'error': 'invalid page_ids'}
+        if wid not in ids:
+            ids.append(wid)
+    known_set = set()
+    for x in known_ids:
+        wid = as_int(x, None, 1, SQLITE_MAX_INT)
+        if wid is None:
+            return {'error': 'invalid known_ids'}
+        known_set.add(wid)
+    # 勾选必须属于本页
+    known_set &= set(ids)
+
+    # 仅处理仍为未筛的族长，避免重提把已学状态冲掉
+    placeholders = ','.join('?' * len(ids))
+    rows = conn.execute(
+        'SELECT id, is_head, screened FROM words WHERE id IN (' + placeholders + ')',
+        ids).fetchall()
+    by_id = {r['id']: r for r in rows}
+    applied = []
+    for wid in ids:
+        r = by_id.get(wid)
+        if r is None or not r['is_head']:
+            continue
+        if int(r['screened'] or 0) != 0:
+            continue
+        if wid in known_set:
+            _mark_know(conn, wid)
+            ans = 'know'
+        else:
+            _mark_no(conn, wid)
+            ans = 'no'
+        _screen_hist_push(conn, wid, ans)
+        applied.append(wid)
+
+    page_n = len(ids)
+    know_n = len([w for w in ids if w in known_set])
+    ratio = (know_n / page_n) if page_n else 0.0
+    terminated = page_n > 0 and ratio < SCREEN_STOP_RATIO
+
+    _set_screen_freeze(conn, True)
+    _meta_set(conn, 'screened_done', 1)
+    _meta_set(conn, 'screen_last_page', json.dumps({
+        'ids': ids, 'known': sorted(known_set),
+    }, ensure_ascii=False))
+
+    left = screen_left(conn)
+    if left <= 0:
+        terminated = False
+        _set_screen_freeze(conn, False)
+        _meta_set(conn, 'screen_terminated', 0)
+    elif terminated:
+        _meta_set(conn, 'screen_terminated', 1)
+    else:
+        _meta_set(conn, 'screen_terminated', 0)
+
+    conn.commit()
+    return {
+        'ok': True,
+        'terminated': terminated,
+        'know_count': know_n,
+        'page_count': page_n,
+        'ratio': round(ratio, 4),
+        'applied': len(applied),
+        'progress': screen_progress(conn),
+    }
+
+
 def screen_next(conn) -> dict:
-    """取下一张待筛词（未筛族长，词频序）。零基础只筛第一册。"""
+    """兼容旧单卡客户端：取下一张待筛词。"""
     r = conn.execute(
         'SELECT w.id word_id, w.word, w.variants, w.gloss, w.p FROM words w '
         'WHERE w.screened = 0 AND w.is_head = 1' + _screen_book_cond(conn) +
@@ -1371,8 +1522,7 @@ def screen_next(conn) -> dict:
 
 
 def screen_submit(conn, word_id: int, answer: str) -> dict:
-    """三态入库：know→首次 7~14 天抽查休眠；fuzzy→标记快班(暂入正常池)；no→清标记。
-    返回 {'ok':..,'terminated':..,'know_streak':..}——terminated=True 表示连续无认识已达终止线。"""
+    """兼容旧单卡客户端（三态）。新前端走 screen_batch 二态。"""
     if answer not in ('know', 'fuzzy', 'no'):
         return {'error': 'answer must be know|fuzzy|no'}
     r = conn.execute('SELECT id, is_head FROM words WHERE id=?', (word_id,)).fetchone()
@@ -1380,21 +1530,18 @@ def screen_submit(conn, word_id: int, answer: str) -> dict:
         return {'error': 'word not found or not head'}
     streak = int(get_meta(conn, 'screen_no_known_streak', '0'))
     if answer == 'know':
-        # 方案 C4：先短休眠做首次全量抽查，通过后再由 review 路径续 30~60 天
-        days = random.randint(SCREEN_FIRST_MIN_DAYS, SCREEN_FIRST_MAX_DAYS)
-        due = datetime.now(timezone.utc) + timedelta(days=days)
-        conn.execute('UPDATE words SET screened=1, screen_due=? WHERE id=?',
-                     (due.isoformat(), word_id))
+        _mark_know(conn, word_id)
         streak = 0
     elif answer == 'fuzzy':
         conn.execute('UPDATE words SET screened=2, screen_due=NULL WHERE id=?', (word_id,))
         streak += 1
-    else:  # no
-        conn.execute('UPDATE words SET screened=3, screen_due=NULL WHERE id=?', (word_id,))
+    else:
+        _mark_no(conn, word_id)
         streak += 1
+    _set_screen_freeze(conn, True)
     _meta_set(conn, 'screen_no_known_streak', streak)
-    _meta_set(conn, 'screened_done', 1)  # 至少筛过一词，快筛会话不再重置
-    _screen_hist_push(conn, word_id, answer)   # 供「撤销上一词」
+    _meta_set(conn, 'screened_done', 1)
+    _screen_hist_push(conn, word_id, answer)
     conn.commit()
     terminated = streak >= SCREEN_NO_KNOW_STOP
     if terminated:
@@ -1471,16 +1618,36 @@ def screen_progress(conn) -> dict:
             'undoable': len(_screen_hist(conn)),
             'intro': get_meta(conn, 'screened_intro', ''),
             'skipped': get_meta(conn, 'screened_intro', '') == 'skipped',
-            'terminated': get_meta(conn, 'screen_terminated', '0') == '1'}
+            'terminated': get_meta(conn, 'screen_terminated', '0') == '1',
+            'freeze': _screen_freeze_on(conn),
+            'page_size': SCREEN_PAGE_SIZE,
+            'stop_ratio': SCREEN_STOP_RATIO}
 
 
 def screen_undo(conn) -> dict:
-    """撤销上一次自报（「误点了」的直接解法）：把那个词放回待筛池。
+    """撤销上一页批量提交（优先），否则回退到单卡历史栈。"""
+    raw = get_meta(conn, 'screen_last_page', '')
+    if raw:
+        try:
+            last = json.loads(raw)
+        except ValueError:
+            last = None
+        ids = (last or {}).get('ids') or []
+        if ids:
+            placeholders = ','.join('?' * len(ids))
+            conn.execute(
+                'UPDATE words SET screened=0, screen_due=NULL WHERE is_head=1 AND id IN ('
+                + placeholders + ') AND id NOT IN (SELECT word_id FROM cards)', ids)
+            # 同步裁剪 hist
+            h = [x for x in _screen_hist(conn) if x.get('w') not in set(ids)]
+            _meta_set(conn, 'screen_hist', json.dumps(h[-SCREEN_HIST_MAX:], ensure_ascii=False))
+            _meta_set(conn, 'screen_last_page', '')
+            _meta_set(conn, 'screen_terminated', 0)
+            _set_screen_freeze(conn, True)
+            _meta_set(conn, 'screened_done', 1)
+            conn.commit()
+            return {'ok': True, 'undone': len(ids), 'progress': screen_progress(conn)}
 
-    历史栈存在 meta.screen_hist，所以刷新页面、换设备都还能撤。
-    撤销「不认识/模糊」时把"连续无认识"计数一并回退 —— 否则撤了词、早停还卡着
-    （streak 已到 200），点一下又被终止，等于没救回来。
-    """
     h = _screen_hist(conn)
     if not h:
         return {'error': 'nothing to undo'}
@@ -1528,14 +1695,11 @@ def screen_redo(conn, scope: str = 'know') -> dict:
 
 
 def screen_resume(conn) -> dict:
-    """明确「接着筛」：清早停标记与连续计数，让学生再拿一轮。
-
-    没有这一步，被早停的学生点进来筛一个词就又立刻触发终止（streak 还是 200），
-    等于按钮能点、点了没用。
-    """
+    """明确「接着筛」：清早停，重新冻结未筛词。"""
     _meta_set(conn, 'screen_no_known_streak', 0)
     _meta_set(conn, 'screen_terminated', 0)
     _meta_set(conn, 'screened_done', 1)
+    _set_screen_freeze(conn, True)
     conn.commit()
     return {'ok': True, 'progress': screen_progress(conn)}
 
@@ -1547,9 +1711,12 @@ def screen_reset(conn) -> dict:
     不动已筛结果（words.screened），学生可接着筛；要彻底重来用 screen_redo('all')
     或 scripts/reset_db.py。
     """
-    conn.execute("DELETE FROM meta WHERE key IN ('screen_terminated','screened_intro')")
+    conn.execute(
+        "DELETE FROM meta WHERE key IN "
+        "('screen_terminated','screened_intro','screen_freeze','screen_last_page')")
     conn.execute("INSERT OR REPLACE INTO meta(key,value) VALUES('screened_done','1')")
     conn.execute("INSERT OR REPLACE INTO meta(key,value) VALUES('screen_no_known_streak','0')")
+    conn.execute("INSERT OR REPLACE INTO meta(key,value) VALUES('screen_freeze','1')")
     conn.commit()
     return {'ok': True, 'progress': screen_progress(conn)}
 
@@ -1895,8 +2062,13 @@ class Handler(BaseHTTPRequestHandler):
             with _LOCK:
                 ex = as_int(q.get('exclude', [None])[0], None, 1, SQLITE_MAX_INT)
                 return self._json(speed_next(_CONN, exclude_id=ex))
+        if u.path == '/api/screen/page':
+            # 快筛表单：取下一页（默认 20 词，词频序）
+            with _LOCK:
+                lim = as_int(q.get('limit', [None])[0], SCREEN_PAGE_SIZE, 1, SCREEN_PAGE_SIZE)
+                return self._json(screen_page(_CONN, lim))
         if u.path == '/api/screen/next':
-            # 快筛取词（模块 1）
+            # 兼容旧单卡客户端
             with _LOCK:
                 return self._json(screen_next(_CONN))
         if u.path == '/api/screen/start':
@@ -1956,8 +2128,20 @@ class Handler(BaseHTTPRequestHandler):
                 if pp:
                     res['popup'] = pp
             return self._json(res)
+        if u.path == '/api/screen/batch':
+            # 快筛表单批量二态：page_ids + known_ids（勾选=认识）
+            with _LOCK:
+                res = screen_batch(_CONN, body.get('page_ids'), body.get('known_ids'))
+            if 'error' in res:
+                return self._json(res, 400)
+            with _LOCK:
+                if res.get('terminated') or screen_left(_CONN) <= 0:
+                    res['next'] = {'mode': 'done'}
+                else:
+                    res['next'] = screen_page(_CONN)
+            return self._json(res)
         if u.path == '/api/screen':
-            # 快筛三态入库（模块 1）：know=认识休眠 / fuzzy=模糊 / no=不认识
+            # 兼容旧单卡：know / fuzzy / no
             with _LOCK:
                 res = screen_submit(_CONN, body.get('word_id'), body.get('answer'))
             if 'error' in res:
@@ -2043,6 +2227,12 @@ class Handler(BaseHTTPRequestHandler):
                     val = str(body['screened_intro'])[:40]
                     _meta_set(_CONN, 'screened_intro', val)
                     apply_track_from_intro(_CONN, val)
+                    # 跳过=不冻结未筛词，可直接学；开始快筛则冻结
+                    if val == 'skipped':
+                        _set_screen_freeze(_CONN, False)
+                    else:
+                        _set_screen_freeze(_CONN, True)
+                        _meta_set(_CONN, 'screened_done', 1)
                 _CONN.commit()
             return self._json({
                 'ok': True,
