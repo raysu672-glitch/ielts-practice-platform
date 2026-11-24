@@ -50,7 +50,7 @@ export default function TextHighlightLayer({ enabled = true }: { enabled?: boole
         rangeRef.current = info.range
         scopeRef.current = info.scope
         const pad = 14
-        const tw = 168
+        const tw = info.canHighlight ? 168 : 72
         const th = 40
         // 默认放选区下方偏左，躲开浏览器自带划词条
         let left = info.rect.left
@@ -67,8 +67,8 @@ export default function TextHighlightLayer({ enabled = true }: { enabled?: boole
         setBar({
           left,
           top,
-          canHighlight: true,
-          canRemove: true,
+          canHighlight: info.canHighlight,
+          canRemove: info.canRemove,
         })
       }, 30)
     }
@@ -119,22 +119,28 @@ export default function TextHighlightLayer({ enabled = true }: { enabled?: boole
       aria-label="划词高亮"
       onMouseDown={(e) => e.preventDefault()}
     >
-      <button type="button" className="jianya-hl-btn" onClick={() => runHighlight(1)} title="高亮">
-        <span className="jianya-hl-swatch jianya-hl-swatch-1" />
-        高亮
-      </button>
-      <button
-        type="button"
-        className="jianya-hl-btn"
-        onClick={() => runHighlight(2)}
-        title="换色高亮"
-      >
-        <span className="jianya-hl-swatch jianya-hl-swatch-2" />
-        换色
-      </button>
-      <button type="button" className="jianya-hl-btn jianya-hl-btn-muted" onClick={runRemove} title="取消高亮">
-        取消
-      </button>
+      {bar.canHighlight && (
+        <>
+          <button type="button" className="jianya-hl-btn" onClick={() => runHighlight(1)} title="高亮">
+            <span className="jianya-hl-swatch jianya-hl-swatch-1" />
+            高亮
+          </button>
+          <button
+            type="button"
+            className="jianya-hl-btn"
+            onClick={() => runHighlight(2)}
+            title="换色高亮"
+          >
+            <span className="jianya-hl-swatch jianya-hl-swatch-2" />
+            换色
+          </button>
+        </>
+      )}
+      {bar.canRemove && (
+        <button type="button" className="jianya-hl-btn jianya-hl-btn-muted" onClick={runRemove} title="取消高亮">
+          取消
+        </button>
+      )}
     </div>
   )
 }

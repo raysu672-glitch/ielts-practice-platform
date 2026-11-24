@@ -30,27 +30,61 @@ export function findHighlightScope(node: Node | null): HTMLElement | null {
   return null
 }
 
+function markFromNode(node: Node | null): HTMLElement | null {
+  if (!node) return null
+  const el = node instanceof Element ? node : node.parentElement
+  return el?.closest?.(`mark.${HL_CLASS}[${HL_ATTR}]`) as HTMLElement | null
+}
+
 export function getSelectionInfo(): {
   text: string
   range: Range
   scope: HTMLElement
   rect: DOMRect
+  canHighlight: boolean
+  canRemove: boolean
 } | null {
   const sel = window.getSelection()
-  if (!sel || sel.rangeCount === 0 || sel.isCollapsed) return null
-  const text = sel.toString().replace(/\s+/g, ' ').trim()
-  if (!text || text.length > MAX_CHARS) return null
+  if (!sel || sel.rangeCount === 0) return null
   const range = sel.getRangeAt(0).cloneRange()
   const startScope = findHighlightScope(range.startContainer)
   const endScope = findHighlightScope(range.endContainer)
   if (!startScope || startScope !== endScope) return null
   if (isForbiddenNode(range.startContainer) || isForbiddenNode(range.endContainer)) return null
-  // 不允许跨输入框等
   const common = range.commonAncestorContainer
   if (isForbiddenNode(common)) return null
+
+  // 光标点在已有高亮内：只开「取消」
+  if (sel.isCollapsed) {
+    const mark = markFromNode(range.startContainer)
+    if (!mark || !startScope.contains(mark)) return null
+    const rect = mark.getBoundingClientRect()
+    if (!rect || (rect.width === 0 && rect.height === 0)) return null
+    const markRange = document.createRange()
+    markRange.selectNodeContents(mark)
+    return {
+      text: (mark.textContent || '').trim(),
+      range: markRange,
+      scope: startScope,
+      rect,
+      canHighlight: false,
+      canRemove: true,
+    }
+  }
+
+  const text = sel.toString().replace(/\s+/g, ' ').trim()
+  if (!text || text.length > MAX_CHARS) return null
   const rect = range.getBoundingClientRect()
   if (!rect || (rect.width === 0 && rect.height === 0)) return null
-  return { text, range, scope: startScope, rect }
+  const canRemove = marksIntersectingRange(range, startScope).length > 0
+  return {
+    text,
+    range,
+    scope: startScope,
+    rect,
+    canHighlight: true,
+    canRemove,
+  }
 }
 
 function unwrapMark(mark: HTMLElement) {
@@ -65,12 +99,16 @@ export function marksIntersectingRange(range: Range, scope: HTMLElement): HTMLEl
   const marks = [...scope.querySelectorAll<HTMLElement>(`mark.${HL_CLASS}[${HL_ATTR}]`)]
   return marks.filter((m) => {
     try {
+      // 用 intersectsNode：compareBoundaryPoints 的 START/END 方向易写反，
+      // 选区与 mark 完全重合时旧逻辑会误判为不相交，导致「取消」无效。
+      if (typeof range.intersectsNode === 'function') {
+        return range.intersectsNode(m)
+      }
       const r = document.createRange()
       r.selectNodeContents(m)
-      // overlap if not fully before/after
       return !(
-        range.compareBoundaryPoints(Range.END_TO_START, r) <= 0 ||
-        range.compareBoundaryPoints(Range.START_TO_END, r) >= 0
+        range.compareBoundaryPoints(Range.START_TO_END, r) <= 0 ||
+        range.compareBoundaryPoints(Range.END_TO_START, r) >= 0
       )
     } catch {
       return false
