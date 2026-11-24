@@ -29,13 +29,13 @@ main{flex:1; display:flex; flex-direction:column; align-items:center; justify-co
 .tag{font-size:12px; color:var(--dim); letter-spacing:3px;}
 .word{font-size:clamp(44px,14vw,88px); font-weight:700; line-height:1.15; margin:8px 0 2px;
   word-break:break-word;}
-#btnspk{
+.btnspk{
   display:inline-flex; align-items:center; justify-content:center;
   margin-left:12px; padding:6px 12px; font-size:22px; line-height:1;
   background:var(--card2); border:1px solid #33415580; border-radius:999px;
   cursor:pointer; vertical-align:middle;
 }
-#btnspk:active{transform:scale(.92);}
+.btnspk:active{transform:scale(.92);}
 #helps{display:flex; gap:8px; justify-content:center; margin:6px 0 2px; padding:0 14px;}
 .help{
   padding:8px 14px; font-size:13px; color:var(--txt);
@@ -70,6 +70,29 @@ main{flex:1; display:flex; flex-direction:column; align-items:center; justify-co
   background:var(--card2); border:1px solid #33415580; border-radius:999px; cursor:pointer;
 }
 #btnreveal:active{transform:scale(.97);}
+/* ---- 背词卡 3D 翻面（与快筛同手感）---- */
+.studflip{
+  perspective:1200px; width:100%; max-width:560px; margin:0 auto;
+}
+.studflip-inner{
+  display:grid; width:100%;
+  transform-style:preserve-3d;
+  transition:transform .5s cubic-bezier(.4,.05,.2,1);
+}
+.studflip.flipped .studflip-inner{transform:rotateY(180deg);}
+.studface{
+  grid-area:1/1; width:100%;
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  backface-visibility:hidden; -webkit-backface-visibility:hidden;
+  box-sizing:border-box; padding:4px 2px;
+}
+.studfront{transform:rotateY(0deg);}
+.studback{transform:rotateY(180deg);}
+.studflip:not(.flipped) .studback{pointer-events:none;}
+.studflip.flipped .studfront{pointer-events:none;}
+@media (prefers-reduced-motion: reduce){
+  .studflip-inner{transition:none;}
+}
 #keys{display:grid; grid-template-columns:repeat(4,1fr); gap:10px;
   padding:12px 14px calc(14px + env(safe-area-inset-bottom));}
 .key{
@@ -856,63 +879,78 @@ function nextDueNote(sec, iso){
 }
 const card = cur.card || {};
   const isNew = cur.mode === 'new';
-  const phase = isNew ? (revealed ? 'back' : 'front') : 'rev';
-  const show = k => ELEMENTS[k] && ELEMENTS[k][phase];
+  const sm = (cur.counts && cur.counts.syll_mode) || 'hide';
   let tag = isNew ? '新词' : '复习';
   if (card.probe) tag = '抽查';
   else if (card.rehab) tag = '复健';
-  let h = '<div class="tag">' + tag + '</div>';
-  if (show('word'))
-    h += '<div class="word">' + esc(card.word) +
-      (show('speak') ? '<button id="btnspk" type="button" title="朗读">🔊</button>' : '') + '</div>';
-  // 音节脚手架（模块8）：always 正面常显 / tap 点按才显 / hide 不显
-  const sm = (cur.counts && cur.counts.syll_mode) || 'hide';
-  if (card.syll && !revealed && sm === 'always')
-    h += '<div class="phonetic">' + esc(card.syll) + '</div>';
-  else if (card.syll && !revealed && sm === 'tap')
-    h += '<div class="sylltap" id="sylltap">显示音节</div>';
-  if (isNew && !revealed) h += '<div class="meta">词频 #' + (card.word_id||'?') + '</div>';
-  if (show('phonetic') && card.phonetic)
-    h += '<div class="phonetic">' + esc(card.phonetic) + '</div>';
-  if (show('icon') && card.icon)
-    h += '<div class="icon">' + esc(card.icon) + '</div>';
-  if (show('gloss') && revealed)
-    h += '<div class="gloss">' + esc(card.gloss) + '</div>';
-  if (show('variants') && revealed){
-    const v = (card.variants||[]).join(' / ');
-    if (v) h += '<div class="variants">也作: ' + esc(v) + '</div>';
+  // 正/背两面一次造好，翻面只切 CSS，才能播 3D 动画（立刻重绘会把动画掐掉）
+  function faceHtml(faceRevealed){
+    const phase = isNew ? (faceRevealed ? 'back' : 'front') : 'rev';
+    const show = k => ELEMENTS[k] && ELEMENTS[k][phase];
+    let h = '<div class="tag">' + tag + '</div>';
+    if (show('word'))
+      h += '<div class="word">' + esc(card.word) +
+        (show('speak') ? '<button class="btnspk" type="button" title="朗读">🔊</button>' : '') + '</div>';
+    if (card.syll && !faceRevealed && sm === 'always')
+      h += '<div class="phonetic">' + esc(card.syll) + '</div>';
+    else if (card.syll && !faceRevealed && sm === 'tap')
+      h += '<div class="sylltap">显示音节</div>';
+    if (isNew && !faceRevealed) h += '<div class="meta">词频 #' + (card.word_id||'?') + '</div>';
+    if (show('phonetic') && card.phonetic)
+      h += '<div class="phonetic">' + esc(card.phonetic) + '</div>';
+    if (show('icon') && card.icon)
+      h += '<div class="icon">' + esc(card.icon) + '</div>';
+    if (show('gloss') && faceRevealed)
+      h += '<div class="gloss">' + esc(card.gloss) + '</div>';
+    if (show('variants') && faceRevealed){
+      const v = (card.variants||[]).join(' / ');
+      if (v) h += '<div class="variants">也作: ' + esc(v) + '</div>';
+    }
+    if (show('example') && faceRevealed && card.example)
+      h += '<div class="ex">' + esc(card.example) + '</div>';
+    if (show('note') && faceRevealed && card.teacher_note)
+      h += '<div class="note">' + esc(card.teacher_note) + '</div>';
+    if (show('family') && faceRevealed && card.family && card.family.length){
+      h += '<div class="fam"><div class="famcap">词族 · 同根词</div>' +
+        card.family.map(f =>
+          '<div class="famrow"><span class="famw" data-w="' + esc(f.word) + '">' + esc(f.word) + '</span>' +
+          (f.p ? '<span class="famp">' + esc(f.p) + '</span>' : '') +
+          '<span class="famg">' + esc(f.gloss) + '</span></div>').join('') + '</div>';
+    }
+    if (faceRevealed){
+      h += '<div class="meta">' + (STATE_STR[card.state]||card.state) +
+        ' · 已练 ' + (card.reps||0) + ' 次' + (card.lapses ? ' · 忘过 ' + card.lapses + ' 次' : '') + '</div>';
+    } else {
+      h += '<div class="meta" style="margin-top:16px">想到意思了吗？</div>' +
+        '<button id="btnreveal">翻面 · 空格</button>';
+    }
+    return h;
   }
-  if (show('example') && revealed && card.example)
-    h += '<div class="ex">' + esc(card.example) + '</div>';
-  if (show('note') && revealed && card.teacher_note)
-    h += '<div class="note">' + esc(card.teacher_note) + '</div>';
-  if (show('family') && revealed && card.family && card.family.length){
-    h += '<div class="fam"><div class="famcap">词族 · 同根词</div>' +
-      card.family.map(f =>
-        '<div class="famrow"><span class="famw" data-w="' + esc(f.word) + '">' + esc(f.word) + '</span>' +
-        (f.p ? '<span class="famp">' + esc(f.p) + '</span>' : '') +
-        '<span class="famg">' + esc(f.gloss) + '</span></div>').join('') + '</div>';
-  }
-  if (revealed){
-    h += '<div class="meta">' + (STATE_STR[card.state]||card.state) +
-      ' · 已练 ' + (card.reps||0) + ' 次' + (card.lapses ? ' · 忘过 ' + card.lapses + ' 次' : '') + '</div>';
-  } else {
-    h += '<div class="meta" style="margin-top:16px">想到意思了吗？</div>' +
-      '<button id="btnreveal">翻面 · 空格</button>';
-  }
-  m.innerHTML = h;
-  const br = $('#btnreveal');
-  if (br) br.onclick = reveal;
-  const spk = $('#btnspk');
-  if (spk) spk.onclick = () => speak(card.word);
-  const st = $('#sylltap');
-  if (st) st.onclick = () => { st.outerHTML = '<div class="phonetic">' + esc(card.syll) + '</div>'; };
-  m.querySelectorAll('.famw').forEach(el => {
-    el.onclick = () => speak(el.getAttribute('data-w'));
-  });
+  m.innerHTML =
+    '<div class="studflip' + (revealed ? ' flipped' : '') + '">' +
+      '<div class="studflip-inner">' +
+        '<div class="studface studfront">' + faceHtml(false) + '</div>' +
+        '<div class="studface studback">' + faceHtml(true) + '</div>' +
+      '</div>' +
+    '</div>';
+  wireStudyCard(card);
   showKeys(revealed);
   applyCapHint();
   if (!revealed) startFrontTimer();
+}
+function wireStudyCard(card){
+  const m = $('#main');
+  const br = $('#btnreveal');
+  if (br) br.onclick = reveal;
+  m.querySelectorAll('.btnspk').forEach(spk => {
+    spk.onclick = e => { e.stopPropagation(); speak(card.word); };
+  });
+  m.querySelectorAll('.sylltap').forEach(st => {
+    st.onclick = () => { st.outerHTML = '<div class="phonetic">' + esc(card.syll) + '</div>'; };
+  });
+  m.querySelectorAll('.famw').forEach(el => {
+    el.onclick = () => speak(el.getAttribute('data-w'));
+  });
 }
 /* ---- 遮罩让路（关键修复）----
    卡片计时器必须在任何全屏遮罩打开时停摆。
@@ -1029,7 +1067,24 @@ async function autoSlowRate(){
   revealed = false; revealedAt = 0;
   render();
 }
-function reveal(){ if (!revealed) { clearFrontTimer(); revealed = true; revealedAt = Date.now(); render(); startSlowTimer(); } }
+function reveal(){
+  if (revealed) return;
+  clearFrontTimer();
+  revealed = true;
+  revealedAt = Date.now();
+  const flip = $('#main .studflip');
+  if (flip){
+    // 强制回流后再加 flipped，避免同帧建卡+翻面时 transition 被吞
+    void flip.offsetWidth;
+    flip.classList.add('flipped');
+  } else {
+    render();
+    return;
+  }
+  showKeys(true);
+  applyCapHint();
+  startSlowTimer();
+}
 /* ---- 评分封顶提示（方案 A）----
    timeout：复习卡正面 5 秒没翻 → 记得/秒懂压暗
    first_cap：新词第一次见面 → 记得/秒懂压暗（翻面后短期记忆不能当「会了」）
