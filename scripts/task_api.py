@@ -923,7 +923,10 @@ def seed_mvp_units(conn: sqlite3.Connection) -> None:
             },
             est_minutes=12,
             completion_rule="questions_once",
-            study_url=f"../daanjutingxie/index.html?startId={qids[0]}&endId={qids[-1]}",
+            study_url=(
+                f"../daanjutingxie/index.html?v=20261124listen4"
+                f"&startId={qids[0]}&endId={qids[-1]}"
+            ),
         )
 
     for i in range(0, SENTENCE_COUNT, SENTENCE_PER_UNIT):

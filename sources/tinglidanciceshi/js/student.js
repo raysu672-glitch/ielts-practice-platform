@@ -562,6 +562,10 @@ function openTaskItem(planItemId) {
         showToast('该单元暂无学习链接', 'error');
         return;
     }
+    // 听力同义替换：强制刷新学习页缓存（听完再选题 / 隐藏题干）
+    if (/daanjutingxie\/index\.html/i.test(url) && !/[?&]v=20261124listen4\b/.test(url)) {
+        url += (url.indexOf('?') >= 0 ? '&' : '?') + 'v=20261124listen4';
+    }
     window._currentTaskContext = {
         plan_item_id: it.plan_item_id,
         unit_id: it.unit_id,

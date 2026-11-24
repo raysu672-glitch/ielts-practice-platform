@@ -8,17 +8,20 @@
 
 ### 1. 备份数据库
 
-部署前先把线上 SQLite 拉到本地，**不要**只依赖 `deploy.py` 的整站 tar 备份。
+部署前执行本地脚本，**不要**只依赖 `deploy.py` 的整站 tar 备份。
 
 ```powershell
-$stamp = Get-Date -Format "yyyyMMdd_HHmmss"
-$dir = "backups/aliyun_$stamp"
-New-Item -ItemType Directory -Force -Path $dir | Out-Null
-# 用已配置的 SSH 密钥/密码，将服务器 /var/www/ielts/data/*.db 下载到 $dir
-# 示例（密钥路径按本机实际修改）：
-# scp -i "你的.pem" root@服务器IP:/var/www/ielts/data/*.db $dir/
-Get-FileHash "$dir\*.db" -Algorithm SHA256 | Tee-Object -FilePath "$dir\SHA256SUMS"
+python scripts/backup_remote_db.py
+# 强制重拉主库（例如刚改过后端/库结构，或怀疑当日复用过期）：
+# python scripts/backup_remote_db.py --fresh-main
 ```
+
+策略（减少日常上线卡在 ~200MB SCP）：
+
+1. **判断要不要重拉主库**：默认若「今天」已有完整可用的 `ielts_local.db` 备份，且本次改动未触及后端/库相关路径，则复用当日主库，不重拉；小库（如写作 `ielts_data.db`）仍每次拉取。
+2. **真要拉主库时压缩**：服务器 SQLite 在线快照后 `gzip -1`，再下载解压；校验 SHA256 + `PRAGMA integrity_check`。
+
+环境变量与 `deploy.py` 相同：`IELTS_DEPLOY_HOST` / `IELTS_DEPLOY_KEY`（或 `IELTS_DEPLOY_PASSWORD`）等。
 
 ### 2. 本地跑测试
 

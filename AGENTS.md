@@ -6,7 +6,7 @@
 
 ### 发布流程（强制）
 推送阿里云必须按序执行，禁止跳步；禁止先改线上再回写本地；禁止未 push 就部署：
-1. 备份数据库（拉线上 DB 到本地 `backups/aliyun_*`，不能只靠 deploy 整站 tar）
+1. 备份数据库（`python scripts/backup_remote_db.py` → `backups/aliyun_*`；日常复用当日主库，真拉时 gzip；不能只靠 deploy 整站 tar）
 2. 本地跑测试（`compileall` + unittest + `node tests/run_js_tests.js`）
 3. 推 GitHub（`main`）
 4. 服务器拉取/部署（Actions 或 `scripts/deploy.py`）
