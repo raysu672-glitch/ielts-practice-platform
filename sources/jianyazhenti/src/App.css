@@ -3065,3 +3065,77 @@ html.embedded .exam-shell {
     align-items: flex-start;
   }
 }
+
+/* —— 划词高亮（参考爱听写 / 机考 Highlight） —— */
+mark.jianya-hl {
+  border-radius: 2px;
+  padding: 0 0.05em;
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+}
+
+mark.jianya-hl-1 {
+  background: #a05d42;
+  color: #fff;
+}
+
+mark.jianya-hl-2 {
+  background: #fe66ca;
+  color: #fff;
+}
+
+.jianya-hl-toolbar {
+  position: fixed;
+  z-index: 2147483000;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  height: 40px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: #fff;
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.18);
+  color: #334155;
+  pointer-events: auto;
+}
+
+.jianya-hl-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  height: 32px;
+  padding: 0 0.7rem;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: #4b5563;
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.jianya-hl-btn:hover {
+  background: #f1f5f9;
+  color: #0f172a;
+}
+
+.jianya-hl-btn-muted {
+  color: #64748b;
+  font-weight: 500;
+}
+
+.jianya-hl-swatch {
+  width: 0.7rem;
+  height: 0.7rem;
+  border-radius: 2px;
+  flex: 0 0 auto;
+}
+
+.jianya-hl-swatch-1 {
+  background: #a05d42;
+}
+
+.jianya-hl-swatch-2 {
+  background: #fe66ca;
+}

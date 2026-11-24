@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import PaperHost from '../components/PaperHost'
+import PassageArticle from '../components/PassageArticle'
+import TextHighlightLayer from '../components/TextHighlightLayer'
 import {
   getAssignment,
   getSubmission,
@@ -477,9 +479,6 @@ export default function Exam() {
   const qRange = nums.length
     ? `Questions ${Math.min(...nums)}-${Math.max(...nums)}`
     : 'Questions'
-  const passageBlocks = (passage?.paragraphs || []).filter(
-    (p) => (p.html || p.text || '').trim() || (p.name || '').trim(),
-  )
 
   return (
     <div className={`exam-shell ${isReading ? 'mode-reading' : 'mode-listening'}`}>
@@ -522,32 +521,15 @@ export default function Exam() {
           isReading ? 'is-reading' : 'is-listening'
         }`}
       >
+        <TextHighlightLayer />
         {isReading && (
           <section className="exam-pane passage-pane">
             <div className="pane-scroll">
               {passage ? (
-                <article className="passage-article">
-                  {passage.title && <h1 className="passage-title">{passage.title}</h1>}
-                  {passage.subtitle && <p className="passage-sub">{passage.subtitle}</p>}
-                  {passageBlocks.map((p, i) => {
-                    const label = (p.name || '').trim()
-                    const body = (p.html || p.text || '').trim()
-                    if (!body && !label) return null
-                    return (
-                      <div className={`passage-block ${label ? 'has-label' : ''}`} key={i}>
-                        {label ? <div className="passage-label">{label}</div> : null}
-                        {p.html ? (
-                          <div
-                            className="passage-html"
-                            dangerouslySetInnerHTML={{ __html: p.html }}
-                          />
-                        ) : (
-                          <p className="passage-text">{p.text}</p>
-                        )}
-                      </div>
-                    )
-                  })}
-                </article>
+                <PassageArticle
+                  passage={passage}
+                  resetKey={`${bookId}-${subject}-${part.sId}-${attempt}`}
+                />
               ) : (
                 <p className="empty">暂无文章正文</p>
               )}
@@ -636,7 +618,7 @@ function FallbackQuestions({
 }) {
   const byNum = new Map(reviewItems?.map((it) => [it.number, it]))
   return (
-    <div className="fallback-q">
+    <div className="fallback-q" data-highlight-scope="fallback">
       {part.questions.map((q) => {
         const item = byNum.get(q.number)
         return (

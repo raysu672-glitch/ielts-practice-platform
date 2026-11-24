@@ -1,4 +1,6 @@
 import PaperHost from './PaperHost'
+import PassageArticle from './PassageArticle'
+import TextHighlightLayer from './TextHighlightLayer'
 import type { GradeItem } from '../lib/grade'
 import type { PartData } from '../types'
 
@@ -17,7 +19,7 @@ function FallbackQuestions({
 }) {
   const byNum = new Map(reviewItems?.map((it) => [it.number, it]))
   return (
-    <div className="fallback-q">
+    <div className="fallback-q" data-highlight-scope="fallback">
       {part.questions.map((q) => {
         const item = byNum.get(q.number)
         return (
@@ -85,9 +87,6 @@ export default function PartWorkspace({
 }) {
   const isReading = part.subject === 'reading'
   const passage = part.passage?.passages?.[0]
-  const passageBlocks = (passage?.paragraphs || []).filter(
-    (p) => (p.html || p.text || '').trim() || (p.name || '').trim(),
-  )
   const filled = Object.values(answers).filter((v) => String(v).trim()).length
 
   const jumpTo = (num: number) => {
@@ -107,32 +106,15 @@ export default function PartWorkspace({
         isReading ? 'is-reading' : 'is-listening'
       }`}
     >
+      <TextHighlightLayer />
       {isReading && (
         <section className="exam-pane passage-pane">
           <div className="pane-scroll">
             {passage ? (
-              <article className="passage-article">
-                {passage.title && <h1 className="passage-title">{passage.title}</h1>}
-                {passage.subtitle && <p className="passage-sub">{passage.subtitle}</p>}
-                {passageBlocks.map((p, i) => {
-                  const label = (p.name || '').trim()
-                  const body = (p.html || p.text || '').trim()
-                  if (!body && !label) return null
-                  return (
-                    <div className={`passage-block ${label ? 'has-label' : ''}`} key={i}>
-                      {label ? <div className="passage-label">{label}</div> : null}
-                      {p.html ? (
-                        <div
-                          className="passage-html"
-                          dangerouslySetInnerHTML={{ __html: p.html }}
-                        />
-                      ) : (
-                        <p className="passage-text">{p.text}</p>
-                      )}
-                    </div>
-                  )
-                })}
-              </article>
+              <PassageArticle
+                passage={passage}
+                resetKey={`${attemptKey}-${bookId}-${part.sId}`}
+              />
             ) : (
               <p className="empty">暂无文章正文</p>
             )}

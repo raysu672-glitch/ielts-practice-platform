@@ -149,7 +149,7 @@ export default function PaperHost({
     })
   }, [reviewItems, html, answers])
 
-  return <div className="paper-html paper-host" ref={ref} />
+  return <div className="paper-html paper-host" ref={ref} data-highlight-scope="questions" />
 }
 
 function escapeHtml(s: string) {
