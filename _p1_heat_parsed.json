@@ -10,362 +10,432 @@
     ],
     "topics": [
       {
-        "rankInCat": 1,
-        "topicEn": "Watch",
-        "topicZh": "手表",
+        "topicEn": "Street Markets",
+        "topicZh": "街头市场",
         "tag": "新增",
-        "recentCount": 39172,
+        "recentCount": 39850,
+        "heatRank": 1,
         "questions": [
-          "Have you ever got a watch as a gift?"
+          "When was the last time you went to a street market?",
+          "Are there many street markets in your country?",
+          "Are there many street markets in China?"
         ],
-        "heatRank": 1
+        "rankInCat": 1
       },
       {
-        "rankInCat": 2,
-        "topicEn": "Work or studies",
-        "topicZh": "工作/学习",
-        "tag": "万年",
-        "recentCount": 8666,
-        "questions": [
-          "What subjects are you studying?",
-          "Why did you choose to study that subject?",
-          "What work do you do?",
-          "Why did you choose to do that type of work (or that job)?",
-          "What requirements did you need to meet to get your current job?",
-          "Who helps you the most? And how?"
-        ],
-        "heatRank": 2
-      },
-      {
-        "rankInCat": 3,
-        "topicEn": "Websites",
-        "topicZh": "网站",
+        "topicEn": "Opportunities",
+        "topicZh": "机会",
         "tag": "新增",
-        "recentCount": 8064,
+        "recentCount": 38800,
+        "heatRank": 2,
         "questions": [
-          "Are there any changes to the websites you often visit?",
-          "What have you learned from websites that help with your life or studies?"
+          "How do you find out about new opportunities?",
+          "What is one good opportunity you had when you were younger?",
+          "Why do some people miss good opportunities?"
         ],
-        "heatRank": 3
+        "rankInCat": 2
       },
       {
-        "rankInCat": 4,
-        "topicEn": "Teachers",
-        "topicZh": "老师",
+        "topicEn": "Name",
+        "topicZh": "名字",
         "tag": "新增",
-        "recentCount": 5845,
+        "recentCount": 37750,
+        "heatRank": 3,
         "questions": [
-          "Do you have a teacher from your past that you still remember?",
-          "Are you still in touch with your primary school teachers?",
-          "In what way has your favourite teacher helped you?"
+          "Who chose your name?",
+          "Does your name have a special meaning?",
+          "How do you feel about your name?",
+          "What did your friends call you when you were a child?",
+          "Do you often forget people's names?"
         ],
-        "heatRank": 4
+        "rankInCat": 3
       },
       {
-        "rankInCat": 5,
-        "topicEn": "The area you live in",
-        "topicZh": "你住的区域",
-        "tag": "万年",
-        "recentCount": 4473,
-        "questions": [
-          "Do you know any famous people in your area?",
-          "What are some changes in the area recently?",
-          "Do you know any of your neighbors?",
-          "Are the people in your neighborhood nice and friendly?",
-          "Do you live in a noisy or a quiet area?"
-        ],
-        "heatRank": 5
-      },
-      {
-        "rankInCat": 6,
-        "topicEn": "Shopping",
-        "topicZh": "购物",
+        "topicEn": "Rubbish and Recycling",
+        "topicZh": "垃圾与回收",
         "tag": "新增",
-        "recentCount": 4312,
+        "recentCount": 36700,
+        "heatRank": 4,
         "questions": [
-          "Have you ever returned anything you bought online?"
+          "Do you recycle at home?",
+          "What kinds of things do you throw away most often?",
+          "How do people in your area sort their rubbish?"
         ],
-        "heatRank": 6
+        "rankInCat": 4
       },
       {
-        "rankInCat": 7,
-        "topicEn": "Mirrors",
-        "topicZh": "镜子",
+        "topicEn": "Paper",
+        "topicZh": "纸",
         "tag": "新增",
-        "recentCount": 4116,
+        "recentCount": 35650,
+        "heatRank": 5,
         "questions": [
-          "Have you ever bought mirrors?"
+          "What did you use paper for most when you were at school?",
+          "What do you do with paper you no longer need?"
         ],
-        "heatRank": 7
+        "rankInCat": 5
       },
       {
-        "rankInCat": 8,
-        "topicEn": "Music",
-        "topicZh": "音乐",
+        "topicEn": "Advertisements",
+        "topicZh": "广告",
         "tag": "新增",
-        "recentCount": 3997,
+        "recentCount": 34600,
+        "heatRank": 6,
         "questions": [
-          "Have you taken any music classes?"
+          "Where do you see adverts most often?",
+          "Have you ever bought something because of an advert?",
+          "Which advert do you remember from your childhood?"
         ],
-        "heatRank": 8
+        "rankInCat": 6
       },
       {
-        "rankInCat": 9,
-        "topicEn": "Home & Accommodation",
-        "topicZh": "住宿",
-        "tag": "万年",
-        "recentCount": 3178,
-        "questions": [
-          "Are the transport facilities to your home very good?",
-          "Please describe the room you live in?",
-          "How long have you lived there?",
-          "Can you describe the place where you live?",
-          "Do you live in an apartment or a house?",
-          "Who do you live with?",
-          "What kinds of accommodation do you live in?"
-        ],
-        "heatRank": 9
-      },
-      {
-        "rankInCat": 10,
-        "topicEn": "Hometown",
-        "topicZh": "家乡",
-        "tag": "万年",
-        "recentCount": 2912,
-        "questions": [
-          "Where is your hometown?",
-          "Is that a big city or a small place?",
-          "Please describe your hometown a little?",
-          "How long have you been living there?",
-          "What's your hometown famous for?",
-          "Did you learn about the history of your hometown at school?",
-          "Are there many young people in your hometown?",
-          "Have you learned anything about the history of your hometown?",
-          "Did you learn about the culture of your hometown in your childhood?"
-        ],
-        "heatRank": 10
-      },
-      {
-        "rankInCat": 10,
-        "topicEn": "Headphones",
-        "topicZh": "耳机",
+        "topicEn": "Tiredness",
+        "topicZh": "疲惫",
         "tag": "新增",
-        "recentCount": 2597,
+        "recentCount": 33550,
+        "heatRank": 7,
         "questions": [
-          "What type of headphones do you use?"
+          "How does tiredness affect your work or studies?",
+          "What used to make you tired when you were a child?",
+          "Do you often get tired?"
         ],
-        "heatRank": 11
+        "rankInCat": 7
       },
       {
-        "rankInCat": 11,
-        "topicEn": "Social media",
-        "topicZh": "社交媒体",
+        "topicEn": "Politeness",
+        "topicZh": "礼貌",
         "tag": "新增",
-        "recentCount": 2310,
+        "recentCount": 32500,
+        "heatRank": 8,
         "questions": [
-          "Have you ever posted anything on social media?",
-          "When did you start using social media?",
-          "Do your friends use social media?"
+          "How do people in your country show politeness?",
+          "Who taught you to be polite when you were a child?",
+          "What kind of behaviour do you find rude?"
         ],
-        "heatRank": 12
+        "rankInCat": 8
       },
       {
-        "rankInCat": 12,
+        "topicEn": "Secondary school",
+        "topicZh": "中学",
+        "tag": "新增",
+        "recentCount": 31450,
+        "heatRank": 9,
+        "questions": [
+          "Do you still keep in touch with your classmates from secondary school?",
+          "Is there anything you miss about your secondary school?"
+        ],
+        "rankInCat": 9
+      },
+      {
+        "topicEn": "Shoes",
+        "topicZh": "鞋子",
+        "tag": "新增",
+        "recentCount": 30400,
+        "heatRank": 10,
+        "questions": [
+          "What kind of shoes do you wear most often?",
+          "What kind of shoes did you wear as a child?"
+        ],
+        "rankInCat": 10
+      },
+      {
+        "topicEn": "Fruit and vegetables",
+        "topicZh": "水果蔬菜",
+        "tag": "新增",
+        "recentCount": 29350,
+        "heatRank": 11,
+        "questions": [
+          "Which vegetables did you dislike as a child?",
+          "Do people often grow vegetables by themselves?"
+        ],
+        "rankInCat": 11
+      },
+      {
+        "topicEn": "Travelling",
+        "topicZh": "旅行",
+        "tag": "新增",
+        "recentCount": 28300,
+        "heatRank": 12,
+        "questions": [
+          "Where did you go on holiday when you were a child?",
+          "Do you prefer sitting by the window when you travel?"
+        ],
+        "rankInCat": 12
+      },
+      {
+        "topicEn": "Clothing",
+        "topicZh": "衣服",
+        "tag": "沿用",
+        "recentCount": 27250,
+        "heatRank": 13,
+        "questions": [
+          "Who chose your clothes when you were a child?",
+          "Do you spend a lot of time choosing clothes?"
+        ],
+        "rankInCat": 13
+      },
+      {
         "topicEn": "Singing",
         "topicZh": "唱歌",
-        "tag": "新增",
-        "recentCount": 2135,
+        "tag": "沿用",
+        "recentCount": 26200,
+        "heatRank": 14,
         "questions": [
-          "Have you ever learnt how to sing?",
-          "Have you ever taken a singing class?"
+          "What songs did you sing when you were a child?",
+          "Have you ever learnt how to sing?"
         ],
-        "heatRank": 13
+        "rankInCat": 14
       },
       {
-        "rankInCat": 13,
+        "topicEn": "Headphones",
+        "topicZh": "耳机",
+        "tag": "沿用",
+        "recentCount": 25150,
+        "heatRank": 15,
+        "questions": [
+          "When did you get your first pair of headphones?",
+          "Do you use headphones?"
+        ],
+        "rankInCat": 15
+      },
+      {
+        "topicEn": "Jokes & Comedies",
+        "topicZh": "笑话与喜剧",
+        "tag": "沿用",
+        "recentCount": 24100,
+        "heatRank": 16,
+        "questions": [
+          "Who is the funniest person you know?",
+          "What made you laugh when you were a child?",
+          "Are you good at telling jokes?"
+        ],
+        "rankInCat": 16
+      },
+      {
+        "topicEn": "Mirrors",
+        "topicZh": "镜子",
+        "tag": "沿用",
+        "recentCount": 23050,
+        "heatRank": 17,
+        "questions": [
+          "Why do some shops and restaurants have so many mirrors?",
+          "How did you feel about looking in the mirror as a teenager?"
+        ],
+        "rankInCat": 17
+      },
+      {
+        "topicEn": "Science",
+        "topicZh": "科学",
+        "tag": "沿用",
+        "recentCount": 22000,
+        "heatRank": 18,
+        "questions": [
+          "Which area of science interests you the most?",
+          "How does science affect your daily life?",
+          "When did you start to learn about science?"
+        ],
+        "rankInCat": 18
+      },
+      {
         "topicEn": "Outer space and stars",
         "topicZh": "外太空与星星",
-        "tag": "新增",
-        "recentCount": 1988,
+        "tag": "沿用",
+        "recentCount": 20950,
+        "heatRank": 19,
         "questions": [
+          "What did you learn about space when you were a child?",
           "Have you ever learnt about outer space and stars?"
         ],
-        "heatRank": 14
+        "rankInCat": 19
       },
       {
-        "rankInCat": 14,
+        "topicEn": "Cars",
+        "topicZh": "汽车",
+        "tag": "沿用",
+        "recentCount": 19900,
+        "heatRank": 20,
+        "questions": [
+          "Do you have a car?",
+          "What do you remember about car journeys as a child?"
+        ],
+        "rankInCat": 20
+      },
+      {
+        "topicEn": "Public gardens and parks",
+        "topicZh": "公园与公共花园",
+        "tag": "沿用",
+        "recentCount": 18850,
+        "heatRank": 21,
+        "questions": [
+          "Is there a park near your home?",
+          "What did you do in parks when you were a child?"
+        ],
+        "rankInCat": 21
+      },
+      {
+        "topicEn": "Feeling bored",
+        "topicZh": "感到无聊",
+        "tag": "沿用",
+        "recentCount": 17800,
+        "heatRank": 22,
+        "questions": [
+          "How did you deal with boredom as a child?",
+          "Why do people today seem to get bored more easily?",
+          "Do you often feel bored?"
+        ],
+        "rankInCat": 22
+      },
+      {
+        "topicEn": "Shopping",
+        "topicZh": "购物",
+        "tag": "沿用",
+        "recentCount": 16750,
+        "heatRank": 23,
+        "questions": [
+          "What was the last thing you bought?",
+          "Who did you go shopping with when you were a child?"
+        ],
+        "rankInCat": 23
+      },
+      {
+        "topicEn": "Watch",
+        "topicZh": "手表",
+        "tag": "沿用",
+        "recentCount": 15700,
+        "heatRank": 24,
+        "questions": [
+          "Do you wear a watch?",
+          "Have you ever got a watch as a gift?",
+          "Why do some people wear expensive watches?"
+        ],
+        "rankInCat": 24
+      },
+      {
+        "topicEn": "Websites",
+        "topicZh": "网站",
+        "tag": "沿用",
+        "recentCount": 14650,
+        "heatRank": 25,
+        "questions": [
+          "Which websites do you visit most often?",
+          "What makes a website easy to use?"
+        ],
+        "rankInCat": 25
+      },
+      {
+        "topicEn": "Tidiness",
+        "topicZh": "整洁",
+        "tag": "沿用",
+        "recentCount": 13600,
+        "heatRank": 26,
+        "questions": [
+          "Are you a tidy person?",
+          "Who kept your room tidy when you were a child?"
+        ],
+        "rankInCat": 26
+      },
+      {
+        "topicEn": "Music",
+        "topicZh": "音乐",
+        "tag": "沿用",
+        "recentCount": 12550,
+        "heatRank": 27,
+        "questions": [
+          "Did you learn to play an instrument as a child?",
+          "Do you listen to music while doing other things?"
+        ],
+        "rankInCat": 27
+      },
+      {
+        "topicEn": "Social media",
+        "topicZh": "社交媒体",
+        "tag": "沿用",
+        "recentCount": 11500,
+        "heatRank": 28,
+        "questions": [
+          "Which social media apps do you use most?",
+          "How much time do you spend on social media each day?"
+        ],
+        "rankInCat": 28
+      },
+      {
+        "topicEn": "Teachers",
+        "topicZh": "老师",
+        "tag": "沿用",
+        "recentCount": 10450,
+        "heatRank": 29,
+        "questions": [
+          "What makes someone a good teacher?",
+          "Have you ever wanted to be a teacher?",
+          "What kind of teacher do you learn best from?"
+        ],
+        "rankInCat": 29
+      },
+      {
         "topicEn": "The city you live in",
         "topicZh": "你住的城市",
         "tag": "万年",
-        "recentCount": 1883,
+        "recentCount": 9400,
+        "heatRank": 30,
         "questions": [
-          "What city do you live in?",
-          "How long have you lived in this city?",
-          "Is this city your permanent residence?",
-          "Are there big changes in this city?",
-          "Are there people of different ages living in this city?",
-          "Are the people friendly in the city?",
-          "What's the weather like where you live?"
+          "Which city do you live in now?",
+          "What is the best way to get around your city?",
+          "Where would you take a friend who was visiting your city?"
         ],
-        "heatRank": 15
+        "rankInCat": 30
       },
       {
-        "rankInCat": 15,
-        "topicEn": "Science",
-        "topicZh": "科学",
-        "tag": "新增",
-        "recentCount": 1834,
+        "topicEn": "Home & Accommodation",
+        "topicZh": "住宿",
+        "tag": "万年",
+        "recentCount": 8350,
+        "heatRank": 31,
         "questions": [
-          "When did you start to learn about science?",
-          "What kinds of interesting things have you done with science?"
+          "Do you live in a house or a flat?",
+          "Who do you live with?"
         ],
-        "heatRank": 16
+        "rankInCat": 31
       },
       {
-        "rankInCat": 27,
-        "topicEn": "Views",
-        "topicZh": "风景/取景",
-        "tag": "沿用",
-        "recentCount": 1743,
+        "topicEn": "Hometown",
+        "topicZh": "家乡",
+        "tag": "万年",
+        "recentCount": 7300,
+        "heatRank": 32,
         "questions": [
-          "Have you seen an unforgettable and beautiful view or scenery?"
+          "Where is your hometown?",
+          "What is your hometown best known for?"
         ],
-        "heatRank": 17
+        "rankInCat": 32
       },
       {
-        "rankInCat": 16,
-        "topicEn": "Jokes & Comedies",
-        "topicZh": "笑话与喜剧",
-        "tag": "新增",
-        "recentCount": 1680,
+        "topicEn": "The area you live in",
+        "topicZh": "你住的区域",
+        "tag": "万年",
+        "recentCount": 6250,
+        "heatRank": 33,
         "questions": [
-          "Are you good at telling jokes?",
-          "Do your friends like to tell jokes?",
-          "Have you ever watched a live show?"
+          "How long have you lived there?",
+          "What facilities are there near where you live?",
+          "What would you improve about your area if you could?"
         ],
-        "heatRank": 18
+        "rankInCat": 33
       },
       {
-        "rankInCat": 17,
-        "topicEn": "Building",
-        "topicZh": "建筑",
-        "tag": "沿用",
-        "recentCount": 1400,
+        "topicEn": "Work or studies",
+        "topicZh": "工作/学习",
+        "tag": "万年",
+        "recentCount": 5200,
+        "heatRank": 34,
         "questions": [
-          "Are there tall buildings near your home?"
+          "Do you work or are you a student?",
+          "Why did you choose that job or that subject?",
+          "What do you find most challenging about your work or your studies?"
         ],
-        "heatRank": 19
-      },
-      {
-        "rankInCat": 18,
-        "topicEn": "Gifts",
-        "topicZh": "礼物",
-        "tag": "沿用",
-        "recentCount": 1386,
-        "questions": [
-          "Have you ever sent handmade gifts to others?",
-          "Have you ever received a great gift?",
-          "What gift have you received recently?"
-        ],
-        "heatRank": 20
-      },
-      {
-        "rankInCat": 20,
-        "topicEn": "Pets and Animals",
-        "topicZh": "宠物与动物",
-        "tag": "沿用",
-        "recentCount": 1330,
-        "questions": [
-          "Have you ever had a pet before?",
-          "Have you ever visited a zoo?"
-        ],
-        "heatRank": 21
-      },
-      {
-        "rankInCat": 21,
-        "topicEn": "Typing",
-        "topicZh": "打字",
-        "tag": "沿用",
-        "recentCount": 1260,
-        "questions": [
-          "When did you learn how to type on a keyboard?",
-          "How do you improve your typing?"
-        ],
-        "heatRank": 22
-      },
-      {
-        "rankInCat": 22,
-        "topicEn": "Memory",
-        "topicZh": "记忆",
-        "tag": "沿用",
-        "recentCount": 1218,
-        "questions": [
-          "Are you good at memorising things?",
-          "Have you ever forgotten something important?",
-          "What do you need to remember in your daily life?"
-        ],
-        "heatRank": 23
-      },
-      {
-        "rankInCat": 23,
-        "topicEn": "Sports team",
-        "topicZh": "运动队",
-        "tag": "沿用",
-        "recentCount": 1022,
-        "questions": [
-          "Have you ever been part of a sports team?"
-        ],
-        "heatRank": 24
-      },
-      {
-        "rankInCat": 24,
-        "topicEn": "Life stages",
-        "topicZh": "人生阶段",
-        "tag": "沿用",
-        "recentCount": 959,
-        "questions": [
-          "What did you often do with your friends in your childhood?",
-          "Do you have any plans for the next five years?"
-        ],
-        "heatRank": 25
-      },
-      {
-        "rankInCat": 25,
-        "topicEn": "Walking",
-        "topicZh": "走路",
-        "tag": "沿用",
-        "recentCount": 854,
-        "questions": [
-          "Where did you go for a walk lately?"
-        ],
-        "heatRank": 26
-      },
-      {
-        "rankInCat": 26,
-        "topicEn": "Scenery",
-        "topicZh": "景色",
-        "tag": "沿用",
-        "recentCount": 777,
-        "questions": [
-          "What are the most beautiful sights you have seen while traveling?"
-        ],
-        "heatRank": 27
-      },
-      {
-        "rankInCat": 28,
-        "topicEn": "Crowded place",
-        "topicZh": "拥挤的地方",
-        "tag": "沿用",
-        "recentCount": 728,
-        "questions": [
-          "Is the city where you live crowded?",
-          "Is there a crowded place near where you live?",
-          "When was the last time you were in a crowded place?"
-        ],
-        "heatRank": 28
+        "rankInCat": 34
       }
     ],
-    "q_count": 75
+    "q_count": 85
   },
   {
     "id": "xihao",
@@ -378,386 +448,313 @@
     ],
     "topics": [
       {
-        "rankInCat": 1,
+        "topicEn": "Opportunities",
+        "topicZh": "机会",
+        "tag": "新增",
+        "recentCount": 38800,
+        "heatRank": 2,
+        "questions": [
+          "What kind of opportunity would you like to have in the next few years?"
+        ],
+        "rankInCat": 1
+      },
+      {
+        "topicEn": "Rubbish and Recycling",
+        "topicZh": "垃圾与回收",
+        "tag": "新增",
+        "recentCount": 36700,
+        "heatRank": 4,
+        "questions": [
+          "How do you recycle things like paper and plastic?"
+        ],
+        "rankInCat": 2
+      },
+      {
+        "topicEn": "Paper",
+        "topicZh": "纸",
+        "tag": "新增",
+        "recentCount": 35650,
+        "heatRank": 5,
+        "questions": [
+          "What did you like to do with paper as a child?"
+        ],
+        "rankInCat": 3
+      },
+      {
+        "topicEn": "Advertisements",
+        "topicZh": "广告",
+        "tag": "新增",
+        "recentCount": 34600,
+        "heatRank": 6,
+        "questions": [
+          "What kind of adverts do you enjoy watching?"
+        ],
+        "rankInCat": 4
+      },
+      {
+        "topicEn": "Secondary school",
+        "topicZh": "中学",
+        "tag": "新增",
+        "recentCount": 31450,
+        "heatRank": 9,
+        "questions": [
+          "What was your secondary school like?",
+          "What was your favourite subject at secondary school?"
+        ],
+        "rankInCat": 5
+      },
+      {
+        "topicEn": "Shoes",
+        "topicZh": "鞋子",
+        "tag": "新增",
+        "recentCount": 30400,
+        "heatRank": 10,
+        "questions": [
+          "Do you like buying shoes?",
+          "What is your favourite type of shoes?"
+        ],
+        "rankInCat": 6
+      },
+      {
+        "topicEn": "Fruit and vegetables",
+        "topicZh": "水果蔬菜",
+        "tag": "新增",
+        "recentCount": 29350,
+        "heatRank": 11,
+        "questions": [
+          "What is your favourite fruit?",
+          "Do you like eating vegetables?"
+        ],
+        "rankInCat": 7
+      },
+      {
+        "topicEn": "Travelling",
+        "topicZh": "旅行",
+        "tag": "新增",
+        "recentCount": 28300,
+        "heatRank": 12,
+        "questions": [
+          "What kind of places do you like to visit?",
+          "Where would you most like to travel in the future?"
+        ],
+        "rankInCat": 8
+      },
+      {
+        "topicEn": "Clothing",
+        "topicZh": "衣服",
+        "tag": "沿用",
+        "recentCount": 27250,
+        "heatRank": 13,
+        "questions": [
+          "What kind of clothes do you like to wear?",
+          "Do you like wearing T-shirts?"
+        ],
+        "rankInCat": 9
+      },
+      {
+        "topicEn": "Singing",
+        "topicZh": "唱歌",
+        "tag": "沿用",
+        "recentCount": 26200,
+        "heatRank": 14,
+        "questions": [
+          "Do you like singing?"
+        ],
+        "rankInCat": 10
+      },
+      {
+        "topicEn": "Jokes & Comedies",
+        "topicZh": "笑话与喜剧",
+        "tag": "沿用",
+        "recentCount": 24100,
+        "heatRank": 16,
+        "questions": [
+          "Do you like telling jokes?",
+          "What kind of comedy do you enjoy?"
+        ],
+        "rankInCat": 11
+      },
+      {
+        "topicEn": "Mirrors",
+        "topicZh": "镜子",
+        "tag": "沿用",
+        "recentCount": 23050,
+        "heatRank": 17,
+        "questions": [
+          "Do you like having lots of mirrors at home?",
+          "Do you like looking at yourself in the mirror?"
+        ],
+        "rankInCat": 12
+      },
+      {
+        "topicEn": "Science",
+        "topicZh": "科学",
+        "tag": "沿用",
+        "recentCount": 22000,
+        "heatRank": 18,
+        "questions": [
+          "Did you like science at school?",
+          "What science programmes or videos do you enjoy?",
+          "What scientific discovery would you like to see in the future?"
+        ],
+        "rankInCat": 13
+      },
+      {
+        "topicEn": "Outer space and stars",
+        "topicZh": "外太空与星星",
+        "tag": "沿用",
+        "recentCount": 20950,
+        "heatRank": 19,
+        "questions": [
+          "Do you like looking at the stars?",
+          "What would you most like to know about outer space?"
+        ],
+        "rankInCat": 14
+      },
+      {
         "topicEn": "Cars",
         "topicZh": "汽车",
-        "tag": "新增",
-        "recentCount": 12327,
+        "tag": "沿用",
+        "recentCount": 19900,
+        "heatRank": 20,
         "questions": [
-          "Did you enjoy traveling by car when you were a kid?",
-          "What types of cars do you like?",
-          "Will you buy an expensive car in the future?"
+          "What kind of car would you like to own?"
         ],
-        "heatRank": 1
+        "rankInCat": 15
       },
       {
-        "rankInCat": 3,
-        "topicEn": "Work or studies",
-        "topicZh": "工作/学习",
-        "tag": "万年",
-        "recentCount": 8666,
+        "topicEn": "Public gardens and parks",
+        "topicZh": "公园与公共花园",
+        "tag": "沿用",
+        "recentCount": 18850,
+        "heatRank": 21,
         "questions": [
-          "Do you like your subject?",
-          "Do you want to change your major?",
-          "Are you looking forward to working?",
-          "Do you like your job?",
-          "Do you want to change to another job?",
-          "Do you miss being a student?",
-          "What changes would you like to see in your school?"
+          "What do you like to do in a park?",
+          "Did you like going to parks as a child?"
         ],
-        "heatRank": 2
+        "rankInCat": 16
       },
       {
-        "rankInCat": 4,
+        "topicEn": "Shopping",
+        "topicZh": "购物",
+        "tag": "沿用",
+        "recentCount": 16750,
+        "heatRank": 23,
+        "questions": [
+          "Do you enjoy shopping?",
+          "Do you like shopping?"
+        ],
+        "rankInCat": 17
+      },
+      {
         "topicEn": "Websites",
         "topicZh": "网站",
-        "tag": "新增",
-        "recentCount": 8064,
+        "tag": "沿用",
+        "recentCount": 14650,
+        "heatRank": 25,
         "questions": [
           "What is your favourite website?",
           "Would you like to have your own website?"
         ],
-        "heatRank": 3
+        "rankInCat": 18
       },
       {
-        "rankInCat": 5,
-        "topicEn": "Teachers",
-        "topicZh": "老师",
-        "tag": "新增",
-        "recentCount": 5845,
-        "questions": [
-          "Do you have a favorite teacher?",
-          "Do you want to be a teacher in the future?"
-        ],
-        "heatRank": 4
-      },
-      {
-        "rankInCat": 6,
-        "topicEn": "Public gardens and parks",
-        "topicZh": "公园",
-        "tag": "新增",
-        "recentCount": 4816,
-        "questions": [
-          "Did you like going to parks as a child?",
-          "Do you still like going to parks now?",
-          "Would you like to see more parks in your city?",
-          "Are there any parks you want to go to in the future?",
-          "What do you like to do when visiting a park?"
-        ],
-        "heatRank": 5
-      },
-      {
-        "rankInCat": 7,
-        "topicEn": "The area you live in",
-        "topicZh": "你住的区域",
-        "tag": "万年",
-        "recentCount": 4473,
-        "questions": [
-          "Do you like the area that you live in?",
-          "Where do you like to go in that area?"
-        ],
-        "heatRank": 6
-      },
-      {
-        "rankInCat": 8,
-        "topicEn": "Shopping",
-        "topicZh": "购物",
-        "tag": "新增",
-        "recentCount": 4312,
-        "questions": [
-          "Do you like shopping?"
-        ],
-        "heatRank": 7
-      },
-      {
-        "rankInCat": 9,
-        "topicEn": "Mirrors",
-        "topicZh": "镜子",
-        "tag": "新增",
-        "recentCount": 4116,
-        "questions": [
-          "Do you like looking at yourself in the mirror? How often?",
-          "Would you use mirrors to decorate your room?"
-        ],
-        "heatRank": 8
-      },
-      {
-        "rankInCat": 10,
-        "topicEn": "Home & Accommodation",
-        "topicZh": "住宿",
-        "tag": "万年",
-        "recentCount": 3178,
-        "questions": [
-          "What kind of house or apartment do you want to live in in the future?",
-          "What part of your home do you like the most?",
-          "What's your favorite room in your apartment or house?",
-          "Do you plan to live there for a long time?"
-        ],
-        "heatRank": 9
-      },
-      {
-        "rankInCat": 11,
-        "topicEn": "Clothing",
-        "topicZh": "衣服",
-        "tag": "新增",
-        "recentCount": 3115,
-        "questions": [
-          "What kind of clothes do you like to wear?",
-          "Do you like wearing T-shirts?",
-          "What colour clothes do you like?"
-        ],
-        "heatRank": 10
-      },
-      {
-        "rankInCat": 12,
         "topicEn": "Tidiness",
         "topicZh": "整洁",
-        "tag": "新增",
-        "recentCount": 2982,
+        "tag": "沿用",
+        "recentCount": 13600,
+        "heatRank": 26,
         "questions": [
           "Do you like to keep things tidy?"
         ],
-        "heatRank": 11
+        "rankInCat": 19
       },
       {
-        "rankInCat": 14,
-        "topicEn": "Hometown",
-        "topicZh": "家乡",
-        "tag": "万年",
-        "recentCount": 2912,
+        "topicEn": "Music",
+        "topicZh": "音乐",
+        "tag": "沿用",
+        "recentCount": 12550,
+        "heatRank": 27,
         "questions": [
-          "Do you like your hometown?",
-          "Do you like living there?",
-          "What do you like (most) about your hometown?",
-          "Is there anything you dislike about it?"
+          "What kind of music do you like?"
         ],
-        "heatRank": 12
+        "rankInCat": 20
       },
       {
-        "rankInCat": 15,
-        "topicEn": "Singing",
-        "topicZh": "唱歌",
-        "tag": "新增",
-        "recentCount": 2135,
+        "topicEn": "Teachers",
+        "topicZh": "老师",
+        "tag": "沿用",
+        "recentCount": 10450,
+        "heatRank": 29,
         "questions": [
-          "Do you like singing? Why?",
-          "Who do you want to sing for?",
-          "Do you like listening to others singing?"
+          "Who was your favourite teacher when you were at school?",
+          "In what way has your favourite teacher helped you?"
         ],
-        "heatRank": 13
+        "rankInCat": 21
       },
       {
-        "rankInCat": 16,
-        "topicEn": "Outer space and stars",
-        "topicZh": "外太空与星星",
-        "tag": "新增",
-        "recentCount": 1988,
-        "questions": [
-          "Do you like science fiction movies? Why?",
-          "Do you want to know more about outer space?",
-          "Do you want to go into outer space in the future?"
-        ],
-        "heatRank": 14
-      },
-      {
-        "rankInCat": 17,
         "topicEn": "The city you live in",
         "topicZh": "你住的城市",
         "tag": "万年",
-        "recentCount": 1883,
+        "recentCount": 9400,
+        "heatRank": 30,
         "questions": [
-          "Do you like this city? Why?",
-          "Would you recommend your city to others?"
+          "What do you like most about living in this city?",
+          "What's the weather like where you live?"
         ],
-        "heatRank": 15
+        "rankInCat": 22
       },
       {
-        "rankInCat": 18,
-        "topicEn": "Science",
-        "topicZh": "科学",
-        "tag": "新增",
-        "recentCount": 1834,
+        "topicEn": "Home & Accommodation",
+        "topicZh": "住宿",
+        "tag": "万年",
+        "recentCount": 8350,
+        "heatRank": 31,
         "questions": [
-          "Do you like science?",
-          "Which science subject is interesting to you?",
-          "Do you like watching science TV programs?"
+          "Which room in your home do you like best?",
+          "What kind of home would you like to have in the future?"
         ],
-        "heatRank": 16
+        "rankInCat": 23
       },
       {
-        "rankInCat": 19,
-        "topicEn": "Spare time",
-        "topicZh": "空闲时间",
-        "tag": "沿用",
-        "recentCount": 1834,
+        "topicEn": "Hometown",
+        "topicZh": "家乡",
+        "tag": "万年",
+        "recentCount": 7300,
+        "heatRank": 32,
         "questions": [
-          "Would you like to have more free time in the future?"
+          "What do you like most about your hometown?",
+          "Would you like to live in your hometown in the future?"
         ],
-        "heatRank": 17
+        "rankInCat": 24
       },
       {
-        "rankInCat": 20,
-        "topicEn": "Views",
-        "topicZh": "风景/取景",
-        "tag": "沿用",
-        "recentCount": 1743,
+        "topicEn": "The area you live in",
+        "topicZh": "你住的区域",
+        "tag": "万年",
+        "recentCount": 6250,
+        "heatRank": 33,
         "questions": [
-          "Do you like taking pictures of different views?"
+          "What is the area where you live like?",
+          "What do you like most about your neighbourhood?"
         ],
-        "heatRank": 18
+        "rankInCat": 25
       },
       {
-        "rankInCat": 21,
-        "topicEn": "Food",
-        "topicZh": "食物",
-        "tag": "沿用",
-        "recentCount": 1680,
+        "topicEn": "Work or studies",
+        "topicZh": "工作/学习",
+        "tag": "万年",
+        "recentCount": 5200,
+        "heatRank": 34,
         "questions": [
-          "What is your favourite food?",
-          "What kind of food did you like when you were young?",
-          "Has your favourite food changed since you were a child?"
+          "What do you like most about your job or your studies?",
+          "What is a typical day like for you at work or at school?",
+          "What would you like to be doing in your career or studies in a few years?"
         ],
-        "heatRank": 19
-      },
-      {
-        "rankInCat": 22,
-        "topicEn": "Jokes & Comedies",
-        "topicZh": "笑话与喜剧",
-        "tag": "新增",
-        "recentCount": 1680,
-        "questions": [
-          "Do you like to watch comedies?"
-        ],
-        "heatRank": 20
-      },
-      {
-        "rankInCat": 23,
-        "topicEn": "Building",
-        "topicZh": "建筑",
-        "tag": "沿用",
-        "recentCount": 1400,
-        "questions": [
-          "Is there a building that you would like to visit?",
-          "Do you want to live in a tall building?"
-        ],
-        "heatRank": 21
-      },
-      {
-        "rankInCat": 24,
-        "topicEn": "Pets and Animals",
-        "topicZh": "宠物与动物",
-        "tag": "沿用",
-        "recentCount": 1330,
-        "questions": [
-          "What's your favourite animal? Why?"
-        ],
-        "heatRank": 22
-      },
-      {
-        "rankInCat": 25,
-        "topicEn": "Morning time",
-        "topicZh": "早晨",
-        "tag": "沿用",
-        "recentCount": 1085,
-        "questions": [
-          "Do you like getting up early in the morning?"
-        ],
-        "heatRank": 23
-      },
-      {
-        "rankInCat": 26,
-        "topicEn": "Sports team",
-        "topicZh": "运动队",
-        "tag": "沿用",
-        "recentCount": 1022,
-        "questions": [
-          "Do you like watching team games? Why?"
-        ],
-        "heatRank": 24
-      },
-      {
-        "rankInCat": 27,
-        "topicEn": "Childhood activities",
-        "topicZh": "童年活动",
-        "tag": "沿用",
-        "recentCount": 994,
-        "questions": [
-          "What are your favourite activities?",
-          "What were your favourite activities when you were a child?"
-        ],
-        "heatRank": 25
-      },
-      {
-        "rankInCat": 28,
-        "topicEn": "Life stages",
-        "topicZh": "人生阶段",
-        "tag": "沿用",
-        "recentCount": 959,
-        "questions": [
-          "Do you enjoy being the age you are now?"
-        ],
-        "heatRank": 26
-      },
-      {
-        "rankInCat": 29,
-        "topicEn": "Reading",
-        "topicZh": "阅读",
-        "tag": "沿用",
-        "recentCount": 875,
-        "questions": [
-          "Do you like reading?"
-        ],
-        "heatRank": 27
-      },
-      {
-        "rankInCat": 30,
-        "topicEn": "Walking",
-        "topicZh": "走路",
-        "tag": "沿用",
-        "recentCount": 854,
-        "questions": [
-          "Where would you like to take a long walk if you had the chance?"
-        ],
-        "heatRank": 28
-      },
-      {
-        "rankInCat": 31,
-        "topicEn": "Scenery",
-        "topicZh": "景色",
-        "tag": "沿用",
-        "recentCount": 777,
-        "questions": [
-          "Do you like to take scenery pictures?"
-        ],
-        "heatRank": 29
-      },
-      {
-        "rankInCat": 32,
-        "topicEn": "Crowded place",
-        "topicZh": "拥挤的地方",
-        "tag": "沿用",
-        "recentCount": 728,
-        "questions": [
-          "Do you like crowded places?"
-        ],
-        "heatRank": 30
-      },
-      {
-        "rankInCat": 33,
-        "topicEn": "Hobby",
-        "topicZh": "爱好",
-        "tag": "沿用",
-        "recentCount": 651,
-        "questions": [
-          "Do you have any hobbies?",
-          "Did you have any hobbies when you were a child?",
-          "Do you have a hobby that you’ve had since childhood?",
-          "Do you have the same hobbies as your family members?"
-        ],
-        "heatRank": 31
+        "rankInCat": 26
       }
     ],
-    "q_count": 69
+    "q_count": 46
   },
   {
     "id": "xingwei",
@@ -770,247 +767,265 @@
     ],
     "topics": [
       {
-        "rankInCat": 1,
-        "topicEn": "Watch",
-        "topicZh": "手表",
+        "topicEn": "Street Markets",
+        "topicZh": "街头市场",
         "tag": "新增",
-        "recentCount": 39172,
+        "recentCount": 39850,
+        "heatRank": 1,
         "questions": [
-          "Do you wear a watch?"
+          "What do people usually buy on the street market?"
         ],
-        "heatRank": 1
+        "rankInCat": 1
       },
       {
-        "rankInCat": 2,
+        "topicEn": "Opportunities",
+        "topicZh": "机会",
+        "tag": "新增",
+        "recentCount": 38800,
+        "heatRank": 2,
+        "questions": [
+          "Do you usually take an opportunity when it comes along?"
+        ],
+        "rankInCat": 2
+      },
+      {
+        "topicEn": "Rubbish and Recycling",
+        "topicZh": "垃圾与回收",
+        "tag": "新增",
+        "recentCount": 36700,
+        "heatRank": 4,
+        "questions": [
+          "What do you do when you see rubbish on the street?"
+        ],
+        "rankInCat": 3
+      },
+      {
+        "topicEn": "Paper",
+        "topicZh": "纸",
+        "tag": "新增",
+        "recentCount": 35650,
+        "heatRank": 5,
+        "questions": [
+          "How often do you use paper in your daily life?"
+        ],
+        "rankInCat": 4
+      },
+      {
+        "topicEn": "Tiredness",
+        "topicZh": "疲惫",
+        "tag": "新增",
+        "recentCount": 33550,
+        "heatRank": 7,
+        "questions": [
+          "When do you usually feel tired?",
+          "What do you usually do when you feel tired?"
+        ],
+        "rankInCat": 5
+      },
+      {
+        "topicEn": "Secondary school",
+        "topicZh": "中学",
+        "tag": "新增",
+        "recentCount": 31450,
+        "heatRank": 9,
+        "questions": [
+          "How did you usually spend your breaks at school?"
+        ],
+        "rankInCat": 6
+      },
+      {
+        "topicEn": "Shoes",
+        "topicZh": "鞋子",
+        "tag": "新增",
+        "recentCount": 30400,
+        "heatRank": 10,
+        "questions": [
+          "How often do you buy new shoes?"
+        ],
+        "rankInCat": 7
+      },
+      {
+        "topicEn": "Fruit and vegetables",
+        "topicZh": "水果蔬菜",
+        "tag": "新增",
+        "recentCount": 29350,
+        "heatRank": 11,
+        "questions": [
+          "How often do you eat vegetables?"
+        ],
+        "rankInCat": 8
+      },
+      {
+        "topicEn": "Travelling",
+        "topicZh": "旅行",
+        "tag": "新增",
+        "recentCount": 28300,
+        "heatRank": 12,
+        "questions": [
+          "How often do you travel?"
+        ],
+        "rankInCat": 9
+      },
+      {
+        "topicEn": "Clothing",
+        "topicZh": "衣服",
+        "tag": "沿用",
+        "recentCount": 27250,
+        "heatRank": 13,
+        "questions": [
+          "What kind of clothes do you usually wear?"
+        ],
+        "rankInCat": 10
+      },
+      {
+        "topicEn": "Singing",
+        "topicZh": "唱歌",
+        "tag": "沿用",
+        "recentCount": 26200,
+        "heatRank": 14,
+        "questions": [
+          "When do you usually sing?"
+        ],
+        "rankInCat": 11
+      },
+      {
+        "topicEn": "Headphones",
+        "topicZh": "耳机",
+        "tag": "沿用",
+        "recentCount": 25150,
+        "heatRank": 15,
+        "questions": [
+          "How often do you use headphones?",
+          "What do you usually listen to with your headphones?"
+        ],
+        "rankInCat": 12
+      },
+      {
+        "topicEn": "Mirrors",
+        "topicZh": "镜子",
+        "tag": "沿用",
+        "recentCount": 23050,
+        "heatRank": 17,
+        "questions": [
+          "How often do you look in the mirror each day?"
+        ],
+        "rankInCat": 13
+      },
+      {
+        "topicEn": "Outer space and stars",
+        "topicZh": "外太空与星星",
+        "tag": "沿用",
+        "recentCount": 20950,
+        "heatRank": 19,
+        "questions": [
+          "How often can you see stars where you live?"
+        ],
+        "rankInCat": 14
+      },
+      {
         "topicEn": "Cars",
         "topicZh": "汽车",
-        "tag": "新增",
-        "recentCount": 12327,
+        "tag": "沿用",
+        "recentCount": 19900,
+        "heatRank": 20,
         "questions": [
-          "What do you usually do when there is a traffic jam?"
+          "How do you usually get around your city?"
         ],
-        "heatRank": 2
+        "rankInCat": 15
       },
       {
-        "rankInCat": 3,
-        "topicEn": "Work or studies",
-        "topicZh": "工作/学习",
-        "tag": "万年",
-        "recentCount": 8666,
+        "topicEn": "Public gardens and parks",
+        "topicZh": "公园与公共花园",
+        "tag": "沿用",
+        "recentCount": 18850,
+        "heatRank": 21,
         "questions": [
-          "How much time do you spend on your studies each week?",
-          "What technology do you use when you study?",
-          "What technology do you use at work?"
+          "How often do you go to parks?"
         ],
-        "heatRank": 3
+        "rankInCat": 16
       },
       {
-        "rankInCat": 4,
-        "topicEn": "Websites",
-        "topicZh": "网站",
-        "tag": "新增",
-        "recentCount": 8064,
+        "topicEn": "Feeling bored",
+        "topicZh": "感到无聊",
+        "tag": "沿用",
+        "recentCount": 17800,
+        "heatRank": 22,
         "questions": [
-          "What kinds of websites do you often visit?"
+          "When do you usually feel bored?",
+          "What do you do when you feel bored?"
         ],
-        "heatRank": 4
+        "rankInCat": 17
       },
       {
-        "rankInCat": 5,
         "topicEn": "Shopping",
         "topicZh": "购物",
-        "tag": "新增",
-        "recentCount": 4312,
+        "tag": "沿用",
+        "recentCount": 16750,
+        "heatRank": 23,
         "questions": [
           "How often do you go shopping?"
         ],
-        "heatRank": 5
+        "rankInCat": 18
       },
       {
-        "rankInCat": 6,
-        "topicEn": "Mirrors",
-        "topicZh": "镜子",
-        "tag": "新增",
-        "recentCount": 4116,
+        "topicEn": "Tidiness",
+        "topicZh": "整洁",
+        "tag": "沿用",
+        "recentCount": 13600,
+        "heatRank": 26,
         "questions": [
-          "Do you usually take a mirror with you?"
+          "How often do you tidy your room?"
         ],
-        "heatRank": 6
+        "rankInCat": 19
       },
       {
-        "rankInCat": 8,
         "topicEn": "Music",
         "topicZh": "音乐",
-        "tag": "新增",
-        "recentCount": 3997,
+        "tag": "沿用",
+        "recentCount": 12550,
+        "heatRank": 27,
         "questions": [
-          "Do you listen to music while doing other things?"
+          "When do you usually listen to music?",
+          "How do you usually discover new music?"
         ],
-        "heatRank": 7
+        "rankInCat": 20
       },
       {
-        "rankInCat": 9,
+        "topicEn": "Social media",
+        "topicZh": "社交媒体",
+        "tag": "沿用",
+        "recentCount": 11500,
+        "heatRank": 28,
+        "questions": [
+          "What do you usually post online?",
+          "What do people often do on social media?"
+        ],
+        "rankInCat": 21
+      },
+      {
         "topicEn": "Home & Accommodation",
         "topicZh": "住宿",
         "tag": "万年",
-        "recentCount": 3178,
+        "recentCount": 8350,
+        "heatRank": 31,
         "questions": [
-          "What room does your family spend most of the time in?",
-          "What do you usually do in your apartment?"
+          "What do you usually do at home in the evenings?"
         ],
-        "heatRank": 8
+        "rankInCat": 22
       },
       {
-        "rankInCat": 10,
-        "topicEn": "Clothing",
-        "topicZh": "衣服",
-        "tag": "新增",
-        "recentCount": 3115,
-        "questions": [
-          "Do you spend a lot of time choosing clothes?"
-        ],
-        "heatRank": 9
-      },
-      {
-        "rankInCat": 11,
-        "topicEn": "Tidiness",
-        "topicZh": "整洁",
-        "tag": "新增",
-        "recentCount": 2982,
-        "questions": [
-          "Did you keep your room tidy as a child?",
-          "How do you keep your work or study space tidy?"
-        ],
-        "heatRank": 10
-      },
-      {
-        "rankInCat": 12,
-        "topicEn": "Headphones",
-        "topicZh": "耳机",
-        "tag": "新增",
-        "recentCount": 2597,
-        "questions": [
-          "Do you use headphones?",
-          "When would you use headphones?",
-          "In what conditions would you not use headphones?"
-        ],
-        "heatRank": 11
-      },
-      {
-        "rankInCat": 13,
-        "topicEn": "The city you live in",
-        "topicZh": "你住的城市",
+        "topicEn": "Hometown",
+        "topicZh": "家乡",
         "tag": "万年",
-        "recentCount": 1883,
+        "recentCount": 7300,
+        "heatRank": 32,
         "questions": [
-          "Do you often see your neighbors?"
+          "What do people in your hometown usually do at the weekend?"
         ],
-        "heatRank": 12
-      },
-      {
-        "rankInCat": 14,
-        "topicEn": "Spare time",
-        "topicZh": "空闲时间",
-        "tag": "沿用",
-        "recentCount": 1834,
-        "questions": [
-          "Do you often have free time?",
-          "What do you usually do in your spare time?"
-        ],
-        "heatRank": 13
-      },
-      {
-        "rankInCat": 15,
-        "topicEn": "Food",
-        "topicZh": "食物",
-        "tag": "沿用",
-        "recentCount": 1680,
-        "questions": [
-          "Do you eat different foods at different times of the year?"
-        ],
-        "heatRank": 14
-      },
-      {
-        "rankInCat": 16,
-        "topicEn": "Building",
-        "topicZh": "建筑",
-        "tag": "沿用",
-        "recentCount": 1400,
-        "questions": [
-          "Do you take photos of buildings?"
-        ],
-        "heatRank": 15
-      },
-      {
-        "rankInCat": 17,
-        "topicEn": "Pets and Animals",
-        "topicZh": "宠物与动物",
-        "tag": "沿用",
-        "recentCount": 1330,
-        "questions": [
-          "How often do you visit a zoo?"
-        ],
-        "heatRank": 16
-      },
-      {
-        "rankInCat": 18,
-        "topicEn": "Typing",
-        "topicZh": "打字",
-        "tag": "沿用",
-        "recentCount": 1260,
-        "questions": [
-          "Do you type on a desktop or laptop keyboard every day?"
-        ],
-        "heatRank": 17
-      },
-      {
-        "rankInCat": 19,
-        "topicEn": "Memory",
-        "topicZh": "记忆",
-        "tag": "沿用",
-        "recentCount": 1218,
-        "questions": [
-          "How do you remember important things?"
-        ],
-        "heatRank": 18
-      },
-      {
-        "rankInCat": 20,
-        "topicEn": "Morning time",
-        "topicZh": "早晨",
-        "tag": "沿用",
-        "recentCount": 1085,
-        "questions": [
-          "What do you usually do in the morning?",
-          "What did you do in the morning when you were little? Why?"
-        ],
-        "heatRank": 19
-      },
-      {
-        "rankInCat": 21,
-        "topicEn": "Walking",
-        "topicZh": "走路",
-        "tag": "沿用",
-        "recentCount": 854,
-        "questions": [
-          "Do you walk a lot?",
-          "Did you often go outside to have a walk when you were a child?"
-        ],
-        "heatRank": 20
-      },
-      {
-        "rankInCat": 22,
-        "topicEn": "Scenery",
-        "topicZh": "景色",
-        "tag": "沿用",
-        "recentCount": 777,
-        "questions": [
-          "Do you look out the window at the scenery when travelling by bus or car?"
-        ],
-        "heatRank": 21
+        "rankInCat": 23
       }
     ],
-    "q_count": 30
+    "q_count": 28
   },
   {
     "id": "guandian",
@@ -1023,238 +1038,153 @@
     ],
     "topics": [
       {
-        "rankInCat": 1,
-        "topicEn": "Watch",
-        "topicZh": "手表",
+        "topicEn": "Opportunities",
+        "topicZh": "机会",
         "tag": "新增",
-        "recentCount": 39172,
+        "recentCount": 38800,
+        "heatRank": 2,
         "questions": [
-          "Why do some people wear expensive watches?",
-          "Do you think it is important to wear a watch? Why?"
+          "Is it important to seize opportunities when they come?"
         ],
-        "heatRank": 1
+        "rankInCat": 1
       },
       {
-        "rankInCat": 2,
-        "topicEn": "Cars",
-        "topicZh": "汽车",
+        "topicEn": "Paper",
+        "topicZh": "纸",
         "tag": "新增",
-        "recentCount": 12327,
+        "recentCount": 35650,
+        "heatRank": 5,
         "questions": [
-          "Do you think car colours are important?"
+          "How do you think our use of paper will change in the future?"
         ],
-        "heatRank": 2
+        "rankInCat": 2
       },
       {
-        "rankInCat": 3,
-        "topicEn": "Work or studies",
-        "topicZh": "工作/学习",
-        "tag": "万年",
-        "recentCount": 8666,
-        "questions": [
-          "Do you think that your subject is popular in your country?",
-          "What are the benefits of being your age?",
-          "What do you think is the most important at the moment?"
-        ],
-        "heatRank": 3
-      },
-      {
-        "rankInCat": 4,
-        "topicEn": "Websites",
-        "topicZh": "网站",
+        "topicEn": "Tiredness",
+        "topicZh": "疲惫",
         "tag": "新增",
-        "recentCount": 8064,
+        "recentCount": 33550,
+        "heatRank": 7,
         "questions": [
-          "What kinds of websites are popular in your country?"
+          "Why do you think so many people feel tired these days?"
         ],
-        "heatRank": 4
+        "rankInCat": 3
       },
       {
-        "rankInCat": 5,
-        "topicEn": "Music",
-        "topicZh": "音乐",
+        "topicEn": "Politeness",
+        "topicZh": "礼貌",
         "tag": "新增",
-        "recentCount": 3997,
+        "recentCount": 32500,
+        "heatRank": 8,
         "questions": [
-          "Does happy music make you feel more excited?"
+          "Why is it important to be polite to strangers?",
+          "On what occasions should we be polite?"
         ],
-        "heatRank": 5
+        "rankInCat": 4
       },
       {
-        "rankInCat": 6,
-        "topicEn": "Home & Accommodation",
-        "topicZh": "住宿",
-        "tag": "万年",
-        "recentCount": 3178,
-        "questions": [
-          "What makes you feel pleasant in your home?",
-          "Do you think it is important to live in a comfortable environment?"
-        ],
-        "heatRank": 6
-      },
-      {
-        "rankInCat": 7,
-        "topicEn": "Tidiness",
-        "topicZh": "整洁",
-        "tag": "新增",
-        "recentCount": 2982,
-        "questions": [
-          "Do you think that it is necessary to be tidy?"
-        ],
-        "heatRank": 7
-      },
-      {
-        "rankInCat": 9,
-        "topicEn": "Hometown",
-        "topicZh": "家乡",
-        "tag": "万年",
-        "recentCount": 2912,
-        "questions": [
-          "Do you think you will continue living there for a long time?",
-          "Is your hometown a good place for young people to pursue their careers?"
-        ],
-        "heatRank": 8
-      },
-      {
-        "rankInCat": 10,
-        "topicEn": "Headphones",
-        "topicZh": "耳机",
-        "tag": "新增",
-        "recentCount": 2597,
-        "questions": [
-          "Is wearing headphones comfortable?"
-        ],
-        "heatRank": 9
-      },
-      {
-        "rankInCat": 11,
-        "topicEn": "Social media",
-        "topicZh": "社交媒体",
-        "tag": "新增",
-        "recentCount": 2310,
-        "questions": [
-          "Do you think you spend too much time on social media?",
-          "What do people often do on social media?"
-        ],
-        "heatRank": 10
-      },
-      {
-        "rankInCat": 12,
         "topicEn": "Singing",
         "topicZh": "唱歌",
-        "tag": "新增",
-        "recentCount": 2135,
+        "tag": "沿用",
+        "recentCount": 26200,
+        "heatRank": 14,
         "questions": [
           "Do you think singing can bring happiness to people?"
         ],
-        "heatRank": 11
+        "rankInCat": 5
       },
       {
-        "rankInCat": 13,
-        "topicEn": "The city you live in",
-        "topicZh": "你住的城市",
-        "tag": "万年",
-        "recentCount": 1883,
+        "topicEn": "Headphones",
+        "topicZh": "耳机",
+        "tag": "沿用",
+        "recentCount": 25150,
+        "heatRank": 15,
         "questions": [
-          "Is the city friendly to children and old people?"
+          "In what situations should people not wear headphones?"
         ],
-        "heatRank": 12
+        "rankInCat": 6
       },
       {
-        "rankInCat": 14,
-        "topicEn": "Science",
-        "topicZh": "科学",
-        "tag": "新增",
-        "recentCount": 1834,
-        "questions": [
-          "Do Chinese people often visit science museums?"
-        ],
-        "heatRank": 13
-      },
-      {
-        "rankInCat": 15,
         "topicEn": "Jokes & Comedies",
         "topicZh": "笑话与喜剧",
-        "tag": "新增",
-        "recentCount": 1680,
+        "tag": "沿用",
+        "recentCount": 24100,
+        "heatRank": 16,
         "questions": [
-          "Are comedy shows popular in your country?"
+          "Why do you think comedy shows are so popular these days?"
         ],
-        "heatRank": 14
+        "rankInCat": 7
       },
       {
-        "rankInCat": 16,
-        "topicEn": "Gifts",
-        "topicZh": "礼物",
+        "topicEn": "Outer space and stars",
+        "topicZh": "外太空与星星",
         "tag": "沿用",
-        "recentCount": 1386,
+        "recentCount": 20950,
+        "heatRank": 19,
         "questions": [
-          "What do you consider when choosing a gift?",
-          "Do you think you are good at choosing gifts?"
+          "How do you think space travel will change in the future?"
         ],
-        "heatRank": 15
+        "rankInCat": 8
       },
       {
-        "rankInCat": 17,
-        "topicEn": "Pets and Animals",
-        "topicZh": "宠物与动物",
+        "topicEn": "Cars",
+        "topicZh": "汽车",
         "tag": "沿用",
-        "recentCount": 1330,
+        "recentCount": 19900,
+        "heatRank": 20,
         "questions": [
-          "What is the most popular animal in China?",
-          "Are there many people keeping pets in your country?",
-          "Should schools teach students knowledge about pets or animals?"
+          "How do you think cars will change in the future?"
         ],
-        "heatRank": 16
+        "rankInCat": 9
       },
       {
-        "rankInCat": 18,
-        "topicEn": "Sports team",
-        "topicZh": "运动队",
+        "topicEn": "Feeling bored",
+        "topicZh": "感到无聊",
         "tag": "沿用",
-        "recentCount": 1022,
+        "recentCount": 17800,
+        "heatRank": 22,
         "questions": [
-          "Is team sports popular in your culture?"
+          "Is it ever good to feel bored?"
         ],
-        "heatRank": 17
+        "rankInCat": 10
       },
       {
-        "rankInCat": 19,
-        "topicEn": "Life stages",
-        "topicZh": "人生阶段",
+        "topicEn": "Watch",
+        "topicZh": "手表",
         "tag": "沿用",
-        "recentCount": 959,
+        "recentCount": 15700,
+        "heatRank": 24,
         "questions": [
-          "What do you think is the most important at the moment?",
-          "How do people remember each stage of their lives?",
-          "At what age do you think people are the happiest?"
+          "Do you think it is important to wear a watch?",
+          "Do you think it is important to wear a watch? Why?"
         ],
-        "heatRank": 18
+        "rankInCat": 11
       },
       {
-        "rankInCat": 20,
-        "topicEn": "Walking",
-        "topicZh": "走路",
+        "topicEn": "Tidiness",
+        "topicZh": "整洁",
         "tag": "沿用",
-        "recentCount": 854,
+        "recentCount": 13600,
+        "heatRank": 26,
         "questions": [
-          "Why do people like to walk in parks?"
+          "Do you think that it is necessary to be tidy?"
         ],
-        "heatRank": 19
+        "rankInCat": 12
       },
       {
-        "rankInCat": 21,
-        "topicEn": "Crowded place",
-        "topicZh": "拥挤的地方",
+        "topicEn": "Social media",
+        "topicZh": "社交媒体",
         "tag": "沿用",
-        "recentCount": 728,
+        "recentCount": 11500,
+        "heatRank": 28,
         "questions": [
-          "Do most people like crowded places?"
+          "How do you think social media will change in the future?",
+          "Do you think you spend too much time on social media?"
         ],
-        "heatRank": 20
+        "rankInCat": 13
       }
     ],
-    "q_count": 31
+    "q_count": 16
   },
   {
     "id": "duibi",
@@ -1267,210 +1197,280 @@
     ],
     "topics": [
       {
-        "rankInCat": 1,
+        "topicEn": "Street Markets",
+        "topicZh": "街头市场",
+        "tag": "新增",
+        "recentCount": 39850,
+        "heatRank": 1,
+        "questions": [
+          "Do you prefer to go shopping in the shopping mall or on the street market?"
+        ],
+        "rankInCat": 1
+      },
+      {
+        "topicEn": "Name",
+        "topicZh": "名字",
+        "tag": "新增",
+        "recentCount": 37750,
+        "heatRank": 3,
+        "questions": [
+          "How have popular names for babies changed in your country?"
+        ],
+        "rankInCat": 2
+      },
+      {
+        "topicEn": "Rubbish and Recycling",
+        "topicZh": "垃圾与回收",
+        "tag": "新增",
+        "recentCount": 36700,
+        "heatRank": 4,
+        "questions": [
+          "How have people's attitudes to rubbish changed in recent years?"
+        ],
+        "rankInCat": 3
+      },
+      {
+        "topicEn": "Paper",
+        "topicZh": "纸",
+        "tag": "新增",
+        "recentCount": 35650,
+        "heatRank": 5,
+        "questions": [
+          "Do you prefer reading on paper or on a screen?"
+        ],
+        "rankInCat": 4
+      },
+      {
+        "topicEn": "Advertisements",
+        "topicZh": "广告",
+        "tag": "新增",
+        "recentCount": 34600,
+        "heatRank": 6,
+        "questions": [
+          "How have adverts changed over the past few years?"
+        ],
+        "rankInCat": 5
+      },
+      {
+        "topicEn": "Politeness",
+        "topicZh": "礼貌",
+        "tag": "新增",
+        "recentCount": 32500,
+        "heatRank": 8,
+        "questions": [
+          "How have people's manners changed compared with the past?"
+        ],
+        "rankInCat": 6
+      },
+      {
+        "topicEn": "Secondary school",
+        "topicZh": "中学",
+        "tag": "新增",
+        "recentCount": 31450,
+        "heatRank": 9,
+        "questions": [
+          "How are secondary schools today different from when you were there?"
+        ],
+        "rankInCat": 7
+      },
+      {
+        "topicEn": "Shoes",
+        "topicZh": "鞋子",
+        "tag": "新增",
+        "recentCount": 30400,
+        "heatRank": 10,
+        "questions": [
+          "Which matters more to you in a pair of shoes, comfort or style?"
+        ],
+        "rankInCat": 8
+      },
+      {
+        "topicEn": "Fruit and vegetables",
+        "topicZh": "水果蔬菜",
+        "tag": "新增",
+        "recentCount": 29350,
+        "heatRank": 11,
+        "questions": [
+          "How has the way people buy fruit and vegetables changed?"
+        ],
+        "rankInCat": 9
+      },
+      {
+        "topicEn": "Travelling",
+        "topicZh": "旅行",
+        "tag": "新增",
+        "recentCount": 28300,
+        "heatRank": 12,
+        "questions": [
+          "Do you prefer travelling alone or with other people?"
+        ],
+        "rankInCat": 10
+      },
+      {
+        "topicEn": "Clothing",
+        "topicZh": "衣服",
+        "tag": "沿用",
+        "recentCount": 27250,
+        "heatRank": 13,
+        "questions": [
+          "Do you prefer comfortable clothes or fashionable ones?"
+        ],
+        "rankInCat": 11
+      },
+      {
+        "topicEn": "Singing",
+        "topicZh": "唱歌",
+        "tag": "沿用",
+        "recentCount": 26200,
+        "heatRank": 14,
+        "questions": [
+          "How popular is karaoke now compared with the past?"
+        ],
+        "rankInCat": 12
+      },
+      {
+        "topicEn": "Headphones",
+        "topicZh": "耳机",
+        "tag": "沿用",
+        "recentCount": 25150,
+        "heatRank": 15,
+        "questions": [
+          "Which do you prefer, big headphones or small earbuds?"
+        ],
+        "rankInCat": 13
+      },
+      {
+        "topicEn": "Mirrors",
+        "topicZh": "镜子",
+        "tag": "沿用",
+        "recentCount": 23050,
+        "heatRank": 17,
+        "questions": [
+          "How have phone cameras changed the way people use mirrors?"
+        ],
+        "rankInCat": 14
+      },
+      {
         "topicEn": "Cars",
         "topicZh": "汽车",
-        "tag": "新增",
-        "recentCount": 12327,
+        "tag": "沿用",
+        "recentCount": 19900,
+        "heatRank": 20,
         "questions": [
           "Do you prefer to be a driver or a passenger?"
         ],
-        "heatRank": 1
+        "rankInCat": 15
       },
       {
-        "rankInCat": 2,
-        "topicEn": "Work or studies",
-        "topicZh": "工作/学习",
-        "tag": "万年",
-        "recentCount": 8666,
-        "questions": [
-          "Do you prefer to study in the mornings or in the afternoons?"
-        ],
-        "heatRank": 2
-      },
-      {
-        "rankInCat": 3,
-        "topicEn": "Websites",
-        "topicZh": "网站",
-        "tag": "新增",
-        "recentCount": 8064,
-        "questions": [
-          "Do you prefer getting information from websites or books?"
-        ],
-        "heatRank": 3
-      },
-      {
-        "rankInCat": 4,
-        "topicEn": "Teachers",
-        "topicZh": "老师",
-        "tag": "新增",
-        "recentCount": 5845,
-        "questions": [
-          "Do you like your primary school teachers more than your high school teachers?"
-        ],
-        "heatRank": 4
-      },
-      {
-        "rankInCat": 5,
         "topicEn": "Public gardens and parks",
-        "topicZh": "公园",
-        "tag": "新增",
-        "recentCount": 4816,
+        "topicZh": "公园与公共花园",
+        "tag": "沿用",
+        "recentCount": 18850,
+        "heatRank": 21,
         "questions": [
-          "Would you prefer to play in a personal garden or public garden?",
-          "How are the parks today different from those you visited as a kid?"
+          "How have the parks in your city changed in recent years?"
         ],
-        "heatRank": 5
+        "rankInCat": 16
       },
       {
-        "rankInCat": 6,
         "topicEn": "Shopping",
         "topicZh": "购物",
-        "tag": "新增",
-        "recentCount": 4312,
+        "tag": "沿用",
+        "recentCount": 16750,
+        "heatRank": 23,
         "questions": [
-          "Do you prefer online shopping or in-store shopping?"
+          "Do you prefer shopping online or in shops?"
         ],
-        "heatRank": 6
+        "rankInCat": 17
       },
       {
-        "rankInCat": 7,
+        "topicEn": "Websites",
+        "topicZh": "网站",
+        "tag": "沿用",
+        "recentCount": 14650,
+        "heatRank": 25,
+        "questions": [
+          "How have websites changed compared with ten years ago?",
+          "Do you prefer getting information from websites or books?"
+        ],
+        "rankInCat": 18
+      },
+      {
+        "topicEn": "Tidiness",
+        "topicZh": "整洁",
+        "tag": "沿用",
+        "recentCount": 13600,
+        "heatRank": 26,
+        "questions": [
+          "How have your tidying habits changed as you've got older?"
+        ],
+        "rankInCat": 19
+      },
+      {
         "topicEn": "Music",
         "topicZh": "音乐",
-        "tag": "新增",
-        "recentCount": 3997,
+        "tag": "沿用",
+        "recentCount": 12550,
+        "heatRank": 27,
         "questions": [
-          "Do you prefer sad or happy music?"
+          "How has your taste in music changed over the years?"
         ],
-        "heatRank": 7
+        "rankInCat": 20
       },
       {
-        "rankInCat": 8,
+        "topicEn": "Teachers",
+        "topicZh": "老师",
+        "tag": "沿用",
+        "recentCount": 10450,
+        "heatRank": 29,
+        "questions": [
+          "How has the way teachers teach changed since you were a child?"
+        ],
+        "rankInCat": 21
+      },
+      {
+        "topicEn": "The city you live in",
+        "topicZh": "你住的城市",
+        "tag": "万年",
+        "recentCount": 9400,
+        "heatRank": 30,
+        "questions": [
+          "How has your city changed over the past ten years?"
+        ],
+        "rankInCat": 22
+      },
+      {
         "topicEn": "Home & Accommodation",
         "topicZh": "住宿",
         "tag": "万年",
-        "recentCount": 3178,
+        "recentCount": 8350,
+        "heatRank": 31,
         "questions": [
-          "Do you prefer living in a house or an apartment?",
-          "What’s the difference between where you are living now and where you have lived in the past?"
+          "How is your home different from the one you lived in as a child?"
         ],
-        "heatRank": 8
+        "rankInCat": 23
       },
       {
-        "rankInCat": 9,
-        "topicEn": "Clothing",
-        "topicZh": "衣服",
-        "tag": "新增",
-        "recentCount": 3115,
+        "topicEn": "Hometown",
+        "topicZh": "家乡",
+        "tag": "万年",
+        "recentCount": 7300,
+        "heatRank": 32,
         "questions": [
-          "Do you prefer to wear comfortable and casual clothes or smart clothes?",
-          "Do you wear different styles of clothes on weekdays and weekends?"
+          "How has your hometown changed since you were a child?"
         ],
-        "heatRank": 9
+        "rankInCat": 24
       },
       {
-        "rankInCat": 10,
-        "topicEn": "Spare time",
-        "topicZh": "空闲时间",
-        "tag": "沿用",
-        "recentCount": 1834,
+        "topicEn": "The area you live in",
+        "topicZh": "你住的区域",
+        "tag": "万年",
+        "recentCount": 6250,
+        "heatRank": 33,
         "questions": [
-          "Which day do you have more free time on, Saturday or Sunday?"
+          "How has your area changed over the last few years?"
         ],
-        "heatRank": 10
-      },
-      {
-        "rankInCat": 11,
-        "topicEn": "Views",
-        "topicZh": "风景/取景",
-        "tag": "沿用",
-        "recentCount": 1743,
-        "questions": [
-          "Do you prefer views in urban areas or rural areas?",
-          "Do you prefer views in your own country or in other countries?"
-        ],
-        "heatRank": 11
-      },
-      {
-        "rankInCat": 12,
-        "topicEn": "Pets and Animals",
-        "topicZh": "宠物与动物",
-        "tag": "沿用",
-        "recentCount": 1330,
-        "questions": [
-          "Where do you prefer to keep your pet, indoors or outdoors?"
-        ],
-        "heatRank": 12
-      },
-      {
-        "rankInCat": 13,
-        "topicEn": "Typing",
-        "topicZh": "打字",
-        "tag": "沿用",
-        "recentCount": 1260,
-        "questions": [
-          "Do you prefer typing or handwriting?"
-        ],
-        "heatRank": 13
-      },
-      {
-        "rankInCat": 14,
-        "topicEn": "Morning time",
-        "topicZh": "早晨",
-        "tag": "沿用",
-        "recentCount": 1085,
-        "questions": [
-          "Are there any differences between what you do in the morning now and what you did in the past?",
-          "Do you spend your mornings doing the same things on both weekends and weekdays? Why?"
-        ],
-        "heatRank": 14
-      },
-      {
-        "rankInCat": 15,
-        "topicEn": "Sports team",
-        "topicZh": "运动队",
-        "tag": "沿用",
-        "recentCount": 1022,
-        "questions": [
-          "What are the differences between team sports and individual sports?"
-        ],
-        "heatRank": 15
-      },
-      {
-        "rankInCat": 16,
-        "topicEn": "Childhood activities",
-        "topicZh": "童年活动",
-        "tag": "沿用",
-        "recentCount": 994,
-        "questions": [
-          "Did you prefer to do activities alone or with a group of people when you were a child?",
-          "Are there any differences between the activities you liked when you were a child and those you like now?"
-        ],
-        "heatRank": 16
-      },
-      {
-        "rankInCat": 17,
-        "topicEn": "Reading",
-        "topicZh": "阅读",
-        "tag": "沿用",
-        "recentCount": 875,
-        "questions": [
-          "Do you prefer to read on paper or on a screen?",
-          "When do you need to read carefully, and when not?",
-          "Do you prefer scanning or detailed reading?"
-        ],
-        "heatRank": 17
-      },
-      {
-        "rankInCat": 18,
-        "topicEn": "Scenery",
-        "topicZh": "景色",
-        "tag": "沿用",
-        "recentCount": 777,
-        "questions": [
-          "Do you prefer the mountains or the sea?"
-        ],
-        "heatRank": 18
+        "rankInCat": 25
       }
     ],
     "q_count": 26

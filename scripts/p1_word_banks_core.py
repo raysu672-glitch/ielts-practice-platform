@@ -37,12 +37,14 @@ TOPIC_KITS: dict[str, dict[str, Any]] = {
         "chips": ["family road trips", "comfortable seats", "passenger", "rush hour", "driver"],
     },
     "work or studies": {
-        "logic": "学生线：subject + why choose + study routine；工作线可简答后拉回学习场景。",
+        "logic": "学生线：I'm a student → major/classes/library → 频次 → future career。",
         "chips": ["my major", "attend classes", "library", "assignments", "future career"],
+        "open": ["I'm a student", "I'm studying", "Not working yet"],
     },
     "websites": {
         "logic": "网站=查资料+刷内容：search information / watch short videos，感受用 practical。",
         "chips": ["search information", "watch short videos", "study resources", "Xiaohongshu", "useful"],
+        "open": ["Xiaohongshu and study sites", "A few useful websites", "Mostly search sites"],
     },
     "teachers": {
         "logic": "记住一位老师+具体帮助（explain concepts），喜好/对比都复用同一老师故事。",
@@ -179,6 +181,95 @@ TOPIC_KITS: dict[str, dict[str, Any]] = {
     "hobby": {
         "logic": "爱好直接指向 listen to music / sports / reading 中已背的一项。",
         "chips": ["hobby", "since childhood", "listen to music", "do some sports", "family"],
+    },
+    # --- 2026年9-12月新增话题 ---
+    "street markets": {
+        "mat": "地点·街头市场（逛摊尝鲜）",
+        "logic": "街市=street food + bargain + lively atmosphere，对比商场强调新鲜热闹。",
+        "chips": ["street market", "street food", "bargain", "lively", "fresh fruit"],
+    },
+    "opportunities": {
+        "mat": "经历·抓住机会（实习/比赛）",
+        "logic": "机会=internship / contest / part-time job；错过用 regret，抓住用 try。",
+        "chips": ["opportunity", "internship", "try it", "miss a chance", "career"],
+    },
+    "name": {
+        "mat": "个人信息·名字含义",
+        "logic": "名字=parents chose + meaning；绰号 childhood nickname，态度用 like it。",
+        "chips": ["my name", "parents chose", "meaning", "nickname", "special"],
+    },
+    "rubbish and recycling": {
+        "mat": "习惯·垃圾分类回收",
+        "logic": "回收=sort rubbish / recycle bins；态度变化用 more aware。",
+        "chips": ["recycle", "sort rubbish", "bins", "plastic bottles", "more aware"],
+    },
+    "paper": {
+        "mat": "物品·纸张（笔记 vs 屏幕）",
+        "logic": "纸=notebook / printouts；对比屏幕强调 write by hand helps memory。",
+        "chips": ["notebook", "printouts", "write by hand", "on a screen", "recycle paper"],
+    },
+    "advertisements": {
+        "mat": "媒介·广告（记忆点）",
+        "logic": "广告=on phone / subway；买过因 advert 可承认，童年用 TV ads。",
+        "chips": ["adverts", "on my phone", "subway screens", "catchy", "buy something"],
+    },
+    "tiredness": {
+        "mat": "状态·疲劳与休息",
+        "logic": "累=assignments / screen time；缓解用 sleep / short walk / sports。",
+        "chips": ["feel tired", "assignments", "take a nap", "go for a walk", "screen time"],
+    },
+    "politeness": {
+        "mat": "礼仪·礼貌表达",
+        "logic": "礼貌=please/thank you / hold the door；粗鲁用 interrupt，重要性落 respect。",
+        "chips": ["polite", "say thank you", "hold the door", "respect", "strangers"],
+    },
+    "secondary school": {
+        "mat": "经历·中学时光",
+        "logic": "中学=favourite subject + classmates + breaks；对比现在更 busy。勿硬套老师故事。",
+        "chips": ["secondary school", "favourite subject", "classmates", "breaks", "uniforms"],
+        "open": ["It was busy but friendly", "English was my favourite", "Quite organised"],
+    },
+    "teachers": {
+        "mat": "人物·耐心老师",
+        "logic": "老师题落 patient + explain concepts + encourage；别扯专业/名字。",
+        "chips": ["patient teacher", "explain concepts", "encouraging feedback", "after class", "clear explanations"],
+        "open": ["A patient teacher", "My favourite teacher", "Someone who explains clearly"],
+    },
+    "shoes": {
+        "mat": "物品·鞋子（舒适优先）",
+        "logic": "鞋=sneakers / comfort over style；买鞋频率 weekends，童年用 school shoes。",
+        "chips": ["sneakers", "comfortable", "style", "buy new shoes", "school shoes"],
+        "open": ["Comfortable sneakers", "Casual shoes", "A simple pair"],
+    },
+    "fruit and vegetables": {
+        "mat": "饮食·蔬果习惯",
+        "logic": "蔬果=favourite fruit + eat vegetables；购买用 supermarket / street market。",
+        "chips": ["favourite fruit", "vegetables", "supermarket", "healthy", "as a child"],
+        "open": ["Fresh fruit", "I eat vegetables often", "Yes, almost every day"],
+    },
+    "travelling": {
+        "mat": "经历·旅行出游",
+        "logic": "旅行=with family/friends + nature/cities；童年 holiday，未来想去一句即可。",
+        "chips": ["travel", "with family", "holiday", "cities", "nature"],
+        "open": ["Yes, I do", "A few times a year", "With my family"],
+    },
+    "feeling bored": {
+        "mat": "状态·无聊时怎么办",
+        "logic": "无聊=watch short videos / hang out / walk；童年 outdoor play，偶尔无聊有益。",
+        "chips": ["feel bored", "watch short videos", "hang out", "go outside", "as a child"],
+        "open": ["In the evening", "I go for a walk", "I watch something light"],
+    },
+    "rubbish and recycling": {
+        "mat": "习惯·垃圾分类",
+        "logic": "垃圾=sort rubbish / recycling bins；街上捡起、楼层分类都落到 responsible。",
+        "chips": ["recycling bins", "sort rubbish", "pick it up", "paper and plastic", "responsible"],
+        "open": ["I pick it up if I can", "I put it in a bin", "Yes, I try to"],
+    },
+    "tiredness": {
+        "mat": "状态·疲惫放松",
+        "logic": "疲惫=take a break / walk / music；别硬套鞋子衣服当答案。",
+        "chips": ["take a short break", "go for a walk", "listen to music", "have a nap", "after class"],
+        "open": ["In the evening", "I take a short break", "After a long day"],
     },
 }
 
@@ -410,6 +501,26 @@ def tweak_combined(cat_id: str, qtext: str, words: dict[str, list[str]], steps: 
     elif "what work do you" in ql:
         out[steps[0]] = ["I'm a student", "I work part-time", "Internship"]
         out[steps[1]] = ["internship", "tutor", "on campus"]
+    elif "do you work or are you a student" in ql:
+        out[steps[0]] = ["I'm a student", "I'm studying", "Not working yet"]
+        out[steps[1]] = ["my major", "attend classes", "library", "assignments"]
+        out[steps[2]] = ["every weekday", "every day", "at weekends"]
+        out[steps[3]] = ["practical", "useful for my future career", "quite useful"]
+    elif "why did you choose that job or that subject" in ql:
+        out[steps[0]] = ["I chose it for my strengths", "Because it matches my interests", "Definitely"]
+        out[steps[1]] = ["my strengths", "future career", "related courses"]
+    elif "most challenging about your work or your studies" in ql:
+        out[steps[0]] = ["Balancing deadlines", "Assignments", "Exams"]
+        out[steps[1]] = ["assignments", "library", "deadlines"]
+    elif "like most about your job or your studies" in ql:
+        out[steps[0]] = ["Learning with classmates", "Group projects", "I enjoy classes"]
+        out[steps[1]] = ["classmates", "real cases", "group projects"]
+    elif "typical day like for you at work or at school" in ql:
+        out[steps[0]] = ["Packed with classes", "Busy but organised", "Morning classes first"]
+        out[steps[1]] = ["morning classes", "library", "assignments"]
+    elif "career or studies in a few years" in ql or "would you like to be doing in your career" in ql:
+        out[steps[0]] = ["Finish my degree first", "Start an internship", "A practical role"]
+        out[steps[1]] = ["internship", "business-related role", "work experience"]
     elif "sent handmade" in ql:
         out[steps[1]] = ["a handmade card", "knitted scarf", "DIY gift"]
     elif "received a great" in ql or "received recently" in ql:

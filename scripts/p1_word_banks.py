@@ -6,6 +6,7 @@ import json
 from pathlib import Path
 from typing import Any
 
+from p1_topic_materials import get_question_pack
 from p1_word_banks_core import (
     CAT_STEPS,
     CLUE_ALIAS,
@@ -50,6 +51,11 @@ def resolve_words(
 ) -> tuple[dict[str, list[str]], str, str]:
     """Return (words per step, logic sentence, source tag)."""
     key = norm_q(qtext)
+    pack_data = get_question_pack(qtext)
+    if pack_data and pack_data.get("words"):
+        words = {s: apply_fixes(list(pack_data["words"].get(s, [])))[:5] for s in steps}
+        return words, pack_data.get("logic", ""), pack_data.get("source", "topic-pack")
+
     data = load_question_data().get(key)
     if data and data.get("words"):
         words = {s: apply_fixes(list(data["words"].get(s, [])))[:5] for s in steps}
@@ -77,11 +83,19 @@ def resolve_words(
     if not words:
         kit = kit_for(topic_en or "")
         chips = kit["chips"]
-        words = pack(cat_id, ["Yes", "Definitely"], chips[:4], ["from time to time", "at weekends"], ["practical", "really convenient"])
+        opens = kit.get("open") or ["Yes", "Definitely"]
+        words = pack(
+            cat_id,
+            list(opens),
+            chips[:4],
+            ["from time to time", "at weekends", "every day"],
+            ["practical", "really convenient", "quite useful"],
+        )
         source = "derived"
 
     kit = kit_for(topic_en or "")
     logic = kit.get("logic", "先直接回答，再举具体例子，补频次，最后感受收束。")
+    words = tweak_combined(cat_id, qtext, words, steps)
 
     for s in steps:
         words[s] = enrich_step_words(words.get(s, []), cat_id, topic_en or "", s, steps)

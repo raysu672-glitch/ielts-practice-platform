@@ -347,6 +347,22 @@ html.is-embedded .p2-main {
     color: var(--text-secondary);
 }
 
+.p1-kit-switcher {
+    margin-top: 10px;
+}
+.p1-kit-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-muted, #6b7280);
+    margin: 0 0 6px;
+}
+.p1-kit-hint {
+    font-size: 13px;
+    color: var(--text-secondary);
+    line-height: 1.55;
+    margin-top: 4px;
+}
+
 .p1-sample-box {
     width: 100%;
     margin: 0 0 20px;
@@ -414,10 +430,21 @@ html.is-embedded .p2-main {
 
 .p1-sample-text {
     margin: 0;
-    padding: 0 14px 10px;
+    padding: 0 14px 6px;
     font-size: 14px;
     line-height: 1.7;
     color: var(--text-primary);
+    white-space: pre-wrap;
+    -webkit-user-select: none;
+    user-select: none;
+}
+
+.p1-sample-zh {
+    margin: 0;
+    padding: 0 14px 10px;
+    font-size: 13px;
+    line-height: 1.65;
+    color: var(--text-muted, #666);
     white-space: pre-wrap;
     -webkit-user-select: none;
     user-select: none;
@@ -663,6 +690,47 @@ html.is-embedded .p2-main {
     font-size: 12px;
     color: var(--text-secondary);
     line-height: 1.4;
+}
+
+.complex-frame-alts {
+    margin-top: 10px;
+    padding-top: 8px;
+    border-top: 1px dashed rgba(36, 48, 41, 0.18);
+}
+
+.complex-frame-alts-label {
+    font-size: 11px;
+    color: var(--text-secondary);
+    margin-bottom: 6px;
+}
+
+.complex-frame > .complex-frame-alt:first-of-type {
+    margin-top: 8px;
+}
+
+.complex-frame-alt {
+    margin-top: 6px;
+    padding: 8px 10px;
+    background: rgba(255, 255, 255, 0.65);
+}
+
+.complex-frame-alt-tag {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--brand-deep);
+    margin-right: 6px;
+}
+
+.complex-frame-alt-name {
+    font-size: 12px;
+    color: var(--text-secondary);
+}
+
+.complex-frame-alt .complex-frame-pattern {
+    margin-top: 2px;
+    margin-bottom: 0;
+    font-size: 13px;
 }
 
 /* 按钮 */

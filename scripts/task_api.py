@@ -204,7 +204,7 @@ EXPECTED_TASK_UNIT_COUNTS = {
     "writing_translate": 23,
     "listening_p4_speed": 24,
     "speaking_complex": 17,
-    "speaking_p1": 24,
+    "speaking_p1": 21,
     "speaking_p2_material": 8,
     "speaking_p2_apply": 12,
 }

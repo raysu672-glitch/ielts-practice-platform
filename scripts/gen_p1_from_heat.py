@@ -30,8 +30,22 @@ def load_old_index() -> dict[str, dict]:
     if not OLD.is_file():
         return {}
     text = OLD.read_text(encoding="utf-8")
-    raw = text[text.find("{") : text.rfind("}") + 1]
-    data = json.loads(raw)
+    # file may end with `};` plus `window.P1_DATA = ...`
+    start = text.find("const P1_DATA =")
+    brace = text.find("{", start if start >= 0 else 0)
+    depth = 0
+    end = -1
+    for i, ch in enumerate(text[brace:], brace):
+        if ch == "{":
+            depth += 1
+        elif ch == "}":
+            depth -= 1
+            if depth == 0:
+                end = i + 1
+                break
+    if end < 0:
+        raise SystemExit("P1_DATA object not closed")
+    data = json.loads(text[brace:end])
     idx: dict[str, dict] = {}
     for cat in data["categories"]:
         for q in cat["questions"]:
@@ -110,9 +124,9 @@ def main() -> None:
 
     data = {
         "meta": {
-            "season": "2026年5-8月",
-            "heatSource": "雅思哥 2026-08-25",
-            "note": "仅保留大陆考区当季在考小题；同类内按近期考过人数排序",
+            "season": "2026年9-12月",
+            "heatSource": "同桌英语 + Ashore 2026-11",
+            "note": "仅保留大陆考区当季在考小题；同类内按近期考过人数排序；换季删旧补新",
             "totalQuestions": sum(len(c["questions"]) for c in categories),
             "wordSourceStats": source_stats,
             "sampleLogicFail": sample_fail,
@@ -121,10 +135,13 @@ def main() -> None:
     }
 
     js = (
-        "// P1 data - 2026年5-8月在考题（五类按热度）+ 逐题词块\n"
+        "// P1 data - 2026年9-12月在考题（五类按热度）+ 逐题词块\n"
         "const P1_DATA = "
         + json.dumps(data, ensure_ascii=False, indent=2)
-        + ";\n"
+        + ";\n\n"
+        "if (typeof window !== 'undefined') {\n"
+        "  window.P1_DATA = P1_DATA;\n"
+        "}\n"
     )
     OUT.write_text(js, encoding="utf-8")
     summary = ROOT / "_p1_rebuild_summary.txt"

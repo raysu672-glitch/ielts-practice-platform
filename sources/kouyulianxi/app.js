@@ -119,6 +119,7 @@ class P1Practice {
         // 按题目缓存练习结果（切换题目时保留，再点回来可看）
         this.questionSessions = Object.create(null);
         this.bestScores = Object.create(null); // scoreKey -> best overall band
+        this.topicKitChoice = Object.create(null); // questionKey -> materialId（按题选素材，切换必须换词卡/示范）
         this._loadedQuestionKey = null;
         this._recordingQuestionKey = null;
         this.aiConfigured = false;
@@ -674,11 +675,102 @@ class P1Practice {
         });
     }
     
+    materialChoiceKey(q) {
+        // Prefer stable per-question key so switching one Q doesn't silently affect another
+        const qid = q && (q.id != null ? String(q.id) : '');
+        const topic = (q && q.topicEn) || '';
+        const text = (q && (q.q || q.title)) || '';
+        return `p1mat:${topic}::${qid || text}`;
+    }
+
+    activeKitIdForQuestion(q) {
+        const ids = (q && q.kitIds) || [];
+        const key = this.materialChoiceKey(q);
+        const chosen = this.topicKitChoice[key] || (q && q.kitId) || ids[0];
+        if (chosen && ids.length && !ids.includes(chosen)) return ids[0];
+        return chosen || '';
+    }
+
+    /** Overlay kitVariants onto a question for display (does not mutate source data). */
+    viewQuestionWithKit(q) {
+        if (!q) return q;
+        const kitId = this.activeKitIdForQuestion(q);
+        const variant = q.kitVariants && kitId ? q.kitVariants[kitId] : null;
+        if (!variant) {
+            return Object.assign({}, q, { kitId: kitId || q.kitId });
+        }
+        const tipBase = (q.tip || '').split('】')[0];
+        const tipPrefix = tipBase && (q.tip || '').includes('】') ? `${tipBase}】` : '';
+        // Preview style: heat prefix + this kit's clear logic only
+        const nextTip = variant.logic ? `${tipPrefix}${variant.logic}` : q.tip;
+        return Object.assign({}, q, {
+            kitId,
+            words: variant.words || q.words,
+            sample: variant.sample || q.sample,
+            sampleZh: variant.sampleZh || q.sampleZh || '',
+            frames: variant.frames || q.frames,
+            frameVariant: variant.frameVariant != null ? variant.frameVariant : q.frameVariant,
+            logic: variant.logic || q.logic,
+            tip: nextTip || q.tip,
+            material: variant.material || q.material,
+            kitHint: variant.kitHint || q.kitHint,
+            kitNameZh: variant.kitNameZh || q.kitNameZh,
+            kitSummary: variant.kitSummary || q.kitSummary,
+            kitSlice: variant.kitSlice || q.kitSlice,
+            kitRest: variant.kitRest || q.kitRest,
+        });
+    }
+
+    renderP1KitSwitcher(q) {
+        const box = document.getElementById('p1KitSwitcher');
+        if (!box) return;
+        const ids = (q && q.kitIds) || [];
+        if (ids.length < 2) {
+            box.style.display = 'none';
+            box.innerHTML = '';
+            return;
+        }
+        const active = this.activeKitIdForQuestion(q);
+        const catalog = (typeof P1_KITS_DATA !== 'undefined' && P1_KITS_DATA.kits) || [];
+        const nameOf = (id) => {
+            const v = q.kitVariants && q.kitVariants[id];
+            if (v && v.kitNameZh) return v.kitNameZh;
+            const hit = catalog.find((k) => k.id === id);
+            return (hit && hit.nameZh) || id;
+        };
+        const summaryOf = (id) => {
+            const v = q.kitVariants && q.kitVariants[id];
+            if (v && v.kitSummary) return v.kitSummary;
+            const hit = catalog.find((k) => k.id === id);
+            return (hit && hit.summary) || '';
+        };
+        box.style.display = 'block';
+        box.innerHTML = `
+            <div class="p1-kit-label">本题可用素材（点选后下方词卡与示范会跟着变）</div>
+            <div class="p2-mat-switch" role="group" aria-label="选择生活素材">
+                ${ids.map((id) => {
+                    const activeCls = id === active ? ' active' : '';
+                    return `<button type="button" class="p2-mat-opt${activeCls}" data-p1-kit="${this.escapeHtml(id)}" title="${this.escapeHtml(summaryOf(id))}">${this.escapeHtml(nameOf(id))}</button>`;
+                }).join('')}
+            </div>
+            <div class="p1-kit-hint">${this.escapeHtml(q.kitHint || q.kitSummary || '')}</div>
+        `;
+        box.querySelectorAll('[data-p1-kit]').forEach((btn) => {
+            btn.addEventListener('click', () => {
+                const kid = btn.getAttribute('data-p1-kit');
+                if (!kid || kid === active) return;
+                this.topicKitChoice[this.materialChoiceKey(q)] = kid;
+                this.renderQuestion();
+            });
+        });
+    }
+
     // 渲染当前题目
     renderQuestion() {
         const cat = this.data.categories[this.currentCategoryIndex];
-        const q = cat && cat.questions[this.currentQuestionIndex];
-        if (!cat || !q) return;
+        const raw = cat && cat.questions[this.currentQuestionIndex];
+        if (!cat || !raw) return;
+        const q = this.viewQuestionWithKit(raw);
 
         // 切换前先保存上一题结果
         this.persistLoadedQuestionSession();
@@ -692,6 +784,7 @@ class P1Practice {
         if (q.tag) heatBits.push(q.tag);
         if (q.heatRank != null) heatBits.push(`热度#${q.heatRank}`);
         if (q.recentCount != null) heatBits.push(`近${this.formatHeatCount(q.recentCount)}人考过`);
+        if (q.kitNameZh) heatBits.push(q.kitNameZh);
         document.getElementById('currentCategory').textContent =
             heatBits.length ? `${cat.name} · ${heatBits.join(' · ')}` : cat.name;
         // 只保留大字题目（完整题干）
@@ -709,6 +802,8 @@ class P1Practice {
                 tipBox.innerHTML = '';
             }
         }
+
+        this.renderP1KitSwitcher(q);
         
         // 渲染步骤
         const stepsContainer = document.getElementById('stepsContainer');
@@ -719,12 +814,37 @@ class P1Practice {
             const frame = this.getComplexFrame(cat, stepIndex, q);
             const stepDiv = document.createElement('div');
             stepDiv.className = 'step-item';
-            const frameHtml = frame ? `
+            let frameHtml = '';
+            if (frame) {
+                // 第2–4步：三个复合句框架并列（primary + alts）
+                const allFrames = [
+                    { name: frame.name || '', pattern: frame.pattern || '', tip: frame.tip || '' },
+                    ...((Array.isArray(frame.alts) ? frame.alts : []).map((alt) => ({
+                        name: alt.name || '',
+                        pattern: alt.pattern || '',
+                        tip: alt.tip || '',
+                    }))),
+                ].filter((f) => f.pattern).slice(0, 3);
+                while (allFrames.length < 3 && frame.pattern) {
+                    allFrames.push({
+                        name: frame.name || '',
+                        pattern: frame.pattern || '',
+                        tip: frame.tip || '',
+                    });
+                }
+                frameHtml = `
                 <div class="complex-frame">
-                    <div class="complex-frame-label">复合句参考 · ${this.escapeHtml(frame.name)}</div>
-                    <div class="complex-frame-pattern">${this.escapeHtml(frame.pattern)}</div>
-                    <div class="complex-frame-tip">${this.escapeHtml(frame.tip)}</div>
-                </div>` : '';
+                    <div class="complex-frame-label">复合句框架（任选其一）</div>
+                    ${allFrames.map((f, i) => `
+                        <div class="complex-frame-alt">
+                            <span class="complex-frame-alt-tag">句型${i + 1}</span>
+                            <span class="complex-frame-alt-name">${this.escapeHtml(f.name)}</span>
+                            <div class="complex-frame-pattern">${this.escapeHtml(f.pattern)}</div>
+                            ${f.tip ? `<div class="complex-frame-tip">${this.escapeHtml(f.tip)}</div>` : ''}
+                        </div>
+                    `).join('')}
+                </div>`;
+            }
             stepDiv.innerHTML = `
                 <div class="step-header">
                     <div class="step-number">${stepIndex + 1}</div>
@@ -749,15 +869,24 @@ class P1Practice {
 
         const sampleBox = document.getElementById('p1SampleBox');
         const sampleText = document.getElementById('p1SampleText');
+        const sampleZh = document.getElementById('p1SampleZh');
         if (sampleBox && sampleText) {
             if (q.sample) {
                 sampleBox.style.display = '';
                 sampleText.textContent = q.sample;
+                if (sampleZh) {
+                    sampleZh.textContent = q.sampleZh || '';
+                    sampleZh.style.display = q.sampleZh ? '' : 'none';
+                }
                 sampleBox.open = false;
                 sampleBox.classList.remove('is-recording-locked');
             } else {
                 sampleBox.style.display = 'none';
                 sampleText.textContent = '';
+                if (sampleZh) {
+                    sampleZh.textContent = '';
+                    sampleZh.style.display = 'none';
+                }
                 sampleBox.open = false;
                 sampleBox.classList.remove('is-recording-locked');
             }
